@@ -1,0 +1,22 @@
+{
+  "name": "url-qr-code-printer",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Collecte d'URL (clic droit / extension), base locale, export CSV-Markdown et impression d'étiquettes QR (tableau, PDF, Niimbot D110 / M2).",
+  "license": "MIT",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "test": "node --test 'test/*.test.js'",
+    "build": "node scripts/build.mjs",
+    "build:web": "node scripts/build.mjs --only=web",
+    "build:extension": "node scripts/build.mjs --only=extension",
+    "serve": "node scripts/serve.mjs",
+    "dev": "node scripts/build.mjs && node scripts/serve.mjs"
+  },
+  "dependencies": {
+    "uqr": "^0.1.3"
+  }
+}

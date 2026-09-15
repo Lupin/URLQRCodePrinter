@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Générateur QR Code pour Niimbot D110A</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1>Générateur QR Code pour Niimbot D110A</h1>
+            <p class="subtitle">Convertissez vos URLs en codes QR et imprimez-les sur votre imprimante d'étiquettes</p>
+        </header>
+
+        <main class="main-content">
+            <!-- Section de saisie -->
+            <section class="card input-section">
+                <div class="card__body">
+                    <h2>Saisie de l'URL</h2>
+                    <div class="form-group">
+                        <label for="url-input" class="form-label">URL à convertir</label>
+                        <input 
+                            type="url" 
+                            id="url-input" 
+                            class="form-control" 
+                            placeholder="Entrez votre URL ici..."
+                            required
+                        >
+                    </div>
+                    <button id="generate-qr" class="btn btn--primary">Générer QR Code</button>
+                </div>
+            </section>
+
+            <!-- Section d'aperçu -->
+            <section class="card preview-section">
+                <div class="card__body">
+                    <h2>Aperçu</h2>
+                    <div id="preview-container" class="preview-container">
+                        <div id="qr-preview" class="qr-preview"></div>
+                        <div id="url-text" class="url-text"></div>
+                        <div id="label-preview" class="label-preview">
+                            <p class="preview-note">Le QR code apparaîtra ici après génération</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Section de connexion -->
+            <section class="card connection-section">
+                <div class="card__body">
+                    <h2>Connexion Bluetooth</h2>
+                    <div class="connection-status">
+                        <div class="status-indicator">
+                            <span id="status-dot" class="status-dot status-dot--disconnected"></span>
+                            <span id="status-text" class="status-text">Déconnecté</span>
+                        </div>
+                        <div id="printer-name" class="printer-name"></div>
+                    </div>
+                    <button id="connect-printer" class="btn btn--secondary">Connecter l'imprimante</button>
+                    <button id="disconnect-printer" class="btn btn--outline hidden">Déconnecter</button>
+                </div>
+            </section>
+
+            <!-- Section d'impression -->
+            <section class="card print-section">
+                <div class="card__body">
+                    <h2>Impression</h2>
+                    <div class="print-options">
+                        <div class="form-group">
+                            <label for="print-density" class="form-label">Densité d'impression</label>
+                            <select id="print-density" class="form-control">
+                                <option value="1">1 - Très claire</option>
+                                <option value="2">2 - Claire</option>
+                                <option value="3" selected>3 - Normale</option>
+                                <option value="4">4 - Foncée</option>
+                                <option value="5">5 - Très foncée</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="print-copies" class="form-label">Nombre de copies</label>
+                            <input 
+                                type="number" 
+                                id="print-copies" 
+                                class="form-control" 
+                                min="1" 
+                                max="10" 
+                                value="1"
+                            >
+                        </div>
+                    </div>
+                    <button id="print-label" class="btn btn--primary btn--full-width" disabled>Imprimer étiquette</button>
+                </div>
+            </section>
+        </main>
+
+        <!-- Messages de notification -->
+        <div id="notification-container" class="notification-container"></div>
+
+        <!-- Canvas caché pour la composition -->
+        <canvas id="label-canvas" class="hidden"></canvas>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
