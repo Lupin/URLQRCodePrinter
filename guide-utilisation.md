@@ -59,6 +59,18 @@ retiré, paramètres de campagne (`utm_*`, `fbclid`, `gclid`…) supprimés — 
 allongent le QR sans rien apporter au papier. Un doublon n'est pas ajouté deux
 fois ; l'application vous le dit au lieu de rester silencieuse.
 
+**Dater les étiquettes.** Le sélecteur « Date sous le QR code » imprime la date
+de collecte du lien — `Aucune` par défaut, `Date de collecte` (`15/09/2026`) ou
+`Date et heure de collecte` (`15/09/2026 18:01`). Utile pour dater une capture
+dans un cahier de laboratoire ou un journal d'essais. Le choix s'applique à la
+planche, au tableau (colonne « Date »), à l'étiquette Niimbot et à l'archive
+d'images.
+
+Une date n'est jamais imprimée partiellement : si elle ne tient pas — colonne
+trop étroite, ou plus de deux lignes nécessaires à cette taille de texte — elle
+est omise et l'aperçu le signale. Réduire la taille du texte, ou choisir une
+étiquette plus large, la fait tenir.
+
 **Ouvrir un lien collecté.** Le titre et l'URL de chaque ligne sont des
 hyperliens : ils s'ouvrent dans un nouvel onglet, depuis l'application comme
 depuis la fenêtre de l'extension.
