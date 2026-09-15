@@ -78,6 +78,18 @@ if (!existsSync(APP)) {
   process.exit(1);
 }
 
+// Une instance déjà lancée serait simplement réactivée par `open`, et
+// l'utilisateur verrait l'ancienne interface — exactement ce qui s'est produit
+// avec la fenêtre corrigée. On la termine donc avant de relancer.
+const running = spawnSync('pkill', ['-f', 'URLQRCodePrinter.app/Contents/MacOS'], {
+  stdio: 'ignore',
+});
+if (running.status === 0) {
+  console.log('→ Instance précédente terminée.');
+  // Laisse à macOS le temps de libérer le bundle avant de le relancer.
+  spawnSync('sleep', ['1'], { stdio: 'ignore' });
+}
+
 console.log('\n→ Lancement de l\'application, qui enregistre l\'extension…\n');
 run('open', [APP]);
 
