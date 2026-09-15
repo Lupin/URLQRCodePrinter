@@ -290,19 +290,13 @@
           <!-- Le profil ne connaît que la largeur de la tête. Sans la longueur
                du rouleau, la composition se tassait en haut et l'imprimante
                avançait jusqu'à la découpe suivante : le reste sortait blanc. -->
+          <!-- Le consommable porte ses deux cotes. Demander la longueur à
+               côté du format était redondant : un rouleau 12 × 30 mm impose
+               30 mm, on ne devrait pas avoir à le ressaisir — ni pouvoir le
+               contredire. Seul le rouleau continu laisse la longueur libre. -->
           <div class="field">
-            <label class="field__label" for="label-length">Longueur d'étiquette (mm)</label>
-            <div class="field__row">
-              <input id="label-length" class="input" type="number" min="0" max="300" step="1"
-                     list="label-length-suggestions" placeholder="Longueur libre">
-              <!-- Une liste déroulante ne se « désélectionne » pas : sans ce
-                   bouton, choisir 30 mm était définitif et on ne pouvait plus
-                   revenir au rouleau continu. -->
-              <button id="label-length-clear" class="btn btn--ghost btn--compact" type="button">
-                Libre
-              </button>
-            </div>
-            <datalist id="label-length-suggestions"></datalist>
+            <span class="field__label">Consommable</span>
+            <select id="label-supply" class="input"></select>
           </div>
           <!-- Où va la place restante quand la longueur du rouleau est connue. -->
           <label class="field">
@@ -311,6 +305,22 @@
           </label>
         </div>
         <p id="label-content-hint" class="hint hint--tight"></p>
+
+        <!-- Longueur libre : n'apparaît que pour un rouleau continu, où le pas
+             de découpe n'est pas connu. Un consommable à longueur fixe impose
+             la sienne, et ce champ n'aurait alors aucun sens. -->
+        <div class="fields" id="label-length-fields" hidden>
+          <div class="field">
+            <label class="field__label" for="label-length">Longueur d'impression (mm)</label>
+            <div class="field__row">
+              <input id="label-length" class="input" type="number" min="0" max="300" step="1"
+                     placeholder="Longueur du contenu">
+              <button id="label-length-clear" class="btn btn--ghost btn--compact" type="button">
+                Libre
+              </button>
+            </div>
+          </div>
+        </div>
 
         <div class="printer">
           <div class="printer__status">
@@ -324,6 +334,10 @@
         </div>
 
         <p id="profile-hint" class="hint hint--tight"></p>
+        <!-- Ce que le consommable annonce, quand le modèle sait le lire. La
+             mention « non vérifiée » est volontaire : cette lecture n'a jamais
+             été confrontée à une imprimante réelle. -->
+        <p id="supply-status" class="hint hint--tight" hidden></p>
         <p id="ble-support" class="hint" hidden></p>
         <button id="print-label" class="btn btn--primary btn--wide" type="button" disabled>
           Imprimer cette étiquette

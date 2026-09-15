@@ -316,3 +316,30 @@ test('la date ne déborde pas quand une longueur est imposée', () => {
   const bottom = g.textTop + (g.lines.length + g.extraLines) * g.lineHeight;
   assert.ok(bottom <= g.height, `bas ${bottom} > hauteur ${g.height}`);
 });
+
+test('une police trop grosse est reduite plutot que de tronquer le texte', () => {
+  // Sans cette reduction, `maxLines` coupait l'URL en silence : l'etiquette
+  // sortait amputee, ce qui est pire qu'un texte plus petit.
+  const long = 'https://www.youtube.com/watch?v=9iL4t8ABGmI&list=PLabc';
+  const mesure = (texte) => texte.length * 40 * 0.55;
+  const g = computeLabelGeometry({
+    text: long, qrText: long, widthPx: 96, dpi: 203,
+    maxHeightPx: 176, measure: mesure, fontSize: 40,
+  });
+
+  assert.ok(g.fontSize < 40, `la police devait baisser, elle vaut ${g.fontSize}`);
+  assert.ok(g.naturalHeight <= 176, 'le contenu doit tenir dans la cible');
+  // La reduction sert bien a faire tenir davantage de texte : a 40 px, le
+  // plafond de lignes n'en laissait qu'une seule.
+  assert.ok(g.lines.length >= 2, `une seule ligne : ${JSON.stringify(g.lines)}`);
+});
+
+test('la police ne descend jamais sous la lisibilite, meme sur une cible courte', () => {
+  const long = 'https://exemple.fr/' + 'segment/'.repeat(12);
+  const mesure = (texte) => texte.length * 13 * 0.55;
+  const g = computeLabelGeometry({
+    text: long, qrText: long, widthPx: 96, dpi: 203,
+    maxHeightPx: 60, measure: mesure,
+  });
+  assert.ok(g.fontSize >= 6, `police ${g.fontSize} px, illisible`);
+});

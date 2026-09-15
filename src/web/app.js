@@ -27,6 +27,7 @@ import {
   drawLabel,
   checkQrLegibility,
   labelContent,
+  layoutLabelLateral,
   wrapDate,
   LABEL_ALIGNMENTS,
   DEFAULT_LABEL_ALIGNMENT,
@@ -138,11 +139,34 @@ let linkRanks = new Map();
  * lu jusqu'ici — et je n'ai pas de matériel pour trancher. On laisse donc le
  * choix, sans rien changer au comportement actuel par défaut.
  */
-const LABEL_ROTATIONS = Object.freeze([
-  { id: '0', label: 'Normale', turns: 0 },
-  { id: '1', label: 'Quart de tour (90°)', turns: 1 },
-  { id: '2', label: 'Demi-tour (180°)', turns: 2 },
-  { id: '3', label: 'Trois quarts de tour (270°)', turns: 3 },
+const LABEL_ORIENTATIONS = Object.freeze([
+  {
+    id: 'horizontal',
+    label: 'Horizontal (texte à droite du QR)',
+    // Le support est dans le sens du défilement : rien à tourner.
+    turns: 0,
+    lateral: true,
+  },
+  {
+    id: 'vertical',
+    label: 'Vertical (texte sous le QR)',
+    turns: 0,
+    lateral: false,
+  },
+  {
+    id: 'horizontal-inverse',
+    label: 'Horizontal, code à droite',
+    turns: 0,
+    lateral: true,
+    mirror: true,
+  },
+  {
+    id: 'vertical-inverse',
+    label: 'Vertical, à l\'envers (180°)',
+    // Rouleau monté à l'envers : l'image sort à l'envers telle quelle.
+    turns: 2,
+    lateral: false,
+  },
 ]);
 
 /**
@@ -1671,7 +1695,7 @@ function renderSingleLabel(link) {
   // Le profil vient de l'imprimante quand il y en a une, sinon du format
   // choisi : on doit pouvoir juger un rendu avant d'acheter le matériel.
   const profile = previewProfile();
-  const { geometry, content, verdict, dateOmitted } = composeLabel(link, profile);
+  const { geometry, content, verdict, dateOmitted, lateralRefused } = composeLabel(link, profile);
 
   const frame = document.createElement('div');
   frame.className = 'preview__page';
@@ -1718,11 +1742,13 @@ function renderSingleLabel(link) {
   // `composeLabel` sait si la date a été écartée : on le dit, plutôt que de
   // laisser croire que l'option n'a pas d'effet.
   const dateNote = dateOmitted ? composeDateNote() : '';
-  const turnNote = turns === 0 ? '' : ` — orientation : ${labelRotation().label}`;
+  const orientationNote = lateralRefused
+    ? ' — texte empilé : le QR laisse trop peu de largeur pour une colonne de texte.'
+    : (turns === 0 ? '' : ` — orientation : ${labelRotation().label}`);
   caption.textContent = (verdict.ok
     ? `${profile.id} — ${geometry.width} × ${geometry.height} px, `
       + `${decimal(verdict.pxPerModule)} px par module`
-    : `${profile.id} — ${verdict.reason}`) + turnNote + dateNote;
+    : `${profile.id} — ${verdict.reason}`) + orientationNote + dateNote;
   if (!verdict.ok) caption.style.color = 'var(--danger)';
   frame.appendChild(caption);
 
@@ -1775,7 +1801,7 @@ function composeLabel(link, profile) {
   // Le contenu choisi décide de ce qui est imprimé : QR seul, + titre, + URL…
   const content = labelContent(link, el.labelContent.value, dateLines);
 
-  const geometry = computeLabelGeometry({
+  let geometry = computeLabelGeometry({
     text: content.text,
     qrText: link.url,
     widthPx: profile.printheadPixels,
@@ -1786,12 +1812,32 @@ function composeLabel(link, profile) {
     alignment,
   });
 
+  // Orientation horizontale : le QR et le texte se partagent la largeur de la
+  // tête, au lieu d'être empilés. Le texte n'est pas tourné — il reste droit et
+  // se découpe dans la colonne qui lui revient.
+  let lateralRefused = false;
+  const orientation = labelOrientation();
+  if (orientation.lateral) {
+    const lateral = layoutLabelLateral(geometry, {
+      measure: cachedTextMeasure(geometry.fontSize),
+      text: content.text,
+      maxLines: 4,
+      gap: geometry.padding,
+    });
+    // Une URL dense occupe tant de modules qu'il ne reste pas de colonne pour
+    // le texte : sur une tête de 12 mm, c'est le cas courant. On empile plutôt
+    // que d'écrire trois caractères par ligne, et on le dit.
+    lateralRefused = lateral.lateral !== true;
+    geometry = lateralRefused ? geometry : lateral;
+  }
+
   return {
     geometry,
     content,
     verdict: checkQrLegibility(geometry),
     dateLines,
     dateOmitted: wanted !== '' && dateLines.length === 0,
+    lateralRefused,
   };
 }
 
@@ -1806,10 +1852,16 @@ function composeLabel(link, profile) {
  * @returns {number}
  */
 function labelLengthPx(profile) {
-  const typed = Number(el.labelLength.value);
-  if (!Number.isFinite(typed) || typed <= 0) return 0;
-  const mm = Math.min(typed, profile.maxPrintHeightMm);
-  return Math.round((mm / 25.4) * profile.dpi);
+  // Un consommable à longueur fixe fait foi : c'est le rouleau qui est chargé,
+  // pas une valeur saisie à côté. Le rouleau continu, lui, laisse la place au
+  // contenu, ou à la longueur indiquée à la main.
+  const supply = chosenSupply();
+  const mm = supply && supply.lengthMm !== null
+    ? supply.lengthMm
+    : Number(el.labelLength.value);
+
+  if (!Number.isFinite(mm) || mm <= 0) return 0;
+  return Math.round((Math.min(mm, profile.maxPrintHeightMm) / 25.4) * profile.dpi);
 }
 
 /**
@@ -2186,6 +2238,16 @@ async function connectPrinter() {
     // imprimera. Le sélecteur reste modifiable pour explorer un autre format.
     if (findProfile(profile.id)) el.labelProfile.value = profile.id;
 
+    // Lecture du consommable, quand le modèle a un lecteur RFID. Le résultat
+    // est une **proposition** : le champ de longueur reste modifiable, et c'est
+    // la seule voie sur les modèles sans lecteur.
+    const supply = await readPrinterSupply();
+
+    // Le catalogue suit le matériel réellement connecté : la tête rapportée par
+    // la heartbeat fait foi, et proposer un rouleau qu'elle ne peut pas
+    // imprimer n'aurait aucun sens.
+    fillSupplies();
+
     device.addEventListener('gattserverdisconnected', handlePrinterLost);
     renderPreview();
   } catch (error) {
@@ -2195,6 +2257,52 @@ async function connectPrinter() {
   } finally {
     el.connect.disabled = false;
   }
+}
+
+/**
+ * Lit le consommable chargé, et remplit la longueur si le rouleau l'annonce.
+ *
+ * **Non vérifié sur matériel.** Le lecteur RFID n'existe pas sur tous les
+ * modèles — plutôt sur les versions « A » et récentes — et aucune imprimante
+ * n'était accessible pour confirmer la forme de la réponse. L'analyse est donc
+ * présentée pour ce qu'elle est : une proposition, que le champ manuel corrige.
+ *
+ * @returns {Promise<void>}
+ */
+async function readPrinterSupply() {
+  let supply = null;
+  try {
+    supply = await printer?.readSupply?.();
+  } catch {
+    // Une lecture qui échoue ne doit pas empêcher d'imprimer.
+    supply = null;
+  }
+
+  if (!supply || supply.barcode === '') {
+    el.supplyStatus.textContent =
+      'Consommable non lu : le modèle n\'a peut-être pas de lecteur RFID. '
+      + 'Indiquez la longueur à la main si besoin.';
+    el.supplyStatus.hidden = false;
+    return;
+  }
+
+  // Un rouleau qui annonce sa longueur la renseigne : c'est plus fiable qu'une
+  // saisie, et l'utilisateur peut toujours la corriger.
+  if (supply.lengthMm !== null) {
+    el.labelLength.value = String(supply.lengthMm);
+  }
+
+  const parts = [`Consommable lu : ${supply.barcode}`];
+  if (supply.widthMm !== null && supply.lengthMm !== null) {
+    parts.push(`${supply.widthMm} × ${supply.lengthMm} mm`);
+  } else if (supply.lengthMm === null) {
+    parts.push('rouleau continu');
+  }
+  // Le doute est explicite : cette lecture n'a jamais été confrontée à du
+  // matériel réel, et le dire évite de faire passer une supposition pour un fait.
+  parts.push('lecture non vérifiée sur matériel, corrigez si besoin');
+  el.supplyStatus.textContent = parts.join(' — ') + '.';
+  el.supplyStatus.hidden = false;
 }
 
 /** L'imprimante s'éteint en veille : on remet l'interface en cohérence. */
@@ -2213,6 +2321,10 @@ function resetPrinter() {
   el.connect.hidden = false;
   el.disconnect.hidden = true;
   el.printLabel.disabled = true;
+  el.supplyStatus.hidden = true;
+  // Sans matériel, le catalogue revient à celui du format choisi : les
+  // longueurs proposées ne doivent pas rester celles de l'imprimante partie.
+  fillSupplies();
 }
 
 /** Coupe la liaison. */
@@ -2433,34 +2545,58 @@ function supplyProfile() {
 }
 
 /**
- * Propose les longueurs de rouleau du profil retenu.
+ * Propose les consommables du profil retenu.
  *
- * Les valeurs viennent du catalogue du modèle : proposer « 12 × 30 » pour un M2
- * n'aurait aucun sens. Le champ reste libre — le catalogue du fabricant n'est
- * pas la réalité de tous les rouleaux — et aucune longueur n'est imposée : un
- * rouleau continu n'en a pas, et choisir à la place de l'utilisateur
- * remplirait l'étiquette au hasard.
+ * Chaque consommable porte ses deux cotes. La longueur n'est donc plus une
+ * question posée à côté du format : elle vient du rouleau choisi. Le rouleau
+ * continu, lui, n'a pas de pas connu — c'est le seul cas où la longueur reste
+ * à saisir.
  */
-function fillLabelLengths() {
+function fillSupplies() {
   const supplies = compatibleSupplies(supplyProfile());
-  el.labelLengthSuggestions.textContent = '';
+  const previous = el.labelSupply.value;
 
-  const seen = new Set();
+  el.labelSupply.textContent = '';
   for (const supply of supplies) {
-    if (supply.lengthMm === null || seen.has(supply.lengthMm)) continue;
-    seen.add(supply.lengthMm);
     const option = document.createElement('option');
-    option.value = String(supply.lengthMm);
-    option.textContent = `${supply.lengthMm} mm (${supply.label})`;
-    el.labelLengthSuggestions.appendChild(option);
+    option.value = supply.id;
+    const length = supply.lengthMm === null
+      ? 'longueur libre'
+      : `${supply.lengthMm} mm`;
+    option.textContent = `${supply.label} — ${length}`
+      + (supply.compatible ? '' : ` (${supply.reason})`);
+    // Un consommable incompatible avec la tête reste visible, mais ne peut pas
+    // être choisi : le faire disparaître ferait croire à une option manquante.
+    option.disabled = !supply.compatible;
+    el.labelSupply.appendChild(option);
   }
 
-  // Une longueur suggérée qui ne vaut plus pour le nouveau profil ne doit pas
-  // rester affichée : le navigateur la garderait comme valeur implicite.
-  const current = Number(el.labelLength.value);
-  if (Number.isFinite(current) && current > 0 && !seen.has(current)) {
-    el.labelLength.value = '';
-  }
+  // Le choix précédent est conservé s'il existe encore et reste compatible.
+  const keep = supplies.find((supply) => supply.id === previous && supply.compatible)
+    ?? supplies.find((supply) => supply.compatible)
+    ?? supplies[0];
+  if (keep) el.labelSupply.value = keep.id;
+
+  updateSupplyLength();
+}
+
+/** Le consommable retenu, ou `undefined` si le catalogue est vide. */
+function chosenSupply() {
+  return compatibleSupplies(supplyProfile())
+    .find((supply) => supply.id === el.labelSupply.value);
+}
+
+/**
+ * Affiche ou masque la longueur libre, selon le consommable choisi.
+ *
+ * Un rouleau à longueur fixe impose la sienne : le champ disparaît, et la
+ * longueur vient du catalogue. Un rouleau continu laisse la place libre.
+ */
+function updateSupplyLength() {
+  const supply = chosenSupply();
+  const free = !supply || supply.lengthMm === null;
+  el.labelLengthFields.hidden = !free;
+  if (!free) el.labelLength.value = '';
 }
 
 /** Remplit la disposition verticale, puis les longueurs suggérées. */
@@ -2473,7 +2609,7 @@ function fillSupplyChoices() {
     el.labelAlignment.appendChild(option);
   }
   el.labelAlignment.value = DEFAULT_LABEL_ALIGNMENT;
-  fillLabelLengths();
+  fillSupplies();
 }
 
 /**
@@ -2497,13 +2633,13 @@ function composeDateNote() {
  * apprendre pour les deux onglets.
  */
 function fillLabelChoices() {
-  for (const rotation of LABEL_ROTATIONS) {
+  for (const orientation of LABEL_ORIENTATIONS) {
     const option = document.createElement('option');
-    option.value = rotation.id;
-    option.textContent = rotation.label;
+    option.value = orientation.id;
+    option.textContent = orientation.label;
     el.labelRotation.appendChild(option);
   }
-  el.labelRotation.value = '0';
+  el.labelRotation.value = 'vertical';
 
   for (const [id, label] of Object.entries(TEXT_MODES)) {
     const option = document.createElement('option');
@@ -2590,10 +2726,23 @@ function rotateCanvas(source, turns) {
   return canvas;
 }
 
-/** L'orientation retenue à l'impression. */
+/**
+ * L'orientation retenue : le sens du support.
+ *
+ * « Verticale » empile le QR et son texte — le cas d'un rouleau classique.
+ * « Horizontale » les met côte à côte, ce qui laisse le texte lisible et
+ * paramétrable au lieu de le faire tourner avec l'image.
+ *
+ * @returns {typeof LABEL_ORIENTATIONS[number]}
+ */
+function labelOrientation() {
+  return LABEL_ORIENTATIONS.find((entry) => entry.id === el.labelRotation.value)
+    ?? LABEL_ORIENTATIONS[1];
+}
+
+/** L'orientation retenue à l'impression, pour la rotation du bitmap. */
 function labelRotation() {
-  return LABEL_ROTATIONS.find((rotation) => rotation.id === el.labelRotation.value)
-    ?? LABEL_ROTATIONS[0];
+  return labelOrientation();
 }
 
 /** Le lien choisi pour l'impression d'une étiquette. */
@@ -2778,10 +2927,17 @@ el.sheetQr.addEventListener('input', renderPreview);
 el.sheetOffsetX.addEventListener('input', renderPreview);
 el.sheetOffsetY.addEventListener('input', renderPreview);
 el.labelProfile.addEventListener('change', () => {
-  // Changer de format change les longueurs proposées : le catalogue est propre
-  // à chaque modèle, et une longueur qui n'existe plus doit disparaître.
-  fillLabelLengths();
+  // Changer de format change le catalogue : chaque modèle a ses rouleaux, et
+  // un consommable qui n'existe plus doit disparaître.
+  fillSupplies();
   updateProfileHint();
+  renderPreview();
+});
+
+el.labelSupply.addEventListener('change', () => {
+  // Le consommable décide de la longueur : on réaffiche le champ libre si, et
+  // seulement si, le rouleau choisi n'impose pas la sienne.
+  updateSupplyLength();
   renderPreview();
 });
 el.tableQr.addEventListener('input', renderPreview);

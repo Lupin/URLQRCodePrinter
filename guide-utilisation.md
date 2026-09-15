@@ -284,16 +284,64 @@ D110 sans risque d'imprimer à la mauvaise largeur.
 4. Le modèle est lu à la connexion, et la largeur de tête réellement rapportée
    corrige le profil si elle en diffère.
 
+### Longueur du rouleau
+
+Le profil ne connaît que la **largeur de tête**. Sans la longueur du rouleau, la
+composition s'arrête à la fin de son contenu — une URL courte donne une étiquette
+de 18 mm — et l'imprimante avance ensuite jusqu'à la découpe suivante : tout ce
+qui reste du rouleau sort blanc.
+
+Renseignez **Longueur d'étiquette (mm)** pour que la composition remplisse la
+place : le texte grossit (jamais au-delà de la lisibilité) et le contenu se
+répartit. Le champ propose les longueurs courantes du modèle choisi, et reste
+libre — le catalogue du fabricant n'est pas la réalité de tous les rouleaux. Le
+bouton **Libre** revient au rouleau continu, où la hauteur découle du contenu.
+
+**Disposition** décide où va la place restante : *Centré*, *En haut*, ou
+*Réparti* (le QR en haut, le texte en bas).
+
 ### Imprimer
 
 - **Densité** : 1 à 3 sur D110, 1 à 5 sur M2. 2 est un bon point de départ ; une
   impression pâle se corrige en montant d'un cran.
-- **Copies** : 1 à 20.
-- **Inclure le titre** : ajoute le titre de la page au-dessus de l'URL. La ligne
-  est réservée dans la hauteur, rien n'est rogné.
+- **Copies** : 1 à 20, pour l'impression d'une seule étiquette.
+- **Contenu de l'étiquette** : QR seul, + titre, + URL, + domaine. Le QR encode
+  toujours l'URL ; le texte affiché suit ce choix.
+- **Orientation** : Normale, 90°, 180°, 270°. L'aperçu montre la rotation, donc
+  ce qui sortira.
+- **Disposition** : voir plus haut.
 
 L'impression refuse un bitmap plus large que la tête plutôt que de le laisser
 rogner en silence.
+
+### Imprimer en série
+
+Le cadre **Imprimer en série** imprime une étiquette après l'autre, sans
+intervention :
+
+- **Portée** — *Toute la collection*, ou *La sélection cochée* dans la liste. Le
+  bouton dit toujours ce qu'il fera (« Imprimer la sélection (3) ») ; une
+  sélection vide avec « la sélection cochée » n'imprime rien et le signale,
+  plutôt que de sortir toute la collection.
+- **Exemplaires par lien** — 1 à 20. Avec 10 liens et 2 exemplaires, 20
+  étiquettes sortent.
+- Le bouton devient **Arrêter la série** pendant l'impression : une série lancée
+  par erreur s'interrompt après l'étiquette en cours, sans couper l'imprimante.
+- Une étiquette qui échoue n'interrompt pas la série ; le bilan final dit combien
+  sont sorties et pourquoi les autres ont raté.
+
+### Consommable lu par RFID — non vérifié sur matériel
+
+Quand le modèle a un lecteur RFID, l'application interroge le rouleau à la
+connexion (commande `0x1A`) et lit un code-barres du type `T15*30`, qui encode
+les dimensions. La longueur lue est reportée dans le champ, que vous pouvez
+corriger.
+
+**Réserve importante** : le lecteur RFID n'existe pas sur tous les modèles —
+plutôt sur les versions « A » et récentes — et cette lecture n'a **jamais été
+confrontée à une imprimante réelle**. L'analyse est testée sur des charges
+utiles documentées, pas sur du matériel. Si rien n'est lu, le message le dit et
+le choix manuel de la longueur reste la voie normale.
 
 ## Exporter sans Niimbot
 

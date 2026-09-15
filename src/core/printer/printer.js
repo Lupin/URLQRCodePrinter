@@ -38,6 +38,8 @@ import {
   printerInfo,
   parsePrintStatus,
   parsePrinterInfo,
+  parseRfidInfo,
+  rfidInfo,
 } from './packet.js';
 import { DEFAULT_PROFILE, findByModelId, findByName, withReportedHead } from './profiles.js';
 
@@ -325,6 +327,17 @@ export class NiimbotPrinter {
    *
    * @returns {Promise<number|null>}
    */
+  async readSupply() {
+    try {
+      const response = await this.ack(rfidInfo(), CMD_IN.RfidInfo, { timeoutMs: 900 });
+      return parseRfidInfo(response.data);
+    } catch {
+      // Pas de lecteur RFID, ou firmware qui ne répond pas : c'est le cas de la
+      // plupart des modèles. Le choix manuel de la longueur prend le relais.
+      return null;
+    }
+  }
+
   async #readHeadWidth() {
     /** Réponse à la sonde de largeur de tête. Absent de CMD_IN car propre à ce dialogue. */
     const CMD_IN_HEARTBEAT_INFO = 0xde;

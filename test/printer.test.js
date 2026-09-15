@@ -34,6 +34,8 @@ import {
   printEmptyRow,
   parsePrintStatus,
   parsePrinterInfo,
+  parseRfidInfo,
+  rfidInfo,
 } from '../src/core/printer/packet.js';
 
 /** Rend un Uint8Array lisible : « 55 55 21 01 ». */
@@ -314,4 +316,69 @@ test('parsePrinterInfo comprend un modelId sur deux octets', () => {
 
 test('parsePrinterInfo comprend un modelId sur un octet', () => {
   assert.equal(parsePrinterInfo(Uint8Array.from([0x09])).modelId, 0x0900);
+});
+
+// --------------------------------------------------------------------------
+// Lecture RFID du consommable
+// --------------------------------------------------------------------------
+//
+// **Non vérifié sur matériel.** Le lecteur RFID n'existe pas sur tous les
+// modèles — plutôt sur les versions « A » et récentes — et aucune imprimante
+// n'était accessible pour confirmer la forme exacte de la réponse. Ce qui est
+// testé ici, c'est l'analyse de charges utiles de la forme documentée ; le
+// repli sur le choix manuel reste la voie normale.
+
+/** Encode une chaîne ASCII en octets, zéro terminal compris. */
+const ascii = (text) => Uint8Array.from([...text].map((char) => char.charCodeAt(0)));
+
+test('la trame de lecture RFID utilise la commande 0x1A', () => {
+  const frame = rfidInfo();
+  // 55 55 │ CMD │ LEN │ DATA │ XOR │ AA AA
+  assert.equal(frame[2], 0x1a);
+  assert.equal(frame[3], 1);
+  assert.equal(frame[4], 0x01);
+});
+
+test('parseRfidInfo lit un code-barres de forme T15*30', () => {
+  const info = parseRfidInfo(ascii('T15*30\u0000'));
+  assert.equal(info.barcode, 'T15*30');
+  assert.equal(info.widthMm, 15);
+  assert.equal(info.lengthMm, 30);
+  assert.equal(info.labelType, 'T');
+});
+
+test('parseRfidInfo trouve le code-barres malgré un en-tête binaire', () => {
+  // La position du champ dépend du firmware : on le cherche, on ne le suppose
+  // pas à un offset fixe.
+  const info = parseRfidInfo(Uint8Array.from([0x00, 0x01, 0xff, ...ascii('T12*22'), 0x00]));
+  assert.equal(info.barcode, 'T12*22');
+  assert.equal(info.widthMm, 12);
+  assert.equal(info.lengthMm, 22);
+});
+
+test('parseRfidInfo traduit une longueur nulle en rouleau continu', () => {
+  // « T12*0 » décrit un rouleau sans pas : rendre 0 ferait composer une
+  // étiquette de zéro pixel.
+  const info = parseRfidInfo(ascii('T12*0\u0000'));
+  assert.equal(info.widthMm, 12);
+  assert.equal(info.lengthMm, null);
+});
+
+test("parseRfidInfo ne devine rien sur une charge utile qui n'en est pas une", () => {
+  for (const data of [
+    new Uint8Array(0),
+    Uint8Array.from([0x01, 0x02, 0x03, 0x04]),
+    ascii('AB\u0000'),
+  ]) {
+    const info = parseRfidInfo(data);
+    assert.equal(info.widthMm, null);
+    assert.equal(info.lengthMm, null);
+  }
+});
+
+test('parseRfidInfo sépare le code-barres des dimensions', () => {
+  const info = parseRfidInfo(ascii('T50*70\u0000'));
+  assert.equal(info.barcode, 'T50*70');
+  assert.equal(info.widthMm, 50);
+  assert.equal(info.lengthMm, 70);
 });

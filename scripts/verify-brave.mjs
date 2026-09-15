@@ -476,92 +476,117 @@ async function main() {
     const lengthField = await evaluate(`(async () => {
       const pause = (ms) => new Promise((r) => setTimeout(r, ms));
       const profile = document.getElementById('label-profile');
-      profile.value = 'D110';
-      profile.dispatchEvent(new Event('change'));
-      await pause(300);
-
+      const supply = document.getElementById('label-supply');
       const length = document.getElementById('label-length');
-      const alignment = document.getElementById('label-alignment');
+      const freeFields = document.getElementById('label-length-fields');
       const canvas = () => document.querySelector('#preview canvas');
       const size = () => {
         const node = canvas();
         return node ? { width: node.width, height: node.height } : { width: 0, height: 0 };
       };
 
-      const libre = size();
-      const suggestions = [...document.getElementById('label-length-suggestions').options]
-        .map((option) => option.value);
+      profile.value = 'D110';
+      profile.dispatchEvent(new Event('change'));
+      await pause(400);
 
-      // Sans longueur saisie, la hauteur reste celle du contenu.
-      const sansLongueur = length.value;
+      const consommables = [...supply.options].map((option) => option.value);
 
-      length.value = '30';
-      length.dispatchEvent(new Event('input'));
-      await pause(350);
-      const trente = size();
+      // Un rouleau a longueur fixe impose la sienne : le champ libre disparait.
+      supply.value = 'd110-12x30';
+      supply.dispatchEvent(new Event('change'));
+      await pause(400);
+      const fixe = { taille: size(), champLibre: freeFields.hidden === false,
+                     longueur: length.value };
 
-      // 203 dpi : 30 mm valent 240 px de géométrie. L'aperçu écran est agrandi
-      // d'un facteur entier (la tête ne fait que 96 px) : on retrouve donc la
-      // géométrie en divisant par ce facteur, plutôt qu'en supposant zoom 1.
+      // 203 dpi : 30 mm valent 240 px de geometrie. L'apercu ecran est agrandi
+      // d'un facteur entier (la tete ne fait que 96 px).
       const geometrie = Math.round((30 / 25.4) * 203);
       const zoom = Math.max(1, Math.floor(280 / 96));
       const attendu = geometrie * zoom;
 
-      // Une longueur plus petite donne une étiquette plus petite : le champ
-      // agit bien sur la géométrie, pas seulement sur l'affichage.
-      length.value = '22';
-      length.dispatchEvent(new Event('input'));
-      await pause(350);
-      const vingtdeux = size();
+      // Un autre rouleau fixe : la hauteur suit le consommable choisi.
+      supply.value = 'd110-12x40';
+      supply.dispatchEvent(new Event('change'));
+      await pause(400);
+      const quarante = size();
 
-      // La disposition décide où va la place restante.
+      // Le rouleau continu, lui, laisse la longueur libre.
+      supply.value = 'd110-continue';
+      supply.dispatchEvent(new Event('change'));
+      await pause(400);
+      const continu = { taille: size(), champLibre: freeFields.hidden === false };
+
+      // Sans longueur saisie, la hauteur reste celle du contenu.
+      const sansLongueur = length.value;
+      const libre = size();
+
       length.value = '30';
       length.dispatchEvent(new Event('input'));
-      alignment.value = 'spread';
-      alignment.dispatchEvent(new Event('change'));
-      await pause(350);
-      const reparti = size();
+      await pause(400);
+      const trente = size();
+
+      length.value = '22';
+      length.dispatchEvent(new Event('input'));
+      await pause(400);
+      const vingtdeux = size();
+
+      // Remise en etat : rouleau fixe le plus courant.
+      supply.value = 'd110-12x22';
+      supply.dispatchEvent(new Event('change'));
+      await pause(300);
 
       return {
-        libre, trente, vingtdeux, reparti, attendu, suggestions, sansLongueur,
-        alignements: [...alignment.options].map((option) => option.value),
+        consommables, fixe, quarante, continu, libre, trente, vingtdeux,
+        attendu, sansLongueur,
       };
     })()`);
 
     record(
-      'le champ de longueur est proposé, vide par défaut',
-      lengthField?.sansLongueur === '' && (lengthField?.suggestions ?? []).length >= 3,
-      `suggestions : ${(lengthField?.suggestions ?? []).join(', ')}`,
+      'le consommable porte ses deux cotes',
+      (lengthField?.consommables ?? []).includes('d110-12x30')
+        && (lengthField?.consommables ?? []).includes('d110-continue'),
+      (lengthField?.consommables ?? []).join(', '),
     );
     record(
-      "renseigner la longueur remplit l'étiquette",
+      "un rouleau a longueur fixe impose sa longueur, sans champ libre",
+      lengthField?.fixe?.champLibre === false
+        && lengthField.fixe.taille.height === lengthField.attendu,
+      `12 × 30 mm → ${lengthField?.fixe?.taille?.height} px `
+        + `(attendu ${lengthField?.attendu}), champ libre ${lengthField?.fixe?.champLibre ? 'visible' : 'masque'}`,
+    );
+    record(
+      'changer de consommable change la longueur rendue',
+      (lengthField?.quarante?.height ?? 0) > (lengthField?.fixe?.taille?.height ?? 0),
+      `30 mm ${lengthField?.fixe?.taille?.height} px < 40 mm ${lengthField?.quarante?.height} px`,
+    );
+    record(
+      'le rouleau continu laisse la longueur libre',
+      lengthField?.continu?.champLibre === true
+        && lengthField?.continu?.taille?.height === lengthField?.libre?.height,
+      `champ libre ${lengthField?.continu?.champLibre ? 'visible' : 'masque'}, `
+        + `hauteur du contenu ${lengthField?.libre?.height} px`,
+    );
+    record(
+      'sur rouleau continu, la longueur saisie remplit l\'etiquette',
       lengthField?.trente.height === lengthField?.attendu
-        && lengthField.trente.height > lengthField.libre.height,
-      `libre ${lengthField?.libre.height} px → 30 mm ${lengthField?.trente.height} px `
-        + `(attendu ${lengthField?.attendu})`,
-    );
-    record(
-      'changer la longueur change la hauteur rendue',
-      lengthField?.vingtdeux.height < lengthField?.trente.height,
-      `22 mm ${lengthField?.vingtdeux.height} px < 30 mm ${lengthField?.trente.height} px`,
-    );
-    record(
-      'la disposition verticale est proposée et agit',
-      (lengthField?.alignements ?? []).includes('spread')
-        && lengthField?.reparti.height === lengthField?.trente.height,
-      `${(lengthField?.alignements ?? []).join(', ')} — réparti ${lengthField?.reparti.height} px`,
+        && lengthField.trente.height > lengthField.libre.height
+        && lengthField.vingtdeux.height < lengthField.trente.height,
+      `libre ${lengthField?.libre?.height} px → 30 mm ${lengthField?.trente?.height} px `
+        + `→ 22 mm ${lengthField?.vingtdeux?.height} px`,
     );
 
     // Le texte doit être lisible : sur une tête de 96 px, l'ancien calcul
     // donnait 8 px, soit 1 mm à 203 dpi.
     const legibility = await evaluate(`(async () => {
       const pause = (ms) => new Promise((r) => setTimeout(r, ms));
-      const length = document.getElementById('label-length');
       const profile = document.getElementById('label-profile');
+      const supply = document.getElementById('label-supply');
       profile.value = 'D110';
       profile.dispatchEvent(new Event('change'));
-      length.value = '';
-      length.dispatchEvent(new Event('input'));
+      await pause(300);
+      // Rouleau continu : la hauteur suit le contenu.
+      supply.value = 'd110-continue';
+      supply.dispatchEvent(new Event('change'));
       await pause(300);
 
       // On lit la taille de police dans le libellé de l'aperçu, seule source
@@ -664,12 +689,12 @@ async function main() {
       const content = document.getElementById('label-content');
       const dateMode = document.getElementById('date-mode');
       const rotation = document.getElementById('label-rotation');
-      const length = document.getElementById('label-length');
+      const supply = document.getElementById('label-supply');
 
-      // Etat neutre : ni date, ni rotation, ni longueur imposee.
+      // Etat neutre : ni date, ni rotation, rouleau continu.
       dateMode.value = 'none'; dateMode.dispatchEvent(new Event('change'));
-      rotation.value = '0'; rotation.dispatchEvent(new Event('change'));
-      length.value = ''; length.dispatchEvent(new Event('input'));
+      rotation.value = 'vertical'; rotation.dispatchEvent(new Event('change'));
+      supply.value = 'd110-continue'; supply.dispatchEvent(new Event('change'));
       await pause(400);
 
       for (const mode of ['none', 'title', 'url', 'title-url', 'host']) {
@@ -745,77 +770,171 @@ async function main() {
       dates?.datetime?.legende,
     );
 
-    // --- Orientation : l'apercu tourne comme l'impression ------------------
-    const turns = await evaluate(`(async () => {
+    // --- Orientation : le sens du support, sans tourner le texte -----------
+    //
+    // « Verticale » empile le QR et son texte ; « horizontale » les met cote a
+    // cote sur la largeur de la tete. Le texte n'est jamais tourne : c'est ce
+    // qui le rend parametrable dans les deux sens.
+    const senses = await evaluate(`(async () => {
       const pause = (ms) => new Promise((r) => setTimeout(r, ms));
       const rotation = document.getElementById('label-rotation');
-      const size = () => {
+      const supply = document.getElementById('label-supply');
+
+      // Rouleau continu : la hauteur suit le contenu, ce qui rend la
+      // comparaison des deux dispositions directe.
+      supply.value = 'd110-continue';
+      supply.dispatchEvent(new Event('change'));
+      await pause(400);
+
+      const mesurer = async () => {
         const canvas = document.querySelector('#preview canvas');
-        return canvas ? { w: canvas.width, h: canvas.height } : { w: 0, h: 0 };
+        if (!canvas) return { w: 0, h: 0, ink: 0, premierTexte: -1 };
+        const ctx = canvas.getContext('2d');
+        const data = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+        let ink = 0;
+        for (let i = 0; i < data.length; i += 4) if (data[i] < 128) ink += 1;
+        // Largeur de la zone encree : un QR seul occupe une bande etroite au
+        // centre, un QR plus du texte occupe presque toute la largeur.
+        let min = canvas.width;
+        let max = -1;
+        for (let y = 0; y < canvas.height; y++) {
+          for (let x = 0; x < canvas.width; x++) {
+            if (data[(y * canvas.width + x) * 4] < 128) {
+              if (x < min) min = x;
+              if (x > max) max = x;
+            }
+          }
+        }
+        return { w: canvas.width, h: canvas.height, ink,
+                 bande: max < 0 ? 0 : max - min + 1 };
       };
-      const out = {};
-      for (const value of ['0', '1', '2', '3']) {
+
+      const out = { options: [...rotation.options].map((o) => o.value) };
+      for (const value of ['vertical', 'horizontal', 'horizontal-inverse', 'vertical-inverse']) {
         rotation.value = value;
         rotation.dispatchEvent(new Event('change'));
-        await pause(400);
-        out[value] = size();
+        await pause(450);
+        out[value] = await mesurer();
+        out[value].legende = document.querySelector('#preview .hint')?.textContent ?? '';
       }
-      rotation.value = '0';
+
+      rotation.value = 'vertical';
       rotation.dispatchEvent(new Event('change'));
+      supply.value = 'd110-12x22';
+      supply.dispatchEvent(new Event('change'));
       await pause(300);
       return out;
     })()`);
 
     record(
-      "l'orientation tourne reellement l'apercu",
-      turns?.['0']?.h > 0
-        && turns['1'].h < turns['0'].h && turns['1'].w > turns['0'].w
-        && turns['1'].w === turns['0'].h && turns['1'].h === turns['0'].w
-        && turns['2'].w === turns['0'].w && turns['2'].h === turns['0'].h,
-      `0° ${turns?.['0']?.w}×${turns?.['0']?.h} · 90° ${turns?.['1']?.w}×${turns?.['1']?.h} `
-        + `· 180° ${turns?.['2']?.w}×${turns?.['2']?.h}`,
+      "l'orientation propose les deux sens du support",
+      (senses?.options ?? []).join(',') === 'horizontal,vertical,horizontal-inverse,vertical-inverse',
+      (senses?.options ?? []).join(', '),
     );
-
-    // --- La longueur se remet a « libre » ----------------------------------
-    const freeLength = await evaluate(`(async () => {
+    // Sur une tete de 12 mm, une URL dense occupe tant de modules qu'il ne
+    // reste pas de colonne pour le texte : la disposition laterale est alors
+    // refusee et annoncee, plutot que d'ecrire trois caracteres par ligne.
+    const lateral = await evaluate(`(async () => {
       const pause = (ms) => new Promise((r) => setTimeout(r, ms));
-      const length = document.getElementById('label-length');
-      const clear = document.getElementById('label-length-clear');
-      const hauteur = () => {
+      const rotation = document.getElementById('label-rotation');
+      const supply = document.getElementById('label-supply');
+      const link = document.getElementById('label-link');
+      const content = document.getElementById('label-content');
+
+      supply.value = 'd110-continue';
+      supply.dispatchEvent(new Event('change'));
+      await pause(300);
+      content.value = 'url';
+      content.dispatchEvent(new Event('change'));
+      await pause(300);
+
+      // Un lien court est le seul cas ou une colonne de texte existe sur une
+      // tete de 96 px : au-dela de 29 modules, le QR mange toute la largeur.
+      // On en ajoute un **en memoire**, sans recharger : un rechargement ici
+      // remettrait a zero l'etat attendu par les verifications suivantes.
+      const courte = { titre: '' };
+
+      // Ajout par la saisie : le lien arrive en tete de collection, sans
+      // rechargement de page.
+      const champ = document.getElementById('url-input');
+      const formulaire = document.getElementById('add-form');
+      champ.value = 'https://niim.blue';
+      formulaire.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
+      await pause(900);
+
+      const lien = document.getElementById('label-link');
+      const court = [...lien.options].find((o) => o.title === 'https://niim.blue')
+        ?? [...lien.options].find((o) => (o.title ?? '').includes('niim.blue'));
+      if (court) { lien.value = court.value; lien.dispatchEvent(new Event('change')); }
+      courte.titre = court ? court.title : '';
+      await pause(500);
+
+      const bande = async () => {
         const canvas = document.querySelector('#preview canvas');
-        return canvas ? canvas.height : 0;
+        if (!canvas) return { bande: 0, h: 0 };
+        const data = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height).data;
+        let min = canvas.width, max = -1;
+        for (let y = 0; y < canvas.height; y++) {
+          for (let x = 0; x < canvas.width; x++) {
+            if (data[(y * canvas.width + x) * 4] < 128) {
+              if (x < min) min = x;
+              if (x > max) max = x;
+            }
+          }
+        }
+        return { bande: max < 0 ? 0 : max - min + 1, h: canvas.height };
       };
 
-      length.value = ''; length.dispatchEvent(new Event('input'));
-      await pause(350);
-      const libre = hauteur();
+      rotation.value = 'vertical'; rotation.dispatchEvent(new Event('change'));
+      await pause(450);
+      const vertical = await bande();
 
-      length.value = '30'; length.dispatchEvent(new Event('input'));
-      await pause(350);
-      const rempli = hauteur();
+      rotation.value = 'horizontal'; rotation.dispatchEvent(new Event('change'));
+      await pause(450);
+      const horizontal = await bande();
+      const legende = document.querySelector('#preview .hint')?.textContent ?? '';
 
-      clear.click();
-      await pause(400);
-      return { libre, rempli, apresBouton: hauteur(), champ: length.value };
+      rotation.value = 'vertical'; rotation.dispatchEvent(new Event('change'));
+      await pause(250);
+
+      // On retire le lien de test : le laisser fausserait les verifications
+      // suivantes, qui comptent les liens et lisent le premier d'entre eux.
+      const ligne = [...document.querySelectorAll('#list .link')]
+        .find((node) => (node.textContent ?? '').includes('niim.blue'));
+      const retirer = ligne?.querySelector('.link__remove');
+      if (retirer) retirer.click();
+      await pause(900);
+
+      return { vertical, horizontal, legende, courte: courte.titre, nettoye: !retirer ? false : true };
     })()`);
 
     record(
-      "le bouton « Libre » rend le rouleau continu",
-      freeLength?.rempli > freeLength?.libre
-        && freeLength?.champ === ''
-        && freeLength?.apresBouton === freeLength?.libre,
-      `libre ${freeLength?.libre} px · 30 mm ${freeLength?.rempli} px `
-        + `· apres « Libre » ${freeLength?.apresBouton} px`,
+      "l'orientation horizontale met le QR et le texte cote a cote",
+      // Une URL courte : le QR se reduit, le texte occupe la bande a droite,
+      // donc le contenu est plus large et plus bas que l'empilement.
+      (lateral?.horizontal?.bande ?? 0) > (lateral?.vertical?.bande ?? 0),
+      `« ${lateral?.courte} » : vertical ${lateral?.vertical?.bande} px de large · `
+        + `horizontal ${lateral?.horizontal?.bande} px (${lateral?.legende})`,
+    );
+    record(
+      "l'orientation inverse fait tourner l'image",
+      (senses?.['vertical-inverse']?.h ?? 0) > 0
+        && (senses?.['vertical-inverse']?.ink ?? 0) > 0,
+      `vertical inverse ${senses?.['vertical-inverse']?.w}×${senses?.['vertical-inverse']?.h}, `
+        + `${senses?.['vertical-inverse']?.ink} px d'encre`,
     );
 
     // --- La disposition deplace reellement le contenu ----------------------
     const layouts = await evaluate(`(async () => {
       const pause = (ms) => new Promise((r) => setTimeout(r, ms));
-      const length = document.getElementById('label-length');
+      const supply = document.getElementById('label-supply');
       const alignment = document.getElementById('label-alignment');
       const rotation = document.getElementById('label-rotation');
-      rotation.value = '0'; rotation.dispatchEvent(new Event('change'));
-      length.value = '30'; length.dispatchEvent(new Event('input'));
+      rotation.value = 'vertical'; rotation.dispatchEvent(new Event('change'));
+      // La disposition repartit la place restante : il en faut, donc un long
+      // rouleau. Sans longueur imposee, il n'y a rien a repartir.
+      supply.value = 'd110-12x40';
+      supply.dispatchEvent(new Event('change'));
       await pause(400);
 
       const out = {};
@@ -842,7 +961,7 @@ async function main() {
       }
 
       alignment.value = 'center'; alignment.dispatchEvent(new Event('change'));
-      length.value = ''; length.dispatchEvent(new Event('input'));
+      supply.value = 'd110-12x22'; supply.dispatchEvent(new Event('change'));
       await pause(300);
       return out;
     })()`);
@@ -854,6 +973,65 @@ async function main() {
       `premiere encre : haut ${layouts?.top?.first} · centre ${layouts?.center?.first} `
         + `· reparti ${layouts?.spread?.first} — derniere : haut ${layouts?.top?.last} `
         + `· reparti ${layouts?.spread?.last}`,
+    );
+
+    // --- Consommables : compatibles avec la tete connectee -----------------
+    //
+    // Sans imprimante, tout le catalogue reste propose. Une fois connectee, le
+    // catalogue suit le modele et la tete qu'il rapporte.
+    const supplies = await evaluate(`(async () => {
+      const pause = (ms) => new Promise((r) => setTimeout(r, ms));
+      const profile = document.getElementById('label-profile');
+      const supply = document.getElementById('label-supply');
+
+      const lire = async (id) => {
+        profile.value = id;
+        profile.dispatchEvent(new Event('change'));
+        await pause(400);
+        return {
+          valeurs: [...supply.options].map((option) => option.value),
+          libelles: [...supply.options].map((option) => option.textContent),
+          desactivees: [...supply.options].filter((option) => option.disabled)
+            .map((option) => option.value),
+        };
+      };
+
+      const d110 = await lire('D110');
+      const m2 = await lire('M2');
+      await lire('D110');
+      return { d110, m2 };
+    })()`);
+
+    record(
+      "le catalogue de consommables suit le format choisi",
+      (supplies?.d110?.valeurs ?? []).includes('d110-12x30')
+        && (supplies?.m2?.valeurs ?? []).includes('m2-50x70')
+        && (supplies?.m2?.valeurs ?? []).includes('d110-12x30') === false,
+      `D110 : ${(supplies?.d110?.valeurs ?? []).join(', ')} `
+        + `· M2 : ${(supplies?.m2?.valeurs ?? []).join(', ')}`,
+    );
+    record(
+      "un consommable plus large que la tete est signale, pas masque",
+      // Sur un D110 dont la tete fait 12 mm, un rouleau de 15 mm depasse :
+      // il reste visible pour qu'on comprenne pourquoi il est refuse.
+      (supplies?.d110?.desactivees ?? []).includes('d110-15x30')
+        && (supplies?.d110?.libelles ?? []).some((l) => l.includes('plus large que la t')),
+      (supplies?.d110?.libelles ?? []).filter((l) => l.includes('plus large')).join(' · ')
+        || 'aucun consommable trop large',
+    );
+
+    // Le lecteur RFID n'existe pas sur tous les modeles, et l'application ne
+    // doit jamais faire croire qu'elle a lu quelque chose qu'elle ignore. Sans
+    // materiel, la zone d'information reste donc masquee.
+    const supplyState = await evaluate(`(() => {
+      const node = document.getElementById('supply-status');
+      return { present: Boolean(node), hidden: node ? node.hidden : null,
+               texte: node ? node.textContent : '' };
+    })()`);
+    record(
+      "rien n'est annonce sur le consommable sans imprimante",
+      supplyState?.present === true && supplyState.hidden === true,
+      supplyState?.present ? `zone masquee (« ${supplyState.texte} »)` : 'zone absente',
     );
 
     // --- Aucun chevauchement dans le panneau Niimbot ----------------------
@@ -906,9 +1084,31 @@ async function main() {
     // Une capture du panneau, pour juger la mise en page à l'œil et pas
     // seulement au rectangle : une mesure peut être juste et le rendu laid.
     // On amène le panneau dans la vue : une capture du haut de page ne
-    // montrerait pas ce qu'on veut juger.
-    await evaluate("document.querySelector('[data-mode-panel=\"single\"]').scrollIntoView({ block: 'start' })");
-    await new Promise((r) => setTimeout(r, 400));
+    // montrerait pas ce qu'on veut juger. Deux captures, une par orientation :
+    // c'est le rendu de l'etiquette qui se juge, pas seulement le formulaire.
+    mkdirSync(join(ROOT, '.verify-brave-captures'), { recursive: true });
+    for (const orientation of ['vertical', 'horizontal']) {
+      await evaluate(`(async () => {
+        const rot = document.getElementById('label-rotation');
+        rot.value = '${orientation}';
+        rot.dispatchEvent(new Event('change'));
+        document.querySelector('[data-mode-panel="single"]').scrollIntoView({ block: 'start' });
+        await new Promise((r) => setTimeout(r, 500));
+      })()`);
+      const vue = await app.send('Page.captureScreenshot', { format: 'png' });
+      if (vue?.result?.data) {
+        writeFileSync(
+          join(ROOT, '.verify-brave-captures', `panneau-${orientation}.png`),
+          Buffer.from(vue.result.data, 'base64'),
+        );
+      }
+    }
+    await evaluate(`(async () => {
+      const rot = document.getElementById('label-rotation');
+      rot.value = 'vertical';
+      rot.dispatchEvent(new Event('change'));
+      await new Promise((r) => setTimeout(r, 300));
+    })()`);
     const shot = await app.send('Page.captureScreenshot', { format: 'png' });
     if (shot?.result?.data) {
       // Hors du bac à sable, qui est effacé en sortie : la capture sert à

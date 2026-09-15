@@ -88,6 +88,21 @@ export function wrapDate(measure, dateText, maxWidth, maxLines) {
   return lines;
 }
 
+/**
+ * Plancher de police, en pixels, pour une largeur de tête donnée.
+ *
+ * `MIN_FONT_MM` est la cible, mais une tête plus étroite que la police minimale
+ * ne pourrait rien imprimer : on ne descend jamais sous la moitié de cette
+ * cible, quelle que soit la largeur.
+ *
+ * @param {number} width Largeur de tête en pixels.
+ * @param {number} dpi
+ * @returns {number}
+ */
+function pxToMmFloor(width, dpi) {
+  return Math.min(mmToPx(MIN_FONT_MM, dpi), Math.max(6, Math.floor(width * 0.09)));
+}
+
 /** Échelle minimale : sous 2 px par module, la tête thermique fusionne les points. */
 export const MIN_QR_SCALE = 2;
 
@@ -135,6 +150,16 @@ export const DEFAULT_LABEL_ALIGNMENT = 'center';
  * utile, passe au second plan. Le reste de la place va aux marges.
  */
 export const MAX_FONT_WIDTH_RATIO = 0.18;
+
+/**
+ * Largeur minimale d'une colonne de texte, en pixels.
+ *
+ * En dessous, la disposition latérale n'a plus de sens : une URL dense occupe
+ * tant de modules qu'il ne reste que quelques pixels, soit deux ou trois
+ * caractères par ligne. Mieux vaut empiler, et le dire, que produire un texte
+ * illisible.
+ */
+export const MIN_LATERAL_TEXT_PX = 18;
 
 /**
  * Découpe un texte en lignes tenant dans une largeur donnée.
@@ -356,6 +381,24 @@ export function computeLabelGeometry(options) {
     // dernière, plutôt que d'abandonner le texte ou de le laisser déborder.
     fallback = attempt;
   }
+
+  // Aucune taille essayée ne tient ? Le texte déborde parce qu'il est trop
+  // gros, pas parce qu'il est trop long : on réduit alors la police jusqu'à ce
+  // qu'il entre, sans descendre sous le plancher de lisibilité. Sans cette
+  // recherche, `maxLines` tronquait l'URL en silence — l'étiquette sortait
+  // amputée, ce qui est pire qu'un texte petit.
+  if (placed === null) {
+    const floor = Math.max(6, Math.floor(pxToMmFloor(width, dpi)));
+    for (let size = (fallback?.fontSize ?? floor) - 1; size >= floor; size--) {
+      const attempt = tryFont(size);
+      if (attempt.ok) {
+        placed = attempt;
+        break;
+      }
+      fallback = attempt;
+    }
+  }
+
   placed = placed ?? fallback;
 
   const { lines, lineHeight } = placed;
@@ -402,6 +445,8 @@ export function computeLabelGeometry(options) {
     fits,
     qrMatrix: matrix,
     qrTop,
+    qrLeft: Math.floor((width - qrSize) / 2),
+    qrTextGap: spreadGap,
     textTop: qrTop + qrSize + spreadGap,
     lineHeight,
     lines,
@@ -411,6 +456,82 @@ export function computeLabelGeometry(options) {
     naturalHeight,
     slack,
     alignment: effectiveAlign,
+  };
+}
+
+/**
+ * Dispose le QR et le texte côte à côte, sur la largeur de la tête.
+ *
+ * L'orientation « horizontale » ne tourne rien : elle change l'axe de
+ * composition. Le QR garde sa taille, le texte se découpe sur la largeur qui
+ * reste et se cale à droite du code. C'est ce qui permet de garder le texte
+ * lisible et paramétrable quelle que soit l'orientation du support.
+ *
+ * @param {LabelGeometry} geometry Géométrie verticale déjà calculée.
+ * @param {{
+ *   measure: (text: string) => number,
+ *   maxLines?: number,
+ *   gap?: number,
+ * }} options
+ * @returns {LabelGeometry}
+ */
+export function layoutLabelLateral(geometry, options) {
+  const gap = Math.max(1, Math.floor(options.gap ?? geometry.padding));
+  const maxLines = Math.max(1, Math.trunc(options.maxLines ?? 4));
+
+  // Le QR ne descend jamais sous son échelle minimale : un code illisible ne
+  // sert à rien, et c'est le texte qui cède, pas le code. Sa taille plancher
+  // est donc celle qui décide s'il reste une colonne utilisable pour le texte.
+  const minQr = geometry.qrMatrix.size * MIN_QR_SCALE;
+  const usable = geometry.width - geometry.padding * 2 - gap;
+  const textWidth = usable - minQr;
+
+  // Sous ce seuil, il n'y a pas de colonne de texte : une URL dense occupe tant
+  // de modules qu'il ne reste que quelques pixels. Plutôt que d'écrire trois
+  // caractères par ligne, on refuse la disposition latérale et on le signale —
+  // c'est à l'appelant de retomber sur l'empilement.
+  if (textWidth < MIN_LATERAL_TEXT_PX) {
+    return { ...geometry, lateral: false, lateralRefused: true, lateralTextWidth: textWidth };
+  }
+
+  // Le texte a la place qu'il lui faut ; le QR prend le reste, jusqu'à être
+  // aussi grand que possible sans jamais empiéter sur cette colonne.
+  const qrMax = Math.max(minQr, usable - MIN_LATERAL_TEXT_PX);
+  let qrSize = geometry.qrSize;
+  let qrScale = geometry.qrScale;
+  if (qrSize > qrMax) {
+    qrScale = Math.max(MIN_QR_SCALE, Math.floor(qrMax / geometry.qrMatrix.size));
+    qrSize = geometry.qrMatrix.size * qrScale;
+  }
+
+  const textLeft = geometry.padding + qrSize + gap;
+  const realTextWidth = Math.max(1, geometry.width - geometry.padding - textLeft);
+
+  const lines = wrapText(options.measure, options.text ?? '', realTextWidth, { maxLines });
+  const lineHeight = geometry.lineHeight;
+  const textHeight = (lines.length + geometry.extraLines) * lineHeight;
+
+  // Le contenu occupe la hauteur qu'il faut, jamais plus que l'étiquette.
+  const contentHeight = Math.max(qrSize, textHeight);
+  const height = Math.max(
+    geometry.height,
+    contentHeight + geometry.padding * 2,
+  );
+
+  return {
+    ...geometry,
+    height,
+    qrSize,
+    qrScale,
+    pxPerModule: qrSize / geometry.qrMatrix.size,
+    qrTop: Math.floor((height - qrSize) / 2),
+    qrLeft: geometry.padding,
+    textLeft,
+    textWidth: realTextWidth,
+    textAlign: 'left',
+    textTop: Math.floor((height - textHeight) / 2),
+    lines,
+    lateral: true,
   };
 }
 
@@ -462,31 +583,37 @@ export function drawLabel(ctx, geometry, options = {}) {
   ctx.fillStyle = '#ffffff';
   ctx.fillRect(0, 0, geometry.width, geometry.height);
 
-  const qrX = Math.floor((geometry.width - geometry.qrSize) / 2);
-  // `qrTop` vient de la géométrie : quand la longueur du rouleau est connue, le
-  // QR ne part plus du bord supérieur, il se place dans la place disponible.
+  // `qrLeft` et `qrTop` viennent de la géométrie : le QR ne part plus du coin
+  // supérieur gauche, il se place dans la disposition retenue.
+  const qrX = geometry.qrLeft ?? Math.floor((geometry.width - geometry.qrSize) / 2);
   drawQr(geometry.qrMatrix, ctx, { x: qrX, y: geometry.qrTop, scale: geometry.qrScale });
 
   ctx.fillStyle = '#000000';
-  ctx.textAlign = 'center';
   ctx.textBaseline = 'top';
+
+  // En disposition latérale, le texte se cale à gauche dans la colonne qui lui
+  // reste ; sinon il reste centré sous le QR.
+  const lateral = geometry.lateral === true;
+  const textX = lateral ? geometry.textLeft : geometry.width / 2;
+  const maxWidth = lateral ? geometry.textWidth : undefined;
+  ctx.textAlign = lateral ? 'left' : 'center';
 
   let y = geometry.textTop;
   ctx.font = `bold ${geometry.fontSize}px ${fontFamily}`;
   if (showTitle && title) {
-    ctx.fillText(title, geometry.width / 2, y);
+    ctx.fillText(title, textX, y, maxWidth);
     y += geometry.lineHeight;
   }
 
   ctx.font = `${geometry.fontSize}px ${fontFamily}`;
   for (const line of geometry.lines) {
-    ctx.fillText(line, geometry.width / 2, y);
+    ctx.fillText(line, textX, y, maxWidth);
     y += geometry.lineHeight;
   }
 
   if (showHost) {
     ctx.font = `${Math.round(geometry.fontSize * 0.9)}px ${fontFamily}`;
-    ctx.fillText(hostOf(options.url ?? ''), geometry.width / 2, y);
+    ctx.fillText(hostOf(options.url ?? ''), textX, y, maxWidth);
     y += geometry.lineHeight;
   }
 
@@ -494,7 +621,7 @@ export function drawLabel(ctx, geometry, options = {}) {
   // mention, sous l'information principale.
   for (const line of extraText) {
     if (!line) continue;
-    ctx.fillText(line, geometry.width / 2, y);
+    ctx.fillText(line, textX, y, maxWidth);
     y += geometry.lineHeight;
   }
 
