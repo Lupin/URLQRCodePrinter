@@ -6,9 +6,9 @@
  * magasin exige une publication. La seule voie locale est « Charger
  * l'extension non empaquetée », qui demande de désigner un dossier.
  *
- * Ce script ne peut donc pas tout faire. Il assemble l'extension et l'ouvre
- * dans le Finder, de sorte qu'il ne reste qu'à la glisser sur la page des
- * extensions.
+ * Ce script réduit donc les gestes au minimum : il assemble l'extension, la
+ * sélectionne dans le Finder, copie son chemin, et ouvre la page des extensions
+ * du navigateur. Il ne reste qu'à coller le chemin dans la boîte de dialogue.
  */
 
 import { spawnSync } from 'node:child_process';
@@ -18,6 +18,23 @@ import { fileURLToPath } from 'node:url';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const DIST = join(ROOT, 'dist', 'extension');
+
+/** Navigateurs reconnus, dans l'ordre de préférence. */
+const BROWSERS = [
+  { name: 'Brave', app: 'Brave Browser', page: 'brave://extensions' },
+  { name: 'Chrome', app: 'Google Chrome', page: 'chrome://extensions' },
+  { name: 'Edge', app: 'Microsoft Edge', page: 'edge://extensions' },
+];
+
+/** Ouvre la page des extensions du premier navigateur installé. */
+function openExtensionsPage() {
+  for (const browser of BROWSERS) {
+    if (!existsSync(`/Applications/${browser.app}.app`)) continue;
+    const opened = spawnSync('open', ['-a', browser.app, browser.page], { stdio: 'ignore' });
+    if (opened.status === 0) return browser;
+  }
+  return null;
+}
 
 // L'extension doit être assemblée : le cœur partagé y est recopié, et sans lui
 // le service worker échouerait au chargement.
@@ -49,27 +66,35 @@ if (existsSync(join(ROOT, 'src', 'extension', 'manifest.json'))) {
 spawnSync('open', ['-R', DIST], { stdio: 'inherit' });
 spawnSync('pbcopy', { input: DIST, stdio: ['pipe', 'inherit', 'inherit'] });
 
+const browser = openExtensionsPage();
+
 console.log(`
 ──────────────────────────────────────────────────────────────────────
-Le dossier de l'extension est sélectionné dans le Finder, et son chemin
-complet est dans le presse-papiers :
+Dossier de l'extension, sélectionné dans le Finder et copié :
 
-    ${DIST.replace(ROOT + '/', '')}
+    ${DIST}
+
+${browser
+    ? `La page ${browser.page} vient de s'ouvrir dans ${browser.name}.`
+    : 'Ouvrez la page des extensions de votre navigateur.'}
 
 Pour l'installer — une seule fois :
 
-  1. Ouvrez la page des extensions du navigateur
-        Brave  : brave://extensions
-        Chrome : chrome://extensions
-        Edge   : edge://extensions
+  1. Activez « Mode développeur » (en haut à droite de la page)
 
-  2. Activez « Mode développeur » (en haut à droite)
+  2. Cliquez « Charger l'extension non empaquetée »
 
-  3. Cliquez « Charger l'extension non empaquetée », puis dans la boîte de
-     dialogue faites ⌘⇧G et collez le chemin (⌘V) — il est déjà copié.
-     Ou glissez simplement le dossier sélectionné sur la page.
+  3. Dans la boîte de dialogue :  ⌘⇧G, puis ⌘V, puis Entrée
+     (le chemin est déjà dans le presse-papiers)
 
-⚠  Chargez « dist/extension », jamais « src/extension ».
+⚠  Si une boîte « Failed to load extension » propose « Retry », cliquez
+   « Cancel » : elle rejoue l'ancien chemin. Supprimez aussi l'ancienne
+   entrée avec « Remove » avant de recharger.
+
+⚠  Le bon dossier est « dist/extension ». « src/extension » ne contient
+   pas de manifeste : il est produit à la construction.
+
+L'icône apparaît alors dans la barre d'outils.
    Le dossier source ne contient pas le manifeste : il est produit à la
    construction, avec le cœur recopié et les fichiers assemblés.
 
