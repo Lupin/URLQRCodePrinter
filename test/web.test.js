@@ -71,6 +71,26 @@ test('le bandeau de feuille de style obsolète dit quoi faire', () => {
   assert.match(html, /<div id="stale-style"[^>]*hidden/);
 });
 
+test('les colonnes du tableau ont leurs valeurs par défaut dans le HTML', () => {
+  // Ce qui décrit un lien est affiché ; les champs facultatifs attendent d'être
+  // remplis. Un test de démarrage ne peut pas le voir : le DOM de substitution
+  // ne lit pas les attributs.
+  for (const id of ['table-col-index', 'table-col-qr', 'table-col-url', 'table-col-title']) {
+    assert.match(
+      html,
+      new RegExp(`id="${id}"[^>]*checked`),
+      `${id} doit être cochée par défaut`,
+    );
+  }
+  for (const id of ['table-col-tags', 'table-col-note']) {
+    assert.equal(
+      new RegExp(`id="${id}"[^>]*checked`).test(html),
+      false,
+      `${id} ne doit pas être cochée par défaut`,
+    );
+  }
+});
+
 test('index.html ne contient aucun script inline', () => {
   const inline = [...html.matchAll(/<script\b([^>]*)>/gi)].filter(
     (match) => !/\bsrc\s*=/i.test(match[1]),

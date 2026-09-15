@@ -191,11 +191,39 @@
             <span class="field__label">Taille du QR</span>
             <input id="table-qr" class="input" type="range" min="20" max="80" value="38">
           </label>
-          <label class="field field--inline">
-            <input id="table-note" type="checkbox">
-            <span class="field__label">Afficher les notes</span>
-          </label>
         </div>
+
+        <!-- Colonnes du tableau imprimé. Les tags et la note ne sont
+             proposés que si la collection en contient : une colonne vide sur
+             toute une page n'apprend rien. -->
+        <fieldset class="columns">
+          <legend class="columns__legend">Colonnes imprimées</legend>
+          <label class="columns__item field__label">
+            <input id="table-col-index" type="checkbox" checked>
+            <span>N°</span>
+          </label>
+          <label class="columns__item field__label">
+            <input id="table-col-qr" type="checkbox" checked>
+            <span>QR</span>
+          </label>
+          <label class="columns__item field__label">
+            <input id="table-col-url" type="checkbox" checked>
+            <span>URL</span>
+          </label>
+          <label class="columns__item field__label">
+            <input id="table-col-title" type="checkbox" checked>
+            <span>Titre</span>
+          </label>
+          <label class="columns__item field__label">
+            <input id="table-col-tags" type="checkbox">
+            <span>Tags</span>
+          </label>
+          <label class="columns__item field__label">
+            <input id="table-col-note" type="checkbox">
+            <span>Note</span>
+          </label>
+        </fieldset>
+        <p id="table-hint" class="hint hint--tight"></p>
         <p class="hint">Un tableau dense, adapté à une relecture ou à un archivage papier.</p>
       </div>
 

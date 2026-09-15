@@ -405,6 +405,33 @@ async function main() {
       };
     })()`);
     record('aucune imprimante n\'est connectée', String(noPrinter?.dot).includes('dot--off'));
+
+    // Le drapeau Web Bluetooth de Brave est éteint dans ce profil : c'est
+    // exactement l'état où l'utilisateur a vu « Web Bluetooth API globally
+    // disabled ». L'application doit le dire **avant** le clic, en français.
+    const ble = await evaluate(`(async () => {
+      const hint = document.getElementById('ble-support');
+      return {
+        api: typeof navigator.bluetooth,
+        disponible: await navigator.bluetooth.getAvailability().catch(() => 'lève'),
+        boutonDesactive: document.getElementById('connect').disabled,
+        message: hint.hidden ? '' : hint.textContent,
+        statut: document.getElementById('print-status').textContent.trim(),
+      };
+    })()`);
+
+    record(
+      'Web Bluetooth désactivé par le navigateur est détecté avant le clic',
+      ble.api === 'object' && ble.disponible === false && ble.boutonDesactive === true,
+      `API « ${ble.api} », getAvailability() → ${ble.disponible}, bouton désactivé : ${ble.boutonDesactive}`,
+    );
+    record(
+      'la marche à suivre est affichée, en français',
+      /brave:\/\/flags\/#brave-web-bluetooth-api/.test(ble.message)
+        && /relancez Brave/.test(ble.message)
+        && /globally disabled/i.test(ble.message) === false,
+      ble.message,
+    );
     record(
       "l'aperçu d'étiquette est rendu sans imprimante",
       noPrinter?.hasCanvas === true && noPrinter.width > 0 && noPrinter.height > 0,
@@ -1379,31 +1406,81 @@ async function main() {
       'toutes les étiquettes dans la page',
     );
 
-    // --- Les notes saisies ressortent dans le tableau imprimé -------------
-    const tableNotes = await evaluate(`(async () => {
+    // --- Tableau : colonnes choisies, et numéro qui renvoie à la liste -----
+    const table = await evaluate(`(async () => {
       const pause = (ms) => new Promise((r) => setTimeout(r, ms));
       [...document.querySelectorAll('.tab')].find((t) => t.dataset.mode === 'table').click();
       await pause(400);
 
-      const checkbox = document.getElementById('table-note');
-      checkbox.checked = true;
-      checkbox.dispatchEvent(new Event('change'));
+      const headers = () => [...document.querySelectorAll('#preview .print-table th')]
+        .map((th) => th.textContent);
+      const firstRow = () => [...document.querySelectorAll('#preview .print-table tbody tr')][0];
+
+      const initial = {
+        headers: headers(),
+        tagsDisabled: document.getElementById('table-col-tags').disabled,
+        noteDisabled: document.getElementById('table-col-note').disabled,
+        // Le rang affiché dans la liste, pour le premier lien.
+        listRanks: [...document.querySelectorAll('#list .link__index')].map((s) => s.textContent),
+        firstRowNumber: firstRow()?.querySelector('td')?.textContent ?? '',
+      };
+
+      // Colonnes « Tags » et « Note » activées, puis affichées.
+      const tags = document.getElementById('table-col-tags');
+      const note = document.getElementById('table-col-note');
+      tags.checked = true; tags.dispatchEvent(new Event('change'));
+      note.checked = true; note.dispatchEvent(new Event('change'));
       await pause(400);
 
-      const headers = [...document.querySelectorAll('#preview .print-table th')].map((th) => th.textContent);
-      const hasNote = [...document.querySelectorAll('#preview .print-table td')]
-        .some((td) => td.textContent === 'Note saisie à la main');
+      const withExtras = {
+        headers: headers(),
+        tags: [...document.querySelectorAll('#preview .print-table tbody tr td')]
+          .map((td) => td.textContent).filter((text) => text.includes('veille'))[0] ?? '',
+        note: [...document.querySelectorAll('#preview .print-table tbody tr td')]
+          .map((td) => td.textContent).filter((text) => text.includes('Note saisie'))[0] ?? '',
+      };
 
-      [...document.querySelectorAll('.tab')].find((t) => t.dataset.mode === 'sheet').click();
-      await pause(200);
-      return { headers, hasNote };
+      // Sans la colonne « N° », elle disparaît.
+      const index = document.getElementById('table-col-index');
+      index.checked = false; index.dispatchEvent(new Event('change'));
+      await pause(400);
+      const withoutIndex = headers();
+
+      index.checked = true; index.dispatchEvent(new Event('change'));
+      tags.checked = false; tags.dispatchEvent(new Event('change'));
+      note.checked = false; note.dispatchEvent(new Event('change'));
+      await pause(300);
+
+      return { initial, withExtras, withoutIndex };
     })()`);
 
     record(
-      'le tableau imprimé affiche les notes saisies',
-      Array.isArray(tableNotes?.headers) && tableNotes.headers.includes('Note')
-        && tableNotes.hasNote === true,
-      (tableNotes?.headers ?? []).join(' / '),
+      'les tags et la note sont proposés quand la collection en contient',
+      table.initial.tagsDisabled === false && table.initial.noteDisabled === false,
+      `tags ${table.initial.tagsDisabled ? 'inertes' : 'actifs'}, `
+        + `note ${table.initial.noteDisabled ? 'inertes' : 'actifs'}`,
+    );
+    record(
+      'chaque colonne du tableau se coche séparément',
+      table.initial.headers.join(' / ') === 'N° / QR / URL / Titre'
+        && table.withExtras.headers.includes('Tags')
+        && table.withExtras.headers.includes('Note')
+        && table.withoutIndex[0] !== 'N°',
+      `${table.initial.headers.join(' / ')} → ${table.withExtras.headers.join(' / ')} → `
+        + `${table.withoutIndex.join(' / ')}`,
+    );
+    record(
+      'les colonnes Tags et Note reprennent ce qui a été saisi',
+      table.withExtras.tags.includes('veille travail')
+        && table.withExtras.note === 'Note saisie à la main',
+      `« ${table.withExtras.tags} » / « ${table.withExtras.note} »`,
+    );
+    record(
+      'le N° du tableau est le rang affiché dans la liste',
+      table.initial.listRanks.slice(0, 3).join(',') === '1,2,3'
+        && table.initial.firstRowNumber === table.initial.listRanks[0],
+      `liste ${table.initial.listRanks.slice(0, 3).join(',')}… `
+        + `première ligne du tableau : n° ${table.initial.firstRowNumber}`,
     );
 
     // --- Import : ce que l'application exporte doit se réimporter ---------

@@ -76,6 +76,29 @@ const SHORT_COLUMN = {
 };
 
 /**
+ * Indique si au moins un lien porte une note.
+ *
+ * Règle du projet : une colonne facultative — note, tags, URL courte — ne
+ * s'affiche que si elle a quelque chose à montrer. Un tableau dont une colonne
+ * reste vide sur toute sa hauteur ne fait qu'occuper la place.
+ *
+ * @param {import('./link.js').LinkRecord[]} links
+ * @returns {boolean}
+ */
+export function hasAnyNote(links) {
+  return links.some((link) => typeof link.note === 'string' && link.note !== '');
+}
+
+/**
+ * Indique si au moins un lien porte un tag.
+ * @param {import('./link.js').LinkRecord[]} links
+ * @returns {boolean}
+ */
+export function hasAnyTag(links) {
+  return links.some((link) => Array.isArray(link.tags) && link.tags.length > 0);
+}
+
+/**
  * Colonnes à écrire pour une collection : la colonne « URL courte » n'apparaît
  * que si elle a quelque chose à contenir.
  *
@@ -236,7 +259,7 @@ export function toMarkdown(links, options = {}) {
   // La colonne « Note » n'apparaît que si elle a du contenu : un tableau
   // Markdown se lit mal quand une colonne reste vide, et la note est le seul
   // champ dont la longueur n'est pas bornée.
-  const withNote = links.some((link) => typeof link.note === 'string' && link.note !== '');
+  const withNote = hasAnyNote(links);
 
   out.push(withNote
     ? '| N° | URL | Titre | Tags | Note | Ajouté le |'

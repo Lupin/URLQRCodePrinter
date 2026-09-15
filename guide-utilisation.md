@@ -246,8 +246,16 @@ D110 sans risque d'imprimer à la mauvaise largeur.
 
 ### Connecter
 
-1. **Brave** : activez Web Bluetooth dans `brave://flags#brave-web-bluetooth-api`,
-   puis redémarrez le navigateur. Chrome et Edge n'ont pas cette contrainte.
+1. **Brave bloque Web Bluetooth par défaut.** C'est la cause n° 1 des échecs, et
+   l'application la signale maintenant d'elle-même : si le bouton « Connecter »
+   est grisé avec un message, voici la marche à suivre.
+   1. Ouvrez `brave://flags/#brave-web-bluetooth-api`
+   2. Mettez **Web Bluetooth API** sur **Enabled**
+   3. **Relancez Brave** — le drapeau n'est lu qu'au démarrage, un simple
+      rechargement de page ne suffit pas
+   4. Rouvrez l'application : le bouton « Connecter » redevient actif
+
+   Chrome et Edge n'ont pas cette contrainte. Safari ne l'implémente pas du tout.
 2. Allumez l'imprimante et mettez-la en appairage.
 3. Onglet « Étiquette Niimbot » → **Connecter** → choisissez l'appareil.
 4. Le modèle est lu à la connexion, et la largeur de tête réellement rapportée
@@ -330,6 +338,12 @@ module et le minimum du support. Si l'URL est trop dense pour l'étiquette, le
 curseur ne peut pas la rendre imprimable : raccourcissez l'URL (le raccourcisseur
 est fait pour ça), réduisez le texte imprimé, ou prenez une étiquette plus large.
 Rappel : 0,4 mm par module sur papier, 2 pixels par module sur une tête thermique.
+
+**« Web Bluetooth API globally disabled ».** Le drapeau de Brave est éteint.
+Ouvrez `brave://flags/#brave-web-bluetooth-api`, activez **Web Bluetooth API**,
+puis **relancez Brave** (un rechargement de page ne suffit pas). L'application
+détecte ce cas au démarrage et affiche la marche à suivre sans qu'on ait à
+cliquer.
 
 **L'imprimante n'apparaît pas.** Sur Brave, le drapeau Web Bluetooth est la
 première chose à vérifier. Éloignez l'imprimante des autres appareils Bluetooth,

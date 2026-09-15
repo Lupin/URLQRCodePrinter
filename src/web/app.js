@@ -49,6 +49,8 @@ import {
   exportFilename,
   DATE_MODES,
   formatCaptureDate,
+  hasAnyNote,
+  hasAnyTag,
 } from './core/exporters.js';
 import { downloadText, downloadBytes } from './core/download.js';
 import { buildLinkSpreadsheet } from './core/spreadsheet.js';
@@ -64,7 +66,8 @@ import {
   ptToPx,
 } from './core/label-export.js';
 import {
-  checkWebBluetoothSupport,
+  probeWebBluetooth,
+  explainBluetoothFailure,
   requestPrinter,
   NiimbotTransport,
 } from './core/printer/transport.js';
@@ -98,6 +101,19 @@ const settings = createSettingsStore();
 let shortenJob = null;
 /** Options du choix de cible, gardées pour pouvoir les désactiver. */
 const targetOptions = new Map();
+
+/**
+ * Rang de chaque lien dans la collection, à partir de 1.
+ *
+ * C'est ce numéro que porte la liste **et** le tableau imprimé : sans lui, le
+ * « N° » d'une ligne de tableau ne renvoyait à rien, et on ne pouvait pas
+ * retrouver de quel lien il parlait. Il suit l'ordre de la collection, donc il
+ * reste le même quand la liste est filtrée ou quand on n'imprime qu'une
+ * sélection.
+ *
+ * @type {Map<string, number>}
+ */
+let linkRanks = new Map();
 
 /** Libellés des modes de date, dans l'ordre d'affichage. */
 const DATE_MODE_LABELS = Object.freeze({
@@ -243,6 +259,10 @@ function qrSvg(matrix, { scale = 4 } = {}) {
 /** Recharge la collection depuis le stockage et redessine. */
 async function refresh() {
   links = await store.list();
+  linkRanks = new Map(links.map((link, index) => [link.id, index + 1]));
+  // Les colonnes « Tags » et « Note » ne sont proposées que si la collection en
+  // contient : une colonne vide sur toute une page n'apprend rien.
+  updateTableOptions();
   const ids = new Set(links.map((link) => link.id));
   // On conserve les cases cochées qui existent encore.
   selected = new Set([...selected].filter((id) => ids.has(id)));
@@ -492,7 +512,12 @@ function renderLink(link) {
   });
   remove.setAttribute('aria-label', `Supprimer ${link.title || link.url}`);
 
-  item.append(check, body, linkEditor(link), remove);
+  const rank = document.createElement('span');
+  rank.className = 'link__index';
+  rank.textContent = String(linkRanks.get(link.id) ?? '');
+  rank.title = 'Rang dans la collection, celui du tableau imprimé';
+
+  item.append(check, rank, body, linkEditor(link), remove);
   return item;
 }
 
@@ -1238,7 +1263,7 @@ function updateQrInfo(state) {
  */
 function buildTable(items) {
   const size = Number(el.tableQr.value);
-  const withNote = el.tableNote.checked;
+  const columns = tableColumns();
   const withDate = dateMode() !== 'none';
 
   const table = document.createElement('table');
@@ -1247,9 +1272,13 @@ function buildTable(items) {
   const head = document.createElement('thead');
   const headRow = document.createElement('tr');
   const headers = [
-    'N°', 'QR', 'URL', 'Titre',
+    ...(columns.index ? ['N°'] : []),
+    ...(columns.qr ? ['QR'] : []),
+    ...(columns.url ? ['URL'] : []),
+    ...(columns.title ? ['Titre'] : []),
     ...(withDate ? ['Date'] : []),
-    ...(withNote ? ['Note'] : []),
+    ...(columns.tags ? ['Tags'] : []),
+    ...(columns.note ? ['Note'] : []),
   ];
   for (const label of headers) {
     const th = document.createElement('th');
@@ -1260,26 +1289,38 @@ function buildTable(items) {
   table.appendChild(head);
 
   const body = document.createElement('tbody');
-  items.forEach((link, index) => {
+  items.forEach((link) => {
     const row = document.createElement('tr');
 
-    const num = document.createElement('td');
-    num.textContent = String(index + 1);
+    if (columns.index) {
+      const num = document.createElement('td');
+      // Le rang dans la collection, pas le rang dans le tableau : c'est ce qui
+      // permet de retrouver le lien dans la liste.
+      num.textContent = String(linkRanks.get(link.id) ?? '');
+      row.appendChild(num);
+    }
 
-    const qrCell = document.createElement('td');
-    qrCell.className = 'print-table__qr';
-    const svg = qrElement(link.url, { border: 1 });
-    svg.setAttribute('width', String(size));
-    svg.setAttribute('height', String(size));
-    qrCell.appendChild(svg);
+    if (columns.qr) {
+      const qrCell = document.createElement('td');
+      qrCell.className = 'print-table__qr';
+      const svg = qrElement(link.url, { border: 1 });
+      svg.setAttribute('width', String(size));
+      svg.setAttribute('height', String(size));
+      qrCell.appendChild(svg);
+      row.appendChild(qrCell);
+    }
 
-    const urlCell = document.createElement('td');
-    urlCell.textContent = link.url;
+    if (columns.url) {
+      const urlCell = document.createElement('td');
+      urlCell.textContent = link.url;
+      row.appendChild(urlCell);
+    }
 
-    const titleCell = document.createElement('td');
-    titleCell.textContent = link.title;
-
-    row.append(num, qrCell, urlCell, titleCell);
+    if (columns.title) {
+      const titleCell = document.createElement('td');
+      titleCell.textContent = link.title;
+      row.appendChild(titleCell);
+    }
 
     if (withDate) {
       const dateCell = document.createElement('td');
@@ -1287,7 +1328,13 @@ function buildTable(items) {
       row.appendChild(dateCell);
     }
 
-    if (withNote) {
+    if (columns.tags) {
+      const tagsCell = document.createElement('td');
+      tagsCell.textContent = link.tags.join(' ');
+      row.appendChild(tagsCell);
+    }
+
+    if (columns.note) {
       const noteCell = document.createElement('td');
       noteCell.textContent = link.note;
       row.appendChild(noteCell);
@@ -1298,6 +1345,52 @@ function buildTable(items) {
 
   table.appendChild(body);
   return table;
+}
+
+/** Les colonnes retenues pour le tableau imprimé. */
+function tableColumns() {
+  return {
+    index: el.tableColIndex.checked,
+    qr: el.tableColQr.checked,
+    url: el.tableColUrl.checked,
+    title: el.tableColTitle.checked,
+    tags: el.tableColTags.checked,
+    note: el.tableColNote.checked,
+  };
+}
+
+/** Vrai si au moins une colonne est demandée, date comprise. */
+function hasAnyTableColumn() {
+  return Object.values(tableColumns()).some(Boolean) || dateMode() !== 'none';
+}
+
+/**
+ * Autorise ou non les colonnes « Tags » et « Note ».
+ *
+ * Une colonne qu'aucun lien ne peut remplir est proposée mais **inerte** : la
+ * masquer laisserait croire que la fonction n'existe pas, et l'activer
+ * produirait une colonne vide sur toute la page.
+ */
+function updateTableOptions() {
+  const options = [
+    { box: el.tableColTags, available: hasAnyTag(links), what: 'tag' },
+    { box: el.tableColNote, available: hasAnyNote(links), what: 'note' },
+  ];
+
+  for (const { box, available, what } of options) {
+    box.disabled = !available;
+    if (!available) box.checked = false;
+    const label = box.parentNode;
+    if (label) {
+      label.title = available
+        ? `Imprimer la colonne « ${what} »`
+        : `Aucun lien n'a de ${what} : ajoutez-en un avec le bouton ✎ de la liste.`;
+    }
+  }
+
+  el.tableHint.textContent = hasAnyNote(links) || hasAnyTag(links)
+    ? 'Les tags et la note saisis dans la liste (bouton ✎) peuvent être imprimés ici.'
+    : 'Ajoutez un tag ou une note depuis la liste (bouton ✎) pour pouvoir les imprimer.';
 }
 
 /** Redessine l'aperçu selon le mode actif. */
@@ -1341,6 +1434,15 @@ function renderPreview() {
   }
 
   if (mode === 'table') {
+    if (!hasAnyTableColumn()) {
+      // Un tableau sans aucune colonne n'a pas de sens : on le dit plutôt que
+      // d'afficher un cadre vide.
+      const note = document.createElement('p');
+      note.className = 'hint';
+      note.textContent = 'Aucune colonne sélectionnée : cochez au moins une colonne.';
+      el.preview.appendChild(note);
+      return;
+    }
     const scaler = document.createElement('div');
     scaler.className = 'preview__page';
     scaler.appendChild(buildTable(items));
@@ -1824,15 +1926,20 @@ function printSelection() {
 // ---------------------------------------------------------------------------
 
 /** Vérifie le support Bluetooth et affiche l'explication si absent. */
-function reportBluetoothSupport() {
-  const support = checkWebBluetoothSupport();
+async function reportBluetoothSupport() {
+  // `checkWebBluetoothSupport` seul ne suffisait pas : Brave expose
+  // `navigator.bluetooth` tout en refusant de s'en servir quand son drapeau est
+  // éteint. Le bouton semblait donc prêt, et l'échec n'arrivait qu'après le
+  // clic, en anglais. `probeWebBluetooth` interroge le navigateur pour de bon.
+  const support = await probeWebBluetooth();
   el.connect.disabled = !support.ok;
 
+  el.bleSupport.hidden = support.ok;
   if (!support.ok) {
-    el.bleSupport.hidden = false;
     el.bleSupport.textContent = `${support.reason} ${support.hint}`;
-  } else {
-    el.bleSupport.hidden = true;
+    // Une note manuscrite vaut mieux qu'un texte gris : c'est la cause
+    // n° 1 des échecs de connexion, et elle se règle en deux minutes.
+    el.printStatus.textContent = 'Impression directe indisponible — voir le message ci-dessus.';
   }
 }
 
@@ -1870,7 +1977,7 @@ async function connectPrinter() {
     renderPreview();
   } catch (error) {
     el.printStatus.textContent = '';
-    toast(error.message ?? 'Connexion impossible', 'error');
+    toast(explainBluetoothFailure(error), 'error');
     resetPrinter();
   } finally {
     el.connect.disabled = false;
@@ -2194,7 +2301,12 @@ el.labelProfile.addEventListener('change', () => {
   renderPreview();
 });
 el.tableQr.addEventListener('input', renderPreview);
-el.tableNote.addEventListener('change', renderPreview);
+for (const box of [
+  el.tableColIndex, el.tableColQr, el.tableColUrl,
+  el.tableColTitle, el.tableColTags, el.tableColNote,
+]) {
+  box.addEventListener('change', renderPreview);
+}
 el.showTitle.addEventListener('change', renderPreview);
 el.labelFormat.addEventListener('change', renderPreview);
 el.labelText.addEventListener('change', renderPreview);

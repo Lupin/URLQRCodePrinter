@@ -21,7 +21,7 @@ Markdown, ou envoi direct à une imprimante Niimbot.
 | Socle natif Swift (protocole, session, CoreBluetooth) | fait, testé |
 | Application iOS qui utilise ce socle | à faire |
 
-**589 tests, tous verts** — 485 en JavaScript et 104 en Swift — dont :
+**600 tests, tous verts** — 496 en JavaScript et 104 en Swift — dont :
 
 - la validation **octet à octet** des trames Niimbot contre les relevés
   documentés, **dans les deux langages** : deux implémentations indépendantes
@@ -44,7 +44,7 @@ Markdown, ou envoi direct à une imprimante Niimbot.
 **L'application est vérifiée dans un vrai navigateur** : `npm run verify:brave`
 lance Brave sur un profil isolé, collecte un lien, le raccourcit, exporte le CSV
 et l'archive d'étiquettes, puis contrôle les fichiers réellement écrits sur le
-disque (signature ZIP, `unzip -t`, contenu du CSV). 82 vérifications, dont le
+disque (signature ZIP, `unzip -t`, contenu du CSV). 87 vérifications, dont le
 rendu des liens cliquables dans l'application *et* dans la fenêtre de
 l'extension, la grille réellement calculée pour quatre références Avery, et
 l'aperçu d'étiquette composé sans aucune imprimante connectée.
@@ -301,6 +301,32 @@ sont posées en ligne à partir du même calcul que la découpe, donc la hauteur
 occupée est exactement la hauteur réservée — un test dans Brave compare les deux.
 Auparavant, le texte était laissé au retour à la ligne du navigateur et pouvait
 déborder de l'étiquette sans que rien ne le signale.
+
+## Brave et Web Bluetooth : détecter, pas espérer
+
+Brave expose `navigator.bluetooth` **et** refuse de s'en servir quand son
+drapeau est éteint. Un contrôle qui se contente de regarder si l'objet existe
+conclut donc « tout va bien » : le bouton « Connecter » reste actif, et l'échec
+n'arrive qu'après le clic, en anglais — `NotFoundError: Web Bluetooth API
+globally disabled.` C'est exactement ce qui se passait.
+
+`navigator.bluetooth.getAvailability()` répond `false` dans ce cas, sans rien
+demander à l'utilisateur. `probeWebBluetooth` (dans `core/printer/transport.js`)
+l'interroge donc au démarrage : le bouton est désactivé, et la marche à suivre
+s'affiche **avant** le clic, en français. La réponse `false` couvre deux causes
+qu'il ne faut pas confondre dans le message : le drapeau de Brave éteint, et le
+Bluetooth de la machine éteint.
+
+| Situation | Ce que dit l'application |
+|---|---|
+| `navigator.bluetooth` absent | « Web Bluetooth n'est pas disponible dans ce navigateur » + Safari n'en a pas |
+| API présente, `getAvailability()` faux | « désactivé dans ce navigateur — ou le Bluetooth de cet ordinateur est éteint » + marche à suivre |
+| Contexte non sécurisé | « exige un contexte sécurisé » + passer par https ou localhost |
+| Échec après le clic | le message anglais est traduit (`explainBluetoothFailure`) |
+
+La marche à suivre est écrite une seule fois (`BRAVE_BLUETOOTH_HINT`), et le nom
+du drapeau vient des sources de Brave (`browser/about_flags.cc`) :
+`brave-web-bluetooth-api`, à activer puis à **relancer** le navigateur.
 
 ## L'import relit tout ce que l'export produit
 

@@ -185,3 +185,29 @@ test('la phrase annonce la taille déduite, dès le démarrage', () => {
   assert.match(hint, /\d+,\d+ × \d+,\d+ mm/, `cotes à la française : « ${hint} »`);
   assert.equal(/Décalage appliqué/.test(hint), false, 'aucun décalage au départ');
 });
+
+test('les colonnes du tableau sont choisies une par une', () => {
+  const boxes = {
+    index: 'table-col-index', qr: 'table-col-qr', url: 'table-col-url',
+    title: 'table-col-title', tags: 'table-col-tags', note: 'table-col-note',
+  };
+  for (const id of Object.values(boxes)) {
+    assert.ok(registry.get(id), `${id} doit exister`);
+  }
+
+  // Les valeurs par défaut vivent dans le HTML — le DOM de substitution ne lit
+  // pas les attributs `checked`. Elles sont vérifiées dans test/web.test.js,
+  // sur le fichier réel ; ici on contrôle le câblage.
+  assert.equal(registry.get('table-col-tags').checked, false, 'aucun tag : case décochée');
+  assert.equal(registry.get('table-col-note').checked, false, 'aucune note : case décochée');
+});
+
+test('tags et note ne sont proposés que si la collection en contient', () => {
+  // Règle demandée : ne pas proposer une colonne qu'aucun lien ne peut remplir.
+  // Au démarrage la collection est vide : les deux cases sont inertes.
+  assert.equal(registry.get('table-col-tags').disabled, true);
+  assert.equal(registry.get('table-col-note').disabled, true);
+
+  const hint = registry.get('table-hint').textContent;
+  assert.match(hint, /bouton ✎/, `la phrase doit dire comment les activer : « ${hint} »`);
+});

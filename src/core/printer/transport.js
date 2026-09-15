@@ -55,12 +55,36 @@ export const DEFAULT_PACE_MS = 10;
 /**
  * @typedef {Object} BluetoothLike
  * @property {(options: object) => Promise<any>} requestDevice
+ * @property {() => Promise<boolean>} [getAvailability]
  */
+
+/**
+ * Marche à suivre quand Brave bloque Web Bluetooth.
+ *
+ * Le nom du drapeau est celui des sources de Brave
+ * (`browser/about_flags.cc`), et il faut **relancer** le navigateur : le
+ * drapeau n'est lu qu'au démarrage. C'est la cause la plus fréquente, et de
+ * loin — l'API existe, donc rien ne signale le problème avant le clic.
+ */
+export const BRAVE_BLUETOOTH_HINT =
+  'Brave désactive Web Bluetooth par défaut. Ouvrez brave://flags/#brave-web-bluetooth-api, '
+  + 'mettez « Web Bluetooth API » sur Enabled, puis relancez Brave. '
+  + 'Chrome et Edge fonctionnent sans réglage.';
 
 /**
  * Vérifie que Web Bluetooth est utilisable et explique pourquoi sinon.
  *
- * @param {{ bluetooth?: BluetoothLike, isSecureContext?: boolean }} [env]
+ * `navigator.bluetooth` peut exister **et** être inutilisable : Brave expose
+ * l'objet mais refuse toute utilisation quand son drapeau est éteint, et
+ * `requestDevice` échoue alors sur « Web Bluetooth API globally disabled » —
+ * en anglais, après le clic. `getAvailability()` répond `false` dans ce cas sans
+ * rien demander à l'utilisateur : c'est ce qui permet de prévenir avant.
+ *
+ * @param {{
+ *   bluetooth?: BluetoothLike,
+ *   isSecureContext?: boolean,
+ *   available?: boolean,
+ * }} [env]
  * @returns {{ ok: boolean, reason?: string, hint?: string }}
  */
 export function checkWebBluetoothSupport(env = {}) {
@@ -71,10 +95,7 @@ export function checkWebBluetoothSupport(env = {}) {
     return {
       ok: false,
       reason: 'Web Bluetooth n\'est pas disponible dans ce navigateur.',
-      hint:
-        'Safari (macOS et iOS) ne l\'implémente pas, et Brave le désactive par ' +
-        'défaut : activez brave://flags#brave-web-bluetooth-api. Chrome et Edge ' +
-        'fonctionnent sans réglage.',
+      hint: `Safari (macOS et iOS) ne l'implémente pas. ${BRAVE_BLUETOOTH_HINT}`,
     };
   }
   if (secure === false) {
@@ -84,7 +105,65 @@ export function checkWebBluetoothSupport(env = {}) {
       hint: 'Ouvrez l\'application via https:// ou http://localhost.',
     };
   }
+  // `available === false` : le navigateur a répondu que non.
+  if (env.available === false) {
+    return {
+      ok: false,
+      reason:
+        'Web Bluetooth est désactivé dans ce navigateur — ou le Bluetooth de ' +
+        'cet ordinateur est éteint.',
+      hint: BRAVE_BLUETOOTH_HINT,
+    };
+  }
   return { ok: true };
+}
+
+/**
+ * Interroge le navigateur sur la disponibilité réelle de Web Bluetooth.
+ *
+ * Ne lève jamais : un navigateur qui refuse de répondre est traité comme un
+ * navigateur qui dit non.
+ *
+ * @param {{ bluetooth?: BluetoothLike }} [env]
+ * @returns {Promise<{ ok: boolean, reason?: string, hint?: string }>}
+ */
+export async function probeWebBluetooth(env = {}) {
+  const bluetooth = env.bluetooth ?? globalThis.navigator?.bluetooth;
+  const basic = checkWebBluetoothSupport(env);
+  if (!basic.ok) return basic;
+
+  if (typeof bluetooth.getAvailability !== 'function') return basic;
+
+  try {
+    const available = await bluetooth.getAvailability();
+    return checkWebBluetoothSupport({ ...env, available: Boolean(available) });
+  } catch {
+    return checkWebBluetoothSupport({ ...env, available: false });
+  }
+}
+
+/**
+ * Traduit l'échec d'une demande d'appareil en message exploitable.
+ *
+ * Le navigateur répond en anglais, et « NotFoundError : Web Bluetooth API
+ * globally disabled » ne dit pas quoi faire. On reconnaît les cas connus pour
+ * renvoyer la marche à suivre.
+ *
+ * @param {unknown} error
+ * @returns {string}
+ */
+export function explainBluetoothFailure(error) {
+  const message = String(error?.message ?? error ?? '');
+  if (/globally disabled/i.test(message)) {
+    return `Web Bluetooth est désactivé dans ce navigateur. ${BRAVE_BLUETOOTH_HINT}`;
+  }
+  if (/user denied|user cancel|chooser/i.test(message) || error?.name === 'NotFoundError') {
+    return 'Aucun appareil choisi. Réveillez l\'imprimante, puis relancez la connexion.';
+  }
+  if (/permission|not allowed|SecurityError/i.test(message)) {
+    return 'Le navigateur a refusé l\'accès au Bluetooth : autorisez-le pour cette page, puis réessayez.';
+  }
+  return `Connexion impossible : ${message}`;
 }
 
 /**

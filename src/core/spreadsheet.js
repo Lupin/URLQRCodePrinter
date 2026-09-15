@@ -10,6 +10,7 @@
  */
 
 import { sourceHost, sourceUrl } from './link.js';
+import { hasAnyNote } from './exporters.js';
 import { qrPng } from './qr.js';
 import { buildXlsx } from './xlsx.js';
 import { formatDateTime } from './exporters.js';
@@ -35,7 +36,7 @@ export const QR_COLUMN_INDEX = SPREADSHEET_HEADERS.indexOf('QR code');
  * @returns {{ headers: string[], qrColumn: number, noteColumn: number }}
  */
 export function spreadsheetLayout(links) {
-  const withNote = links.some((link) => typeof link.note === 'string' && link.note !== '');
+  const withNote = hasAnyNote(links);
   const headers = [
     'N°', 'URL', 'Titre', 'Domaine', 'Tags',
     ...(withNote ? ['Note'] : []),
