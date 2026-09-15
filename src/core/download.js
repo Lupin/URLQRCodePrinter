@@ -1,0 +1,91 @@
+/**
+ * Enregistrement d'un fichier côté navigateur.
+ *
+ * On n'utilise ni `chrome.downloads` (absent de Safari) ni l'API File System
+ * Access (`showSaveFilePicker`, absente de Safari et désactivée par défaut dans
+ * Brave). L'ancre avec attribut `download` fonctionne dans tous les contextes
+ * visés : page web, popup d'extension, page d'options.
+ *
+ * Un objet-URL est créé puis révoqué : sans révocation, le blob reste en
+ * mémoire jusqu'au rechargement de la page.
+ */
+
+/**
+ * Déclenche le téléchargement d'un contenu texte.
+ *
+ * @param {string} filename
+ * @param {string} text
+ * @param {{ mime?: string, document?: Document, url?: typeof URL }} [options]
+ *   `document` et `url` sont injectables pour les tests.
+ * @returns {boolean} true si le téléchargement a pu être déclenché.
+ */
+export function downloadText(filename, text, options = {}) {
+  const doc = options.document ?? globalThis.document;
+  const urlApi = options.url ?? globalThis.URL;
+
+  if (!doc || !urlApi?.createObjectURL) return false;
+
+  const mime = options.mime ?? 'text/plain;charset=utf-8';
+  const blob = new Blob([text], { type: mime });
+  const objectUrl = urlApi.createObjectURL(blob);
+
+  const anchor = doc.createElement('a');
+  anchor.href = objectUrl;
+  anchor.download = filename;
+  anchor.rel = 'noopener';
+  anchor.style.display = 'none';
+
+  doc.body.appendChild(anchor);
+  anchor.click();
+
+  // La révocation est différée : certains navigateurs annulent le
+  // téléchargement si l'URL disparaît dans la même tâche.
+  const revoke = () => urlApi.revokeObjectURL(objectUrl);
+  if (typeof globalThis.setTimeout === 'function') globalThis.setTimeout(revoke, 10_000);
+  else revoke();
+
+  if (anchor.parentNode) anchor.parentNode.removeChild(anchor);
+  return true;
+}
+
+/**
+ * Copie un texte dans le presse-papiers, avec repli sur une zone de texte.
+ *
+ * `navigator.clipboard` n'est pas disponible partout (et exige un contexte
+ * sécurisé) ; le repli `execCommand` reste la seule option dans certains
+ * contextes d'extension Safari.
+ *
+ * @param {string} text
+ * @param {{ navigator?: Navigator, document?: Document }} [options]
+ * @returns {Promise<boolean>}
+ */
+export async function copyText(text, options = {}) {
+  const nav = options.navigator ?? globalThis.navigator;
+  const doc = options.document ?? globalThis.document;
+
+  try {
+    if (nav?.clipboard?.writeText) {
+      await nav.clipboard.writeText(text);
+      return true;
+    }
+  } catch {
+    // Refus de permission ou contexte non sécurisé : on tente le repli.
+  }
+
+  if (!doc?.createElement) return false;
+
+  try {
+    const area = doc.createElement('textarea');
+    area.value = text;
+    area.setAttribute('readonly', '');
+    area.style.position = 'fixed';
+    area.style.opacity = '0';
+    doc.body.appendChild(area);
+    area.select();
+    const ok = doc.execCommand?.('copy') ?? false;
+    doc.body.removeChild(area);
+    return ok;
+  } catch {
+    return false;
+  }
+}
