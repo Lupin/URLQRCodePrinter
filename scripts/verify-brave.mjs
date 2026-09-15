@@ -448,6 +448,32 @@ async function main() {
     );
     popup.ws.close();
 
+    // --- La page ne doit pas travailler sur une feuille de style périmée ---
+    const freshness = await evaluate(`(() => ({
+      bannerShown: !document.getElementById('stale-style').hidden,
+      stylesheet: [...document.querySelectorAll('link[rel=stylesheet]')].map((l) => l.getAttribute('href')),
+      scripts: [...document.querySelectorAll('script[src]')].map((s) => s.getAttribute('src')),
+      cellPosition: (() => {
+        const probe = document.createElement('div');
+        probe.className = 'print-cell';
+        document.body.appendChild(probe);
+        const position = getComputedStyle(probe).position;
+        probe.remove();
+        return position;
+      })(),
+    }))()`);
+    record(
+      'aucun bandeau de feuille de style obsolète',
+      freshness.bannerShown === false,
+      `position calculée : ${freshness.cellPosition}`,
+    );
+    record(
+      'les ressources sont versionnées par leur contenu',
+      (freshness.stylesheet ?? []).every((href) => /\?v=[0-9a-f]{12}$/.test(href ?? ''))
+        && (freshness.scripts ?? []).every((src) => /\?v=[0-9a-f]{12}$/.test(src ?? '')),
+      [...freshness.stylesheet, ...freshness.scripts].join(', '),
+    );
+
     // --- Matrice de mise en page, mesurée sur le rendu réel ----------------
     //
     // C'est ce bloc qui manquait quand la planche s'affichait en une seule
@@ -684,6 +710,92 @@ async function main() {
         && Math.abs(tweaks.movedQr - tweaks.baseQr) < 1.5,
       `+3 mm → ${tweaks.dx.toFixed(1)} px, −4 mm → ${tweaks.backDx.toFixed(1)} px `
         + `(attendu ${(4 * tweaks.pxPerMm).toFixed(1)} px à ${tweaks.pxPerMm.toFixed(2)} px/mm)`,
+    );
+
+    // --- « Remplir la feuille » : la grille choisie est celle imprimée -----
+    const fill = await evaluate(`(async () => {
+      const pause = () => new Promise((r) => setTimeout(r, 250));
+      const mode = document.getElementById('sheet-fit-mode');
+      const preset = document.getElementById('preset');
+      const cols = document.getElementById('sheet-columns');
+      const rows = document.getElementById('sheet-rows');
+      const margin = document.getElementById('sheet-margin');
+      const gap = document.getElementById('sheet-gap');
+      const info = document.getElementById('sheet-info');
+      const field = document.querySelector('[data-fill-only]');
+
+      const hiddenBefore = [...document.querySelectorAll('[data-fill-only]')].every((f) => f.hidden);
+      mode.value = 'fill';
+      mode.dispatchEvent(new Event('change'));
+      await pause();
+      const shownAfter = [...document.querySelectorAll('[data-fill-only]')].every((f) => !f.hidden);
+
+      // La disposition doit avoir prérempli les champs.
+      const prefilled = { columns: cols.value, rows: rows.value };
+
+      const run = async (c, r, m, g) => {
+        cols.value = String(c); cols.dispatchEvent(new Event('input'));
+        rows.value = String(r); rows.dispatchEvent(new Event('input'));
+        margin.value = String(m); margin.dispatchEvent(new Event('input'));
+        gap.value = String(g); gap.dispatchEvent(new Event('input'));
+        await pause();
+
+        const page = document.querySelector('#preview .print-page');
+        const cells = [...page.querySelectorAll('.print-cell')];
+        const rects = cells.map((cell) => cell.getBoundingClientRect());
+        const pageRect = page.getBoundingClientRect();
+        const label = cells[0].getBoundingClientRect();
+        return {
+          info: info.textContent.trim(),
+          count: cells.length,
+          columns: new Set(rects.map((rect) => Math.round(rect.x))).size,
+          rows: new Set(rects.map((rect) => Math.round(rect.y))).size,
+          labelMm: (label.width / pageRect.width) * 210,
+          withinPage: rects.every((rect) =>
+            rect.x >= pageRect.x - 1 && rect.y >= pageRect.y - 1
+            && rect.x + rect.width <= pageRect.x + pageRect.width + 1.5
+            && rect.y + rect.height <= pageRect.y + pageRect.height + 1.5),
+        };
+      };
+
+      const fourBySix = await run(4, 6, 5, 2);
+      const twoByThree = await run(2, 3, 12, 4);
+
+      mode.value = 'preset';
+      mode.dispatchEvent(new Event('change'));
+      preset.value = 'a4-3x8';
+      preset.dispatchEvent(new Event('change'));
+      await pause();
+
+      return { hiddenBefore, shownAfter, prefilled, fieldLabel: field?.textContent ?? '', fourBySix, twoByThree };
+    })()`);
+
+    record(
+      'les champs de remplissage apparaissent avec le mode',
+      fill.hiddenBefore === true && fill.shownAfter === true,
+      fill.fieldLabel.trim().slice(0, 40),
+    );
+    record(
+      'le mode reprend la grille de la disposition affichée',
+      fill.prefilled.columns === '3' && fill.prefilled.rows === '8',
+      `${fill.prefilled.columns} × ${fill.prefilled.rows}`,
+    );
+    record(
+      '4 × 6 demandées donnent 4 × 6 imprimées',
+      fill.fourBySix.columns === 4 && fill.fourBySix.rows === 6 && fill.fourBySix.count === 24,
+      `${fill.fourBySix.columns} × ${fill.fourBySix.rows}, ${fill.fourBySix.count} étiquettes — ${fill.fourBySix.info}`,
+    );
+    record(
+      'la taille des étiquettes est recalculée',
+      fill.fourBySix.labelMm > 40 && fill.fourBySix.labelMm < 55
+        && fill.twoByThree.labelMm > fill.fourBySix.labelMm,
+      `${fill.fourBySix.labelMm.toFixed(1)} mm à 4 colonnes → `
+        + `${fill.twoByThree.labelMm.toFixed(1)} mm à 2 colonnes`,
+    );
+    record(
+      'la marge globale est respectée',
+      fill.twoByThree.withinPage === true && fill.fourBySix.withinPage === true,
+      'toutes les étiquettes dans la page',
     );
 
     // --- Notes : saisissables, donc utiles au tableau ----------------------

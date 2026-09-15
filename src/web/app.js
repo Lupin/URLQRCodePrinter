@@ -31,6 +31,8 @@ import {
   paginate,
   qrSideMm,
   cellContentFits,
+  fitGrid,
+  round1,
 } from './core/sheet.js';
 import { PROFILES, DEFAULT_PROFILE, findProfile } from './core/printer/profiles.js';
 import { toCsv, toMarkdown, toJson, parseJsonExport, exportFilename } from './core/exporters.js';
@@ -110,6 +112,42 @@ if (missing.length > 0) {
     `Éléments absents de index.html : ${missing.join(', ')}. ` +
     'Le HTML et app.js ne sont pas de la même version.',
   );
+}
+
+/**
+ * Vérifie que la feuille de style réellement appliquée est celle du build.
+ *
+ * Un navigateur peut servir un `style.css` gardé en cache alors que le HTML et
+ * les scripts, eux, sont à jour. Le résultat est déroutant : les nouveaux
+ * réglages apparaissent, mais la mise en page reste celle d'avant — étiquettes
+ * empilées en une colonne, curseur de largeur sans effet. Plutôt que de laisser
+ * chercher, l'application le détecte et le dit.
+ *
+ * Le contrôle lit une propriété que seule la feuille de style définit sur un
+ * élément sonde : `position: absolute` sur `.print-cell`. Aucun style en ligne
+ * n'intervient, donc la réponse vient bien du fichier chargé.
+ *
+ * @returns {boolean} `true` si la feuille attendue est appliquée.
+ */
+function stylesheetIsCurrent() {
+  // Ces API n'existent pas dans tous les environnements d'exécution (les tests
+  // de démarrage tournent sous Node, sans DOM réel) : dans ce cas on ne peut
+  // rien affirmer, et on ne bloque pas.
+  if (typeof getComputedStyle !== 'function' || typeof document.body?.appendChild !== 'function') {
+    return true;
+  }
+  try {
+    const probe = document.createElement('div');
+    probe.className = 'print-cell';
+    probe.setAttribute('aria-hidden', 'true');
+    document.body.appendChild(probe);
+    const { position } = getComputedStyle(probe);
+    if (typeof probe.remove === 'function') probe.remove();
+    else probe.parentNode?.removeChild?.(probe);
+    return position === 'absolute';
+  } catch {
+    return true;
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -641,16 +679,96 @@ async function clearShortUrls() {
 // ---------------------------------------------------------------------------
 
 /** Configuration de la planche à partir du formulaire. */
+const SHEET_FIT_MODES = Object.freeze([
+  { id: 'preset', label: 'Cotes de la disposition' },
+  { id: 'fill', label: 'Remplir la feuille' },
+]);
+
+/** Contraint un entier de formulaire entre deux bornes. */
+function clampInt(value, min, max, fallback) {
+  const number = Number(value);
+  if (!Number.isFinite(number)) return fallback;
+  return Math.min(max, Math.max(min, Math.trunc(number)));
+}
+
+/**
+ * Configuration de la planche.
+ *
+ * Deux réglages, pour deux intentions :
+ * - **cotes de la disposition** : on imprime sur une planche commerciale, et
+ *   ses cotes publiées font foi ;
+ * - **remplir la feuille** : on choisit un nombre de colonnes et de rangées,
+ *   une marge globale et un écart, et la taille des étiquettes en découle.
+ *
+ * Le décalage, lui, ne change jamais la grille : il ne fait que déplacer
+ * l'ensemble, pour rattraper l'entraînement d'une imprimante.
+ *
+ * @returns {object & { problem?: string }}
+ */
 function sheetConfig() {
   const preset = SHEET_PRESETS[el.preset.value] ?? SHEET_PRESETS['a4-3x8'];
-  return {
+  const config = {
     ...preset,
     qrSizeRatio: Number(el.sheetQr.value) / 100,
-    // Décalage d'entraînement de l'imprimante : il ne change pas la grille,
-    // seulement sa position sur la feuille.
     offsetXMm: Number(el.sheetOffsetX.value) || 0,
     offsetYMm: Number(el.sheetOffsetY.value) || 0,
   };
+
+  if (el.sheetFitMode.value !== 'fill') return config;
+
+  const page = PAGE_SIZES[preset.page];
+  const columns = clampInt(el.sheetColumns.value, 1, 12, preset.declaredColumns);
+  const rows = clampInt(el.sheetRows.value, 1, 30, preset.declaredRows);
+  const marginMm = Math.max(0, Number(el.sheetMargin.value) || 0);
+  const gapMm = Math.max(0, Number(el.sheetGap.value) || 0);
+
+  const grid = fitGrid({
+    pageWidthMm: page.widthMm,
+    pageHeightMm: page.heightMm,
+    columns,
+    rows,
+    marginMm,
+    gapXMm: gapMm,
+    gapYMm: gapMm,
+  });
+
+  if (!grid.ok) {
+    // On garde la disposition précédente plutôt que de produire une planche
+    // impossible : le message dit quoi corriger.
+    return { ...config, problem: grid.reason };
+  }
+
+  return {
+    ...config,
+    columns: grid.columns,
+    rows: grid.rows,
+    labelWidthMm: grid.labelWidthMm,
+    labelHeightMm: grid.labelHeightMm,
+    marginXMm: grid.marginXMm,
+    marginYMm: grid.marginYMm,
+    gapXMm: gapMm,
+    gapYMm: gapMm,
+  };
+}
+
+/** Affiche les champs propres au mode « remplir la feuille ». */
+function updateFitFields() {
+  const filling = el.sheetFitMode.value === 'fill';
+  for (const field of document.querySelectorAll('[data-fill-only]')) {
+    field.hidden = !filling;
+  }
+  // Passer en mode « remplir » part des valeurs de la disposition affichée :
+  // on ajuste un point de départ, on ne repart pas de zéro.
+  if (filling) prefillFitFields();
+}
+
+/** Recopie la disposition courante dans les champs de remplissage. */
+function prefillFitFields() {
+  const preset = SHEET_PRESETS[el.preset.value] ?? SHEET_PRESETS['a4-3x8'];
+  el.sheetColumns.value = String(preset.declaredColumns);
+  el.sheetRows.value = String(preset.declaredRows);
+  el.sheetMargin.value = String(Math.min(preset.marginXMm, preset.marginYMm));
+  el.sheetGap.value = String(preset.gapXMm);
 }
 
 /**
@@ -664,7 +782,14 @@ function sheetConfig() {
  */
 function buildSheetPages(items) {
   const config = sheetConfig();
-  const layout = computeSheet({ count: items.length, ...config });
+  // Une grille issue de « remplir la feuille » occupe exactement la place
+  // demandée : lui suggérer de resserrer les marges pour gagner une colonne
+  // serait contredire le réglage de l'utilisateur.
+  const layout = computeSheet({
+    count: items.length,
+    ...config,
+    adviseDenser: el.sheetFitMode.value !== 'fill',
+  });
   const pages = paginate(items, layout);
 
   const side = qrSideMm(layout.labelWidthMm, layout.labelHeightMm, config.qrSizeRatio);
@@ -683,8 +808,11 @@ function buildSheetPages(items) {
   const warnings = [...layout.warnings];
   if (!content.ok) warnings.push(content.reason);
 
+  if (config.problem) warnings.unshift(config.problem);
+
   el.sheetInfo.textContent = layout.perPage > 0
-    ? `${layout.columns} × ${layout.rows} = ${layout.perPage} étiquettes par page, ` +
+    ? `${layout.columns} × ${layout.rows} = ${layout.perPage} étiquettes par page ` +
+      `de ${round1(layout.labelWidthMm)} × ${round1(layout.labelHeightMm)} mm, ` +
       `${layout.pages} page${layout.pages > 1 ? 's' : ''}` +
       (warnings.length ? ` — ${warnings.join(' ')}` : '')
     : layout.warnings.join(' ');
@@ -1392,6 +1520,15 @@ function fillPresets() {
     el.preset.appendChild(optgroup);
   }
   el.preset.value = 'a4-3x8';
+
+  for (const mode of SHEET_FIT_MODES) {
+    const option = document.createElement('option');
+    option.value = mode.id;
+    option.textContent = mode.label;
+    el.sheetFitMode.appendChild(option);
+  }
+  el.sheetFitMode.value = 'preset';
+  updateFitFields();
 }
 
 /**
@@ -1556,7 +1693,17 @@ el.qrTarget.addEventListener('change', () => {
   renderPreview();
 });
 
-el.preset.addEventListener('change', renderPreview);
+el.preset.addEventListener('change', () => {
+  if (el.sheetFitMode.value === 'fill') prefillFitFields();
+  renderPreview();
+});
+el.sheetFitMode.addEventListener('change', () => {
+  updateFitFields();
+  renderPreview();
+});
+for (const field of [el.sheetColumns, el.sheetRows, el.sheetMargin, el.sheetGap]) {
+  field.addEventListener('input', renderPreview);
+}
 el.sheetQr.addEventListener('input', renderPreview);
 el.sheetOffsetX.addEventListener('input', renderPreview);
 el.sheetOffsetY.addEventListener('input', renderPreview);
@@ -1612,6 +1759,10 @@ el.qrTarget.value = preferences.targetMode;
 reportBluetoothSupport();
 switchMode('sheet');
 updateProfileHint();
+
+// Un bandeau plutôt qu'un message transitoire : celui-ci serait recouvert par
+// le message suivant, et un diagnostic qu'on ne lit pas ne sert à rien.
+if (!stylesheetIsCurrent()) el.staleStyle.hidden = false;
 
 if (storeKind === 'memory') {
   toast('Stockage temporaire : IndexedDB indisponible, les liens seront perdus', 'error');

@@ -8,6 +8,7 @@
  */
 
 export const ELEMENT_IDS = Object.freeze([
+  'stale-style',
   'count',
   'add-form',
   'url-input',
@@ -32,6 +33,11 @@ export const ELEMENT_IDS = Object.freeze([
   'clear',
   'preset',
   'sheet-qr',
+  'sheet-fit-mode',
+  'sheet-columns',
+  'sheet-rows',
+  'sheet-margin',
+  'sheet-gap',
   'sheet-offset-x',
   'sheet-offset-y',
   'sheet-info',

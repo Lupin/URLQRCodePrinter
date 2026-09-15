@@ -120,8 +120,8 @@ test('chaque préréglage place le nombre d\'étiquettes annoncé', () => {
   // pas mal recopié se traduit ici par une rangée manquante.
   for (const [key, preset] of Object.entries(SHEET_PRESETS)) {
     const layout = computeSheet({ count: 1, ...preset });
-    assert.equal(layout.columns, preset.columns, `${key} : colonnes`);
-    assert.equal(layout.rows, preset.rows, `${key} : rangées`);
+    assert.equal(layout.columns, preset.declaredColumns, `${key} : colonnes`);
+    assert.equal(layout.rows, preset.declaredRows, `${key} : rangées`);
     assert.deepEqual(layout.warnings, [], `${key} : aucun avertissement attendu`);
   }
 });

@@ -21,7 +21,7 @@ Markdown, ou envoi direct à une imprimante Niimbot.
 | Socle natif Swift (protocole, session, CoreBluetooth) | fait, testé |
 | Application iOS qui utilise ce socle | à faire |
 
-**527 tests, tous verts** — 423 en JavaScript et 104 en Swift — dont :
+**551 tests, tous verts** — 447 en JavaScript et 104 en Swift — dont :
 
 - la validation **octet à octet** des trames Niimbot contre les relevés
   documentés, **dans les deux langages** : deux implémentations indépendantes
@@ -33,12 +33,15 @@ Markdown, ou envoi direct à une imprimante Niimbot.
   reproduites pour être traitées, pas devinées ;
 - une **matrice de mise en page** sur les treize dispositions d'étiquettes et
   leurs cas limites — aucune superposition, aucune étiquette hors feuille, pas
-  de dérive cumulée — doublée d'une mesure du rendu réel dans Brave.
+  de dérive cumulée — doublée d'une mesure du rendu réel dans Brave ;
+- le **calcul inverse** « remplir la feuille » : la grille demandée est
+  exactement celle qui sort, sur plus de 400 combinaisons de colonnes, rangées,
+  marges et écarts, pour le A4 comme pour le Letter.
 
 **L'application est vérifiée dans un vrai navigateur** : `npm run verify:brave`
 lance Brave sur un profil isolé, collecte un lien, le raccourcit, exporte le CSV
 et l'archive d'étiquettes, puis contrôle les fichiers réellement écrits sur le
-disque (signature ZIP, `unzip -t`, contenu du CSV). 46 vérifications, dont le
+disque (signature ZIP, `unzip -t`, contenu du CSV). 53 vérifications, dont le
 rendu des liens cliquables dans l'application *et* dans la fenêtre de
 l'extension, la grille réellement calculée pour quatre références Avery, et
 l'aperçu d'étiquette composé sans aucune imprimante connectée.
@@ -268,6 +271,27 @@ couvre la géométrie pure sur tous les formats, et `npm run verify:brave` mesur
 le DOM réellement calculé par le navigateur (colonnes distinctes, aucune
 superposition, QR contenu dans sa boîte, effet du curseur). Un test de géométrie
 seul n'aurait jamais vu ce défaut.
+
+**Le nombre de colonnes peut devenir une consigne.** Par défaut, la géométrie
+déduit la grille des cotes ; c'est ce qu'il faut pour une planche commerciale.
+En mode « remplir la feuille », l'utilisateur choisit au contraire colonnes,
+rangées, marge globale et écart, et la taille des étiquettes en découle
+(`fitGrid`). Ces deux sens de calcul ne peuvent pas cohabiter sur les mêmes
+noms : les préréglages portent donc `declaredColumns` / `declaredRows`, que
+`computeSheet` **ne lit pas**. Les nommer `columns` / `rows` aurait été un piège
+— `computeSheet` y aurait vu une grille explicite à honorer, et le test qui
+confronte la géométrie au nombre d'étiquettes annoncé serait devenu circulaire.
+`test/sheet-matrix.test.js` vérifie explicitement que ce piège reste désamorcé.
+
+**Les ressources construites portent une empreinte de leur contenu.** Sans elle,
+un navigateur peut servir un `style.css` du build précédent alors que le HTML et
+les scripts sont à jour : les nouveaux réglages apparaissent, mais la mise en
+page reste l'ancienne. C'est arrivé, et le diagnostic a été long — la planche
+s'affichait en une seule colonne, curseur de largeur du QR sans effet, alors que
+le correctif était bien sur le disque. Deux parades : l'URL porte une empreinte
+(`style.css?v=…`), et l'application **détecte** une feuille de style périmée en
+lisant une propriété que seule la feuille définit, puis l'annonce dans un bandeau
+persistant — `test/web-stale-css.test.js` couvre les deux branches.
 
 **Calibrer reste nécessaire.** Aucune cote de fabricant ne prévoit l'entraînement
 d'une imprimante donnée : les champs « Décalage horizontal / vertical » déplacent

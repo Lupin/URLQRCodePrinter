@@ -102,6 +102,22 @@ Pour les planches autocollantes A4 et Letter. Deux familles de dispositions :
 > réel, imprimez sur papier ordinaire — ou regardez l'onglet « Images à
 > imprimer », qui affiche une étiquette en grand.
 
+**Choisir le nombre de colonnes, ou remplir la feuille.** Le sélecteur
+« Réglage » propose deux approches :
+
+- **Cotes de la disposition** — les cotes publiées de la référence choisie font
+  foi. C'est le mode à utiliser sur une planche commerciale.
+- **Remplir la feuille** — vous choisissez **colonnes**, **rangées**, une
+  **marge globale** (appliquée aux quatre bords) et un **écart** entre
+  étiquettes ; la taille des étiquettes est recalculée pour occuper exactement
+  la place restante. La ligne d'information sous les réglages affiche la taille
+  obtenue : `4 × 6 = 24 étiquettes par page de 48,5 × 46,2 mm`.
+
+Passer en mode « remplir » reprend la grille de la disposition affichée : on
+ajuste un point de départ, on ne repart pas de zéro. Si la demande est
+impossible — trop de colonnes pour la marge choisie — la disposition précédente
+est conservée et le message dit quoi corriger.
+
 **Calibrer avant d'imprimer sur une planche.** Aucune cote de fabricant ne
 prévoit le décalage d'entraînement de votre imprimante. La marche à suivre :
 
@@ -212,6 +228,11 @@ d'origine en fin de tableau.
 - **Archive JSON** — tout le modèle, réimportable via « Importer ».
 
 ## Dépannage
+
+**Un bandeau rouge parle de feuille de style obsolète.** Le navigateur a gardé
+l'ancien `style.css` : l'aperçu ne reflète alors pas ce qui sera imprimé.
+Rechargez l'extension (↻ dans `brave://extensions`) puis rouvrez la page. Le
+bandeau n'apparaît que dans ce cas précis.
 
 **La planche est décalée.** Vérifiez d'abord que l'impression est à 100 %
 (« taille réelle »), puis réglez les décalages horizontaux et verticaux. Un

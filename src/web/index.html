@@ -13,6 +13,17 @@
     <span id="count" class="pill" aria-live="polite">0 lien</span>
   </header>
 
+  <!-- Affiché seulement si la feuille de style appliquée n'est pas celle du
+       build : le navigateur a gardé l'ancienne, et la mise en page serait
+       trompeuse sans que rien ne le dise. -->
+  <div id="stale-style" class="banner banner--error" role="alert" hidden>
+    <strong>Feuille de style obsolète.</strong>
+    Le navigateur utilise une ancienne version du style : l'aperçu de la planche
+    ne reflète pas ce qui sera imprimé.
+    Rechargez l'extension (<em>↻ dans <code>brave://extensions</code></em>), puis
+    rouvrez cette page. Si cela persiste, videz le cache du navigateur.
+  </div>
+
   <main class="layout">
     <!-- ---------------------------------------------------------------- -->
     <!-- Colonne de gauche : la collection                                 -->
@@ -93,6 +104,28 @@
           <label class="field">
             <span class="field__label">Largeur du QR</span>
             <input id="sheet-qr" class="input" type="range" min="30" max="100" value="70">
+          </label>
+        </div>
+        <div class="fields">
+          <label class="field">
+            <span class="field__label">Réglage</span>
+            <select id="sheet-fit-mode" class="input"></select>
+          </label>
+          <label class="field" data-fill-only hidden>
+            <span class="field__label">Colonnes</span>
+            <input id="sheet-columns" class="input" type="number" min="1" max="12" step="1" value="3">
+          </label>
+          <label class="field" data-fill-only hidden>
+            <span class="field__label">Rangées</span>
+            <input id="sheet-rows" class="input" type="number" min="1" max="30" step="1" value="8">
+          </label>
+          <label class="field" data-fill-only hidden>
+            <span class="field__label">Marge globale (mm)</span>
+            <input id="sheet-margin" class="input" type="number" min="0" max="40" step="0.5" value="7">
+          </label>
+          <label class="field" data-fill-only hidden>
+            <span class="field__label">Écart entre étiquettes (mm)</span>
+            <input id="sheet-gap" class="input" type="number" min="0" max="10" step="0.5" value="0">
           </label>
         </div>
         <div class="fields">

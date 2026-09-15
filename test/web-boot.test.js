@@ -1,14 +1,8 @@
 /**
  * Démarrage de l'application web, exécuté réellement.
  *
- * Chrome sans interface ne démarre pas dans cet environnement, ce qui
- * interdirait toute vérification dynamique. On exécute donc `app.js` sous Node
- * avec un DOM minimal : le chemin de démarrage complet est parcouru pour de
- * vrai — imports, résolution du stockage, construction de l'interface — et une
- * exception y serait attrapée.
- *
- * Ce que ce test ne couvre pas : le rendu, la mise en page CSS et les API
- * navigateur. Il vérifie le câblage, pas l'apparence.
+ * Le DOM de substitution vit dans `test/helpers/dom-shim.mjs`, partagé avec le
+ * scénario de feuille de style obsolète.
  */
 
 import { test, before } from 'node:test';
@@ -16,6 +10,8 @@ import assert from 'node:assert/strict';
 import { existsSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+
+import { bootApp } from './helpers/dom-shim.mjs';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const DIST_WEB = join(ROOT, 'dist', 'web');
@@ -27,162 +23,12 @@ if (!existsSync(DIST_WEB)) {
   throw new Error(`${DIST_WEB} est absent : lancez « npm run build » avant les tests.`);
 }
 
-// ---------------------------------------------------------------------------
-// DOM minimal
-// ---------------------------------------------------------------------------
-
-/** Contexte 2D factice : suffisant pour composer une étiquette. */
-function createContext2D() {
-  return {
-    fillStyle: '#000',
-    font: '',
-    textAlign: 'left',
-    textBaseline: 'top',
-    imageSmoothingEnabled: true,
-    fillRect() {},
-    fillText() {},
-    drawImage() {},
-    measureText: (text) => ({ width: text.length * 6 }),
-    getImageData: (_x, _y, width, height) => ({
-      width,
-      height,
-      data: new Uint8ClampedArray(width * height * 4).fill(255),
-    }),
-  };
-}
-
-/** Élément DOM factice, avec juste ce qu'utilise app.js. */
-function createElement(tagName) {
-  const classes = new Set();
-  const node = {
-    tagName: String(tagName).toUpperCase(),
-    children: [],
-    style: {},
-    dataset: {},
-    attributes: {},
-    textContent: '',
-    innerHTML: '',
-    value: '',
-    checked: false,
-    hidden: false,
-    disabled: false,
-    files: null,
-    clientWidth: 900,
-    parentNode: null,
-    classList: {
-      add: (name) => classes.add(name),
-      remove: (name) => classes.delete(name),
-      toggle: (name, force) => (force ? classes.add(name) : classes.delete(name)),
-      contains: (name) => classes.has(name),
-    },
-    get className() {
-      return [...classes].join(' ');
-    },
-    set className(value) {
-      classes.clear();
-      for (const name of String(value).split(/\s+/)) if (name) classes.add(name);
-    },
-    get firstElementChild() {
-      return this.children[0] ?? null;
-    },
-    get firstChild() {
-      return this.children[0] ?? null;
-    },
-    appendChild(child) {
-      this.children.push(child);
-      if (child && typeof child === 'object') child.parentNode = this;
-      return child;
-    },
-    append(...items) {
-      for (const item of items) this.appendChild(item);
-    },
-    removeChild(child) {
-      const index = this.children.indexOf(child);
-      if (index !== -1) this.children.splice(index, 1);
-      return child;
-    },
-    addEventListener() {},
-    removeEventListener() {},
-    setAttribute(name, value) {
-      this.attributes[name] = String(value);
-    },
-    getAttribute(name) {
-      return this.attributes[name] ?? null;
-    },
-    querySelectorAll: () => [],
-    click() {},
-    select() {},
-    getContext: () => createContext2D(),
-    getBoundingClientRect: () => ({ width: 900, height: 600, top: 0, left: 0 }),
-  };
-
-  // Fidélité indispensable : dans un vrai DOM, affecter `textContent` ou
-  // `innerHTML` supprime les enfants existants. Sans cela, un aperçu reconstruit
-  // plusieurs fois accumulerait ses versions successives et le test mentirait.
-  let text = '';
-  Object.defineProperty(node, 'textContent', {
-    get: () => text,
-    set: (value) => {
-      text = value == null ? '' : String(value);
-      node.children.length = 0;
-    },
-    configurable: true,
-  });
-
-  Object.defineProperty(node, 'innerHTML', {
-    get: () => text,
-    set: (value) => {
-      text = value == null ? '' : String(value);
-      node.children.length = 0;
-      // Le balisage est approximé par un unique enfant : c'est suffisant pour
-      // que `firstElementChild` ne renvoie pas `null` là où le vrai DOM
-      // renverrait l'élément racine du fragment.
-      if (text !== '') node.appendChild(createElement('div'));
-    },
-    configurable: true,
-  });
-
-  return node;
-}
-
-/** Registre d'éléments : `getElementById` doit renvoyer le même nœud. */
-const registry = new Map();
-
-const documentStub = {
-  getElementById(id) {
-    if (!registry.has(id)) registry.set(id, createElement('div'));
-    return registry.get(id);
-  },
-  createElement,
-  querySelectorAll: () => [],
-  addEventListener() {},
-  body: createElement('body'),
-  execCommand: () => false,
-};
-
-// ---------------------------------------------------------------------------
-// Exécution
-// ---------------------------------------------------------------------------
-
-/** Erreur éventuellement levée au chargement de l'application. */
+/** Erreur éventuellement levée au chargement, et registre des éléments. */
 let bootError = null;
+let registry = new Map();
 
 before(async () => {
-  globalThis.document = documentStub;
-  globalThis.window = {
-    addEventListener() {},
-    removeEventListener() {},
-    print() {},
-    location: { href: 'http://localhost:4173/' },
-  };
-
-  try {
-    // Import réel du module assemblé : tous ses imports sont résolus et le
-    // chemin de démarrage s'exécute jusqu'au bout.
-    await import(join(DIST_WEB, 'app.js'));
-  } catch (error) {
-    bootError = error;
-  }
+  ({ registry, bootError } = await bootApp({ distWeb: DIST_WEB }));
 });
 
 test('l\'application démarre sans lever d\'exception', () => {

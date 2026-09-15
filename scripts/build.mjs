@@ -14,6 +14,7 @@
 
 import { cp, mkdir, rm, stat, readdir, readFile, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
+import { createHash } from 'node:crypto';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -136,6 +137,43 @@ async function copyWebApp(outDir) {
 }
 
 /**
+ * Ajoute une empreinte du contenu à l'URL des ressources d'une page.
+ *
+ * Sans cela, un navigateur peut servir un `style.css` gardé en cache alors que
+ * le HTML et les scripts sont à jour. Le symptôme est déroutant : les nouveaux
+ * réglages apparaissent, mais la mise en page reste celle du build précédent.
+ * C'est arrivé — la planche s'affichait en une seule colonne, curseur de largeur
+ * du QR sans effet, alors que le correctif était bien sur le disque.
+ *
+ * Une empreinte change l'URL dès que le fichier change : le navigateur n'a plus
+ * rien à réutiliser. `app.js` est haché **après** l'assemblage, pour que
+ * l'empreinte suive le contenu réellement livré.
+ *
+ * @param {string} pagePath  Chemin de la page HTML à réécrire.
+ * @param {string} outDir    Dossier où lire les ressources.
+ * @param {string[]} assets  Noms de fichiers référencés par la page.
+ * @returns {Promise<string[]>} Les ressources effectivement versionnées.
+ */
+async function stampAssetVersions(pagePath, outDir, assets) {
+  let html = await readFile(pagePath, 'utf8');
+  const stamped = [];
+
+  for (const asset of assets) {
+    const path = join(outDir, asset);
+    if (!existsSync(path)) continue;
+    const bytes = await readFile(path);
+    const digest = createHash('sha256').update(bytes).digest('hex').slice(0, 12);
+    // Le remplacement ne vise que la référence exacte, guillemet compris.
+    const before = html;
+    html = html.replaceAll(`${asset}\"`, `${asset}?v=${digest}\"`);
+    if (html !== before) stamped.push(`${asset}?v=${digest}`);
+  }
+
+  await writeFile(pagePath, html, 'utf8');
+  return stamped;
+}
+
+/**
  * Assemble les points d'entrée de l'extension et supprime les modules sources.
  *
  * Safari ne résout pas les imports situés dans un sous-dossier d'une extension,
@@ -232,6 +270,13 @@ async function buildTarget(name) {
       `  ${name} : ${bundled.entries.join(' et ')} assemblés ` +
       `(${bundled.modules} modules, plus aucun import)`,
     );
+  }
+
+  // Après l'assemblage : l'empreinte doit porter sur le contenu livré.
+  const page = target.webApp ? join(outDir, WEB_APP_PAGE) : join(outDir, 'index.html');
+  if (existsSync(page)) {
+    const stamped = await stampAssetVersions(page, outDir, ['style.css', 'app.js']);
+    if (stamped.length > 0) console.log(`  ${name} : ${stamped.join(', ')}`);
   }
 
   return { name, outDir, files: await countFiles(outDir) };

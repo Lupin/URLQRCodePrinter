@@ -30,6 +30,7 @@ import {
   paginate,
   qrSideMm,
   cellContentFits,
+  fitGrid,
 } from '../src/core/sheet.js';
 
 const EPSILON = 1e-6;
@@ -39,7 +40,7 @@ const PRESET_KEYS = Object.keys(SHEET_PRESETS);
 
 /** Comptes à tester : les cas limites d'une pagination. */
 function countsFor(preset) {
-  const perPage = preset.columns * preset.rows;
+  const perPage = preset.declaredColumns * preset.declaredRows;
   return [0, 1, 2, perPage - 1, perPage, perPage + 1, perPage * 3];
 }
 
@@ -80,9 +81,9 @@ test('la grille calculée correspond au nombre d\'étiquettes annoncé', () => {
   for (const key of PRESET_KEYS) {
     const preset = SHEET_PRESETS[key];
     const layout = computeSheet({ count: 1, ...preset });
-    assert.equal(layout.columns, preset.columns, `${key} : colonnes`);
-    assert.equal(layout.rows, preset.rows, `${key} : rangées`);
-    assert.equal(layout.perPage, preset.columns * preset.rows, `${key} : étiquettes par page`);
+    assert.equal(layout.columns, preset.declaredColumns, `${key} : colonnes`);
+    assert.equal(layout.rows, preset.declaredRows, `${key} : rangées`);
+    assert.equal(layout.perPage, preset.declaredColumns * preset.declaredRows, `${key} : étiquettes par page`);
     assert.deepEqual(layout.warnings, [], `${key} : aucun avertissement attendu`);
   }
 });
@@ -90,7 +91,7 @@ test('la grille calculée correspond au nombre d\'étiquettes annoncé', () => {
 test('aucune étiquette ne dépasse de la feuille', () => {
   for (const key of PRESET_KEYS) {
     const preset = SHEET_PRESETS[key];
-    const perPage = preset.columns * preset.rows;
+    const perPage = preset.declaredColumns * preset.declaredRows;
     const layout = computeSheet({ count: perPage * 2, ...preset });
     const page = PAGE_SIZES[preset.page];
 
@@ -112,7 +113,7 @@ test('aucune étiquette ne dépasse de la feuille', () => {
 test('deux étiquettes d\'une même page ne se chevauchent jamais', () => {
   for (const key of PRESET_KEYS) {
     const preset = SHEET_PRESETS[key];
-    const perPage = preset.columns * preset.rows;
+    const perPage = preset.declaredColumns * preset.declaredRows;
     const layout = computeSheet({ count: perPage, ...preset });
 
     for (let a = 0; a < layout.cells.length; a++) {
@@ -143,7 +144,7 @@ test('la grille est régulière : pas de dérive cumulée', () => {
     const preset = SHEET_PRESETS[key];
     const stepX = preset.labelWidthMm + preset.gapXMm;
     const stepY = preset.labelHeightMm + preset.gapYMm;
-    const layout = computeSheet({ count: preset.columns * preset.rows, ...preset });
+    const layout = computeSheet({ count: preset.declaredColumns * preset.declaredRows, ...preset });
 
     for (const cell of layout.cells) {
       const expectedX = preset.marginXMm + cell.column * stepX;
@@ -163,7 +164,7 @@ test('la grille est régulière : pas de dérive cumulée', () => {
 test('le nombre de pages suit la capacité de la feuille', () => {
   for (const key of PRESET_KEYS) {
     const preset = SHEET_PRESETS[key];
-    const perPage = preset.columns * preset.rows;
+    const perPage = preset.declaredColumns * preset.declaredRows;
 
     for (const count of countsFor(preset)) {
       const sheet = computeSheet({ count, ...preset });
@@ -187,7 +188,7 @@ test('le nombre de pages suit la capacité de la feuille', () => {
 test('la pagination conserve l\'ordre et couvre tous les éléments', () => {
   for (const key of PRESET_KEYS) {
     const preset = SHEET_PRESETS[key];
-    const perPage = preset.columns * preset.rows;
+    const perPage = preset.declaredColumns * preset.declaredRows;
     const count = perPage * 2 + 3;
     const items = Array.from({ length: count }, (_, index) => `lien-${index}`);
     const sheet = computeSheet({ count, ...preset });
@@ -212,7 +213,7 @@ test('la pagination conserve l\'ordre et couvre tous les éléments', () => {
 test('le décalage déplace la grille sans changer sa forme', () => {
   for (const key of PRESET_KEYS) {
     const preset = SHEET_PRESETS[key];
-    const perPage = preset.columns * preset.rows;
+    const perPage = preset.declaredColumns * preset.declaredRows;
     const base = computeSheet({ count: perPage, ...preset });
     const shifted = computeSheet({ count: perPage, ...preset, offsetXMm: 2, offsetYMm: -1.5 });
 
@@ -383,4 +384,238 @@ test('une marge négative est ramenée à zéro', () => {
   });
   assert.equal(layout.cells[0].xMm, 0);
   assert.equal(layout.cells[0].yMm, 0);
+});
+
+// ---------------------------------------------------------------------------
+// Remplir la feuille : colonnes, rangées, marge globale
+// ---------------------------------------------------------------------------
+
+/** Toutes les feuilles connues, pour ne pas tester que le A4. */
+const PAGES = Object.entries(PAGE_SIZES);
+
+test('la grille demandée est exactement celle qui sera imprimée', () => {
+  // Propriété la plus importante de `fitGrid` : ce qu'on demande est ce qu'on
+  // obtient. Une étiquette arrondie vers le bas ferait perdre une colonne, et
+  // l'utilisateur ne comprendrait pas pourquoi.
+  const cases = [
+    [1, 1], [2, 1], [1, 4], [2, 5], [3, 7], [3, 8], [4, 10], [4, 12], [5, 6],
+    [6, 13], [8, 16], [3, 30], [12, 1], [1, 30],
+  ];
+  const margins = [0, 2, 4, 5, 7, 8.6, 10, 15];
+  const gaps = [0, 0.5, 1, 2.9, 5];
+
+  let checked = 0;
+  for (const [pageName, page] of PAGES) {
+    for (const [columns, rows] of cases) {
+      for (const marginMm of margins) {
+        for (const gapMm of gaps) {
+          const grid = fitGrid({
+            pageWidthMm: page.widthMm,
+            pageHeightMm: page.heightMm,
+            columns,
+            rows,
+            marginMm,
+            gapXMm: gapMm,
+            gapYMm: gapMm,
+          });
+          if (!grid.ok) continue;
+
+          const sheet = computeSheet({
+            count: columns * rows,
+            labelWidthMm: grid.labelWidthMm,
+            labelHeightMm: grid.labelHeightMm,
+            marginXMm: grid.marginXMm,
+            marginYMm: grid.marginYMm,
+            gapXMm: gapMm,
+            gapYMm: gapMm,
+            pageWidthMm: page.widthMm,
+            pageHeightMm: page.heightMm,
+            // Exactement ce que fait l'application en mode « remplir la
+            // feuille » : la grille choisie est passée explicitement.
+            columns,
+            rows,
+            adviseDenser: false,
+          });
+
+          assert.equal(
+            sheet.columns,
+            columns,
+            `${pageName} ${columns}×${rows}, marge ${marginMm}, écart ${gapMm} : colonnes`,
+          );
+          assert.equal(
+            sheet.rows,
+            rows,
+            `${pageName} ${columns}×${rows}, marge ${marginMm}, écart ${gapMm} : rangées`,
+          );
+          assert.equal(sheet.perPage, columns * rows);
+          assert.deepEqual(sheet.warnings, []);
+          checked += 1;
+        }
+      }
+    }
+  }
+  assert.ok(checked > 400, `seulement ${checked} combinaisons vérifiées`);
+});
+
+test('les étiquettes calculées tiennent dans la marge demandée', () => {
+  for (const [pageName, page] of PAGES) {
+    const grid = fitGrid({
+      pageWidthMm: page.widthMm,
+      pageHeightMm: page.heightMm,
+      columns: 3,
+      rows: 8,
+      marginMm: 6,
+      gapXMm: 2,
+      gapYMm: 2,
+    });
+    assert.equal(grid.ok, true, pageName);
+
+    // La marge effective peut s'écarter de quelques centièmes — l'arrondi de
+    // l'étiquette est réparti des deux côtés — mais jamais d'un dixième.
+    assert.ok(Math.abs(grid.marginXMm - 6) <= 0.05, `${pageName} : marge x ${grid.marginXMm}`);
+    assert.ok(Math.abs(grid.marginYMm - 6) <= 0.05, `${pageName} : marge y ${grid.marginYMm}`);
+
+    const used =
+      grid.marginXMm * 2 + grid.columns * grid.labelWidthMm + (grid.columns - 1) * 2;
+    assert.ok(used <= page.widthMm + 1e-6, `${pageName} : ${used} mm utilisés sur ${page.widthMm}`);
+  }
+});
+
+test('la taille d\'étiquette diminue quand on demande plus de colonnes', () => {
+  const page = PAGE_SIZES.a4;
+  let previous = Infinity;
+  for (const columns of [1, 2, 3, 4, 5, 6, 8]) {
+    const grid = fitGrid({
+      pageWidthMm: page.widthMm, pageHeightMm: page.heightMm,
+      columns, rows: 1, marginMm: 5, gapXMm: 0, gapYMm: 0,
+    });
+    assert.equal(grid.ok, true, `${columns} colonnes`);
+    assert.ok(grid.labelWidthMm < previous, `${columns} colonnes : ${grid.labelWidthMm} mm`);
+    previous = grid.labelWidthMm;
+  }
+});
+
+test('une demande impossible est refusée avec une explication', () => {
+  const page = PAGE_SIZES.a4;
+  // 12 colonnes avec 40 mm de marge et 8 mm d'écart : il ne reste que
+  // (210 − 80 − 88) / 12 = 3,5 mm par étiquette, sous le minimum imprimable.
+  const grid = fitGrid({
+    pageWidthMm: page.widthMm,
+    pageHeightMm: page.heightMm,
+    columns: 12,
+    rows: 2,
+    marginMm: 40,
+    gapXMm: 8,
+    gapYMm: 8,
+  });
+  assert.equal(grid.ok, false);
+  assert.match(grid.reason, /minimum|colonnes|rangées/);
+  assert.equal(grid.labelWidthMm, 0, 'aucune cote crédible ne doit être proposée');
+  // La grille demandée reste lisible dans le refus, pour pouvoir l'expliquer.
+  assert.equal(grid.columns, 12);
+});
+
+test('une marge trop grande est refusée sans produire de cote négative', () => {
+  const page = PAGE_SIZES.a4;
+  for (const marginMm of [105, 120, 200]) {
+    const grid = fitGrid({
+      pageWidthMm: page.widthMm, pageHeightMm: page.heightMm,
+      columns: 1, rows: 1, marginMm,
+    });
+    assert.equal(grid.ok, false, `marge ${marginMm} mm`);
+    assert.ok(grid.labelWidthMm >= 0, `marge ${marginMm} mm : cote négative`);
+    assert.ok(grid.reason.length > 0);
+  }
+});
+
+test('fitGrid exige des dimensions de feuille valides', () => {
+  assert.throws(() => fitGrid({ pageWidthMm: 0, pageHeightMm: 297, columns: 1, rows: 1 }), TypeError);
+  assert.throws(() => fitGrid({ pageWidthMm: 210, pageHeightMm: -1, columns: 1, rows: 1 }), TypeError);
+});
+
+test('un nombre de colonnes absurde est ramené à une valeur exploitable', () => {
+  const page = PAGE_SIZES.a4;
+  for (const columns of [0, -3, 0.4]) {
+    const grid = fitGrid({
+      pageWidthMm: page.widthMm, pageHeightMm: page.heightMm,
+      columns, rows: 1, marginMm: 5,
+    });
+    assert.equal(grid.columns, 1, `colonnes = ${columns}`);
+    assert.equal(grid.ok, true);
+  }
+});
+
+test('la suggestion de densité se coupe quand la marge est un choix', () => {
+  // 60 mm d'étiquette posés à 100 mm du bord : la moitié droite de la feuille
+  // reste vide, ce qui vaut la peine d'être dit.
+  const base = {
+    count: 1,
+    pageWidthMm: 210,
+    pageHeightMm: 297,
+    labelWidthMm: 60,
+    labelHeightMm: 60,
+    marginXMm: 100,
+    marginYMm: 10,
+  };
+
+  assert.equal(computeSheet(base).warnings.length, 1);
+  assert.deepEqual(computeSheet({ ...base, adviseDenser: false }).warnings, []);
+});
+
+test('une grille explicite est honorée telle quelle', () => {
+  // Demander 30 rangées et en obtenir 31 serait incompréhensible : la grille
+  // choisie est une consigne. C'est le cas de « remplir la feuille ».
+  const asked = computeSheet({
+    count: 90,
+    pageWidthMm: 210, pageHeightMm: 297,
+    labelWidthMm: 63.33, labelHeightMm: 9.23,
+    marginXMm: 10, marginYMm: 10,
+    columns: 3, rows: 30,
+  });
+  assert.equal(asked.columns, 3);
+  assert.equal(asked.rows, 30);
+  assert.equal(asked.perPage, 90);
+  assert.deepEqual(asked.warnings, [], 'la grille tient, rien à signaler');
+
+  // Sans grille explicite, le calcul reprend ses droits et descend au nombre
+  // d'étiquettes que la zone utile accepte réellement.
+  const derived = computeSheet({
+    count: 90,
+    pageWidthMm: 210, pageHeightMm: 297,
+    labelWidthMm: 63.33, labelHeightMm: 9.23,
+    marginXMm: 10, marginYMm: 10,
+  });
+  assert.equal(derived.columns, 3);
+  assert.ok(derived.rows >= 30, `rangées déduites : ${derived.rows}`);
+});
+
+test('une grille explicite trop grande est signalée', () => {
+  const layout = computeSheet({
+    count: 12,
+    pageWidthMm: 210, pageHeightMm: 297,
+    labelWidthMm: 60, labelHeightMm: 20,
+    marginXMm: 10, marginYMm: 10,
+    columns: 5, rows: 2,
+  });
+  assert.equal(layout.columns, 5, 'la demande est conservée');
+  assert.equal(layout.warnings.length, 1);
+  assert.match(layout.warnings[0], /ne tient pas/);
+  assert.match(layout.warnings[0], /3 × 14 au maximum/);
+});
+
+test('une grille déclarée fausse est démasquée par la géométrie', () => {
+  // Garde-fou contre un test circulaire : si les préréglages portaient des
+  // champs nommés `columns`/`rows`, `computeSheet` les prendrait pour une
+  // grille explicite à honorer, et le test « la grille calculée correspond au
+  // nombre annoncé » deviendrait vrai par construction. On vérifie ici que la
+  // géométrie garde le dernier mot.
+  const lying = { ...SHEET_PRESETS['avery-l7160'], declaredColumns: 2, declaredRows: 5 };
+  const layout = computeSheet({ count: 1, ...lying });
+  assert.equal(layout.columns, 3, 'les cotes de la L7160 placent trois colonnes');
+  assert.equal(layout.rows, 7);
+  assert.notEqual(
+    `${layout.columns}x${layout.rows}`,
+    `${lying.declaredColumns}x${lying.declaredRows}`,
+    'une déclaration fausse ne doit pas être recopiée',
+  );
 });

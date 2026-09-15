@@ -59,6 +59,18 @@ test('les réglages de planche ont une valeur par défaut dans le HTML', () => {
   }
 });
 
+test('le bandeau de feuille de style obsolète dit quoi faire', () => {
+  // Ce bandeau n'apparaît que si le navigateur a gardé une ancienne feuille de
+  // style : il doit alors nommer la cause ET le geste à faire.
+  const banner = html.match(/<div id="stale-style"[^>]*>([\s\S]*?)<\/div>/);
+  assert.ok(banner, 'le bandeau doit être présent dans index.html');
+  assert.match(banner[1], /Feuille de style obsolète/);
+  assert.match(banner[1], /brave:\/\/extensions/);
+  assert.match(banner[1], /Rechargez l'extension/);
+  // Masqué au départ : sans feuille obsolète, il ne doit rien afficher.
+  assert.match(html, /<div id="stale-style"[^>]*hidden/);
+});
+
 test('index.html ne contient aucun script inline', () => {
   const inline = [...html.matchAll(/<script\b([^>]*)>/gi)].filter(
     (match) => !/\bsrc\s*=/i.test(match[1]),
