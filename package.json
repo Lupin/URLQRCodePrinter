@@ -18,6 +18,8 @@
     "build:extension": "node scripts/build.mjs --only=extension",
     "icons": "node scripts/make-icons.mjs",
     "package:safari": "node scripts/package-safari.mjs",
+    "install:safari": "node scripts/install-safari.mjs",
+    "open:extension": "node scripts/open-extension.mjs",
     "serve": "node scripts/serve.mjs",
     "dev": "node scripts/build.mjs && node scripts/serve.mjs"
   },

@@ -23,7 +23,11 @@ import { fileURLToPath } from 'node:url';
 import { writeIcons } from './make-icons.mjs';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const DIST_EXTENSION = join(ROOT, 'dist', 'extension');
+
+// Variante Safari, et non la variante Chromium : celle-ci a vu sa clé
+// `browser_specific_settings` retirée, or le convertisseur d'Apple s'en sert
+// pour fixer la version minimale requise.
+const DIST_EXTENSION = join(ROOT, 'dist', 'extension-safari');
 
 /** Version minimale de Safari déclarée dans le manifeste. */
 const SAFARI_MIN = '16.4';
@@ -69,14 +73,15 @@ export async function alignDeploymentTargets(pbxprojPath) {
 
 /** Point d'entrée. */
 async function main() {
-  console.log('→ Assemblage de l\'extension…');
-  execFileSync(process.execPath, [join(ROOT, 'scripts', 'build.mjs'), '--only=extension'], {
-    cwd: ROOT,
-    stdio: 'inherit',
-  });
+  console.log('→ Assemblage de l\'extension (variante Safari)…');
+  execFileSync(
+    process.execPath,
+    [join(ROOT, 'scripts', 'build.mjs'), '--only=extension-safari'],
+    { cwd: ROOT, stdio: 'inherit' },
+  );
 
   if (!existsSync(DIST_EXTENSION)) {
-    throw new Error('dist/extension est absent après la construction.');
+    throw new Error('dist/extension-safari est absent après la construction.');
   }
 
   console.log('→ Génération des icônes…');

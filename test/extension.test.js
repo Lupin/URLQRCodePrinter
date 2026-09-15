@@ -19,12 +19,13 @@ const EXT = join(ROOT, 'src', 'extension');
 const DIST_EXT = join(ROOT, 'dist', 'extension');
 
 // L'extension n'est complète qu'une fois le cœur partagé recopié : plusieurs
-// vérifications portent donc sur l'artefact assemblé. On construit une fois,
-// avant que les tests ne s'exécutent.
-execFileSync(process.execPath, [join(ROOT, 'scripts', 'build.mjs'), '--only=extension'], {
-  cwd: ROOT,
-  stdio: 'pipe',
-});
+// vérifications portent donc sur l'artefact assemblé. On construit les deux
+// variantes une fois, avant que les tests ne s'exécutent.
+execFileSync(
+  process.execPath,
+  [join(ROOT, 'scripts', 'build.mjs'), '--only=extension,extension-safari'],
+  { cwd: ROOT, stdio: 'pipe' },
+);
 
 /** Lit et analyse le manifeste. */
 function readManifest() {
@@ -222,5 +223,38 @@ test('le build n\'inclut aucun fichier de développement', () => {
   const dist = join(ROOT, 'dist', 'extension');
   for (const unwanted of ['node_modules', 'package.json', '.DS_Store']) {
     assert.equal(existsSync(join(dist, unwanted)), false, `${unwanted} ne doit pas être livré`);
+  }
+});
+
+test('la variante Chromium ne contient aucune clé propre à Safari', () => {
+  // `browser_specific_settings` est inconnue de Chrome et de Brave. Ils
+  // l'affichent comme un avertissement de manifeste, en surlignant le fichier
+  // avec ses numéros de ligne — de quoi croire à une erreur bloquante alors
+  // que l'extension fonctionne. On la retire donc à la construction.
+  const manifest = JSON.parse(
+    readFileSync(join(ROOT, 'dist', 'extension', 'manifest.json'), 'utf8'),
+  );
+  assert.equal(manifest.browser_specific_settings, undefined);
+  assert.equal(manifest.manifest_version, 3);
+});
+
+test('la variante Safari conserve la version minimale requise', () => {
+  const manifest = JSON.parse(
+    readFileSync(join(ROOT, 'dist', 'extension-safari', 'manifest.json'), 'utf8'),
+  );
+  // Sans elle, le convertisseur d'Apple cible iOS 15, où `background.type`
+  // n'est pas reconnu et le service worker ne se charge pas.
+  assert.equal(manifest.browser_specific_settings?.safari?.strict_min_version, '16.4');
+});
+
+test('les deux variantes embarquent le cœur partagé', () => {
+  // Charger `src/extension` au lieu de `dist/extension` est l'erreur la plus
+  // facile à commettre : le dossier source ne contient pas `core/`, et le
+  // service worker échoue au chargement.
+  for (const name of ['extension', 'extension-safari']) {
+    const dir = join(ROOT, 'dist', name);
+    for (const file of ['core/store.js', 'core/capture.js', 'api.js', 'background.js']) {
+      assert.ok(existsSync(join(dir, file)), `${name} : ${file} manquant`);
+    }
   }
 });

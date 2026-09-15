@@ -97,15 +97,35 @@ npm run serve      # puis ouvrez http://127.0.0.1:4173/
 `localhost` est obligatoire : Web Bluetooth exige un contexte sécurisé, et le
 protocole `file://` refuse de charger des modules ES.
 
-Pour l'extension : ouvrez `brave://extensions` (ou `chrome://extensions`),
-activez le mode développeur, puis « Charger l'extension non empaquetée » et
-désignez `dist/extension`.
+Pour l'extension dans Brave, Chrome ou Edge :
+
+```bash
+npm run open:extension        # assemble et ouvre le dossier dans le Finder
+```
+
+Puis `brave://extensions` (ou `chrome://extensions`) → **Mode développeur** →
+glissez le dossier `extension` depuis le Finder, ou cliquez « Charger
+l'extension non empaquetée » et désignez `dist/extension`.
 
 **Pour imprimer depuis Brave**, Web Bluetooth doit être activé :
 `brave://flags#brave-web-bluetooth-api`. Chrome et Edge n'ont pas cette
 contrainte. Safari ne l'implémente pas du tout.
 
+> Aucun de ces navigateurs n'accepte d'installation locale en un clic : un
+> fichier `.crx` téléchargé hors du Chrome Web Store est refusé. Seule une
+> publication sur le magasin donnerait ce confort.
+
 ### Safari
+
+```bash
+npm run install:safari        # génère, compile l'app macOS et la lance
+```
+
+C'est la voie la plus directe : une extension Safari **est** une application
+macOS, et l'exécuter est le seul moyen de l'enregistrer. Le script enchaîne
+tout, puis affiche les deux réglages qui restent à faire une fois.
+
+Pour aller pas à pas :
 
 ```bash
 npm run package:safari        # assemble, génère les icônes, convertit, aligne
@@ -122,6 +142,25 @@ iOS 15.0 / macOS 10.14, alors que le manifeste déclare
 par Safari que depuis la 16.4 ([MDN BCD](https://github.com/mdn/browser-compat-data)).
 Avec une cible plus basse, l'avertissement du convertisseur devient un vrai
 risque de panne au chargement.
+
+## Deux variantes de l'extension
+
+`npm run build` produit deux dossiers, et ce n'est pas un luxe :
+
+| Dossier | Pour | Particularité |
+|---|---|---|
+| `dist/extension` | Brave, Chrome, Edge | sans `browser_specific_settings` |
+| `dist/extension-safari` | Safari | conserve cette clé, dont le convertisseur d'Apple a besoin |
+
+`browser_specific_settings` est une clé Firefox/Safari **inconnue de Chrome et
+de Brave**. Ceux-ci l'affichent comme un avertissement de manifeste, en
+surlignant le fichier avec ses numéros de ligne — de quoi croire à une erreur
+bloquante alors que l'extension fonctionne. La construction la retire donc de
+la variante Chromium.
+
+**Chargez toujours un dossier de `dist/`, jamais `src/extension`.** Le dossier
+source ne contient pas `core/`, qui n'y est recopié qu'à la construction : le
+service worker échouerait au chargement.
 
 Safari n'expose pas `chrome` mais `browser`, et **ne fournit pas `contextMenus`
 sur iOS**. L'extension détecte les deux : le menu contextuel n'est branché que

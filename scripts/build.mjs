@@ -9,7 +9,7 @@
  * Aucun bundler n'est nécessaire : tout est en modules ES natifs.
  */
 
-import { cp, mkdir, rm, stat, readdir } from 'node:fs/promises';
+import { cp, mkdir, rm, stat, readdir, readFile, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -18,11 +18,61 @@ const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const SRC = join(ROOT, 'src');
 const DIST = join(ROOT, 'dist');
 
-/** Cibles connues : source applicative + fichiers communs à recopier. */
+/**
+ * Cibles connues : source applicative + fichiers communs à recopier.
+ *
+ * Deux variantes de l'extension sont produites, et ce n'est pas un luxe :
+ * `browser_specific_settings` est une clé Firefox/Safari que Chrome et Brave
+ * ne reconnaissent pas. Elle déclenche un avertissement de manifeste dans la
+ * page des extensions, surligné avec le contenu du fichier — de quoi croire à
+ * une erreur bloquante alors que l'extension fonctionne. On la retire donc de
+ * la variante Chromium et on la conserve pour Safari, qui en a besoin.
+ */
 const TARGETS = {
-  extension: { from: join(SRC, 'extension'), shared: [join(SRC, 'core')] },
+  extension: {
+    from: join(SRC, 'extension'),
+    shared: [join(SRC, 'core')],
+    manifest: 'chromium',
+  },
+  'extension-safari': {
+    from: join(SRC, 'extension'),
+    shared: [join(SRC, 'core')],
+    manifest: 'safari',
+  },
   web: { from: join(SRC, 'web'), shared: [join(SRC, 'core')] },
 };
+
+/** Clés comprises par Safari mais inconnues de Chromium. */
+const SAFARI_ONLY_KEYS = ['browser_specific_settings'];
+
+/**
+ * Adapte le manifeste copié au navigateur visé.
+ *
+ * @param {string} outDir
+ * @param {'chromium'|'safari'|undefined} variant
+ * @returns {Promise<string[]>} clés retirées
+ */
+async function adaptManifest(outDir, variant) {
+  if (variant !== 'chromium') return [];
+
+  const path = join(outDir, 'manifest.json');
+  if (!existsSync(path)) return [];
+
+  const manifest = JSON.parse(await readFile(path, 'utf8'));
+  const removed = [];
+
+  for (const key of SAFARI_ONLY_KEYS) {
+    if (key in manifest) {
+      delete manifest[key];
+      removed.push(key);
+    }
+  }
+
+  if (removed.length > 0) {
+    await writeFile(path, JSON.stringify(manifest, null, 2) + '\n', 'utf8');
+  }
+  return removed;
+}
 
 /** Vérifie l'existence d'un chemin. */
 async function exists(path) {
@@ -59,6 +109,11 @@ async function buildTarget(name) {
   for (const sharedDir of target.shared) {
     const sharedName = sharedDir.split('/').pop();
     await cp(sharedDir, join(outDir, sharedName), { recursive: true });
+  }
+
+  const removed = await adaptManifest(outDir, target.manifest);
+  if (removed.length > 0) {
+    console.log(`  ${name} : clés réservées à Safari retirées (${removed.join(', ')})`);
   }
 
   return { name, outDir, files: await countFiles(outDir) };
