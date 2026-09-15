@@ -17,3 +17,8 @@ build/
 # Secrets / local
 .env
 .env.local
+
+# Profils navigateur de test
+.brave-test/
+.verify-brave/
+.npm-cache/
