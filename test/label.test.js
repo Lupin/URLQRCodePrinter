@@ -16,6 +16,7 @@ import {
   MAX_FONT_WIDTH_RATIO,
   wrapDate,
   fontSizeForDate,
+  layoutLabelRotated,
 } from '../src/core/label.js';
 
 /** Mesure factice : chaque caractère vaut 10 px. */
@@ -399,4 +400,52 @@ test('une date qui ne tient sur aucune ligne est abandonnee', () => {
   const measureFactory = (size) => (texte) => texte.length * size * 0.55;
   // 12 px de large : meme « 21:07 » n'y entre pas.
   assert.equal(fontSizeForDate(measureFactory, '15/09/2026 21:07', 12, 13), 0);
+});
+
+// --------------------------------------------------------------------------
+// Sens de rotation du texte tourne
+// --------------------------------------------------------------------------
+
+test('la geometrie transporte le sens de rotation demande', () => {
+  const measureFactory = (size) => (texte) => texte.length * size * 0.55;
+  const base = {
+    text: 'https://exemple.fr/article', qrText: 'https://exemple.fr/article',
+    widthPx: 96, dpi: 203, maxHeightPx: 240, measureFactory,
+  };
+  const g0 = computeLabelGeometry(base);
+
+  const horaire = layoutLabelRotated(g0, {
+    measure: measureFactory(13), measureFactory, text: base.text, sens: 'horaire',
+  });
+  const antihoraire = layoutLabelRotated(g0, {
+    measure: measureFactory(13), measureFactory, text: base.text, sens: 'antihoraire',
+  });
+
+  assert.equal(horaire.textSens, 'horaire');
+  assert.equal(antihoraire.textSens, 'antihoraire');
+  // Un sens inconnu retombe sur le sens ordinaire plutot que de rien dessiner.
+  const inconnu = layoutLabelRotated(g0, {
+    measure: measureFactory(13), measureFactory, text: base.text, sens: 'de-travers',
+  });
+  assert.equal(inconnu.textSens, 'horaire');
+});
+
+test('les deux sens occupent la meme bande', () => {
+  // Seul le sens change : la place occupee est identique, sinon l'un des deux
+  // deborderait de l'etiquette.
+  const measureFactory = (size) => (texte) => texte.length * size * 0.55;
+  const base = {
+    text: 'https://exemple.fr/article', qrText: 'https://exemple.fr/article',
+    widthPx: 96, dpi: 203, maxHeightPx: 240, measureFactory,
+  };
+  const g0 = computeLabelGeometry(base);
+  const options = { measure: measureFactory(13), measureFactory, text: base.text };
+
+  const a = layoutLabelRotated(g0, { ...options, sens: 'horaire' });
+  const b = layoutLabelRotated(g0, { ...options, sens: 'antihoraire' });
+
+  assert.equal(a.textTop, b.textTop);
+  assert.equal(a.textLeft, b.textLeft);
+  assert.equal(a.rotatedTextThickness, b.rotatedTextThickness);
+  assert.deepEqual(a.lines, b.lines);
 });

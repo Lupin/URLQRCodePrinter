@@ -156,10 +156,20 @@ const LABEL_LAYOUTS = Object.freeze([
   },
   {
     id: 'tourne',
-    label: 'Texte tourné à 90°, sous le QR',
+    label: 'Texte tourné, se lit de bas en haut',
     // Sur un rouleau étroit, un texte droit ne dispose que de la largeur de la
     // tête moins le QR — quelques caractères. Tourné, il profite de la longueur.
     mode: 'rotated',
+    sens: 'horaire',
+  },
+  {
+    id: 'tourne-inverse',
+    label: 'Texte tourné, se lit de haut en bas',
+    // Même disposition, sens inverse : selon le rouleau et le sens de sortie,
+    // l'un des deux se lit tête en bas. On donne le choix plutôt que de le
+    // deviner, faute de matériel pour trancher.
+    mode: 'rotated',
+    sens: 'antihoraire',
   },
   {
     id: 'cote',
@@ -2012,6 +2022,9 @@ function composeLabel(link, profile) {
       measureFactory: cachedTextMeasure,
       // Le plancher de lisibilité se convertit en pixels avec la résolution.
       dpi: profile.dpi,
+      // Le sens de rotation est une donnée de la disposition, pas du rendu :
+      // la géométrie le transporte jusqu'au dessin.
+      sens: disposition.sens,
       text: content.text,
       // Le titre fait partie de la bande : sans lui, il n'était pas réservé et
       // ne s'imprimait pas du tout dans cette disposition.

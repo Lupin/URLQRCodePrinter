@@ -788,6 +788,9 @@ export function layoutLabelRotated(geometry, options) {
     qrLeft: Math.floor((geometry.width - geometry.qrSize) / 2),
     qrTop: padding,
     textRotated: true,
+    // Le sens de rotation : « horaire » se lit de bas en haut, « antihoraire »
+    // de haut en bas. Les deux ancrages diffèrent, d'où ce transport.
+    textSens: options.sens === 'antihoraire' ? 'antihoraire' : 'horaire',
     textTop: bandTop,
     // La bande tournée fait `thickness` de large : on la centre.
     textLeft: Math.max(0, Math.floor((geometry.width - thickness) / 2)),
@@ -888,12 +891,23 @@ export function drawLabel(ctx, geometry, options = {}) {
   // s'empilent vers la droite. Se tromper d'angle envoie le texte hors de
   // l'étiquette ; se tromper d'ancrage le fait remonter sur le QR.
   if (geometry.textRotated === true) {
-    const blockBottom = geometry.textTop + geometry.textWidth;
     const blockLeft = geometry.textLeft ?? geometry.padding;
+    const thickness = geometry.rotatedTextThickness ?? geometry.lineHeight;
 
     ctx.save();
-    ctx.translate(blockLeft, blockBottom);
-    ctx.rotate(-Math.PI / 2);
+    if (geometry.textSens === 'antihoraire') {
+      // Sens inverse : on part du **haut** de la bande, et le texte descend.
+      // Après une rotation de +90°, (x, y) devient (-y, x) : les rangées
+      // s'empilent vers la gauche, d'où l'ancrage au bord droit du bloc.
+      ctx.translate(blockLeft + thickness, geometry.textTop);
+      ctx.rotate(Math.PI / 2);
+    } else {
+      // Sens ordinaire : on part du **bas** de la bande, et le texte monte.
+      // Après une rotation de -90°, (x, y) devient (y, -x) : les rangées
+      // s'empilent vers la droite, et le texte va vers le haut.
+      ctx.translate(blockLeft, geometry.textTop + geometry.textWidth);
+      ctx.rotate(-Math.PI / 2);
+    }
     ctx.textAlign = 'left';
     ctx.textBaseline = 'top';
 

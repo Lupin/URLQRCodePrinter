@@ -796,11 +796,64 @@ async function main() {
       return out;
     })()`);
 
+    // Les deux sens de rotation : le texte se lit de bas en haut, ou de haut en
+    // bas. Le choix depend du sens de sortie du rouleau, qu'on ne peut pas
+    // deviner sans materiel.
+    const sensRotation = await evaluate(`(async () => {
+      const pause = (ms) => new Promise((r) => setTimeout(r, ms));
+      const el = (id) => document.getElementById(id);
+      const cocher = (box, v) => { box.checked = v; box.dispatchEvent(new Event('change')); };
+      cocher(el('label-show-title'), true);
+      cocher(el('label-show-url'), true);
+      el('label-supply').value = 'd110-12x30';
+      el('label-supply').dispatchEvent(new Event('change'));
+      await pause(450);
+
+      // Le centre de gravite de l'encre : les rangees de texte s'empilent vers
+      // la droite dans un sens, vers la gauche dans l'autre.
+      const mesurer = () => {
+        const c = document.querySelector('#preview canvas');
+        if (!c) return null;
+        const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data;
+        let somme = 0;
+        let n = 0;
+        for (let y = 0; y < c.height; y++) {
+          for (let x = 0; x < c.width; x++) {
+            if (d[(y * c.width + x) * 4] < 128) { somme += x; n += 1; }
+          }
+        }
+        return n === 0 ? null : { centre: Math.round(somme / n), encre: n };
+      };
+
+      const out = {};
+      for (const dispo of ['tourne', 'tourne-inverse']) {
+        el('label-rotation').value = dispo;
+        el('label-rotation').dispatchEvent(new Event('change'));
+        await pause(500);
+        out[dispo] = mesurer();
+      }
+      el('label-rotation').value = 'dessous';
+      el('label-rotation').dispatchEvent(new Event('change'));
+      await pause(300);
+      return out;
+    })()`);
+
+    record(
+      "les deux sens de rotation sont proposes et different",
+      (sensRotation?.tourne?.encre ?? 0) > 0
+        && (sensRotation?.['tourne-inverse']?.encre ?? 0) > 0
+        && sensRotation.tourne.centre !== sensRotation['tourne-inverse'].centre,
+      `bas en haut : centre x ${sensRotation?.tourne?.centre} `
+        + `(${sensRotation?.tourne?.encre} px) · `
+        + `haut en bas : centre x ${sensRotation?.['tourne-inverse']?.centre} `
+        + `(${sensRotation?.['tourne-inverse']?.encre} px)`,
+    );
+
     record(
       "la disposition du texte est proposee, selon le format",
       // Sur une tete de 12 mm, « texte a droite » n'a pas de place : elle n'est
       // proposee que sur une tete large.
-      (senses?.options ?? []).join(',') === 'dessous,dessus,tourne'
+      (senses?.options ?? []).join(',') === 'dessous,dessus,tourne,tourne-inverse'
         && (senses?.options ?? []).includes('tourne')
         && (senses?.options ?? []).includes('dessous'),
       `D110 : ${(senses?.options ?? []).join(', ')}`,
