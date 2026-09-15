@@ -22,8 +22,13 @@ import {
 } from './core/shorten.js';
 import { encodeQr, toSvg } from './core/qr.js';
 import { wrapText } from './core/label.js';
-import { computeLabelGeometry, drawLabel, checkQrLegibility } from './core/label.js';
-import { imageDataToMono, validateBitmap } from './core/raster.js';
+import {
+  computeLabelGeometry,
+  drawLabel,
+  checkQrLegibility,
+  labelContent,
+} from './core/label.js';
+import { imageDataToMono, validateBitmap, rotateBitmap } from './core/raster.js';
 import {
   SHEET_PRESETS,
   SHEET_GROUPS,
@@ -114,6 +119,22 @@ const targetOptions = new Map();
  * @type {Map<string, number>}
  */
 let linkRanks = new Map();
+
+/**
+ * Orientations proposées à l'impression.
+ *
+ * Les têtes thermiques impriment ligne par ligne dans le sens du défilement :
+ * selon le rouleau et le modèle, la même image sort à l'endroit, pivotée, ou à
+ * l'envers. Le profil D110 porte un drapeau `transposed` — documenté mais jamais
+ * lu jusqu'ici — et je n'ai pas de matériel pour trancher. On laisse donc le
+ * choix, sans rien changer au comportement actuel par défaut.
+ */
+const LABEL_ROTATIONS = Object.freeze([
+  { id: '0', label: 'Normale', turns: 0 },
+  { id: '1', label: 'Quart de tour (90°)', turns: 1 },
+  { id: '2', label: 'Demi-tour (180°)', turns: 2 },
+  { id: '3', label: 'Trois quarts de tour (270°)', turns: 3 },
+]);
 
 /** Libellés des modes de date, dans l'ordre d'affichage. */
 const DATE_MODE_LABELS = Object.freeze({
@@ -260,6 +281,8 @@ function qrSvg(matrix, { scale = 4 } = {}) {
 async function refresh() {
   links = await store.list();
   linkRanks = new Map(links.map((link, index) => [link.id, index + 1]));
+  fillLabelLinks();
+  el.printAllLabels.disabled = links.length === 0 || !printer;
   // Les colonnes « Tags » et « Note » ne sont proposées que si la collection en
   // contient : une colonne vide sur toute une page n'apprend rien.
   updateTableOptions();
@@ -1455,7 +1478,8 @@ function renderPreview() {
 
   if (mode === 'single') {
     el.print.hidden = true;
-    renderSingleLabel(items[0]);
+    // Le lien choisi dans l'onglet, pas le premier de la collection.
+    renderSingleLabel(chosenLabelLink());
     return;
   }
 
@@ -1577,7 +1601,7 @@ function renderSingleLabel(link) {
   // Le profil vient de l'imprimante quand il y en a une, sinon du format
   // choisi : on doit pouvoir juger un rendu avant d'acheter le matériel.
   const profile = previewProfile();
-  const { geometry, verdict, dateText, dateOmitted } = composeLabel(link, profile);
+  const { geometry, content, verdict, dateOmitted } = composeLabel(link, profile);
 
   const frame = document.createElement('div');
   frame.className = 'preview__page';
@@ -1595,9 +1619,9 @@ function renderSingleLabel(link) {
   ctx.imageSmoothingEnabled = false;
   drawLabel(ctx, geometry, {
     title: link.title,
-    showTitle: el.showTitle.checked,
+    showTitle: content.showTitle,
     url: link.url,
-    extraText: dateText ? [dateText] : [],
+    extraText: content.extraText,
   });
 
   frame.appendChild(canvas);
@@ -1630,31 +1654,35 @@ function renderSingleLabel(link) {
  * @returns {{ geometry: object, verdict: object }}
  */
 function composeLabel(link, profile) {
-  const options = {
-    text: link.url,
+  const wanted = formatCaptureDate(link.createdAt, dateMode());
+
+  // `drawLabel` écrit la date sur une seule ligne, sans la découper : on vérifie
+  // d'abord qu'elle tient, à la taille de police que la géométrie va retenir.
+  // Un premier calcul sans ligne réservée donne cette taille.
+  const probe = computeLabelGeometry({
+    text: link.url, widthPx: profile.printheadPixels, dpi: profile.dpi, ecc: 'M',
+  });
+  const fits = wanted !== ''
+    && cachedTextMeasure(probe.fontSize)(wanted) <= probe.width - probe.padding * 2;
+  const dateText = fits ? wanted : '';
+
+  // Le contenu choisi décide de ce qui est imprimé : QR seul, + titre, + URL…
+  const content = labelContent(link, el.labelContent.value, dateText);
+
+  const geometry = computeLabelGeometry({
+    text: content.text,
     widthPx: profile.printheadPixels,
     dpi: profile.dpi,
     ecc: 'M',
-  };
-
-  // `drawLabel` écrit la date sur une seule ligne, sans la découper : on vérifie
-  // donc d'abord qu'elle tient, en se servant de la taille de police que la
-  // géométrie va retenir. Un premier calcul sans ligne réservée donne cette
-  // taille ; il est refait si la date est finalement imprimée.
-  const probe = computeLabelGeometry(options);
-  const dateText = formatCaptureDate(link.createdAt, dateMode());
-  const fits = dateText !== ''
-    && cachedTextMeasure(probe.fontSize)(dateText) <= probe.width - probe.padding * 2;
-
-  const geometry = fits
-    ? computeLabelGeometry({ ...options, extraLines: 1 })
-    : probe;
+    extraLines: content.extraLines,
+  });
 
   return {
     geometry,
+    content,
     verdict: checkQrLegibility(geometry),
-    dateText: fits ? dateText : '',
-    dateOmitted: dateText !== '' && !fits,
+    dateText,
+    dateOmitted: wanted !== '' && !fits,
   };
 }
 
@@ -1665,7 +1693,7 @@ function composeLabel(link, profile) {
  * @returns {{ bitmap: object, verdict: object }}
  */
 function labelToBitmap(link, profile) {
-  const { geometry, verdict, dateText } = composeLabel(link, profile);
+  const { geometry, content, verdict } = composeLabel(link, profile);
 
   const canvas = document.createElement('canvas');
   canvas.width = geometry.width;
@@ -1674,13 +1702,18 @@ function labelToBitmap(link, profile) {
   const ctx = canvas.getContext('2d', { willReadFrequently: true });
   drawLabel(ctx, geometry, {
     title: link.title,
-    showTitle: el.showTitle.checked,
+    showTitle: content.showTitle,
     url: link.url,
-    extraText: dateText ? [dateText] : [],
+    extraText: content.extraText,
   });
 
   const imageData = ctx.getImageData(0, 0, geometry.width, geometry.height);
-  return { bitmap: imageDataToMono(imageData, { threshold: 128 }), verdict, geometry };
+  const bitmap = imageDataToMono(imageData, { threshold: 128 });
+
+  // L'orientation choisie s'applique au moment de l'envoi, pas à la
+  // composition : l'aperçu montre l'étiquette telle qu'elle est dessinée.
+  const { turns } = labelRotation();
+  return { bitmap: turns === 0 ? bitmap : rotateBitmap(bitmap, turns), verdict, geometry };
 }
 
 // ---------------------------------------------------------------------------
@@ -2069,15 +2102,52 @@ async function disconnectPrinter() {
 }
 
 /** Imprime l'étiquette du premier lien sélectionné. */
+/**
+ * Compose et envoie une étiquette à l'imprimante connectée.
+ *
+ * Extrait de `printOneLabel` pour que l'impression en série s'en serve aussi :
+ * une seule séquence d'envoi, donc une seule à corriger si le dialogue avec
+ * l'imprimante change.
+ *
+ * @param {import('./core/link.js').LinkRecord} link
+ * @param {{ copies?: number }} [options]
+ * @returns {Promise<{ rows: number, frames: number, width: number, height: number }>}
+ */
+async function sendLabel(link, options = {}) {
+  const { bitmap, verdict, geometry } = labelToBitmap(link, printer.profile);
+  const validation = validateBitmap(bitmap, printer.profile);
+  if (!validation.ok) {
+    throw new Error(validation.reasons.join(' ; '));
+  }
+  if (!verdict.ok) {
+    // On avertit sans bloquer : l'utilisateur reste maître de son impression.
+    toast(verdict.reason, 'error');
+  }
+
+  const copies = options.copies ?? (Number(el.copies.value) || 1);
+  const density = Number(el.density.value) || printer.profile.density.default;
+
+  const result = await printer.print(bitmap, {
+    density,
+    copies,
+    onProgress: ({ page }) => {
+      el.printStatus.textContent = `Impression ${page}/${copies}…`;
+    },
+  });
+
+  return { ...result, width: geometry.width, height: geometry.height };
+}
+
+/** Imprime l'étiquette du lien choisi. */
 async function printOneLabel() {
   if (!printer) {
     toast('Aucune imprimante connectée', 'error');
     return;
   }
 
-  const [link] = printableLinks();
+  const link = chosenLabelLink();
   if (!link) {
-    toast('Aucun lien sélectionné', 'error');
+    toast('Aucun lien dans la collection', 'error');
     return;
   }
 
@@ -2085,30 +2155,8 @@ async function printOneLabel() {
   el.printStatus.textContent = 'Composition de l\'étiquette…';
 
   try {
-    const { bitmap, verdict, geometry } = labelToBitmap(link, printer.profile);
-    const validation = validateBitmap(bitmap, printer.profile);
-    if (!validation.ok) {
-      throw new Error(validation.reasons.join(' ; '));
-    }
-    if (!verdict.ok) {
-      // On avertit sans bloquer : l'utilisateur reste maître de son impression.
-      toast(verdict.reason, 'error');
-    }
-
-    el.printStatus.textContent =
-      `Envoi de ${geometry.width} × ${geometry.height} px…`;
-
-    const copies = Number(el.copies.value) || 1;
-    const density = Number(el.density.value) || printer.profile.density.default;
-
-    const result = await printer.print(bitmap, {
-      density,
-      copies,
-      onProgress: ({ page }) => {
-        el.printStatus.textContent = `Impression ${page}/${copies}…`;
-      },
-    });
-
+    el.printStatus.textContent = 'Envoi en cours…';
+    const result = await sendLabel(link);
     el.printStatus.textContent =
       `Étiquette imprimée : ${result.rows} lignes, ${result.frames} trames.`;
   } catch (error) {
@@ -2116,6 +2164,52 @@ async function printOneLabel() {
     toast(error.message ?? 'Impression impossible', 'error');
   } finally {
     el.printLabel.disabled = false;
+  }
+}
+
+/**
+ * Imprime toute la collection, une étiquette après l'autre.
+ *
+ * Une étiquette qui échoue n'interrompt pas la série : elle est comptée, et le
+ * bilan final dit combien sont sorties. Sur trente étiquettes, s'arrêter à la
+ * troisième parce que la quatrième a raté serait pénible.
+ */
+async function printAllLabels() {
+  if (!printer) {
+    toast('Aucune imprimante connectée', 'error');
+    return;
+  }
+  if (links.length === 0) {
+    toast('Aucun lien dans la collection', 'error');
+    return;
+  }
+
+  el.printLabel.disabled = true;
+  el.printAllLabels.disabled = true;
+
+  let printed = 0;
+  const failures = [];
+
+  try {
+    for (const [index, link] of links.entries()) {
+      el.printStatus.textContent =
+        `Étiquette ${index + 1}/${links.length} — ${link.title || link.url}`;
+      try {
+        // Une copie par lien : la quantité se règle dans la liste, pas ici.
+        await sendLabel(link, { copies: 1 });
+        printed += 1;
+      } catch (error) {
+        failures.push(error.message ?? 'impression impossible');
+      }
+    }
+
+    const parts = [`${printed} étiquette${printed > 1 ? 's' : ''} imprimée${printed > 1 ? 's' : ''}`];
+    if (failures.length > 0) parts.push(`${failures.length} en échec — ${failures[0]}`);
+    el.printStatus.textContent = parts.join(', ') + '.';
+    toast(parts.join(', '), failures.length > 0 ? 'error' : 'info');
+  } finally {
+    el.printLabel.disabled = false;
+    el.printAllLabels.disabled = false;
   }
 }
 
@@ -2177,6 +2271,85 @@ function fillProfiles() {
 function composeDateNote() {
   if (dateMode() === 'none') return '';
   return ' — aucune date : elle ne tient pas sur une ligne à cette taille de texte.';
+}
+
+/**
+ * Remplit les choix propres à l'étiquette Niimbot.
+ *
+ * Le contenu réutilise le vocabulaire de l'export d'images : une seule chose à
+ * apprendre pour les deux onglets.
+ */
+function fillLabelChoices() {
+  for (const rotation of LABEL_ROTATIONS) {
+    const option = document.createElement('option');
+    option.value = rotation.id;
+    option.textContent = rotation.label;
+    el.labelRotation.appendChild(option);
+  }
+  el.labelRotation.value = '0';
+
+  for (const [id, label] of Object.entries(TEXT_MODES)) {
+    const option = document.createElement('option');
+    option.value = id;
+    option.textContent = LABEL_CONTENT_LABELS[id] ?? label;
+    el.labelContent.appendChild(option);
+  }
+  el.labelContent.value = 'url';
+}
+
+/** Vocabulaire de l'étiquette, plus explicite que celui de l'export. */
+const LABEL_CONTENT_LABELS = Object.freeze({
+  none: 'QR code seul',
+  title: 'QR code + titre',
+  url: 'QR code + URL',
+  'title-url': 'QR code + titre + URL',
+  host: 'QR code + domaine',
+});
+
+/**
+ * Remplit la liste des liens imprimables.
+ *
+ * Sans elle, l'onglet imprimait toujours le premier lien de la collection : on
+ * ne pouvait pas choisir ce qu'on imprimait.
+ */
+function fillLabelLinks() {
+  const previous = el.labelLink.value;
+  el.labelLink.textContent = '';
+
+  for (const link of links) {
+    const option = document.createElement('option');
+    option.value = link.id;
+    // Le rang est celui affiché dans la liste et le tableau : on s'y retrouve.
+    option.textContent = `${linkRanks.get(link.id) ?? '?'}. `
+      + (link.title || hostOf(link.url) || link.url);
+    option.title = link.url;
+    el.labelLink.appendChild(option);
+  }
+
+  if (links.some((link) => link.id === previous)) el.labelLink.value = previous;
+  el.labelLink.disabled = links.length === 0;
+  updateLabelContentHint();
+}
+
+/** Explique le contenu retenu, et rappelle que la date suit le réglage global. */
+function updateLabelContentHint() {
+  const mode = el.labelContent.value;
+  const date = dateMode() === 'none' ? '' : ' La date suit le réglage « Date sous le QR code ».';
+  el.labelContentHint.textContent = mode === 'none'
+    ? `Le QR code seul, sans texte.${date}`
+    : `Le texte est découpé à la largeur de la tête.${date}`;
+}
+
+/** L'orientation retenue à l'impression. */
+function labelRotation() {
+  return LABEL_ROTATIONS.find((rotation) => rotation.id === el.labelRotation.value)
+    ?? LABEL_ROTATIONS[0];
+}
+
+/** Le lien choisi pour l'impression d'une étiquette. */
+function chosenLabelLink() {
+  if (links.length === 0) return undefined;
+  return links.find((link) => link.id === el.labelLink.value) ?? links[0];
 }
 
 /** Le profil retenu pour l'aperçu : celui du matériel, ou celui choisi. */
@@ -2366,7 +2539,12 @@ for (const box of [
 ]) {
   box.addEventListener('change', renderPreview);
 }
-el.showTitle.addEventListener('change', renderPreview);
+el.labelRotation.addEventListener('change', renderPreview);
+el.labelContent.addEventListener('change', () => {
+  updateLabelContentHint();
+  renderPreview();
+});
+el.labelLink.addEventListener('change', renderPreview);
 el.labelFormat.addEventListener('change', renderPreview);
 el.labelText.addEventListener('change', renderPreview);
 el.labelMargin.addEventListener('input', renderPreview);
@@ -2377,6 +2555,7 @@ el.print.addEventListener('click', printSelection);
 el.connect.addEventListener('click', connectPrinter);
 el.disconnect.addEventListener('click', disconnectPrinter);
 el.printLabel.addEventListener('click', printOneLabel);
+el.printAllLabels.addEventListener('click', printAllLabels);
 
 window.addEventListener('beforeprint', () => {
   // Le rendu papier est préparé au clic ; un Ctrl+P direct n'aurait rien à
@@ -2403,6 +2582,7 @@ fillProfiles();
 fillShorteners();
 fillTargets();
 fillDateModes();
+fillLabelChoices();
 
 // Préférences retenues : avant le premier rendu, pour éviter un aller-retour
 // visuel entre la valeur par défaut et celle de l'utilisateur.

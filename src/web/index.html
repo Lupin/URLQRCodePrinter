@@ -257,11 +257,25 @@
             <span class="field__label">Copies</span>
             <input id="copies" class="input" type="number" min="1" max="20" value="1">
           </label>
-          <label class="field field--inline">
-            <input id="show-title" type="checkbox">
-            <span class="field__label">Inclure le titre</span>
+          <!-- Une étiquette peut sortir pivotée ou à l'envers selon le rouleau
+               et le modèle : on donne le choix plutôt que de le deviner. -->
+          <label class="field">
+            <span class="field__label">Orientation</span>
+            <select id="label-rotation" class="input"></select>
           </label>
         </div>
+
+        <div class="fields">
+          <label class="field">
+            <span class="field__label">Lien à imprimer</span>
+            <select id="label-link" class="input"></select>
+          </label>
+          <label class="field">
+            <span class="field__label">Contenu de l'étiquette</span>
+            <select id="label-content" class="input"></select>
+          </label>
+        </div>
+        <p id="label-content-hint" class="hint hint--tight"></p>
 
         <div class="printer">
           <div class="printer__status">
@@ -277,7 +291,10 @@
         <p id="profile-hint" class="hint hint--tight"></p>
         <p id="ble-support" class="hint" hidden></p>
         <button id="print-label" class="btn btn--primary btn--wide" type="button" disabled>
-          Imprimer sur l'étiquette
+          Imprimer cette étiquette
+        </button>
+        <button id="print-all-labels" class="btn btn--ghost btn--wide" type="button" disabled>
+          Imprimer toute la collection
         </button>
         <p id="print-status" class="hint" aria-live="polite"></p>
       </div>

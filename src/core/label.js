@@ -26,6 +26,41 @@ import { hostOf } from './link.js';
  * @property {import('./qr.js').QrMatrix} qrMatrix Matrice encodée.
  */
 
+/**
+ * Contenu textuel d'une étiquette Niimbot, selon le mode choisi.
+ *
+ * Le même vocabulaire que l'export d'images (`TEXT_MODES`), pour qu'on n'ait
+ * qu'une chose à apprendre : QR seul, QR + titre, QR + URL, etc. La date, elle,
+ * suit le réglage global « Date sous le QR code » et s'ajoute en dernier.
+ *
+ * Le titre et la date occupent chacun **une ligne réservée** : `extraLines`
+ * prévient la géométrie, sans quoi la dernière ligne serait rognée.
+ *
+ * @param {{ url: string, title?: string }} link
+ * @param {string} mode `none`, `title`, `url`, `title-url` ou `host`.
+ * @param {string} [dateText] Ligne de date à imprimer sous le texte, ou chaîne vide.
+ * @returns {{ text: string, showTitle: boolean, extraLines: number, extraText: string[] }}
+ */
+export function labelContent(link, mode, dateText = '') {
+  // Un titre absent ne doit pas réserver une ligne vide.
+  const title = typeof link.title === 'string' ? link.title : '';
+  const wantsTitle = (mode === 'title' || mode === 'title-url') && title !== '';
+
+  let text = '';
+  if (mode === 'url' || mode === 'title-url') text = link.url;
+  else if (mode === 'host') text = hostOf(link.url);
+  else if (mode === 'title' && !wantsTitle) text = link.url; // titre vide : l'URL
+
+  const extraText = dateText === '' ? [] : [dateText];
+
+  return {
+    text,
+    showTitle: wantsTitle,
+    extraLines: (wantsTitle ? 1 : 0) + extraText.length,
+    extraText,
+  };
+}
+
 /** Échelle minimale : sous 2 px par module, la tête thermique fusionne les points. */
 export const MIN_QR_SCALE = 2;
 
