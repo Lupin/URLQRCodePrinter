@@ -45,13 +45,13 @@ import {
   toCsv,
   toMarkdown,
   toJson,
-  parseJsonExport,
   exportFilename,
   DATE_MODES,
   formatCaptureDate,
 } from './core/exporters.js';
 import { downloadText, downloadBytes } from './core/download.js';
 import { buildLinkSpreadsheet } from './core/spreadsheet.js';
+import { parseImportFile, toImportableLinks } from './core/import.js';
 import {
   LABEL_FORMATS,
   TEXT_MODES,
@@ -592,30 +592,58 @@ function exportAs(format) {
  * @param {File} file
  */
 async function importArchive(file) {
-  try {
-    const records = parseJsonExport(await file.text());
-    let added = 0;
-    let skipped = 0;
+  const label = el.import.textContent;
+  el.import.disabled = true;
+  el.import.textContent = 'Lecture…';
 
-    for (const record of records) {
-      try {
-        const { duplicate } = await store.add(
-          { ...record, source: 'import' },
-          { allowDuplicate: false },
-        );
-        if (duplicate) skipped++;
-        else added++;
-      } catch {
-        skipped++;
-      }
+  try {
+    // Un ZIP se lit en octets, un texte en texte : le manifeste du dossier
+    // d'étiquettes est à l'intérieur de l'archive, pas à côté.
+    const isZip = /\.zip$/i.test(file.name) || file.type === 'application/zip';
+    const parsed = parseImportFile(isZip
+      ? { bytes: new Uint8Array(await file.arrayBuffer()), name: file.name }
+      : { text: await file.text(), name: file.name });
+
+    // Un enregistrement illisible n'arrête pas l'import : il est compté.
+    const { links: candidates, rejected } = toImportableLinks(parsed.records);
+    if (candidates.length === 0) {
+      toast(`Aucun lien exploitable dans ${file.name}`, 'error');
+      return;
+    }
+
+    let added = 0;
+    let duplicates = 0;
+    for (const candidate of candidates) {
+      const { duplicate } = await store.add(candidate, { allowDuplicate: false });
+      if (duplicate) duplicates++;
+      else added++;
     }
 
     await refresh();
-    toast(`${added} lien${added > 1 ? 's' : ''} importé${added > 1 ? 's' : ''}` +
-      (skipped ? `, ${skipped} ignoré${skipped > 1 ? 's' : ''}` : ''));
+    toast(importReport({ added, duplicates, rejected }));
   } catch (error) {
     toast(`Import impossible : ${error.message}`, 'error');
+  } finally {
+    el.import.textContent = label;
+    el.import.disabled = false;
   }
+}
+
+/**
+ * Résume un import en une phrase.
+ *
+ * Distinguer « déjà présent » de « illisible » évite de croire à un échec là où
+ * l'import a simplement reconnu ce qu'il avait déjà.
+ *
+ * @param {{ added: number, duplicates: number, rejected: number }} report
+ * @returns {string}
+ */
+function importReport({ added, duplicates, rejected }) {
+  const plural = (count, noun) => `${count} ${noun}${count > 1 ? 's' : ''}`;
+  const parts = [`${plural(added, 'lien')} importé${added > 1 ? 's' : ''}`];
+  if (duplicates > 0) parts.push(`${duplicates} déjà présent${duplicates > 1 ? 's' : ''}`);
+  if (rejected > 0) parts.push(plural(rejected, 'illisible'));
+  return parts.join(', ');
 }
 
 // ---------------------------------------------------------------------------

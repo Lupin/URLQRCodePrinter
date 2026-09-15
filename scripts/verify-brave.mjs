@@ -19,9 +19,16 @@
  */
 
 import { spawnSync, spawn } from 'node:child_process';
-import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync } from 'node:fs';
+import {
+  existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync,
+} from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+
+// Les fichiers d'import sont fabriqués avec les écrivains de l'application :
+// ce qu'on teste est donc exactement ce qu'elle produit, pas une approximation.
+import { toJson, toCsv } from '../src/core/exporters.js';
+import { createZip } from '../src/core/zip.js';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const PROFILE = join(ROOT, '.verify-brave', 'profile');
@@ -1349,6 +1356,124 @@ async function main() {
       Array.isArray(tableNotes?.headers) && tableNotes.headers.includes('Note')
         && tableNotes.hasNote === true,
       (tableNotes?.headers ?? []).join(' / '),
+    );
+
+    // --- Import : ce que l'application exporte doit se réimporter ---------
+    //
+    // C'était le malentendu principal : le bouton « Importer » n'acceptait que
+    // l'archive JSON, et refusait le CSV comme le dossier d'étiquettes `.zip`
+    // que l'application venait elle-même de produire.
+    const IMPORT_DIR = join(SANDBOX, 'import');
+    mkdirSync(IMPORT_DIR, { recursive: true });
+
+    const fixture = (name, data) => {
+      const path = join(IMPORT_DIR, name);
+      writeFileSync(path, data);
+      return path;
+    };
+
+    const importedLabels = {
+      format: 'url-qr-code-printer/labels',
+      version: 1,
+      count: 1,
+      labels: [{
+        file: 'etiquettes/1-importee.png',
+        url: 'https://tinyurl.com/importe',
+        originalUrl: 'https://exemple.fr/importee?id=7',
+        title: 'Importée depuis le ZIP',
+      }],
+    };
+
+    const files = {
+      json: fixture('export.json', JSON.stringify(importedLabels)),
+      csv: fixture('liens.csv', toCsv([{
+        url: 'https://exemple.fr/depuis-csv',
+        title: 'Depuis le CSV',
+        tags: ['csv', 'essai'],
+        note: 'importée par CSV',
+        createdAt: new Date(2026, 8, 14, 9, 15).getTime(),
+      }])),
+      zip: fixture('etiquettes.zip', createZip([
+        { name: 'export.json', data: JSON.stringify(importedLabels) },
+        { name: 'planche.html', data: '<html></html>' },
+      ], { date: new Date(2026, 8, 15) })),
+      unknown: fixture('notes.txt', 'ceci n\'est pas une archive'),
+    };
+
+    /** Dépose un fichier dans le champ d'import et attend le message. */
+    const importFile = async (path) => {
+      // `send` rend le message complet : la charge utile est sous `result`.
+      await app.send('DOM.enable');
+      const document = await app.send('DOM.getDocument', { depth: 1 });
+      const found = await app.send('DOM.querySelector', {
+        nodeId: document.result.root.nodeId,
+        selector: '#import-file',
+      });
+      await app.send('DOM.setFileInputFiles', { files: [path], nodeId: found.result.nodeId });
+      await new Promise((r) => setTimeout(r, 900));
+      return evaluate(`(() => ({
+        toast: document.getElementById('toast').textContent.trim(),
+        erreur: document.getElementById('toast').classList.contains('toast--error'),
+        liens: document.querySelectorAll('#list .link').length,
+      }))()`);
+    };
+
+    const readStore = () => evaluate(`new Promise((resolve) => {
+      chrome.storage.local.get('links', (data) => resolve((data.links ?? []).map((link) => ({
+        url: link.url, title: link.title, tags: link.tags, note: link.note,
+        source: link.source, shortUrl: link.shortUrl,
+      }))));
+    })`);
+
+    const beforeImport = (await readStore()).length;
+
+    const fromJson = await importFile(files.json);
+    const afterJson = await readStore();
+    const imported = afterJson.find((link) => link.url === 'https://exemple.fr/importee?id=7');
+    record(
+      'l\'export.json du dossier d\'étiquettes se réimporte',
+      imported?.title === 'Importée depuis le ZIP'
+        && imported?.shortUrl === 'https://tinyurl.com/importe'
+        && imported?.source === 'import',
+      `${afterJson.length - beforeImport} lien(s) ajouté(s) — « ${fromJson.toast} »`,
+    );
+
+    const fromCsv = await importFile(files.csv);
+    const afterCsv = await readStore();
+    const fromCsvLink = afterCsv.find((link) => link.url === 'https://exemple.fr/depuis-csv');
+    record(
+      'un CSV exporté se réimporte, avec titre, tags et note',
+      fromCsvLink?.title === 'Depuis le CSV'
+        && fromCsvLink?.note === 'importée par CSV'
+        && JSON.stringify(fromCsvLink?.tags) === JSON.stringify(['csv', 'essai']),
+      `« ${fromCsv.toast} »`,
+    );
+
+    const fromZip = await importFile(files.zip);
+    const afterZip = await readStore();
+    record(
+      'le dossier d\'étiquettes .zip se réimporte',
+      afterZip.length === afterCsv.length
+        && /déjà présent/.test(fromZip.toast),
+      `« ${fromZip.toast} » — le lien du ZIP est le même que celui de export.json`,
+    );
+
+    const fromUnknown = await importFile(files.unknown);
+    record(
+      'un fichier étranger est refusé avec un message qui dit quoi fournir',
+      fromUnknown.erreur === true
+        && /Formats acceptés/.test(fromUnknown.toast)
+        && /Archive/.test(fromUnknown.toast),
+      `« ${fromUnknown.toast} »`,
+    );
+
+    // Un import n'écrase jamais : les liens déjà là sont ignorés, sans erreur.
+    const twice = await importFile(files.csv);
+    const afterTwice = await readStore();
+    record(
+      'réimporter la même archive ne crée pas de doublon',
+      afterTwice.length === afterZip.length && /déjà présent/.test(twice.toast),
+      `${afterTwice.length} lien(s) au total — « ${twice.toast} »`,
     );
 
     app.ws.close();

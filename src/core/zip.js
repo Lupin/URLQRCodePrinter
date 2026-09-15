@@ -128,3 +128,55 @@ export function createZip(entries, options = {}) {
   }
   return zip;
 }
+
+/**
+ * Relit une archive ZIP dont les entrées sont stockées sans compression.
+ *
+ * On lit ce qu'on écrit : nos archives — dossiers d'étiquettes et classeurs —
+ * sont toutes en `method: 0`. Un lecteur complet demanderait un décompresseur,
+ * dont on n'a pas besoin ici ; une entrée compressée est donc signalée comme
+ * telle plutôt que rendue de travers.
+ *
+ * La lecture se fait sur les en-têtes locaux, en parcourant l'archive : c'est
+ * suffisant pour un fichier qu'on vient de produire, et cela évite de gérer le
+ * répertoire central.
+ *
+ * @param {Uint8Array} bytes
+ * @returns {Map<string, Uint8Array>} contenu indexé par nom d'entrée.
+ * @throws {TypeError} si l'archive est illisible, ou contient une entrée compressée.
+ */
+export function readStoredZip(bytes) {
+  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  const entries = new Map();
+  let offset = 0;
+
+  while (offset + 30 <= bytes.length && view.getUint32(offset, true) === 0x04034b50) {
+    const method = view.getUint16(offset + 8, true);
+    const size = view.getUint32(offset + 18, true);
+    const nameLength = view.getUint16(offset + 26, true);
+    const extraLength = view.getUint16(offset + 28, true);
+    const name = new TextDecoder().decode(bytes.subarray(offset + 30, offset + 30 + nameLength));
+    const start = offset + 30 + nameLength + extraLength;
+
+    if (method !== 0) {
+      throw new TypeError(
+        `Entrée compressée dans l'archive (${name}) : seules les archives ` +
+        'produites par cette application sont relisables.',
+      );
+    }
+    if (start + size > bytes.length) {
+      throw new TypeError(`Archive tronquée : l'entrée « ${name} » dépasse la fin du fichier.`);
+    }
+
+    entries.set(name, bytes.subarray(start, start + size));
+    offset = start + size;
+  }
+
+  if (entries.size === 0) {
+    throw new TypeError(
+      "Cette archive ne contient aucune entrée lisible. Attendu : un ZIP produit " +
+      "par l'application (dossier d'étiquettes).",
+    );
+  }
+  return entries;
+}

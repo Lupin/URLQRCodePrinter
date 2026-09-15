@@ -75,6 +75,44 @@ est omise et l'aperçu le signale. Réduire la taille du texte, ou choisir une
 hyperliens : ils s'ouvrent dans un nouvel onglet, depuis l'application comme
 depuis la fenêtre de l'extension.
 
+## Importer une collection
+
+Le bouton **« Importer »** relit ce que l'application exporte. Il est dans
+l'application (page de l'extension ou `localhost`), pas dans la fenêtre de la
+barre d'outils.
+
+| Fichier fourni | D'où il vient | Ce qui est relu |
+|---|---|---|
+| `liens-….json` | bouton **Archive** | tout : URL, titre, tags, note, date de collecte, raccourci |
+| `etiquettes-….zip` | bouton **Exporter les images (ZIP)** | les liens du manifeste contenu dans l'archive |
+| `export.json` | extrait à la main d'une archive | les mêmes |
+| `….csv` | bouton **CSV**, éventuellement retouché dans un tableur | URL, titre, tags, note, date |
+
+**L'import ajoute à la collection courante ; il ne la remplace pas.** Pour
+repartir d'une collection vide, cliquez « Tout effacer » d'abord.
+
+Ce qui se passe ensuite :
+
+- un lien **déjà présent** (même URL) est ignoré : le message dit
+  « 0 lien importé, 1 déjà présent ». Réimporter deux fois la même archive ne
+  crée donc pas de doublon, et ce n'est pas une erreur ;
+- une ligne **illisible** est comptée à part (« 2 illisibles ») et n'interrompt
+  pas le reste de l'import ;
+- la **date de collecte** est conservée quand le fichier la porte — un CSV
+  exporté puis réimporté garde donc ses dates ;
+- les colonnes **Domaine**, **N°**, **Image** et **QR code** sont ignorées : elles
+  se recalculent ;
+- dans un CSV, les colonnes sont retrouvées **par leur nom**, pas par leur
+  position : réordonner les colonnes dans un tableur ne casse rien, et les
+  colonnes facultatives (Note, URL courte) sont prises quand elles existent ;
+- le **nom de collection** n'est pas repris d'une archive : il reste celui de la
+  session en cours.
+
+Un fichier d'un autre type est refusé avec la liste des formats attendus, par
+exemple : « Import impossible : « notes.txt » n'est pas un format reconnu.
+Formats acceptés : l'archive JSON du bouton « Archive », le dossier d'étiquettes
+(.zip) ou son export.json, ou un CSV exporté d'ici. »
+
 ## Raccourcir, en option
 
 Le bloc « Raccourcir » se trouve sous la barre de recherche.

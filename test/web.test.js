@@ -187,3 +187,70 @@ test('le serveur refuse de sortir du dossier servi', async () => {
     );
   }
 });
+
+test('tout nom importé existe bien dans le module visé', () => {
+  // Garde-fou né d'une erreur réelle : `parseImportFile` était appelé dans
+  // app.js sans avoir été importé. Un identifiant inconnu ne se voit ni à la
+  // lecture ni au chargement du module — seulement à l'exécution de la
+  // fonction, donc jamais pendant les tests de démarrage.
+  const app = readFileSync(join(WEB, 'app.js'), 'utf8');
+  const problems = [];
+
+  const patterns = [
+    // import { a, b as c } from './x.js'
+    /import\s*\{([^}]*)\}\s*from\s*['"](\.[^'"]+)['"]/g,
+    // import Defaut from './x.js'
+    /import\s+([A-Za-z_$][\w$]*)\s+from\s*['"](\.[^'"]+)['"]/g,
+  ];
+
+  for (const pattern of patterns) {
+    for (const match of app.matchAll(pattern)) {
+      const [statement, clause, specifier] = match;
+      // `app.js` est écrit pour la disposition construite (`core/` à côté de
+      // lui) ; dans les sources, le cœur est un dossier voisin.
+      const target = [
+        resolve(WEB, specifier),
+        resolve(ROOT, 'src', specifier),
+      ].find((candidate) => existsSync(candidate));
+      if (!target) {
+        problems.push(`${specifier} est introuvable`);
+        continue;
+      }
+      const source = readFileSync(target, 'utf8');
+
+      // La forme nommée se reconnaît à l'accolade de l'instruction entière : le
+      // groupe capturé, lui, ne contient que l'intérieur des accolades.
+      const names = statement.includes('{') ? clause.split(',') : [clause];
+      for (const entry of names) {
+        const name = entry.trim().split(/\s+as\s+/)[0].trim();
+        if (name === '') continue;
+        const declared = new RegExp(
+          `export\\s+(?:async\\s+)?(?:function|const|let|var|class)\\s+${name}\\b`,
+        ).test(source)
+          || new RegExp(`export\\s*\\{[^}]*\\b${name}\\b[^}]*\\}`).test(source);
+        if (!declared) problems.push(`${name} n'est pas exporté par ${specifier}`);
+      }
+    }
+  }
+
+  assert.deepEqual(problems, []);
+});
+
+test('l\'interface annonce ce que l\'import accepte', () => {
+  // L'import était la fonction la moins compréhensible : le bouton ne disait
+  // ni ce qu'il attendait, ni ce qu'il faisait des doublons.
+  const hint = html.match(/« Importer » relit[\s\S]*?<\/p>/);
+  assert.ok(hint, 'l\'aide de l\'import doit être présente');
+  assert.match(hint[0], /Archive/);
+  assert.match(hint[0], /\.zip/);
+  assert.match(hint[0], /CSV/i);
+  assert.match(hint[0], /ignorés/, 'le sort des doublons doit être dit');
+});
+
+test('le sélecteur de fichier accepte les formats relisibles', () => {
+  const input = html.match(/<input id="import-file"[^>]*>/);
+  assert.ok(input, 'le champ de fichier doit exister');
+  for (const accept of ['.json', '.csv', '.zip']) {
+    assert.ok(input[0].includes(accept), `le champ doit accepter ${accept}`);
+  }
+});

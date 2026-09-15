@@ -21,7 +21,7 @@ Markdown, ou envoi direct à une imprimante Niimbot.
 | Socle natif Swift (protocole, session, CoreBluetooth) | fait, testé |
 | Application iOS qui utilise ce socle | à faire |
 
-**567 tests, tous verts** — 463 en JavaScript et 104 en Swift — dont :
+**585 tests, tous verts** — 481 en JavaScript et 104 en Swift — dont :
 
 - la validation **octet à octet** des trames Niimbot contre les relevés
   documentés, **dans les deux langages** : deux implémentations indépendantes
@@ -44,7 +44,7 @@ Markdown, ou envoi direct à une imprimante Niimbot.
 **L'application est vérifiée dans un vrai navigateur** : `npm run verify:brave`
 lance Brave sur un profil isolé, collecte un lien, le raccourcit, exporte le CSV
 et l'archive d'étiquettes, puis contrôle les fichiers réellement écrits sur le
-disque (signature ZIP, `unzip -t`, contenu du CSV). 75 vérifications, dont le
+disque (signature ZIP, `unzip -t`, contenu du CSV). 80 vérifications, dont le
 rendu des liens cliquables dans l'application *et* dans la fenêtre de
 l'extension, la grille réellement calculée pour quatre références Avery, et
 l'aperçu d'étiquette composé sans aucune imprimante connectée.
@@ -280,6 +280,42 @@ sont posées en ligne à partir du même calcul que la découpe, donc la hauteur
 occupée est exactement la hauteur réservée — un test dans Brave compare les deux.
 Auparavant, le texte était laissé au retour à la ligne du navigateur et pouvait
 déborder de l'étiquette sans que rien ne le signale.
+
+## L'import relit tout ce que l'export produit
+
+L'import n'acceptait qu'**une seule** des formes que l'application sait écrire :
+l'archive JSON du bouton « Archive ». Le CSV exporté, le dossier d'étiquettes
+`.zip` et le `export.json` qu'il contient étaient refusés. Autrement dit, on ne
+pouvait pas réimporter ce qu'on venait d'exporter — ce qui rendait la fonction
+incompréhensible, et c'était le principal malentendu.
+
+`core/import.js` accepte maintenant les trois formes, en s'appuyant sur ce qu'on
+écrit :
+
+| Fichier fourni | Ce qui est relu |
+|---|---|
+| `liens-qr-….json` (bouton « Archive ») | tout le modèle : URL, titre, tags, note, date de collecte, raccourci, identifiant |
+| `etiquettes-qr-….zip` (dossier d'étiquettes) | les liens de son `export.json` — l'URL d'origine est préférée à la cible imprimée, qui reste comme raccourci |
+| `export.json` extrait à la main | les mêmes |
+| `….csv` (bouton « CSV ») | URL, titre, tags, note, date — colonnes repérées par leur en-tête, donc un tableur qui les réordonne reste importable |
+
+Le ZIP est relu par `readStoredZip` : nos archives sont écrites sans compression
+(`method: 0`), donc un lecteur d'en-têtes locaux suffit, et une entrée compressée
+est signalée plutôt que rendue de travers.
+
+Trois règles, décidées pour que l'import ne fasse jamais de dégât :
+
+1. **il ajoute, il ne remplace pas** — la collection courante est conservée ;
+2. **un doublon est ignoré**, pas fusionné : réimporter deux fois la même archive
+   ne crée rien, et le message distingue « déjà présent » de « illisible » plutôt
+   que d'annoncer un échec ;
+3. **une ligne illisible ne fait pas échouer le reste** : elle est comptée.
+
+Un garde-fou de test accompagne cela : `test/web.test.js` vérifie que **chaque nom
+importé par `app.js` est bien exporté par le module visé**. Il est né d'une erreur
+réelle — `parseImportFile` appelé sans avoir été importé — qu'aucun test de
+démarrage ne pouvait voir, puisque le corps de la fonction n'est jamais exécuté
+au chargement.
 
 ## Dater une étiquette : une option, jamais un fragment
 
