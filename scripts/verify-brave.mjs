@@ -718,9 +718,13 @@ async function main() {
     })()`);
 
     record(
-      "la disposition du texte est proposee",
-      (senses?.options ?? []).join(',') === 'dessous,dessus,tourne,cote',
-      (senses?.options ?? []).join(', '),
+      "la disposition du texte est proposee, selon le format",
+      // Sur une tete de 12 mm, « texte a droite » n'a pas de place : elle n'est
+      // proposee que sur une tete large.
+      (senses?.options ?? []).join(',') === 'dessous,dessus,tourne'
+        && (senses?.options ?? []).includes('tourne')
+        && (senses?.options ?? []).includes('dessous'),
+      `D110 : ${(senses?.options ?? []).join(', ')}`,
     );
     record(
       "la disposition change la mise en page sans changer l'etiquette",
@@ -1367,8 +1371,10 @@ async function main() {
     );
     record(
       "toute la collection annonce son nombre de liens",
+      // Sans imprimante, le bouton reste inerte : c'est son libelle qui doit
+      // annoncer la portee, et il porte le nombre de liens de la collection.
       (scopeChoice?.tout?.label ?? '').includes(String(scopeChoice?.vide?.total))
-        && scopeChoice?.tout?.disabled === false,
+        && scopeChoice?.vide?.total > 1,
       `« ${scopeChoice?.tout?.label} » pour ${scopeChoice?.vide?.total} liens`,
     );
 
@@ -1692,7 +1698,7 @@ async function main() {
       const caseHeure = document.getElementById('sheet-date-time');
       const cocher = (box, value) => { box.checked = value; box.dispatchEvent(new Event('change')); };
       const slider = document.getElementById('sheet-qr');
-      const hint = document.getElementById('date-hint');
+      const hint = document.getElementById('sheet-date-hint');
       const preset = document.getElementById('preset');
 
       // La même planche, sans puis avec la date.
@@ -1892,8 +1898,8 @@ async function main() {
       // Remise en état : la grille de la planche A4 3 × 8.
       preset.value = 'a4-3x8';
       preset.dispatchEvent(new Event('change'));
-      select.value = 'none';
-      select.dispatchEvent(new Event('change'));
+      caseDate.checked = false; caseDate.dispatchEvent(new Event('change'));
+      caseHeure.checked = false; caseHeure.dispatchEvent(new Event('change'));
       await pause(300);
       return state;
     })()`);
@@ -2142,6 +2148,15 @@ async function main() {
       const headers = () => [...document.querySelectorAll('#preview .print-table th')]
         .map((th) => th.textContent);
       const firstRow = () => [...document.querySelectorAll('#preview .print-table tbody tr')][0];
+
+      // La colonne Date a pu etre cochee par une verification precedente.
+      const dateCol = document.getElementById('table-col-date');
+      const dateTime = document.getElementById('table-col-date-time');
+      if (dateCol.checked || dateTime.checked) {
+        dateCol.checked = false; dateCol.dispatchEvent(new Event('change'));
+        dateTime.checked = false; dateTime.dispatchEvent(new Event('change'));
+        await pause(300);
+      }
 
       const initial = {
         headers: headers(),
