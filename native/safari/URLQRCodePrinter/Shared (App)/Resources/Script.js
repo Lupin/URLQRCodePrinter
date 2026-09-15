@@ -21,15 +21,16 @@ function show(platform, enabled) {
     }
 }
 
-// Appelée quand Safari refuse d'ouvrir ses réglages — ce qui arrive sur une
-// compilation non signée. Sans cela, le bouton paraîtrait simplement mort.
+// Appelée quand on tente d'ouvrir les réglages de Safari.
+//
+// Sur une compilation non signée, Safari refuse — et peut même ne jamais
+// rappeler son gestionnaire, ni en succès ni en erreur. On se contente donc de
+// rendre la marche à suivre visible, sans écraser le texte détaillé de la page :
+// c'est lui qui porte l'information utile.
 function showFallback(reason) {
     const instructions = document.getElementById('instructions');
-    instructions.hidden = false;
-    instructions.textContent =
-        "Safari n'a pas pu ouvrir ses réglages automatiquement"
-        + (reason ? ' (' + reason + ')' : '')
-        + ". Ouvrez-les à la main : Safari → Réglages → Extensions.";
+    if (instructions) instructions.hidden = false;
+    if (reason) console.warn('Ouverture des réglages refusée :', reason);
 }
 
 document.querySelector('button.open-preferences')

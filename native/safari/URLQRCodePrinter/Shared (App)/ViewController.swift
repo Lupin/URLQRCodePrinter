@@ -70,18 +70,29 @@ class ViewController: PlatformViewController, WKNavigationDelegate, WKScriptMess
             return
         }
 
+        // On n'attend pas le gestionnaire de Safari pour agir.
+        //
+        // Sur une compilation non signée, il peut **ne jamais être appelé** :
+        // ni succès, ni erreur. Le bouton paraissait alors totalement mort,
+        // sans même le message d'explication prévu pour l'échec.
+        //
+        // On affiche donc la marche à suivre immédiatement, et on active Safari
+        // — deux opérations qui, elles, aboutissent toujours.
+        self.webView.evaluateJavaScript("showFallback()")
+
+        if let safari = NSWorkspace.shared.urlForApplication(withBundleIdentifier: "com.apple.Safari") {
+            NSWorkspace.shared.openApplication(
+                at: safari,
+                configuration: NSWorkspace.OpenConfiguration(),
+                completionHandler: nil
+            )
+        }
+
+        // Tentative d'ouverture directe des réglages : si elle aboutit, tant
+        // mieux, on quitte. Sinon il ne se passe rien de plus — c'est déjà fait.
         SFSafariApplication.showPreferencesForExtension(withIdentifier: extensionBundleIdentifier) { error in
-            DispatchQueue.main.async {
-                // Sur une compilation non signée, Safari refuse d'ouvrir ses
-                // réglages et renvoie une erreur. Le modèle d'Apple sortait
-                // alors sans rien faire : la fenêtre restait ouverte et le
-                // bouton semblait mort. On explique la marche à suivre.
-                if error == nil {
-                    NSApp.terminate(self)
-                } else {
-                    let reason = (error as NSError?)?.localizedDescription ?? ""
-                    self.webView.evaluateJavaScript("showFallback(\"\(reason)\")")
-                }
+            if error == nil {
+                DispatchQueue.main.async { NSApp.terminate(self) }
             }
         }
 #endif

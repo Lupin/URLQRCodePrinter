@@ -10,17 +10,28 @@
 <body>
     <img src="../Icon.png" width="128" height="128" alt="URLQRCodePrinter">
     <p class="platform-ios">Activez l'extension URLQRCodePrinter dans Réglages → Safari → Extensions.</p>
-    <p class="platform-mac state-unknown">Activez l'extension URLQRCodePrinter dans les réglages de Safari.</p>
+    <p class="platform-mac state-unknown">Extension pas encore autorisée par Safari.</p>
     <p class="platform-mac state-on">L'extension URLQRCodePrinter est active.</p>
     <p class="platform-mac state-off">L'extension URLQRCodePrinter est désactivée.</p>
+
     <p id="instructions">
-        Safari → Réglages → Extensions → cocher « URLQRCodePrinter ».<br>
-        Si elle n'apparaît pas : Safari → Réglages → Avancé → « Afficher le menu
-        Développeur », puis Développeur → « Autoriser les extensions non signées ».
+        Une compilation locale n'est pas signée par un certificat Apple : Safari
+        l'ignore tant que vous ne l'autorisez pas explicitement.
+        <br><br>
+        <strong>1.</strong> Dans Safari : Réglages → Avancé, cochez
+        « Afficher le menu Développeur ».<br>
+        <strong>2.</strong> Dans le menu <em>Développeur</em> :
+        « Autoriser les extensions non signées ».<br>
+        <strong>3.</strong> Puis Réglages → Extensions, cochez
+        « URLQRCodePrinter ».
+        <br><br>
+        Cette fenêtre ne sert qu'à enregistrer l'extension : vous pouvez la
+        fermer dès maintenant.
     </p>
+
     <div class="actions">
-        <button class="platform-mac open-preferences">Ouvrir les réglages de Safari</button>
-        <button class="platform-mac quit">Quitter</button>
+        <button class="platform-mac open-preferences">Ouvrir Safari</button>
+        <button class="platform-mac quit">Fermer</button>
     </div>
 </body>
 </html>

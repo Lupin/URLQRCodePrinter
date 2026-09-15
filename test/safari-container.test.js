@@ -124,6 +124,18 @@ test('le contrôleur ne peut plus échouer en silence sur le bouton', async () =
   );
   assert.match(swift, /showFallback/);
   assert.match(swift, /if error == nil \{/);
+
+  // Le point décisif : l'action ne doit pas dépendre du gestionnaire de Safari,
+  // qui peut ne jamais être appelé sur une compilation non signée. Le repli est
+  // donc déclenché immédiatement, et Safari activé sans l'attendre.
+  const fallbackIndex = swift.indexOf('showFallback');
+  const handlerIndex = swift.indexOf('SFSafariApplication.showPreferencesForExtension');
+  assert.ok(fallbackIndex !== -1 && handlerIndex !== -1);
+  assert.ok(
+    fallbackIndex < handlerIndex,
+    'le repli doit être déclenché avant l\'appel à Safari, pas depuis son gestionnaire',
+  );
+  assert.match(swift, /NSWorkspace\.shared\.openApplication/);
 });
 
 test('l\'état de l\'extension est affiché même quand il est indisponible', async () => {

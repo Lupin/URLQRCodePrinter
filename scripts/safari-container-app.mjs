@@ -40,17 +40,28 @@ const MAIN_HTML = `<!DOCTYPE html>
 <body>
     <img src="../Icon.png" width="128" height="128" alt="URLQRCodePrinter">
     <p class="platform-ios">Activez l'extension URLQRCodePrinter dans Réglages → Safari → Extensions.</p>
-    <p class="platform-mac state-unknown">Activez l'extension URLQRCodePrinter dans les réglages de Safari.</p>
+    <p class="platform-mac state-unknown">Extension pas encore autorisée par Safari.</p>
     <p class="platform-mac state-on">L'extension URLQRCodePrinter est active.</p>
     <p class="platform-mac state-off">L'extension URLQRCodePrinter est désactivée.</p>
+
     <p id="instructions">
-        Safari → Réglages → Extensions → cocher « URLQRCodePrinter ».<br>
-        Si elle n'apparaît pas : Safari → Réglages → Avancé → « Afficher le menu
-        Développeur », puis Développeur → « Autoriser les extensions non signées ».
+        Une compilation locale n'est pas signée par un certificat Apple : Safari
+        l'ignore tant que vous ne l'autorisez pas explicitement.
+        <br><br>
+        <strong>1.</strong> Dans Safari : Réglages → Avancé, cochez
+        « Afficher le menu Développeur ».<br>
+        <strong>2.</strong> Dans le menu <em>Développeur</em> :
+        « Autoriser les extensions non signées ».<br>
+        <strong>3.</strong> Puis Réglages → Extensions, cochez
+        « URLQRCodePrinter ».
+        <br><br>
+        Cette fenêtre ne sert qu'à enregistrer l'extension : vous pouvez la
+        fermer dès maintenant.
     </p>
+
     <div class="actions">
-        <button class="platform-mac open-preferences">Ouvrir les réglages de Safari</button>
-        <button class="platform-mac quit">Quitter</button>
+        <button class="platform-mac open-preferences">Ouvrir Safari</button>
+        <button class="platform-mac quit">Fermer</button>
     </div>
 </body>
 </html>
@@ -80,15 +91,16 @@ function show(platform, enabled) {
     }
 }
 
-// Appelée quand Safari refuse d'ouvrir ses réglages — ce qui arrive sur une
-// compilation non signée. Sans cela, le bouton paraîtrait simplement mort.
+// Appelée quand on tente d'ouvrir les réglages de Safari.
+//
+// Sur une compilation non signée, Safari refuse — et peut même ne jamais
+// rappeler son gestionnaire, ni en succès ni en erreur. On se contente donc de
+// rendre la marche à suivre visible, sans écraser le texte détaillé de la page :
+// c'est lui qui porte l'information utile.
 function showFallback(reason) {
     const instructions = document.getElementById('instructions');
-    instructions.hidden = false;
-    instructions.textContent =
-        "Safari n'a pas pu ouvrir ses réglages automatiquement"
-        + (reason ? ' (' + reason + ')' : '')
-        + ". Ouvrez-les à la main : Safari → Réglages → Extensions.";
+    if (instructions) instructions.hidden = false;
+    if (reason) console.warn('Ouverture des réglages refusée :', reason);
 }
 
 document.querySelector('button.open-preferences')
@@ -111,18 +123,29 @@ const SWIFT_REPLACEMENTS = [
                 NSApp.terminate(self)
             }
         }`,
-    to: `        SFSafariApplication.showPreferencesForExtension(withIdentifier: extensionBundleIdentifier) { error in
-            DispatchQueue.main.async {
-                // Sur une compilation non signée, Safari refuse d'ouvrir ses
-                // réglages et renvoie une erreur. Le modèle d'Apple sortait
-                // alors sans rien faire : la fenêtre restait ouverte et le
-                // bouton semblait mort. On explique la marche à suivre.
-                if error == nil {
-                    NSApp.terminate(self)
-                } else {
-                    let reason = (error as NSError?)?.localizedDescription ?? ""
-                    self.webView.evaluateJavaScript("showFallback(\\"\\(reason)\\")")
-                }
+    to: `        // On n'attend pas le gestionnaire de Safari pour agir.
+        //
+        // Sur une compilation non signée, il peut **ne jamais être appelé** :
+        // ni succès, ni erreur. Le bouton paraissait alors totalement mort,
+        // sans même le message d'explication prévu pour l'échec.
+        //
+        // On affiche donc la marche à suivre immédiatement, et on active Safari
+        // — deux opérations qui, elles, aboutissent toujours.
+        self.webView.evaluateJavaScript("showFallback()")
+
+        if let safari = NSWorkspace.shared.urlForApplication(withBundleIdentifier: "com.apple.Safari") {
+            NSWorkspace.shared.openApplication(
+                at: safari,
+                configuration: NSWorkspace.OpenConfiguration(),
+                completionHandler: nil
+            )
+        }
+
+        // Tentative d'ouverture directe des réglages : si elle aboutit, tant
+        // mieux, on quitte. Sinon il ne se passe rien de plus — c'est déjà fait.
+        SFSafariApplication.showPreferencesForExtension(withIdentifier: extensionBundleIdentifier) { error in
+            if error == nil {
+                DispatchQueue.main.async { NSApp.terminate(self) }
             }
         }`,
   },
