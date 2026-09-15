@@ -65,6 +65,51 @@ export function labelContent(link, mode, dateText = '') {
 export const MIN_QR_SCALE = 2;
 
 /**
+ * Hauteur de texte minimale, en millimètres.
+ *
+ * À 203 dpi, `width * 0.085` donnait 8 px sur une tête de 96 px — soit 1 mm de
+ * haut. Les chiffres montaient à 3 px : illisible à l'œil nu, et c'est le
+ * défaut que ce plancher corrige. 1,6 mm est le minimum qu'on lise sans effort
+ * sur une étiquette thermique.
+ */
+export const MIN_FONT_MM = 1.6;
+
+/**
+ * Part de la hauteur que le texte peut occuper au maximum.
+ *
+ * Le reste va au QR : une étiquette où le texte mange les deux tiers de la
+ * longueur ne se scanne plus. Sans ce plafond, une URL longue sur une longueur
+ * de rouleau confortable ferait exactement cela.
+ */
+export const LABEL_TEXT_HEIGHT_RATIO = 0.45;
+
+/**
+ * Disposition verticale de l'étiquette.
+ *
+ * `top` garde la composition resserrée en haut, telle qu'elle était avant que
+ * la longueur du rouleau soit connue : c'est le repli quand aucune longueur
+ * n'est renseignée.
+ */
+export const LABEL_ALIGNMENTS = Object.freeze([
+  { id: 'center', label: 'Centré' },
+  { id: 'top', label: 'En haut' },
+  { id: 'spread', label: 'Réparti (QR en haut, texte en bas)' },
+]);
+
+/** Disposition retenue par défaut. */
+export const DEFAULT_LABEL_ALIGNMENT = 'center';
+
+/**
+ * Taille de police maximale, en part de la largeur de la tête.
+ *
+ * Une longueur de rouleau confortable donne envie de grossir le texte jusqu'à
+ * remplir la place. Au-delà de ce plafond, le texte devient plus gros que le QR
+ * qu'il accompagne : l'étiquette perd son équilibre et le QR, seul élément
+ * utile, passe au second plan. Le reste de la place va aux marges.
+ */
+export const MAX_FONT_WIDTH_RATIO = 0.18;
+
+/**
  * Découpe un texte en lignes tenant dans une largeur donnée.
  *
  * Le découpage se fait sur les espaces, mais aussi après « / », « - » et « . »
@@ -156,6 +201,8 @@ export function wrapText(measure, text, maxWidth, options = {}) {
  * @param {number} [options.maxLines]     Nombre maximal de lignes de texte.
  * @param {number} [options.maxHeightPx]  Hauteur maximale imposée (0 = illimitée).
  * @param {number} [options.minHeightPx]  Hauteur minimale de l'étiquette.
+ * @param {string} [options.alignment]    `center`, `top` ou `spread` : où placer
+ *   le contenu quand une longueur est imposée et qu'il y a de la place en trop.
  * @param {number} [options.extraLines]   Lignes de texte supplémentaires à
  *   réserver sous celles du texte principal — la date, quand elle est demandée.
  *   Les ignorer rognerait la dernière ligne en silence.
@@ -165,55 +212,170 @@ export function wrapText(measure, text, maxWidth, options = {}) {
  */
 export function computeLabelGeometry(options) {
   const width = Math.max(1, Math.floor(options.widthPx));
+  const dpi = options.dpi ?? 203;
   const padding = Math.max(0, Math.floor(options.padding ?? Math.round(width * 0.06)));
-  const fontSize = Math.max(6, Math.floor(options.fontSize ?? Math.round(width * 0.085)));
+  const fontSize = Math.max(6, Math.floor(options.fontSize ?? mmToPx(MIN_FONT_MM, dpi)));
   const lineSpacing = options.lineSpacing ?? 1.15;
-  const lineHeight = Math.ceil(fontSize * lineSpacing);
+  const alignment = options.alignment ?? DEFAULT_LABEL_ALIGNMENT;
+
+  const innerWidth = Math.max(1, width - padding * 2);
   const qrRatio = Math.min(1, Math.max(0.3, options.qrRatio ?? 0.95));
   const minScale = Math.max(1, Math.floor(options.minScale ?? MIN_QR_SCALE));
   const maxLines = options.maxLines ?? 4;
 
-  const innerWidth = Math.max(1, width - padding * 2);
-  const qrTarget = Math.floor(innerWidth * qrRatio);
-
   const extraLines = Math.max(0, Math.trunc(options.extraLines ?? 0));
-  const measure = options.measure ?? defaultMeasure(fontSize);
-  const lines = wrapText(measure, options.text ?? '', innerWidth, {
-    maxLines: Math.max(0, maxLines - extraLines),
-  });
+  const requestedAlign = LABEL_ALIGNMENTS.some((entry) => entry.id === alignment)
+    ? alignment
+    : DEFAULT_LABEL_ALIGNMENT;
+
+  const minHeight = Math.max(0, Math.floor(options.minHeightPx ?? 0));
+  const maxHeight = Math.max(0, Math.floor(options.maxHeightPx ?? 0));
+
+  // La longueur du rouleau est une contrainte, pas un plancher : composer plus
+  // court ne raccourcit pas l'étiquette, l'imprimante avance jusqu'à la découpe
+  // suivante et le reste sort blanc. On remplit donc exactement la place.
+  let target = minHeight;
+  if (maxHeight > 0) target = target > 0 ? Math.min(target, maxHeight) : maxHeight;
 
   // Le QR a une taille entière en modules : on arrondit au multiple inférieur.
-  // On impose une échelle minimale, sans quoi une URL longue produirait un code
-  // à 1 px par module, illisible à l'impression thermique. Un éventuel
-  // dépassement est signalé par `fits` plutôt que corrigé en silence.
   const matrix = encodeQr(options.text ?? ' ', { ecc: options.ecc ?? 'M', border: 2 });
-  const scale = Math.max(minScale, pickScale(qrTarget, matrix.size));
+  const measure = options.measure ?? defaultMeasure(fontSize);
+
+  /** Découpe le texte pour une taille de police, dans les limites de la cible. */
+  const layoutText = (size) => {
+    const height = Math.ceil(size * lineSpacing);
+    // Le texte ne peut pas manger toute la longueur : au-delà, le QR n'a plus
+    // de place et la disposition répartie le pousserait hors de l'étiquette.
+    const cap = target > 0
+      ? Math.max(extraLines, Math.floor((target * LABEL_TEXT_HEIGHT_RATIO) / height))
+      : maxLines;
+    const limits = [maxLines, cap];
+    if (target > 0 && extraLines > 0) {
+      // La date s'écrit sur une seule ligne, sans découpage : un interligne qui
+      // la ferait dépasser ne doit pas être retenu.
+      limits.push(Math.floor((target - padding) / height));
+    }
+    return {
+      lines: wrapText(measure, options.text ?? '', innerWidth, {
+        maxLines: Math.max(0, Math.min(...limits)),
+      }),
+      lineHeight: height,
+    };
+  };
+
+  // Le texte dispose de la place que le QR lui laisse ; on retient donc la
+  // police la plus grande qui tienne, en essayant d'abord de remplir la
+  // longueur, puis la taille demandée, puis la lisibilité minimale.
+  const requested = Math.floor(options.fontSize ?? 0);
+  const candidates = [];
+  if (target > 0) candidates.push(Math.floor((target * 0.22) / lineSpacing));
+  if (requested > 0) candidates.push(requested);
+  candidates.push(fontSize);
+
+  const textTarget = Math.floor(innerWidth * qrRatio);
+  const scale = Math.max(minScale, pickScale(textTarget, matrix.size));
   const qrSize = matrix.size * scale;
   const fits = qrSize <= innerWidth;
 
-  const textHeight = (lines.length + extraLines) * lineHeight;
-  const contentHeight = qrSize + (lines.length + extraLines > 0 ? padding + textHeight : 0);
-  const naturalHeight = contentHeight + padding * 2;
+  // Le texte ne monte pas plus haut que cette part de la largeur de la tête :
+  // au-delà il dominerait le QR au lieu de l'accompagner.
+  const fontCeiling = Math.max(6, Math.floor(width * MAX_FONT_WIDTH_RATIO));
 
-  const minHeight = options.minHeightPx ?? 0;
-  const maxHeight = options.maxHeightPx ?? 0;
-  let height = Math.max(naturalHeight, minHeight);
-  if (maxHeight > 0) height = Math.min(height, maxHeight);
+  /**
+   * Essaie une taille de police et dit si elle tient.
+   *
+   * « Tenir » veut dire deux choses, et les deux comptent : le contenu garde la
+   * marge basse de l'étiquette, et le QR conserve sa place au-dessus. Ne
+   * vérifier que la première laissait passer une taille qui chassait le QR ou
+   * qui collait le texte au bord.
+   */
+  const tryFont = (size) => {
+    const usable = Math.max(6, Math.min(size, fontCeiling));
+    const attempt = layoutText(usable);
+    const textHeight = (attempt.lines.length + extraLines) * attempt.lineHeight;
+    // Hauteur complète : marge haute, QR, écart, texte, **et marge basse**.
+    // C'est la plus petite hauteur d'étiquette qui contienne le tout. Oublier
+    // la marge basse donnait une étiquette dont le texte touchait le bord, et
+    // une disposition répartie qui n'avait plus rien à répartir.
+    const natural = qrSize + (attempt.lines.length + extraLines > 0 ? padding + textHeight : 0)
+      + padding * 2;
+    return {
+      fontSize: usable,
+      lines: attempt.lines,
+      lineHeight: attempt.lineHeight,
+      textHeight,
+      naturalHeight: natural,
+      ok: target === 0 ? true : natural <= target,
+    };
+  };
+
+  let placed = null;
+  let fallback = null;
+  for (const size of candidates) {
+    const attempt = tryFont(size);
+    if (attempt.ok) {
+      placed = attempt;
+      break;
+    }
+    // Aucune taille ne tient : on garde la plus petite essayée, c'est-à-dire la
+    // dernière, plutôt que d'abandonner le texte ou de le laisser déborder.
+    fallback = attempt;
+  }
+  placed = placed ?? fallback;
+
+  const { lines, lineHeight } = placed;
+  const textHeight = placed.textHeight;
+  const contentLines = lines.length + extraLines;
+
+  // Plus petite hauteur d'étiquette qui contienne le contenu et ses deux
+  // marges. C'est elle qui décide si la longueur demandée suffit.
+  const naturalHeight = placed.naturalHeight;
+  // Une longueur plus courte que le contenu ne peut pas être remplie : on rend
+  // la hauteur naturelle, la plus petite qui contienne tout avec ses marges.
+  // La borner à la longueur annoncée ferait déborder le contenu sous le bord.
+  const height = target > 0 && naturalHeight <= target ? target : naturalHeight;
+
+  // `spread` et `center` n'ont de sens que si le contenu tient : sans cette
+  // garde, une longueur trop courte placerait le texte **sous** le bord.
+  const effectiveAlign = target > 0 && naturalHeight <= target ? requestedAlign : 'top';
+  const slack = height - naturalHeight;
+
+  let qrTop;
+  let spreadGap = padding;
+  if (effectiveAlign === 'spread') {
+    qrTop = padding;
+    // Le texte finit à `height - padding`. `naturalHeight` comprend déjà cette
+    // marge basse : l'écart cherché est donc `slack`, et non `slack + padding`.
+    spreadGap = padding + slack;
+  } else if (effectiveAlign === 'center') {
+    // La place restante se partage en deux : une moitié au-dessus du QR, une
+    // sous le texte. Chaque moitié s'ajoute à la marge, qui reste intacte.
+    const centered = Math.floor(slack / 2);
+    qrTop = padding + centered;
+    spreadGap = padding + (slack - centered);
+  } else {
+    qrTop = padding;
+  }
 
   return {
     width,
-    height: Math.ceil(height),
+    height,
     padding,
     qrSize,
     qrScale: scale,
     pxPerModule: qrSize / matrix.size,
     fits,
     qrMatrix: matrix,
-    textTop: padding + qrSize + padding,
+    qrTop,
+    textTop: qrTop + qrSize + spreadGap,
     lineHeight,
     lines,
     extraLines,
-    fontSize,
+    fontSize: placed.fontSize,
+    targetHeight: target,
+    naturalHeight,
+    slack,
+    alignment: effectiveAlign,
   };
 }
 
@@ -266,7 +428,9 @@ export function drawLabel(ctx, geometry, options = {}) {
   ctx.fillRect(0, 0, geometry.width, geometry.height);
 
   const qrX = Math.floor((geometry.width - geometry.qrSize) / 2);
-  drawQr(geometry.qrMatrix, ctx, { x: qrX, y: geometry.padding, scale: geometry.qrScale });
+  // `qrTop` vient de la géométrie : quand la longueur du rouleau est connue, le
+  // QR ne part plus du bord supérieur, il se place dans la place disponible.
+  drawQr(geometry.qrMatrix, ctx, { x: qrX, y: geometry.qrTop, scale: geometry.qrScale });
 
   ctx.fillStyle = '#000000';
   ctx.textAlign = 'center';

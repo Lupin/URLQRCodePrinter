@@ -135,6 +135,72 @@ export function withReportedHead(profile, reportedPixels) {
 }
 
 /**
+ * Consommables courants, par modèle.
+ *
+ * `widthMm` est la largeur de l'étiquette ; `lengthMm` est la longueur du
+ * rouleau, celle que le profil ne connaissait pas. Sans elle, l'application
+ * composait une étiquette de la hauteur de son contenu — 18 mm sur une photo
+ * d'étiquette réellement imprimée — et l'imprimante avançait ensuite jusqu'à la
+ * découpe suivante : le reste du rouleau sortait blanc.
+ *
+ * Une longueur `null` décrit un rouleau continu sans pas connu : la hauteur
+ * reste alors déduite du contenu, seul comportement possible.
+ *
+ * Aucune de ces cotes n'est vérifiable sans le matériel : elles viennent des
+ * catalogues du fabricant. `compatibleSupplies` écarte celles que la tête
+ * connectée ne peut pas imprimer, ce qui est la seule garantie dont on dispose.
+ */
+export const SUPPLIES = Object.freeze({
+  D110: Object.freeze([
+    { id: 'd110-12x22', label: '12 × 22 mm', widthMm: 12, lengthMm: 22 },
+    { id: 'd110-12x30', label: '12 × 30 mm', widthMm: 12, lengthMm: 30 },
+    { id: 'd110-12x40', label: '12 × 40 mm', widthMm: 12, lengthMm: 40 },
+    { id: 'd110-15x30', label: '15 × 30 mm', widthMm: 15, lengthMm: 30 },
+    { id: 'd110-15x50', label: '15 × 50 mm', widthMm: 15, lengthMm: 50 },
+    { id: 'd110-continue', label: 'Rouleau continu 12 mm (longueur libre)', widthMm: 12, lengthMm: null },
+  ]),
+  M2: Object.freeze([
+    { id: 'm2-40x30', label: '40 × 30 mm', widthMm: 40, lengthMm: 30 },
+    { id: 'm2-50x30', label: '50 × 30 mm', widthMm: 50, lengthMm: 30 },
+    { id: 'm2-50x70', label: '50 × 70 mm', widthMm: 50, lengthMm: 70 },
+    { id: 'm2-continue', label: 'Rouleau continu 48 mm (longueur libre)', widthMm: 48, lengthMm: null },
+  ]),
+});
+
+/** Longueurs de rouleau les plus courantes, proposées comme suggestions. */
+export const COMMON_LENGTHS_MM = Object.freeze([22, 30, 40, 50, 70]);
+
+/**
+ * Les consommables d'un profil, chacun accompagné de sa compatibilité.
+ *
+ * Deux contraintes, toutes deux matérielles :
+ * 1. une étiquette plus large que la tête y perdrait une bande, silencieusement ;
+ * 2. une étiquette plus longue que `maxPrintHeightMm` dépasse la fenêtre
+ *    d'impression du modèle.
+ *
+ * Le catalogue reste **visible** quand il est incompatible : on signale plutôt
+ * que de faire disparaître, sans quoi l'utilisateur croirait à une option
+ * manquante alors qu'il a choisi le mauvais rouleau.
+ *
+ * @param {PrinterProfile} profile
+ * @returns {Array<{ id: string, label: string, widthMm: number, lengthMm: number|null, compatible: boolean, reason: string }>}
+ */
+export function compatibleSupplies(profile) {
+  const list = SUPPLIES[profile.id] ?? [];
+  const headMm = (profile.printheadPixels / profile.dpi) * 25.4;
+
+  return list.map((supply) => {
+    if (supply.widthMm > headMm + 0.05) {
+      return { ...supply, compatible: false, reason: 'plus large que la tête' };
+    }
+    if (supply.lengthMm !== null && supply.lengthMm > profile.maxPrintHeightMm) {
+      return { ...supply, compatible: false, reason: 'plus longue que la fenêtre d\'impression' };
+    }
+    return { ...supply, compatible: true, reason: '' };
+  });
+}
+
+/**
  * Convertit une largeur d'étiquette en millimètres vers la largeur de tête à
  * utiliser, en signalant l'écart éventuel.
  *

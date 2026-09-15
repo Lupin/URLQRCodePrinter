@@ -13,6 +13,7 @@ import {
   mmToPx,
   pxToMm,
   checkQrLegibility,
+  MAX_FONT_WIDTH_RATIO,
 } from '../src/core/label.js';
 
 /** Mesure factice : chaque caractère vaut 10 px. */
@@ -110,11 +111,16 @@ test('la hauteur respecte le minimum et le maximum', () => {
   });
   assert.equal(g.height, 200);
 
+  // Une longueur plus courte que le contenu ne peut pas être respectée : on
+  // rend la hauteur naturelle, seule façon de ne rien rogner, et on le signale
+  // par un dépassement visible plutôt que par une coupe silencieuse.
   const capped = computeLabelGeometry({
     text: 'https://example.com/' + 'x'.repeat(200),
     widthPx: 120, measure: measure10, minHeightPx: 0, maxHeightPx: 60,
   });
-  assert.ok(capped.height <= 60);
+  assert.equal(capped.targetHeight, 60);
+  assert.ok(capped.height > 0);
+  assert.equal(capped.alignment, 'top', 'sans place, la répartition se désactive');
 });
 
 test('le texte est centré sous le QR', () => {
@@ -203,5 +209,110 @@ test('les lignes réservées comptent dans le plafond de lignes', () => {
   });
 
   assert.equal(without.lines.length, 4);
-  assert.equal(reserved.lines.length, 3, 'le total ne doit pas dépasser le plafond');
+  // Le plafond porte sur le texte principal ; les lignes réservées s'y ajoutent.
+  // C'est la convention de `label-export.js`, où la date se découpe avant le
+  // corps et lui retire ses lignes. La faire porter sur le total ici créerait
+  // deux sens pour un même nom.
+  assert.equal(reserved.lines.length, 4, 'le texte principal garde son plafond');
+  assert.equal(reserved.extraLines, 1, 'la ligne réservée est comptée à part');
+});
+
+// --------------------------------------------------------------------------
+// Longueur d'étiquette et lisibilité
+// --------------------------------------------------------------------------
+
+test('sans longueur connue, la hauteur reste celle du contenu', () => {
+  // Repli sur le comportement d'avant : le rouleau continu n'a pas de pas, et
+  // une longueur inventée ferait pire que bien. La hauteur comprend la marge
+  // basse, sans quoi le texte toucherait le bord de l'étiquette.
+  const g = computeLabelGeometry({
+    text: 'https://exemple.fr/article', widthPx: 96, dpi: 203, measure: measure10,
+  });
+  const bottom = g.textTop + (g.lines.length + g.extraLines) * g.lineHeight;
+  assert.equal(g.targetHeight, 0);
+  assert.equal(g.height, g.naturalHeight);
+  assert.equal(g.height - bottom, g.padding, 'la marge basse est celle du haut');
+});
+
+test('la longueur demandée est remplie exactement', () => {
+  // C'est le défaut constaté sur une étiquette réellement imprimée : la
+  // composition faisait 18 mm sur un rouleau de 30, et le reste sortait blanc.
+  const g = computeLabelGeometry({
+    text: 'https://exemple.fr/article', widthPx: 96, dpi: 203, measure: measure10,
+    maxHeightPx: 240,
+  });
+  assert.equal(g.height, 240, 'la hauteur doit être celle du rouleau, pas du contenu');
+  assert.ok(g.naturalHeight < g.height, 'il doit rester de la place à répartir');
+  assert.ok(g.slack > 0);
+});
+
+test('le contenu ne dépasse jamais la longueur, même trop courte', () => {
+  // Une longueur plus courte que le contenu ne doit pas pousser le texte sous
+  // le bord : la disposition répartie se rabat alors sur « en haut ».
+  const g = computeLabelGeometry({
+    text: 'https://exemple.fr/' + 'segment/'.repeat(12),
+    widthPx: 96, dpi: 203, measure: measure10, maxHeightPx: 150, alignment: 'spread',
+  });
+  assert.equal(g.alignment, 'top');
+  assert.ok(g.textTop + (g.lines.length + g.extraLines) * g.lineHeight <= g.height);
+});
+
+test('la disposition répartie colle le texte au bas de l\'étiquette', () => {
+  const base = {
+    text: 'https://exemple.fr/article', widthPx: 96, dpi: 203, measure: measure10,
+    maxHeightPx: 240,
+  };
+  const spread = computeLabelGeometry({ ...base, alignment: 'spread' });
+  const top = computeLabelGeometry({ ...base, alignment: 'top' });
+
+  assert.equal(spread.qrTop, spread.padding, 'le QR reste en haut');
+  assert.ok(spread.textTop > top.textTop, 'le texte descend');
+  assert.equal(
+    spread.height - (spread.textTop + (spread.lines.length + spread.extraLines) * spread.lineHeight),
+    spread.padding,
+    "le texte finit à la marge basse de l'étiquette",
+  );
+});
+
+test('la disposition centrée partage la place en haut et en bas', () => {
+  const g = computeLabelGeometry({
+    text: 'https://exemple.fr/article', widthPx: 96, dpi: 203, measure: measure10,
+    maxHeightPx: 240, alignment: 'center',
+  });
+  // La place libre se partage en deux : une moitié au-dessus du QR, le reste
+  // sous le texte. La marge de l'étiquette, elle, reste entière des deux côtés.
+  const above = g.qrTop - g.padding;
+  const below = g.height - (g.textTop + (g.lines.length + g.extraLines) * g.lineHeight)
+    - g.padding;
+  assert.ok(above > 0, 'il reste de la place au-dessus');
+  assert.ok(below >= 0, 'le texte ne passe pas sous la marge');
+  assert.ok(Math.abs(above - Math.floor(g.slack / 2)) <= 1,
+    `haut ${above} doit valoir la moitié de la place libre (${g.slack})`);
+});
+
+test('une longueur connue grossit le texte, jamais au-delà de la lisibilité', () => {
+  // 8 px sur une tête de 96, soit 1 mm à 203 dpi : le texte était illisible.
+  const base = {
+    text: 'https://exemple.fr/article', widthPx: 96, dpi: 203,
+    // Mesure volontairement étroite : on veut que ce soit la place, et non la
+    // largeur des caractères, qui décide de la taille retenue.
+    measure: (text) => text.length * 4,
+  };
+  const bare = computeLabelGeometry(base);
+  assert.ok(pxToMm(bare.fontSize, 203) >= 1.5, `${bare.fontSize} px sur 96, c'est trop petit`);
+
+  const roomy = computeLabelGeometry({ ...base, maxHeightPx: 240, alignment: 'spread' });
+  assert.ok(roomy.fontSize > bare.fontSize, 'la place disponible doit profiter au texte');
+  assert.ok(roomy.fontSize <= 96 * MAX_FONT_WIDTH_RATIO, 'le texte ne doit pas dominer le QR');
+});
+
+test('la date ne déborde pas quand une longueur est imposée', () => {
+  // `drawLabel` écrit la date sur une seule ligne, sans la découper : la
+  // géométrie doit lui laisser la place, sinon elle sort de l'étiquette.
+  const g = computeLabelGeometry({
+    text: 'https://exemple.fr/article', widthPx: 96, dpi: 203, measure: measure10,
+    maxHeightPx: 240, extraLines: 1, alignment: 'spread',
+  });
+  const bottom = g.textTop + (g.lines.length + g.extraLines) * g.lineHeight;
+  assert.ok(bottom <= g.height, `bas ${bottom} > hauteur ${g.height}`);
 });
