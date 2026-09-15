@@ -65,10 +65,13 @@ export function downloadBlob(filename, blob, options = {}) {
   doc.body.appendChild(anchor);
   anchor.click();
 
-  // La révocation est différée : certains navigateurs annulent le
-  // téléchargement si l'URL disparaît dans la même tâche.
+  // La révocation est différée largement : un navigateur lit le blob de façon
+  // asynchrone, et révoquer trop tôt peut le laisser croire à un téléchargement
+  // en cours — Brave affichait alors « Downloads are in progress » alors que
+  // rien ne se téléchargeait plus. Une minute est sans risque : le blob est de
+  // toute façon libéré à la fermeture de la page.
   const revoke = () => urlApi.revokeObjectURL(objectUrl);
-  if (typeof globalThis.setTimeout === 'function') globalThis.setTimeout(revoke, 10_000);
+  if (typeof globalThis.setTimeout === 'function') globalThis.setTimeout(revoke, 60_000);
   else revoke();
 
   if (anchor.parentNode) anchor.parentNode.removeChild(anchor);
