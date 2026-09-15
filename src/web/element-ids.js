@@ -38,6 +38,7 @@ export const ELEMENT_IDS = Object.freeze([
   'sheet-qr',
   'sheet-qr-info',
   'sheet-fit-mode',
+  'sheet-fit-hint',
   'sheet-columns',
   'sheet-rows',
   'sheet-margin',

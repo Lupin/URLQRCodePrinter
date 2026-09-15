@@ -169,18 +169,22 @@ Pour les planches autocollantes A4 et Letter. Deux familles de dispositions :
 > imprimer », qui affiche une étiquette en grand.
 
 **Choisir le nombre de colonnes, ou remplir la feuille.** Le sélecteur
-« Réglage » propose deux approches :
+Le sélecteur **« Taille des étiquettes définie par »** propose deux approches,
+et la phrase juste en dessous dit ce qui découle de quoi, avec les chiffres de la
+planche en cours :
 
-- **Cotes de la disposition** — les cotes publiées de la référence choisie font
-  foi. C'est le mode à utiliser sur une planche commerciale.
-- **Remplir la feuille** — vous choisissez **colonnes**, **rangées**, une
-  **marge globale** (appliquée aux quatre bords) et un **écart** entre
-  étiquettes ; la taille des étiquettes est recalculée pour occuper exactement
-  la place restante. La ligne d'information sous les réglages affiche la taille
-  obtenue : `4 × 6 = 24 étiquettes par page de 48,5 × 46,2 mm`.
+- **Cotes de la référence** — les cotes publiées pour la référence choisie
+  ci-dessus font foi ; la grille en découle. C'est le mode d'une planche
+  commerciale : « Les cotes publiées pour « Avery L7160 — 3 × 7 (63,5 × 38,1 mm) »
+  font foi : 63,5 × 38,1 mm. La grille en découle — 3 × 7 par feuille. »
+- **Colonnes et rangées** — vous fixez la grille ; la taille des étiquettes en
+  découle. Vous réglez **colonnes**, **rangées**, la **marge globale** (appliquée
+  aux quatre bords) et l'**écart** entre étiquettes ; la taille est calculée pour
+  occuper exactement la place restante, et annoncée : « Vous fixez la grille ; la
+  taille des étiquettes en découle — 48,5 × 46,2 mm, 4 × 6 par feuille. »
 
-Passer en mode « remplir » reprend la grille de la disposition affichée : on
-ajuste un point de départ, on ne repart pas de zéro. Si la demande est
+Passer en mode « Colonnes et rangées » reprend la grille de la référence
+affichée : on ajuste un point de départ, on ne repart pas de zéro. Si la demande est
 impossible — trop de colonnes pour la marge choisie — la disposition précédente
 est conservée et le message dit quoi corriger.
 

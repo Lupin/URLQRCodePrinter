@@ -156,3 +156,23 @@ test('aucun raccourcissement n\'est déclenché de lui-même', () => {
   assert.equal(registry.get('shorten-clear').hidden, true);
   assert.equal(registry.get('shorten-status').textContent, '');
 });
+
+test('les deux façons de régler une planche sont annoncées clairement', () => {
+  const modes = registry.get('sheet-fit-mode').children.map((o) => [o.value, o.textContent]);
+  assert.deepEqual(modes, [
+    ['preset', 'Cotes de la référence'],
+    ['fill', 'Colonnes et rangées'],
+  ]);
+  // Les anciennes appellations ne disaient ni de quoi ni pour quoi.
+  const labels = modes.map(([, label]) => label).join(' ');
+  assert.equal(/disposition/i.test(labels), false, '« disposition » est déjà pris par le sélecteur voisin');
+  assert.equal(/remplir la feuille/i.test(labels), false, '« remplir la feuille » ne dit pas avec quoi');
+
+  // La phrase qui explique le mode courant est présente, et parle du mode retenu.
+  // Elle doit l'être **dès le démarrage**, collection vide : c'est le moment où
+  // l'on règle la planche, avant d'avoir des liens.
+  const hint = registry.get('sheet-fit-hint').textContent;
+  assert.match(hint, /font foi/, `phrase de mode : « ${hint} »`);
+  assert.match(hint, /par feuille/);
+  assert.match(hint, /\d+,\d+ × \d+,\d+ mm/, `cotes à la française : « ${hint} »`);
+});

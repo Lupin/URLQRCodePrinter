@@ -21,7 +21,7 @@ Markdown, ou envoi direct à une imprimante Niimbot.
 | Socle natif Swift (protocole, session, CoreBluetooth) | fait, testé |
 | Application iOS qui utilise ce socle | à faire |
 
-**585 tests, tous verts** — 481 en JavaScript et 104 en Swift — dont :
+**586 tests, tous verts** — 482 en JavaScript et 104 en Swift — dont :
 
 - la validation **octet à octet** des trames Niimbot contre les relevés
   documentés, **dans les deux langages** : deux implémentations indépendantes
@@ -44,7 +44,7 @@ Markdown, ou envoi direct à une imprimante Niimbot.
 **L'application est vérifiée dans un vrai navigateur** : `npm run verify:brave`
 lance Brave sur un profil isolé, collecte un lien, le raccourcit, exporte le CSV
 et l'archive d'étiquettes, puis contrôle les fichiers réellement écrits sur le
-disque (signature ZIP, `unzip -t`, contenu du CSV). 80 vérifications, dont le
+disque (signature ZIP, `unzip -t`, contenu du CSV). 82 vérifications, dont le
 rendu des liens cliquables dans l'application *et* dans la fenêtre de
 l'extension, la grille réellement calculée pour quatre références Avery, et
 l'aperçu d'étiquette composé sans aucune imprimante connectée.
@@ -266,6 +266,14 @@ de l'étiquette pour produire l'intervalle **autorisé** de la largeur du QR :
   impose au moins 58 % ;
 - **borne haute** : le QR est carré, il doit tenir dans la largeur **et** laisser
   au moins une ligne de texte sous lui.
+
+Les deux réglages de planche sont nommés par **ce qu'on choisit** — « Cotes de la
+référence » ou « Colonnes et rangées », sous un sélecteur intitulé « Taille des
+étiquettes définie par » — et une phrase sous le sélecteur dit ce qui découle de
+quoi, avec les dimensions réelles de la planche courante. La version précédente
+(« Cotes de la disposition » / « Remplir la feuille ») ne voulait rien dire :
+« disposition » est déjà le nom du sélecteur voisin, et aucune des deux
+appellations n'indiquait laquelle des deux grandeurs commandait l'autre.
 
 Le curseur reçoit ces bornes : **il ne peut plus demander un QR impossible**, au
 lieu d'afficher un avertissement une fois le réglage fautif choisi. Quand les deux

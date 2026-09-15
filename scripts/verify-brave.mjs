@@ -205,6 +205,9 @@ async function main() {
           // la même minute produisent le même nom de fichier, et le second
           // écrase le premier — un fichier « nouveau » n'apparaîtrait jamais.
           () => readdirSync(DOWNLOADS).find((name) => {
+            // `x.zip.crdownload` contient `.zip` : lire un téléchargement en
+            // cours donnait un fichier tronqué, donc des échecs intermittents.
+            if (name.endsWith('.crdownload')) return false;
             if (!name.includes(extension)) return false;
             const seen = before.get(name);
             if (seen === undefined) return true;
@@ -459,7 +462,9 @@ async function main() {
 
     // 4. Le fichier doit réellement arriver sur le disque.
     const archive = await waitFor(
-      () => readdirSync(DOWNLOADS).find((name) => name.endsWith('.zip')),
+      () => readdirSync(DOWNLOADS).find(
+        (name) => name.endsWith('.zip') && !name.endsWith('.crdownload'),
+      ),
       { label: 'archive téléchargée', timeout: 20000 },
     );
 
@@ -496,7 +501,7 @@ async function main() {
       `http://127.0.0.1:${PORT}/json/new?chrome-extension://${id}/popup.html`,
       { method: 'PUT' },
     ).then((r) => r.json());
-    await new Promise((r) => setTimeout(r, 1500));
+    await new Promise((r) => setTimeout(r, 800));
     const popup = await connect(popupTarget.webSocketDebuggerUrl);
     const popupEval = async (expression) => {
       const response = await popup.send('Runtime.evaluate', {
@@ -504,6 +509,20 @@ async function main() {
       });
       return response.result?.result?.value;
     };
+
+    // La fenêtre lit le stockage puis dessine la collection : avec trente
+    // étiquettes, un délai fixe suffisait la plupart du temps — et échouait
+    // parfois. On attend donc que la liste existe vraiment.
+    await waitFor(
+      async () => {
+        try {
+          return (await popupEval("document.querySelectorAll('#list .item').length || ''")) !== '';
+        } catch {
+          return false;
+        }
+      },
+      { label: 'la fenêtre affiche sa liste', timeout: 20000 },
+    );
 
     const popupAnchor = await popupEval(`(() => {
       const node = document.querySelector('#list .item__url');
@@ -1302,6 +1321,39 @@ async function main() {
 
       return { hiddenBefore, shownAfter, prefilled, fieldLabel: field?.textContent ?? '', fourBySix, twoByThree };
     })()`);
+
+    const wording = await evaluate(`(async () => {
+      const select = document.getElementById('sheet-fit-mode');
+      const hint = document.getElementById('sheet-fit-hint');
+      const pause = (ms) => new Promise((r) => setTimeout(r, ms));
+      const label = document.querySelector('label:has(> #sheet-fit-mode) .field__label');
+
+      const options = [...select.options].map((o) => o.textContent);
+      const presetHint = hint.textContent;
+
+      select.value = 'fill';
+      select.dispatchEvent(new Event('change'));
+      await pause(300);
+      const fillHint = hint.textContent;
+
+      select.value = 'preset';
+      select.dispatchEvent(new Event('change'));
+      await pause(250);
+      return { champ: label ? label.textContent : '', options, presetHint, fillHint };
+    })()`);
+
+    record(
+      'les deux modes sont nommés par ce qu\'on choisit',
+      JSON.stringify(wording.options) === JSON.stringify(['Cotes de la référence', 'Colonnes et rangées'])
+        && /définie par/.test(wording.champ),
+      `« ${wording.champ} » → ${wording.options.join(' / ')}`,
+    );
+    record(
+      'la phrase dit ce qui découle de quoi, chiffres en main',
+      /font foi/.test(wording.presetHint) && /en découle/.test(wording.fillHint)
+        && /\d+ × \d+/.test(wording.presetHint) && /mm/.test(wording.fillHint),
+      `référence : « ${wording.presetHint} » / grille : « ${wording.fillHint} »`,
+    );
 
     record(
       'les champs de remplissage apparaissent avec le mode',

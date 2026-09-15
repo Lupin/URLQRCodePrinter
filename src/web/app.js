@@ -864,10 +864,38 @@ async function clearShortUrls() {
 // ---------------------------------------------------------------------------
 
 /** Configuration de la planche à partir du formulaire. */
+/**
+ * Les deux façons de régler une planche, nommées par **ce qu'on choisit**.
+ *
+ * « Cotes de la disposition » ne voulait rien dire : « disposition » est déjà le
+ * nom du sélecteur juste au-dessus, et « cotes » ne dit pas de quoi. Chaque
+ * libellé annonce désormais sa consigne — les cotes de la référence choisie, ou
+ * les colonnes et rangées — et la phrase sous le sélecteur dit ce qui en découle.
+ */
 const SHEET_FIT_MODES = Object.freeze([
-  { id: 'preset', label: 'Cotes de la disposition' },
-  { id: 'fill', label: 'Remplir la feuille' },
+  { id: 'preset', label: 'Cotes de la référence' },
+  { id: 'fill', label: 'Colonnes et rangées' },
 ]);
+
+/**
+ * Écrit un nombre décimal à la française.
+ *
+ * Les cotes écrites à la main dans les libellés utilisent la virgule
+ * (« 63,5 × 33,9 mm ») ; les valeurs calculées sortaient en anglais
+ * (« 63.5 × 33.9 »). Deux écritures pour la même grandeur dans la même phrase,
+ * c'est le genre de détail qui fait douter du reste.
+ *
+ * @param {number} value
+ * @param {number} [digits]
+ * @returns {string}
+ */
+function decimal(value, digits = 1) {
+  if (!Number.isFinite(value)) return '—';
+  const fixed = value.toFixed(digits).replace('.', ',');
+  // « 29,0 mm » et « 0,40 mm » se lisent mal : on retire les zéros de fin,
+  // sans jamais toucher aux entiers (« 260 » reste « 260 »).
+  return fixed.includes(',') ? fixed.replace(/,?0+$/, '') : fixed;
+}
 
 /** Contraint un entier de formulaire entre deux bornes. */
 function clampInt(value, min, max, fallback) {
@@ -936,7 +964,48 @@ function sheetConfig() {
   };
 }
 
-/** Affiche les champs propres au mode « remplir la feuille ». */
+/**
+ * Explique le mode retenu, avec les chiffres qui en découlent.
+ *
+ * C'est cette phrase qui manquait : les deux appellations seules ne disent pas
+ * laquelle des deux grandeurs — la taille ou la grille — commande l'autre. Elle
+ * est écrite après le calcul de la planche, donc elle annonce des dimensions
+ * réelles, pas un exemple.
+ *
+ * @param {{ fit: string, layout: object, preset: object }} state
+ */
+function updateFitHint(state) {
+  const { fit, layout, preset } = state;
+  const size = `${decimal(layout.labelWidthMm)} × ${decimal(layout.labelHeightMm)} mm`;
+
+  el.sheetFitHint.textContent = fit === 'preset'
+    ? `Les cotes publiées pour « ${preset.label} » font foi : ${size}. `
+      + `La grille en découle — ${layout.columns} × ${layout.rows} par feuille.`
+    : `Vous fixez la grille ; la taille des étiquettes en découle — ${size}, `
+      + `${layout.columns} × ${layout.rows} par feuille. La marge s'applique aux `
+      + "quatre bords, l'écart entre les deux axes.";
+}
+
+/**
+ * Renseigne la phrase du mode sans construire de page.
+ *
+ * Utilisée quand l'aperçu n'a rien à dessiner : la taille des étiquettes et la
+ * grille ne dépendent pas du nombre de liens, la phrase est donc exacte.
+ */
+function refreshFitHint() {
+  const config = sheetConfig();
+  updateFitHint({
+    fit: el.sheetFitMode.value,
+    layout: computeSheet({
+      count: 1,
+      ...config,
+      adviseDenser: el.sheetFitMode.value !== 'fill',
+    }),
+    preset: SHEET_PRESETS[el.preset.value] ?? SHEET_PRESETS['a4-3x8'],
+  });
+}
+
+/** Affiche les champs propres au mode « colonnes et rangées ». */
 function updateFitFields() {
   const filling = el.sheetFitMode.value === 'fill';
   for (const field of document.querySelectorAll('[data-fill-only]')) {
@@ -1034,6 +1103,12 @@ function buildSheetPages(items) {
   // posée ici, une fois pour toutes les sorties (aperçu, impression, Ctrl+P).
   applyPrintPageSize(layout.pageWidthMm, layout.pageHeightMm);
 
+  updateFitHint({
+    fit: el.sheetFitMode.value,
+    layout,
+    preset: SHEET_PRESETS[el.preset.value] ?? SHEET_PRESETS['a4-3x8'],
+  });
+
   const warnings = [...layout.warnings];
   if (!bounds.fits) {
     // Nommer le lien fautif évite de chercher lequel, sur une planche de trente
@@ -1123,7 +1198,7 @@ function buildSheetPages(items) {
 
   el.sheetInfo.textContent = layout.perPage > 0
     ? `${layout.columns} × ${layout.rows} = ${layout.perPage} étiquettes par page ` +
-      `de ${round1(layout.labelWidthMm)} × ${round1(layout.labelHeightMm)} mm, ` +
+      `de ${decimal(layout.labelWidthMm)} × ${decimal(layout.labelHeightMm)} mm, ` +
       `${layout.pages} page${layout.pages > 1 ? 's' : ''}` +
       (warnings.length ? ` — ${warnings.join(' ')}` : '')
     : layout.warnings.join(' ');
@@ -1170,7 +1245,8 @@ function updateQrInfo(state) {
 
   const range = `${Math.round(bounds.min * 100)} à ${Math.round(bounds.max * 100)} %`;
   el.sheetQrInfo.textContent =
-    `QR de ${side} mm (${moduleMm.toFixed(2)} mm par module, minimum ${bounds.minModuleMm} mm) — ` +
+    `QR de ${decimal(side)} mm (${decimal(moduleMm, 2)} mm par module, `
+    + `minimum ${decimal(bounds.minModuleMm, 2)} mm) — ` +
     `réglable de ${range} — ${maxLines} ligne${maxLines > 1 ? 's' : ''} de texte.`;
   el.sheetQrInfo.style.color = moduleMm < bounds.minModuleMm ? 'var(--danger)' : '';
 }
@@ -1268,6 +1344,10 @@ function renderPreview() {
   el.print.hidden = false;
 
   if (items.length === 0) {
+    // La phrase qui explique le mode doit être là **avant** le premier lien :
+    // c'est au moment où l'on règle la planche qu'on a besoin de la comprendre.
+    refreshFitHint();
+
     const note = document.createElement('p');
     note.className = 'hint';
     note.textContent = 'Ajoutez des liens pour voir un aperçu.';
@@ -1388,7 +1468,7 @@ function renderSingleLabel(link) {
   const dateNote = dateOmitted ? composeDateNote() : '';
   caption.textContent = (verdict.ok
     ? `${profile.id} — ${geometry.width} × ${geometry.height} px, `
-      + `${verdict.pxPerModule.toFixed(1)} px par module`
+      + `${decimal(verdict.pxPerModule)} px par module`
     : `${profile.id} — ${verdict.reason}`) + dateNote;
   if (!verdict.ok) caption.style.color = 'var(--danger)';
   frame.appendChild(caption);
