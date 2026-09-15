@@ -20,6 +20,7 @@
     "package:safari": "node scripts/package-safari.mjs",
     "install:safari": "node scripts/install-safari.mjs",
     "open:extension": "node scripts/open-extension.mjs",
+    "open:safari": "node scripts/open-extension.mjs --safari",
     "serve": "node scripts/serve.mjs",
     "dev": "node scripts/build.mjs && node scripts/serve.mjs"
   },

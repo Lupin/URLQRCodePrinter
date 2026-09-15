@@ -17,7 +17,15 @@ import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const DIST = join(ROOT, 'dist', 'extension');
+
+/**
+ * Safari 26 sait charger une extension **depuis un dossier**, via
+ * « Add Temporary Extension… » dans ses réglages. C'est la voie la plus simple :
+ * aucune application à compiler, aucune signature, aucun certificat.
+ */
+const FOR_SAFARI = process.argv.includes('--safari');
+
+const DIST = join(ROOT, 'dist', FOR_SAFARI ? 'extension-safari' : 'extension');
 
 /** Navigateurs reconnus, dans l'ordre de préférence. */
 const BROWSERS = [
@@ -36,11 +44,19 @@ function openExtensionsPage() {
   return null;
 }
 
+/** Active Safari, sans dépendre d'une API qui peut échouer. */
+function activateSafari() {
+  return spawnSync('open', ['-a', 'Safari'], { stdio: 'ignore' }).status === 0;
+}
+
 // L'extension doit être assemblée : le cœur partagé y est recopié, et sans lui
 // le service worker échouerait au chargement.
-const build = spawnSync(process.execPath, [join(ROOT, 'scripts', 'build.mjs'), '--only=extension'], {
-  cwd: ROOT,
-  stdio: 'inherit',
+const build = spawnSync(
+  process.execPath,
+  [join(ROOT, 'scripts', 'build.mjs'), `--only=${FOR_SAFARI ? 'extension-safari' : 'extension'}`],
+  {
+    cwd: ROOT,
+    stdio: 'inherit',
 });
 if (build.status !== 0) process.exit(build.status ?? 1);
 
@@ -61,15 +77,57 @@ if (existsSync(join(ROOT, 'src', 'extension-src', 'manifest.json'))) {
 }
 
 // On révèle le dossier dans le Finder — ce qui le sélectionne — et on copie son
-// chemin : la boîte de dialogue « Charger l'extension non empaquetée » accepte
-// un chemin collé, ce qui évite de se tromper de dossier.
+// chemin : les boîtes de dialogue des navigateurs acceptent un chemin collé, ce
+// qui évite de se tromper de dossier.
 spawnSync('open', ['-R', DIST], { stdio: 'inherit' });
 spawnSync('pbcopy', { input: DIST, stdio: ['pipe', 'inherit', 'inherit'] });
+
+const rule = '─'.repeat(70);
+
+if (FOR_SAFARI) {
+  const activated = activateSafari();
+
+  console.log(`
+${rule}
+Dossier de l'extension, sélectionné dans le Finder et copié :
+
+    ${DIST}
+
+${activated ? 'Safari vient d\'être activé.' : 'Ouvrez Safari.'}
+
+Safari 26 sait charger une extension depuis un dossier, sans application
+à compiler ni signature :
+
+  1. Réglages → onglet « Développeur »
+     (si l'onglet n'apparaît pas : Réglages → Avancé → « Afficher le menu
+     Développeur »)
+
+  2. Cliquez « Add Temporary Extension… »
+     — ou, en français, « Ajouter une extension temporaire… »
+
+  3. macOS demande votre mot de passe ou votre empreinte : c'est normal,
+     il autorise explicitement une extension non signée.
+
+  4. Dans la boîte de dialogue :  ⌘⇧G, ⌘V, Entrée
+     (le chemin est déjà dans le presse-papiers)
+
+L'icône apparaît aussitôt dans la barre d'outils de Safari.
+
+⚠  Une extension temporaire est déchargée à la fermeture de Safari. C'est la
+   voie de développement ; pour un usage permanent, il faut un compte Apple
+   Developer et une application signée distribuée par l'App Store.
+
+⚠  Le bon dossier est « dist/extension-safari ». Aucun autre dossier du dépôt
+   ne contient de manifeste : il est produit à la construction.
+${rule}
+`);
+  process.exit(0);
+}
 
 const browser = openExtensionsPage();
 
 console.log(`
-──────────────────────────────────────────────────────────────────────
+${rule}
 Dossier de l'extension, sélectionné dans le Finder et copié :
 
     ${DIST}
@@ -91,21 +149,17 @@ Pour l'installer — une seule fois :
    « Cancel » : elle rejoue l'ancien chemin. Supprimez aussi l'ancienne
    entrée avec « Remove » avant de recharger.
 
-⚠  Le bon dossier est « dist/extension ». « src/extension » ne contient
-   pas de manifeste : il est produit à la construction.
-
-L'icône apparaît alors dans la barre d'outils.
-   Le dossier source ne contient pas le manifeste : il est produit à la
-   construction, avec le cœur recopié et les fichiers assemblés.
+⚠  Le bon dossier est « dist/extension ». Aucun autre dossier du dépôt ne
+   contient de manifeste : il est produit à la construction.
 
 L'icône apparaît alors dans la barre d'outils.
 
 Pour imprimer depuis Brave, Web Bluetooth doit être activé :
     brave://flags#brave-web-bluetooth-api
-Chrome et Edge n'ont pas cette contrainte.
+Chrome et Edge n'ont pas cette contrainte, Safari ne l'implémente pas.
 
 Une installation en un clic supposerait une publication sur le Chrome Web
 Store : c'est la seule voie qu'acceptent ces navigateurs pour une extension
 tierce.
-──────────────────────────────────────────────────────────────────────
+${rule}
 `);
