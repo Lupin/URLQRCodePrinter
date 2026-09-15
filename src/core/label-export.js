@@ -18,7 +18,7 @@
 
 import { encodeQr } from './qr.js';
 import { wrapText, mmToPx } from './label.js';
-import { hostOf } from './link.js';
+import { sourceHost, sourceUrl, hasShortUrl } from './link.js';
 import { createZip } from './zip.js';
 import { exportFilename } from './exporters.js';
 
@@ -147,7 +147,9 @@ export function labelText(link, textMode) {
     case 'title':
       return link.title ? [link.title] : [link.url];
     case 'host':
-      return [hostOf(link.url)];
+      // Le domaine imprimé est toujours celui du site visé, jamais celui du
+      // raccourcisseur : « tinyurl.com » sous un QR n'apprendrait rien.
+      return [sourceHost(link)];
     case 'none':
       return [];
     case 'url':
@@ -168,7 +170,7 @@ export function labelFileName(link, index, total) {
   const padding = String(total).length;
   const number = String(index + 1).padStart(padding, '0');
 
-  const slug = (link.title || hostOf(link.url) || 'lien')
+  const slug = (link.title || sourceHost(link) || 'lien')
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '') // retire les accents
     .toLowerCase()
@@ -366,13 +368,23 @@ export function buildLabelArchive(options) {
 
   // Un CSV qui relie chaque URL à son image : c'est ce qui permet de retrouver
   // l'étiquette d'un lien sans ouvrir les images une à une.
+  //
+  // Quand au moins un lien est raccourci, une colonne « URL d'origine » apparaît
+  // en fin de tableau : l'archive doit toujours permettre de retrouver la vraie
+  // adresse, même si le service de raccourcissement disparaît.
+  const withShort = planned.some(
+    ({ link }) => hasShortUrl(link) && sourceUrl(link) !== link.url,
+  );
   const csvRows = planned.map(({ link, fileName }, index) => [
     index + 1,
     link.url,
+    ...(withShort ? [sourceUrl(link) === link.url ? '' : sourceUrl(link)] : []),
     link.title,
     `etiquettes/${fileName}`,
   ]);
-  const header = ['N°', 'URL', 'Titre', 'Image'];
+  const header = withShort
+    ? ['N°', 'URL', 'URL d\'origine', 'Titre', 'Image']
+    : ['N°', 'URL', 'Titre', 'Image'];
   const csv = '\uFEFF' + [header, ...csvRows]
     .map((row) => row.map((cell) => escapeCsv(cell)).join(';'))
     .join('\r\n') + '\r\n';
@@ -409,6 +421,9 @@ export function buildLabelArchive(options) {
         labels: planned.map(({ link, fileName, plan }) => ({
           file: `etiquettes/${fileName}`,
           url: link.url,
+          // Consignée seulement quand elle diffère : le manifeste reste compact,
+          // et une étiquette raccourcie reste réversible.
+          ...(sourceUrl(link) !== link.url ? { originalUrl: sourceUrl(link) } : {}),
           title: link.title,
           widthPx: plan.widthPx,
           heightPx: plan.heightPx,

@@ -16,7 +16,7 @@ import { createChromeStorageStore, createMemoryStore } from './core/store.js';
 import { captureFromTab } from './core/capture.js';
 import { toCsv, toMarkdown, exportFilename } from './core/exporters.js';
 import { downloadText } from './core/download.js';
-import { hostOf } from './core/link.js';
+import { hostOf, hasShortUrl, safeHref } from './core/link.js';
 import { resolveApi, readTabContext } from './api.js';
 
 const api = resolveApi();
@@ -156,6 +156,35 @@ async function render() {
 }
 
 /**
+ * Rend une URL cliquable, avec un repli en texte simple.
+ *
+ * Un titre de page vient d'un site tiers : il finit dans le DOM d'une page
+ * d'extension, qui dispose de privilèges. Le texte passe donc par
+ * `textContent`, et l'attribut `href` ne reçoit jamais qu'une URL http(s).
+ *
+ * @param {string} url
+ * @param {string} className
+ * @param {string} [label]
+ * @returns {HTMLElement}
+ */
+function linkAnchor(url, className, label = url) {
+  const href = safeHref(url);
+  const node = document.createElement(href === '' ? 'span' : 'a');
+  node.className = className;
+  node.textContent = label;
+  node.title = url;
+  if (href !== '') {
+    node.href = href;
+    // `_blank` + `noopener` : l'onglet ouvert ne doit pas pouvoir manipuler la
+    // fenêtre de l'extension.
+    node.target = '_blank';
+    node.rel = 'noopener noreferrer';
+    node.classList.add('item--clickable');
+  }
+  return node;
+}
+
+/**
  * Construit une ligne de la liste.
  * @param {import('./core/link.js').LinkRecord} link
  * @returns {HTMLLIElement}
@@ -167,16 +196,22 @@ function renderItem(link) {
   const body = document.createElement('div');
   body.className = 'item__body';
 
-  const title = document.createElement('span');
-  title.className = 'item__title';
-  title.textContent = link.title || hostOf(link.url) || link.url;
-  title.title = link.url;
-
-  const url = document.createElement('span');
-  url.className = 'item__url';
-  url.textContent = link.url;
+  // Ouvrir un lien collecté doit être possible sans quitter la fenêtre.
+  const title = linkAnchor(link.url, 'item__title', link.title || hostOf(link.url) || link.url);
+  const url = linkAnchor(link.url, 'item__url');
 
   body.append(title, url);
+
+  if (hasShortUrl(link)) {
+    const short = document.createElement('div');
+    short.className = 'item__short';
+    const mark = document.createElement('span');
+    mark.className = 'item__short-mark';
+    mark.textContent = '↳';
+    mark.setAttribute('aria-hidden', 'true');
+    short.append(mark, linkAnchor(link.shortUrl, 'item__short-url'));
+    body.appendChild(short);
+  }
 
   const remove = document.createElement('button');
   remove.className = 'item__remove';

@@ -14,6 +14,11 @@ import {
   hostOf,
   isSameTarget,
   findDuplicate,
+  hasShortUrl,
+  sourceUrl,
+  sourceHost,
+  resolveTarget,
+  resolveTargets,
 } from '../src/core/link.js';
 
 import {
@@ -23,6 +28,7 @@ import {
   parseJsonExport,
   escapeCsvField,
   exportFilename,
+  columnsFor,
 } from '../src/core/exporters.js';
 
 import { encodeQr, pickScale, toMonoBitmap, toSvg } from '../src/core/qr.js';
@@ -257,4 +263,132 @@ test('toSvg produit un SVG valide et non vide', () => {
   assert.ok(svg.startsWith('<svg '));
   assert.ok(svg.endsWith('</svg>'));
   assert.ok(svg.includes('<path d="M'));
+});
+
+// --------------------------------------------------------------------------
+// Lien raccourci : conservation de l'URL d'origine et choix de la cible
+// --------------------------------------------------------------------------
+
+/** Lien raccourci, prêt à l'emploi. */
+function shortLink() {
+  return createLink(
+    {
+      url: 'https://exemple.fr/un-article?utm_source=newsletter&id=42',
+      title: 'Un article',
+      shortUrl: 'https://tinyurl.com/2yxwpwb6',
+      shortProvider: 'tinyurl',
+      shortenedAt: T0,
+    },
+    { now: T0 },
+  );
+}
+
+test('createLink conserve le lien raccourci sans toucher à l\'URL d\'origine', () => {
+  const link = shortLink();
+  assert.equal(link.url, 'https://exemple.fr/un-article?id=42');
+  assert.equal(link.shortUrl, 'https://tinyurl.com/2yxwpwb6');
+  assert.equal(link.shortProvider, 'tinyurl');
+  assert.equal(link.shortenedAt, T0);
+});
+
+test('createLink écarte un lien raccourci illisible mais garde le lien', () => {
+  const link = createLink({ url: 'https://exemple.fr/x', shortUrl: 'javascript:alert(1)' }, { now: T0 });
+  assert.equal(link.shortUrl, '');
+  assert.equal(link.url, 'https://exemple.fr/x');
+});
+
+test('createLink laisse les champs de raccourcissement vides par défaut', () => {
+  const link = createLink({ url: 'https://exemple.fr/x' }, { now: T0 });
+  assert.equal(link.shortUrl, '');
+  assert.equal(link.shortProvider, '');
+  assert.equal(link.shortenedAt, 0);
+  assert.equal(hasShortUrl(link), false);
+});
+
+test('hasShortUrl distingue « pas de raccourci » de « chaîne vide »', () => {
+  assert.equal(hasShortUrl({ shortUrl: '' }), false);
+  assert.equal(hasShortUrl({}), false);
+  assert.equal(hasShortUrl(undefined), false);
+  assert.equal(hasShortUrl({ shortUrl: 'https://tinyurl.com/x' }), true);
+});
+
+test('resolveTarget laisse le QR sur l\'URL d\'origine par défaut', () => {
+  const link = shortLink();
+  const resolved = resolveTarget(link, 'original');
+  assert.equal(resolved.url, link.url);
+  assert.equal(resolved.originalUrl, link.url);
+  assert.equal(resolved.shortUrl, link.shortUrl);
+  assert.equal(resolved.title, 'Un article', 'le reste de l\'enregistrement est conservé');
+});
+
+test('resolveTarget bascule le QR sur le lien court quand on le demande', () => {
+  const resolved = resolveTarget(shortLink(), 'short');
+  assert.equal(resolved.url, 'https://tinyurl.com/2yxwpwb6');
+  assert.equal(resolved.originalUrl, 'https://exemple.fr/un-article?id=42');
+});
+
+test('resolveTarget ne modifie jamais l\'enregistrement stocké', () => {
+  const link = shortLink();
+  resolveTarget(link, 'short');
+  assert.equal(link.url, 'https://exemple.fr/un-article?id=42');
+  assert.equal(link.originalUrl, undefined, 'aucun champ dérivé n\'est ajouté en base');
+});
+
+test('resolveTarget retombe sur l\'URL d\'origine sans raccourci', () => {
+  const plain = createLink({ url: 'https://exemple.fr/x' }, { now: T0 });
+  assert.equal(resolveTarget(plain, 'short').url, 'https://exemple.fr/x');
+  // Un raccourci identique à l'URL d'origine n'apporte rien : on l'ignore.
+  const twin = createLink(
+    { url: 'https://exemple.fr/x', shortUrl: 'https://exemple.fr/x' },
+    { now: T0 },
+  );
+  assert.equal(resolveTarget(twin, 'short').url, 'https://exemple.fr/x');
+});
+
+test('resolveTargets traite une collection entière', () => {
+  const resolved = resolveTargets([shortLink(), createLink({ url: 'https://autre.fr' }, { now: T0 })], 'short');
+  assert.deepEqual(resolved.map((link) => link.url), [
+    'https://tinyurl.com/2yxwpwb6',
+    'https://autre.fr',
+  ]);
+  assert.deepEqual(resolved.map((link) => link.originalUrl), [
+    'https://exemple.fr/un-article?id=42',
+    'https://autre.fr',
+  ]);
+});
+
+test('sourceUrl et sourceHost gardent le vrai domaine d\'un lien raccourci', () => {
+  const resolved = resolveTarget(shortLink(), 'short');
+  assert.equal(sourceUrl(resolved), 'https://exemple.fr/un-article?id=42');
+  assert.equal(sourceHost(resolved), 'exemple.fr');
+  // Sans champ dérivé, le comportement reste celui d'avant.
+  const plain = createLink({ url: 'https://www.exemple.fr/a' }, { now: T0 });
+  assert.equal(sourceUrl(plain), 'https://www.exemple.fr/a');
+  assert.equal(sourceHost(plain), 'exemple.fr');
+});
+
+test('le CSV n\'ajoute la colonne « URL courte » que si elle sert', () => {
+  const plain = [createLink({ url: 'https://e.com/a' }, { now: T0 })];
+  assert.ok(toCsv(plain).split('\r\n')[0].endsWith('Ajouté le'));
+  assert.equal(columnsFor(plain).length, 7);
+
+  const both = [shortLink(), createLink({ url: 'https://e.com/a' }, { now: T0 })];
+  const csv = toCsv(both);
+  const [header, first] = csv.replace('\uFEFF', '').split('\r\n');
+  assert.ok(header.endsWith(';URL courte'), header);
+  // L'URL d'origine reste la colonne principale : l'export texte est une donnée,
+  // pas une étiquette. Le raccourci est consigné à côté.
+  assert.ok(first.includes('https://exemple.fr/un-article?id=42'));
+  assert.ok(first.includes('https://tinyurl.com/2yxwpwb6'));
+  // La ligne du lien sans raccourci laisse simplement la colonne vide.
+  assert.ok(csv.split('\r\n')[2].endsWith(';'));
+});
+
+test('l\'archive JSON conserve le lien raccourci après relecture', () => {
+  const json = toJson([shortLink()], { now: T0 });
+  const [record] = parseJsonExport(json);
+  const restored = createLink(record, { now: T0 });
+  assert.equal(restored.shortUrl, 'https://tinyurl.com/2yxwpwb6');
+  assert.equal(restored.shortProvider, 'tinyurl');
+  assert.equal(restored.url, 'https://exemple.fr/un-article?id=42');
 });

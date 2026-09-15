@@ -10,9 +10,16 @@
  * Ce fichier ne fait que du DOM et des appels système.
  */
 
-import { createLink, hostOf } from './core/link.js';
+import { createLink, hostOf, hasShortUrl, safeHref, resolveTargets } from './core/link.js';
 import { resolveDefaultStore } from './core/store.js';
 import { ELEMENT_IDS } from './element-ids.js';
+import { createSettingsStore } from './core/settings.js';
+import {
+  SHORTENERS,
+  findShortener,
+  createShortener,
+  describeShortenReport,
+} from './core/shorten.js';
 import { encodeQr, toSvg } from './core/qr.js';
 import { computeLabelGeometry, drawLabel, checkQrLegibility } from './core/label.js';
 import { imageDataToMono, validateBitmap } from './core/raster.js';
@@ -56,6 +63,12 @@ let printer = null;
 let toastTimer = null;
 /** Objet-URL de l'aperçu d'étiquette, à révoquer avant chaque nouveau rendu. */
 let labelPreviewUrl = null;
+/** Préférences retenues d'une session à l'autre (service, cible du QR). */
+const settings = createSettingsStore();
+/** `AbortController` du lot de raccourcissement en cours, s'il y en a un. */
+let shortenJob = null;
+/** Options du choix de cible, gardées pour pouvoir les désactiver. */
+const targetOptions = new Map();
 
 // ---------------------------------------------------------------------------
 // Références DOM
@@ -173,8 +186,39 @@ function renderList() {
   el.exportMd.disabled = !hasLinks;
   el.exportJson.disabled = !hasLinks;
   el.clear.disabled = !hasLinks;
+  el.shorten.disabled = !hasLinks;
+  updateShortenStatus();
+  updateTargetAvailability();
 
   for (const link of visible) el.list.appendChild(renderLink(link));
+}
+
+/**
+ * Rend une URL cliquable, avec un repli en texte simple.
+ *
+ * Le repli n'est pas décoratif : une URL illisible ne doit pas produire un lien
+ * mort, et un `href` ne doit jamais recevoir autre chose qu'une URL http(s) —
+ * le contenu de la liste peut venir d'un import ou d'une page web.
+ *
+ * @param {string} url
+ * @param {string} className
+ * @param {string} [label] Texte affiché, l'URL par défaut.
+ * @returns {HTMLElement}
+ */
+function linkAnchor(url, className, label = url) {
+  const href = safeHref(url);
+  const node = document.createElement(href === '' ? 'span' : 'a');
+  node.className = className;
+  node.textContent = label;
+  node.title = url;
+  if (href !== '') {
+    node.href = href;
+    node.target = '_blank';
+    // `noopener` : la page ouverte ne doit pas pouvoir manipuler cet onglet.
+    node.rel = 'noopener noreferrer';
+    node.classList.add('link--clickable');
+  }
+  return node;
 }
 
 /**
@@ -200,16 +244,26 @@ function renderLink(link) {
   const body = document.createElement('div');
   body.className = 'link__body';
 
-  const title = document.createElement('span');
-  title.className = 'link__title';
-  title.textContent = link.title || hostOf(link.url) || link.url;
-  title.title = link.url;
-
-  const url = document.createElement('span');
-  url.className = 'link__url';
-  url.textContent = link.url;
+  // Le titre et l'URL ouvrent la page dans un nouvel onglet : on doit pouvoir
+  // vérifier un lien collecté sans quitter la collection.
+  const title = linkAnchor(link.url, 'link__title', link.title || hostOf(link.url) || link.url);
+  const url = linkAnchor(link.url, 'link__url');
 
   body.append(title, url);
+
+  if (hasShortUrl(link)) {
+    const short = document.createElement('div');
+    short.className = 'link__short';
+    const mark = document.createElement('span');
+    mark.className = 'link__short-mark';
+    mark.textContent = '↳';
+    mark.setAttribute('aria-hidden', 'true');
+    const provider = document.createElement('span');
+    provider.className = 'link__short-provider';
+    provider.textContent = findShortener(link.shortProvider)?.name ?? link.shortProvider ?? '';
+    short.append(mark, linkAnchor(link.shortUrl, 'link__short-url'), provider);
+    body.appendChild(short);
+  }
 
   if (link.tags.length) {
     const tags = document.createElement('div');
@@ -241,6 +295,20 @@ function selectedLinks() {
   // Sans sélection explicite, tout est imprimé : c'est l'intention la plus
   // probable quand on clique « Imprimer ».
   return picked.length > 0 ? picked : links;
+}
+
+/**
+ * Les liens à imprimer, préparés pour la cible choisie.
+ *
+ * C'est le seul endroit où l'on décide si le QR code encode l'URL collectée ou
+ * son raccourci. Tout ce qui produit une image, une planche ou une étiquette
+ * passe par ici, et rien d'autre : la liste affichée à l'écran, elle, garde
+ * toujours l'URL d'origine.
+ *
+ * @returns {import('./core/link.js').LinkRecord[]}
+ */
+function printableLinks() {
+  return resolveTargets(selectedLinks(), el.qrTarget.value);
 }
 
 /** Ajoute un lien saisi à la main. */
@@ -317,6 +385,180 @@ async function importArchive(file) {
   } catch (error) {
     toast(`Import impossible : ${error.message}`, 'error');
   }
+}
+
+// ---------------------------------------------------------------------------
+// Raccourcissement d'URL
+// ---------------------------------------------------------------------------
+
+/**
+ * Remplit la liste des services de raccourcissement.
+ *
+ * L'URL complète est transmise au service choisi : c'est une décision qui
+ * appartient à l'utilisateur, donc rien n'est coché ni déclenché d'avance.
+ */
+function fillShorteners() {
+  el.shortener.textContent = '';
+  for (const shortener of SHORTENERS) {
+    const option = document.createElement('option');
+    option.value = shortener.id;
+    option.textContent = shortener.name;
+    option.title = shortener.note;
+    el.shortener.appendChild(option);
+  }
+}
+
+/** Le service actuellement retenu. */
+function currentShortener() {
+  return findShortener(el.shortener.value) ?? SHORTENERS[0];
+}
+
+/** Rappelle ce que fait le bouton, et sur quels liens il portera. */
+function updateShortenStatus(message = '') {
+  const shortened = links.filter(hasShortUrl);
+  el.shortenClear.hidden = shortened.length === 0;
+
+  if (message !== '') {
+    el.shortenStatus.textContent = message;
+    return;
+  }
+  if (links.length === 0) {
+    el.shortenStatus.textContent = '';
+    return;
+  }
+
+  const scope = selected.size > 0
+    ? `${selected.size} lien${selected.size > 1 ? 's' : ''} coché${selected.size > 1 ? 's' : ''}`
+    : 'toute la collection';
+  const done = shortened.length > 0
+    ? ` — ${shortened.length} raccourci${shortened.length > 1 ? 's' : ''} en place`
+    : '';
+  el.shortenStatus.textContent =
+    `${currentShortener().name} · ${scope}${done}. L'URL complète est transmise au service.`;
+}
+
+/**
+ * Raccourcit les liens cochés — ou toute la collection si rien n'est coché.
+ *
+ * Rien n'est automatique : chaque clic est une action explicite, et le lot est
+ * annulable. Les échecs sont consignés lien par lien plutôt que de faire
+ * échouer l'ensemble.
+ */
+async function shortenSelection() {
+  if (shortenJob) {
+    // Un second clic annule le lot en cours.
+    shortenJob.abort();
+    return;
+  }
+  if (links.length === 0) return;
+
+  const targets = selectedLinks().filter((link) => !hasShortUrl(link));
+  if (targets.length === 0) {
+    updateShortenStatus('Tous les liens visés sont déjà raccourcis.');
+    return;
+  }
+
+  const shortener = createShortener({ provider: el.shortener.value });
+  const controller = new AbortController();
+  shortenJob = controller;
+
+  el.shorten.disabled = false;
+  el.shorten.textContent = 'Annuler';
+  toast(`Raccourcissement via ${shortener.provider.name}…`);
+
+  try {
+    const report = await shortener.shortenMany(targets, {
+      signal: controller.signal,
+      onProgress: (done, total) => {
+        updateShortenStatus(`${shortener.provider.name} · ${done}/${total}…`);
+      },
+    });
+
+    // Chaque succès est écrit séparément : un lien raccourci ne doit jamais
+    // pouvoir en écraser un autre, ni faire perdre l'URL d'origine.
+    const now = Date.now();
+    for (const item of report.ok) {
+      const link = links.find((candidate) => candidate.id === item.id);
+      if (!link) continue;
+      await store.put({
+        ...link,
+        shortUrl: item.shortUrl,
+        shortProvider: shortener.provider.id,
+        shortenedAt: now,
+      });
+    }
+
+    await refresh();
+    const summary = describeShortenReport(report);
+    toast(summary, report.failed.length > 0 ? 'error' : 'info');
+    updateShortenStatus(summary);
+  } catch (error) {
+    toast(`Raccourcissement impossible : ${error.message}`, 'error');
+    updateShortenStatus(error.message);
+  } finally {
+    shortenJob = null;
+    el.shorten.textContent = 'Raccourcir';
+    el.shorten.disabled = links.length === 0;
+    updateTargetAvailability();
+  }
+}
+
+/**
+ * Remplit le choix de la cible du QR code.
+ *
+ * Deux possibilités seulement, et l'URL d'origine reste la valeur par défaut :
+ * un lien raccourci dépend d'un tiers, ce n'est pas un choix à faire par
+ * inadvertance.
+ */
+function fillTargets() {
+  const choices = [
+    { value: 'original', label: "L'URL collectée" },
+    { value: 'short', label: 'Le lien raccourci' },
+  ];
+  el.qrTarget.textContent = '';
+  targetOptions.clear();
+  for (const choice of choices) {
+    const option = document.createElement('option');
+    option.value = choice.value;
+    option.textContent = choice.label;
+    targetOptions.set(choice.value, option);
+    el.qrTarget.appendChild(option);
+  }
+}
+
+/**
+ * Active ou non le choix « lien raccourci », et explique la conséquence.
+ *
+ * Raccourcir envoie l'URL complète à un tiers, et l'étiquette imprimée dépend
+ * ensuite de la survie de ce tiers : le dire à l'endroit où l'on fait le choix
+ * vaut mieux qu'une note de bas de page.
+ */
+function updateTargetAvailability() {
+  const shortened = links.filter(hasShortUrl).length;
+  const shortOption = targetOptions.get('short');
+  if (shortOption) shortOption.disabled = shortened === 0;
+
+  if (shortened === 0 && el.qrTarget.value === 'short') {
+    el.qrTarget.value = 'original';
+    settings.save({ targetMode: 'original' });
+  }
+
+  el.targetHint.textContent = shortened === 0
+    ? "Le QR code encode l'URL collectée."
+    : `${shortened} lien${shortened > 1 ? 's' : ''} raccourci${shortened > 1 ? 's' : ''} : `
+      + 'un QR plus court se scanne plus vite et tient sur une plus petite étiquette.';
+}
+
+/** Retire les raccourcis : les URL d'origine n'ont jamais bougé. */
+async function clearShortUrls() {
+  const shortened = links.filter(hasShortUrl);
+  if (shortened.length === 0) return;
+
+  for (const link of shortened) {
+    await store.put({ ...link, shortUrl: '', shortProvider: '', shortenedAt: 0 });
+  }
+  await refresh();
+  toast(`${shortened.length} raccourci${shortened.length > 1 ? 's' : ''} retiré${shortened.length > 1 ? 's' : ''}`);
 }
 
 // ---------------------------------------------------------------------------
@@ -443,7 +685,7 @@ function buildTable(items) {
 
 /** Redessine l'aperçu selon le mode actif. */
 function renderPreview() {
-  const items = selectedLinks().slice(0, 400);
+  const items = printableLinks().slice(0, 400);
   el.preview.textContent = '';
   el.print.disabled = items.length === 0;
 
@@ -786,7 +1028,7 @@ function renderImagePreview(link) {
 
 /** Exporte le dossier d'images prêt à imprimer. */
 async function exportLabelImages() {
-  const items = selectedLinks();
+  const items = printableLinks();
   if (items.length === 0) return;
 
   const options = readLabelOptions();
@@ -840,7 +1082,7 @@ async function exportLabelImages() {
 
 /** Prépare la racine d'impression puis ouvre la boîte de dialogue système. */
 function printSelection() {
-  const items = selectedLinks();
+  const items = printableLinks();
   if (items.length === 0) {
     toast('Aucun lien à imprimer', 'error');
     return;
@@ -960,7 +1202,7 @@ async function printOneLabel() {
     return;
   }
 
-  const [link] = selectedLinks();
+  const [link] = printableLinks();
   if (!link) {
     toast('Aucun lien sélectionné', 'error');
     return;
@@ -1085,7 +1327,7 @@ async function exportSpreadsheet() {
   el.exportXlsx.textContent = 'Génération…';
 
   try {
-    const bytes = await buildLinkSpreadsheet(links, {
+    const bytes = await buildLinkSpreadsheet(resolveTargets(links, el.qrTarget.value), {
       onProgress: (done, total) => {
         el.exportXlsx.textContent = `QR ${done}/${total}…`;
       },
@@ -1126,6 +1368,18 @@ for (const tab of document.querySelectorAll('.tab')) {
   tab.addEventListener('click', () => switchMode(tab.dataset.mode));
 }
 
+el.shortener.addEventListener('change', () => {
+  settings.save({ shortener: el.shortener.value });
+  updateShortenStatus();
+});
+el.shorten.addEventListener('click', shortenSelection);
+el.shortenClear.addEventListener('click', clearShortUrls);
+el.qrTarget.addEventListener('change', () => {
+  settings.save({ targetMode: el.qrTarget.value });
+  updateTargetAvailability();
+  renderPreview();
+});
+
 el.preset.addEventListener('change', renderPreview);
 el.sheetQr.addEventListener('input', renderPreview);
 el.tableQr.addEventListener('input', renderPreview);
@@ -1146,7 +1400,7 @@ window.addEventListener('beforeprint', () => {
   // Le rendu papier est préparé au clic ; un Ctrl+P direct n'aurait rien à
   // imprimer. On reconstruit donc à la volée si la racine est vide.
   if (el.printRoot.childElementCount === 0 && mode !== 'single') {
-    const items = selectedLinks();
+    const items = printableLinks();
     if (mode === 'table') {
       const page = document.createElement('div');
       page.className = 'print-page';
@@ -1163,6 +1417,15 @@ window.addEventListener('beforeprint', () => {
 
 fillPresets();
 fillLabelForm();
+fillShorteners();
+fillTargets();
+
+// Préférences retenues : avant le premier rendu, pour éviter un aller-retour
+// visuel entre la valeur par défaut et celle de l'utilisateur.
+const preferences = settings.load();
+el.shortener.value = preferences.shortener;
+el.qrTarget.value = preferences.targetMode;
+
 reportBluetoothSupport();
 switchMode('sheet');
 

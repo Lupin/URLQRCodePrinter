@@ -20,7 +20,7 @@ import { createZip } from '../src/core/zip.js';
 import { buildXlsx, columnLetter } from '../src/core/xlsx.js';
 import { buildLinkSpreadsheet, SPREADSHEET_HEADERS, QR_COLUMN_INDEX } from '../src/core/spreadsheet.js';
 import { qrPng, encodeQr } from '../src/core/qr.js';
-import { createLink } from '../src/core/link.js';
+import { createLink, resolveTargets } from '../src/core/link.js';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -270,4 +270,35 @@ test('qrPng borne la taille pour une URL longue', async () => {
   const png = await qrPng(long, { scale: 8, maxSize: 128 });
   const view = new DataView(png.buffer, png.byteOffset, png.byteLength);
   assert.ok(view.getUint32(16) <= 128 + 64, `largeur ${view.getUint32(16)}`);
+});
+
+test('le classeur suit la cible choisie et conserve l\'URL d\'origine', async () => {
+  const links = [
+    createLink(
+      { url: 'https://exemple.fr/article', title: 'Un', shortUrl: 'https://tinyurl.com/abc' },
+      { now: 1 },
+    ),
+    createLink({ url: 'https://autre.fr/page', title: 'Deux' }, { now: 1 }),
+  ];
+  const xlsx = await buildLinkSpreadsheet(resolveTargets(links, 'short'), { now: 1 });
+  const entries = readZip(xlsx);
+  const sheet = new TextDecoder().decode(entries.get('xl/worksheets/sheet1.xml').data);
+
+  // La cellule « URL » contient exactement ce qu'encode le QR de la même ligne.
+  assert.ok(sheet.includes('>https://tinyurl.com/abc<'));
+  // Le domaine reste celui du site visé, jamais celui du raccourcisseur.
+  assert.ok(sheet.includes('>exemple.fr<'));
+  assert.equal(sheet.includes('>tinyurl.com<'), false);
+  // Une colonne « URL d\'origine » apparaît en fin de tableau.
+  assert.ok(sheet.includes('URL d\'origine'));
+  // Et l'URL d'origine n\'est pas perdue pour le premier lien.
+  assert.ok(sheet.includes('https://exemple.fr/article'));
+});
+
+test('le classeur reste inchangé sans lien raccourci', async () => {
+  const links = [createLink({ url: 'https://a.fr', title: 'Un' }, { now: 1 })];
+  const xlsx = await buildLinkSpreadsheet(links, { now: 1 });
+  const sheet = new TextDecoder().decode(readZip(xlsx).get('xl/worksheets/sheet1.xml').data);
+  assert.equal(sheet.includes('URL d\'origine'), false);
+  assert.ok(SPREADSHEET_HEADERS.every((header) => sheet.includes(header.replace('&', '&amp;'))));
 });

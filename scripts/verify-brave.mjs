@@ -139,16 +139,134 @@ async function main() {
       return response.result?.result?.value;
     };
 
+    // Une URL de contrôle volontairement longue et paramétrée : elle doit
+    // arriver normalisée, et le raccourci doit pouvoir la remplacer sans
+    // jamais l'effacer.
+    const SOURCE_URL = 'https://exemple.fr/article?utm_source=verification&id=42';
+    const CLEAN_URL = 'https://exemple.fr/article?id=42';
+
     await evaluate(`chrome.runtime.sendMessage({ type: 'record-capture', capture: {
-      url: 'https://exemple.fr/article', title: 'Un article'
+      url: '${SOURCE_URL}', title: 'Un article'
     } })`);
     await new Promise((r) => setTimeout(r, 800));
     await evaluate('location.reload()');
     await new Promise((r) => setTimeout(r, 2000));
 
-    record('le lien collecté apparaît', await evaluate("document.querySelectorAll('#list .link').length") === 1);
+    /** Attend qu'une expression évaluée dans la page devienne vraie. */
+    const waitForEval = (expression, label, timeout = 25000) =>
+      waitFor(async () => {
+        try {
+          const value = await evaluate(expression);
+          return value ? value : null;
+        } catch {
+          return null;
+        }
+      }, { label, timeout });
+
+    // Après `location.reload()`, les premières évaluations peuvent tomber dans
+    // l'ancien contexte d'exécution, en cours de destruction, et renvoyer une
+    // page vide : on attend donc que la liste soit réellement reconstruite
+    // plutôt que de se fier à un délai fixe.
+    const rows = await waitForEval(
+      "document.querySelectorAll('#list .link').length || ''",
+      'la liste se recharge après rechargement de la page',
+    );
+    record('le lien collecté apparaît', rows === 1, `${rows} ligne(s)`);
     record('un QR code est rendu', await evaluate("document.querySelectorAll('#preview svg').length") >= 1);
 
+    // --- Les URL de la liste sont cliquables -------------------------------
+    const anchor = await evaluate(`(() => {
+      const node = document.querySelector('#list .link__url');
+      if (!node) return null;
+      return {
+        tag: node.tagName,
+        href: node.getAttribute('href'),
+        target: node.getAttribute('target'),
+        rel: node.getAttribute('rel'),
+        text: node.textContent,
+        title: node.getAttribute('title'),
+      };
+    })()`);
+    record(
+      'l\'URL de la liste est un lien cliquable',
+      anchor?.tag === 'A' && anchor.href === CLEAN_URL && anchor.target === '_blank'
+        && (anchor.rel || '').includes('noopener'),
+      anchor ? `<${anchor.tag}> ${anchor.href}` : 'aucun nœud trouvé',
+    );
+    const titleLink = await evaluate(`(() => {
+      const node = document.querySelector('#list .link__title');
+      return node ? node.tagName + '|' + node.getAttribute('href') : null;
+    })()`);
+    record('le titre de la liste ouvre la même page', titleLink === `A|${CLEAN_URL}`, String(titleLink));
+
+    // --- Le raccourcisseur est proposé, jamais imposé ----------------------
+    const providers = await evaluate(
+      "[...document.querySelectorAll('#shortener option')].map(o => o.value)",
+    );
+    record(
+      'les services de raccourcissement sont proposés',
+      Array.isArray(providers) && providers.includes('tinyurl') && providers.length >= 3,
+      (providers ?? []).join(', '),
+    );
+    record(
+      'le QR vise l\'URL collectée par défaut',
+      await evaluate("document.getElementById('qr-target').value") === 'original',
+    );
+    record(
+      'la cible « lien raccourci » est inactive sans raccourci',
+      await evaluate(
+        "[...document.querySelectorAll('#qr-target option')].find(o => o.value === 'short').disabled",
+      ) === true,
+    );
+
+    // --- Raccourcissement réel, auprès du service --------------------------
+    await evaluate("document.getElementById('shortener').value = 'tinyurl'");
+    await evaluate("document.getElementById('shorten').click()");
+
+    const badge = await waitForEval(
+      "document.querySelector('#list .link__short-url')?.textContent || ''",
+      'lien raccourci obtenu',
+    );
+    record('le raccourcissement aboutit', /^https:\/\/tinyurl\.com\//.test(badge), badge);
+
+    const stored = await evaluate(`new Promise((resolve) => {
+      chrome.storage.local.get('links', (data) => resolve(data.links?.[0] ?? null));
+    })`);
+    record(
+      'l\'URL d\'origine est conservée intacte',
+      stored?.url === CLEAN_URL && stored?.shortUrl === badge && stored?.shortProvider === 'tinyurl',
+      `url=${stored?.url} short=${stored?.shortUrl}`,
+    );
+    record(
+      'le raccourci est visible dans la liste',
+      await evaluate("document.querySelectorAll('#list .link__short').length") === 1,
+    );
+
+    // --- La cible choisie pilote réellement la sortie imprimée -------------
+    await evaluate(`(() => {
+      const select = document.getElementById('qr-target');
+      select.value = 'short';
+      select.dispatchEvent(new Event('change'));
+    })()`);
+    await new Promise((r) => setTimeout(r, 500));
+    record(
+      'la cible « lien raccourci » devient active',
+      await evaluate("document.getElementById('qr-target').value") === 'short',
+    );
+
+    // --- Export des données : le raccourci est consigné, pas substitué -----
+    await evaluate("document.getElementById('export-csv').click()");
+    const csvName = await waitFor(
+      () => readdirSync(DOWNLOADS).find((name) => name.endsWith('.csv')),
+      { label: 'CSV téléchargé' },
+    );
+    const csv = readFileSync(join(DOWNLOADS, csvName), 'utf8');
+    record(
+      'le CSV garde l\'URL d\'origine et ajoute le raccourci',
+      csv.includes(CLEAN_URL) && csv.includes(badge) && csv.includes('URL courte'),
+    );
+
+    // --- Export des images : la cible choisie est bien celle encodée -------
     await evaluate(`[...document.querySelectorAll('.tab')].find(t => t.dataset.mode === 'images').click()`);
     await new Promise((r) => setTimeout(r, 800));
     record('le bouton d\'export est actif', (await evaluate("!document.getElementById('export-labels').disabled")) === true);
@@ -176,6 +294,47 @@ async function main() {
     record('les images d\'étiquettes sont présentes', /etiquettes\/.*\.png/.test(listing));
     record('la planche imprimable est présente', listing.includes('planche.html'));
     record('le CSV de correspondance est présent', listing.includes('liens.csv'));
+
+    // Le fichier d'étiquettes doit encoder le lien court ET conserver le long.
+    const labelCsv = spawnSync(
+      '/usr/bin/unzip', ['-p', path, 'liens.csv'], { encoding: 'utf8' },
+    ).stdout ?? '';
+    record(
+      'l\'étiquette encode le lien court, l\'archive garde le long',
+      labelCsv.includes(badge) && labelCsv.includes(CLEAN_URL),
+      labelCsv.split('\n')[1]?.trim().slice(0, 90) ?? '',
+    );
+
+    // --- La fenêtre de l'extension offre les mêmes liens cliquables --------
+    // Elle suit un autre chemin de code que l'application : même collection,
+    // autre rendu, autre bundle.
+    const popupTarget = await fetch(
+      `http://127.0.0.1:${PORT}/json/new?chrome-extension://${id}/popup.html`,
+      { method: 'PUT' },
+    ).then((r) => r.json());
+    await new Promise((r) => setTimeout(r, 1500));
+    const popup = await connect(popupTarget.webSocketDebuggerUrl);
+    const popupEval = async (expression) => {
+      const response = await popup.send('Runtime.evaluate', {
+        expression, returnByValue: true, awaitPromise: true,
+      });
+      return response.result?.result?.value;
+    };
+
+    const popupAnchor = await popupEval(`(() => {
+      const node = document.querySelector('#list .item__url');
+      return node ? [node.tagName, node.getAttribute('href'), node.getAttribute('target')].join('|') : null;
+    })()`);
+    record(
+      "la fenêtre de l'extension rend aussi des liens cliquables",
+      popupAnchor === `A|${CLEAN_URL}|_blank`,
+      String(popupAnchor),
+    );
+    record(
+      'la fenêtre affiche le raccourci',
+      (await popupEval("document.querySelectorAll('#list .item__short').length")) === 1,
+    );
+    popup.ws.close();
 
     app.ws.close();
     control.ws.close();

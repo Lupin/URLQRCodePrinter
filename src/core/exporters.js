@@ -7,7 +7,7 @@
  * hors navigateur.
  */
 
-import { hostOf } from './link.js';
+import { hostOf, hasShortUrl } from './link.js';
 
 /**
  * Colonnes de l'export tabulaire, dans l'ordre d'affichage.
@@ -22,6 +22,32 @@ export const COLUMNS = [
   { key: 'note', header: 'Note', get: (link) => link.note },
   { key: 'createdAt', header: 'Ajouté le', get: (link) => formatDateTime(link.createdAt) },
 ];
+
+/**
+ * Colonne ajoutée en fin de tableau quand au moins un lien est raccourci.
+ *
+ * L'export texte reste ainsi un export de **données** : il conserve l'URL
+ * d'origine en colonne principale — c'est elle qui identifie le lien dans le
+ * temps — et consigne le raccourci à côté, sans jamais l'y substituer. Le choix
+ * « le QR encode le raccourci » ne concerne que les sorties imprimées.
+ */
+const SHORT_COLUMN = {
+  key: 'shortUrl',
+  header: 'URL courte',
+  get: (link) => (hasShortUrl(link) ? link.shortUrl : ''),
+};
+
+/**
+ * Colonnes à écrire pour une collection : la colonne « URL courte » n'apparaît
+ * que si elle a quelque chose à contenir.
+ *
+ * @param {import('./link.js').LinkRecord[]} links
+ * @param {typeof COLUMNS} [base]
+ * @returns {typeof COLUMNS}
+ */
+export function columnsFor(links, base = COLUMNS) {
+  return links.some(hasShortUrl) ? [...base, SHORT_COLUMN] : base;
+}
 
 /**
  * Formate une date en `JJ/MM/AAAA HH:MM` (heure locale).
@@ -79,7 +105,7 @@ export function escapeCsvField(value, delimiter = ';') {
  */
 export function toCsv(links, options = {}) {
   const delimiter = options.delimiter === ',' ? ',' : ';';
-  const columns = options.columns ?? COLUMNS;
+  const columns = options.columns ?? columnsFor(links);
 
   const lines = [columns.map((c) => escapeCsvField(c.header, delimiter)).join(delimiter)];
   links.forEach((link, index) => {

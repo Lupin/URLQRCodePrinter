@@ -18,17 +18,27 @@ Markdown, ou envoi direct à une imprimante Niimbot.
 | Socle natif Swift (protocole, session, CoreBluetooth) | fait, testé |
 | Application iOS qui utilise ce socle | à faire |
 
-**312 tests** — 260 en JavaScript, 52 en Swift — dont :
+**496 tests** — 394 en JavaScript, **tous verts**, et 102 en Swift, dont 2 en
+échec (voir « Incertitudes assumées ») — dont :
 
 - la validation **octet à octet** des trames Niimbot contre les relevés
   documentés, **dans les deux langages** : deux implémentations indépendantes
   qui se confirment mutuellement ;
 - l'exécution réelle du démarrage de l'application web ;
-- la vérification des icônes PNG par décompression.
+- la vérification des icônes PNG par décompression ;
+- le raccourcissement d'URL, réseau simulé : les pannes réelles des services
+  (texte d'erreur renvoyé avec un statut 200, réponse JSON, lien refusé) sont
+  reproduites pour être traitées, pas devinées.
 
-Ce qui reste à éprouver : l'application dans un vrai navigateur (Chrome sans
-interface ne démarre pas dans l'environnement de développement utilisé),
-l'extension chargée dans Safari, et l'impression sur une imprimante physique.
+**L'application est vérifiée dans un vrai navigateur** : `npm run verify:brave`
+lance Brave sur un profil isolé, collecte un lien, le raccourcit, exporte le CSV
+et l'archive d'étiquettes, puis contrôle les fichiers réellement écrits sur le
+disque (signature ZIP, `unzip -t`, contenu du CSV). 23 vérifications, dont le
+rendu des liens cliquables dans l'application *et* dans la fenêtre de
+l'extension.
+
+Ce qui reste à éprouver : l'extension chargée dans Safari, et l'impression sur
+une imprimante physique.
 
 **La cible iOS du projet Xcode ne se compile pas dans un environnement
 restreint.** Xcode a besoin d'écrire dans `~/Library/Developer/CoreSimulator`
@@ -213,6 +223,53 @@ s'il existe, et l'URL de l'onglet est lue par injection quand `tab.url` manque.
   de 4 octets ; le format « v4 » (13 octets) le fait répondre une erreur
   `DataError` au lieu d'imprimer.
 
+## Raccourcir les URL, et ouvrir les liens collectés
+
+Deux fonctions qui se répondent, autour de la même question : quelle adresse
+finit sur l'étiquette ?
+
+**Ouvrir un lien depuis la liste.** Le titre et l'URL de chaque ligne de la
+collection sont des hyperliens (`target="_blank"`, `rel="noopener noreferrer"`),
+dans l'application comme dans la fenêtre de l'extension. On peut donc vérifier
+un lien collecté sans le rechercher à la main. L'attribut `href` ne reçoit jamais
+qu'une URL http(s) : le contenu de la liste peut venir d'un import ou d'une page
+web, et un `javascript:` n'a rien à y faire.
+
+**Raccourcir, en option.** Le bouton « Raccourcir » transmet les liens visés —
+la sélection, ou toute la collection si rien n'est coché — à un service tiers,
+et enregistre le résultat à côté de l'URL d'origine.
+
+| Service | Clé d'API | Remarque |
+|---|---|---|
+| TinyURL | aucune | défaut ; HTTPS, liens durables |
+| is.gd | aucune | service bénévole, régulièrement indisponible |
+| v.gd | aucune | même infrastructure que is.gd, avec page d'avertissement |
+| spoo.me | aucune | statistiques de clics ; répond en HTTP, ramené en HTTPS |
+
+Aucun de ces services n'exige d'autorisation d'hôte supplémentaire : leur réponse
+porte un en-tête CORS permissif. C'est délibéré — un outil qui lit les URL de
+tous vos onglets ne devrait pas demander plus de permissions que nécessaire.
+
+Trois garde-fous, parce qu'un lien imprimé engage dans la durée :
+
+1. **Rien n'est automatique.** Aucun service n'est contacté au chargement, ni à
+   la collecte : uniquement sur un clic, et le lot est annulable.
+2. **L'URL d'origine n'est jamais remplacée.** Le raccourci vit dans son propre
+   champ ; l'URL collectée reste la source de vérité, et un bouton « Retirer »
+   efface tous les raccourcis d'un coup.
+3. **Le choix se fait au moment de l'impression.** Le sélecteur « Le QR code
+   pointe vers » vaut pour toutes les sorties imprimées — aperçu, planche,
+   tableau, étiquettes, ZIP d'images, impression Niimbot. Les exports de
+   *données* (CSV, JSON) conservent l'URL d'origine et ajoutent le raccourci dans
+   une colonne « URL courte » ; le classeur `.xlsx` suit la cible imprimée et
+   ajoute l'URL d'origine. Aucune sortie ne perd une adresse.
+
+Raccourcir a un intérêt concret sur une étiquette de 12 mm : moins de caractères
+donnent une matrice plus petite, donc un QR plus lisible et imprimable plus
+petit. La contrepartie est réelle et affichée dans l'interface : un lien
+raccourci dépend de la survie du service. Pour un usage durable, gardez la cible
+« URL collectée ».
+
 ## Développement
 
 ```bash
@@ -220,7 +277,14 @@ npm install
 npm test           # cœur JavaScript et surfaces web
 npm run test:swift # socle natif NiimbotKit
 npm run test:all   # les deux
+
+npm run verify:brave  # parcours complet dans Brave, sur un profil isolé
 ```
+
+`verify:brave` exige Brave et un accès réseau (le raccourcissement interroge
+TinyURL). Il travaille dans `.verify-brave/`, redirige les téléchargements pour
+ne jamais toucher à vos Téléchargements, tourne hors écran et supprime tout en
+sortant.
 
 `npm test` construit d'abord `dist/` (script `pretest`), car plusieurs tests
 portent sur l'artefact assemblé. Lancer `node --test` directement sans avoir
@@ -243,8 +307,24 @@ construit échoue avec un message explicite.
   et les points restant à vérifier sur matériel.
 - `docs/note-capacites-capture-url-safari-brave.md` — matrice de capacités des
   extensions navigateur sur Safari macOS, Safari iOS et Brave.
+- `guide-utilisation.md` — le parcours complet, de la collecte à l'impression.
 
 ## Incertitudes assumées
+
+### Deux tests Swift en échec
+
+`LabelComposerTests` — le composeur d'étiquettes natif, utilisé par le socle
+Swift et non par l'application web :
+
+- `testTopRowsContainTheQrCode` : les premières lignes du rendu CoreGraphics ne
+  contiennent pas d'encre, alors que le QR code devrait y commencer ;
+- `testShowTitleChangesTheRenderedLabel` : activer le titre ne change pas la
+  hauteur du rendu.
+
+Ce sont de vrais défauts de rendu, pas des tests à ajuster. Ils n'ont aucun
+effet sur le chemin Brave / web, qui compose ses étiquettes en JavaScript.
+
+### Ce qui ne peut pas être vérifié ici
 
 Ces points ne peuvent pas être tranchés sans matériel ni appareil :
 

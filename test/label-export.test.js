@@ -27,7 +27,7 @@ import {
   ptToPx,
 } from '../src/core/label-export.js';
 import { mmToPx } from '../src/core/label.js';
-import { createLink } from '../src/core/link.js';
+import { createLink, resolveTarget, resolveTargets } from '../src/core/link.js';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -332,4 +332,92 @@ test('les modes de texte sont tous décrits', () => {
     assert.ok(label.length > 0, id);
   }
   assert.ok(TEXT_MODES[DEFAULT_EXPORT_OPTIONS.textMode]);
+});
+
+// ---------------------------------------------------------------------------
+// Liens raccourcis
+// ---------------------------------------------------------------------------
+
+/** URL d'origine réaliste : longue, avec ses paramètres de campagne. */
+const LONG_URL = 'https://exemple.fr/un-article-tres-long-avec-un-chemin'
+  + '?utm_source=newsletter&id=42&ref=accueil';
+/** Sa forme normalisée, telle qu'elle est stockée. */
+const CLEAN_URL = 'https://exemple.fr/un-article-tres-long-avec-un-chemin?id=42&ref=accueil';
+const SHORT_URL = 'https://tinyurl.com/2yxwpwb6';
+
+/** Un lien raccourci, et sa forme préparée pour l'impression. */
+function shortPair() {
+  const raw = createLink(
+    { url: LONG_URL, title: 'Un article', shortUrl: SHORT_URL, shortProvider: 'tinyurl' },
+    { now: 1 },
+  );
+  return { raw, resolved: resolveTarget(raw, 'short') };
+}
+
+test('le nom du fichier garde le domaine du site visé', () => {
+  const { raw, resolved } = shortPair();
+  assert.equal(labelFileName(raw, 0, 1), '1-un-article.png');
+  // Même une fois le QR basculé sur le raccourci : sinon une collection
+  // raccourcie deviendrait une série de « 1-tinyurl-com.png ».
+  assert.equal(labelFileName(resolved, 0, 1), '1-un-article.png');
+});
+
+test('le texte imprimé suit la cible, le domaine non', () => {
+  const { resolved } = shortPair();
+  assert.deepEqual(labelText(resolved, 'url'), [SHORT_URL]);
+  assert.deepEqual(labelText(resolved, 'title-url'), ['Un article', SHORT_URL]);
+  // Le domaine affiché reste celui du site : « tinyurl.com » sous un QR
+  // n'apprendrait rien à qui lit l'étiquette.
+  assert.deepEqual(labelText(resolved, 'host'), ['exemple.fr']);
+});
+
+test('le QR code encode la cible choisie', () => {
+  const { raw, resolved } = shortPair();
+  const options = { format: findFormat('generic-50x30'), measure: measure1 };
+  const before = planLabel({ ...options, link: raw });
+  const after = planLabel({ ...options, link: resolved });
+
+  assert.equal(before.url, CLEAN_URL);
+  assert.equal(after.url, SHORT_URL);
+  // Un lien plus court donne une matrice plus petite, donc un QR plus lisible
+  // sur une petite étiquette : c'est tout l'intérêt de la manœuvre.
+  assert.ok(after.qrModules < before.qrModules, `${after.qrModules} < ${before.qrModules}`);
+});
+
+test('l\'archive consigne l\'URL d\'origine à côté du raccourci', () => {
+  const { resolved } = shortPair();
+  const planned = planLabels([resolved], {
+    format: findFormat('generic-50x30'),
+    measure: measure1,
+  });
+  const archive = buildLabelArchive({
+    planned,
+    images: new Map([['1-un-article.png', new Uint8Array([1])]]),
+    now: 1,
+  });
+
+  const csv = readZip(archive).get('liens.csv');
+  assert.ok(csv.includes('URL d\'origine'), 'colonne ajoutée');
+  assert.ok(csv.includes(SHORT_URL), 'la cible imprimée');
+  assert.ok(csv.includes(CLEAN_URL), 'l\'adresse réversible');
+
+  const manifest = JSON.parse(readZip(archive).get('export.json'));
+  assert.equal(manifest.labels[0].url, SHORT_URL);
+  assert.equal(manifest.labels[0].originalUrl, CLEAN_URL);
+});
+
+test('sans raccourci, l\'archive ne change pas de forme', () => {
+  const plain = [createLink({ url: 'https://a.fr', title: 'Un' }, { now: 1 })];
+  const planned = planLabels(resolveTargets(plain, 'short'), {
+    format: findFormat('generic-50x30'),
+    measure: measure1,
+  });
+  const archive = buildLabelArchive({ planned, images: new Map(), now: 1 });
+
+  const csv = readZip(archive).get('liens.csv');
+  assert.equal(csv.includes('URL d\'origine'), false);
+  assert.ok(csv.split('\r\n')[0].includes('N°;URL;Titre;Image'));
+
+  const manifest = JSON.parse(readZip(archive).get('export.json'));
+  assert.equal(manifest.labels[0].originalUrl, undefined);
 });

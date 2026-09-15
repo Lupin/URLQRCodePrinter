@@ -230,3 +230,45 @@ test('Web Bluetooth absent : la connexion est désactivée et expliquée', () =>
   assert.equal(registry.get('ble-support').hidden, false);
   assert.match(registry.get('ble-support').textContent, /Safari|brave:\/\/flags/);
 });
+
+// ---------------------------------------------------------------------------
+// Raccourcissement et cible du QR code
+// ---------------------------------------------------------------------------
+
+/** Les options d'un `<select>` du DOM factice, sous forme de paires. */
+function options(id) {
+  return registry.get(id).children.map((option) => [option.value, option.textContent]);
+}
+
+test('les services de raccourcissement sont proposés dès le démarrage', () => {
+  const choices = options('shortener');
+  assert.ok(choices.length >= 3, `${choices.length} service(s)`);
+  for (const [value, label] of choices) {
+    assert.ok(value, 'chaque service porte un identifiant');
+    assert.ok(label, 'chaque service porte un nom lisible');
+  }
+  // Le service retenu par défaut est appliqué avant le premier rendu.
+  assert.equal(registry.get('shortener').value, 'tinyurl');
+});
+
+test('le QR vise l\'URL collectée, et le raccourci reste hors de portée', () => {
+  assert.deepEqual(
+    options('qr-target'),
+    [['original', "L'URL collectée"], ['short', 'Le lien raccourci']],
+  );
+  assert.equal(registry.get('qr-target').value, 'original');
+
+  // Sans aucun raccourci en place, le choix n'est pas proposé : rien ne doit
+  // pouvoir être imprimé avec un lien que l'utilisateur n'a pas vérifié.
+  const shortOption = registry.get('qr-target').children.find((o) => o.value === 'short');
+  assert.equal(shortOption.disabled, true);
+  assert.match(registry.get('target-hint').textContent, /URL collectée/);
+});
+
+test('aucun raccourcissement n\'est déclenché de lui-même', () => {
+  // Le stockage est vide et le bouton est inactif : ouvrir l'application ne
+  // contacte aucun service tiers.
+  assert.equal(registry.get('shorten').disabled, true);
+  assert.equal(registry.get('shorten-clear').hidden, true);
+  assert.equal(registry.get('shorten-status').textContent, '');
+});
