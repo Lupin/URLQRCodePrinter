@@ -944,23 +944,35 @@ async function main() {
       const hint = document.getElementById('selection-hint');
       const print = document.getElementById('print');
 
-      // Toutes les cases cochées : imprimer la collection entière.
-      document.getElementById('select-all').click();
-      await pause(400);
-      const all = { hint: hint.textContent, bouton: print.textContent };
+      const master = document.getElementById('select-all-box');
+      const state = (hint, print) => ({
+        hint: hint.textContent,
+        bouton: print.textContent,
+        cochee: master.checked,
+        partielle: master.indeterminate,
+      });
 
-      // Plus rien de coché : contre-intuitif — c'est « tout » — donc annoncé.
-      document.getElementById('select-none').click();
-      await pause(400);
-      const none = { hint: hint.textContent, bouton: print.textContent };
+      // Rien de coché au départ : on part d'un état connu.
+      if (master.checked || master.indeterminate) master.click();
+      await pause(350);
 
-      // Une seule case cochée : la portée doit suivre.
+      // Tout cocher d'un geste : la case maîtresse se coche elle-même.
+      master.click();
+      await pause(400);
+      const all = state(hint, print);
+
+      // Une seule case cochée : la maîtresse devient partielle.
+      master.click();
+      await pause(350);
       document.querySelector('#list .link__check').click();
       await pause(400);
-      const one = { hint: hint.textContent, bouton: print.textContent };
+      const one = state(hint, print);
 
-      document.getElementById('select-none').click();
-      await pause(300);
+      // Plus rien de coché : contre-intuitif — c'est « tout » — donc annoncé.
+      master.click();
+      master.click();
+      await pause(400);
+      const none = state(hint, print);
 
       return { all, one, none, total: document.querySelectorAll('#list .link').length };
     })()`);
@@ -976,13 +988,19 @@ async function main() {
 
     record(
       'la phrase dit la portée de l\'impression',
-      /^Imprimer les \d+ liens$/.test(scope.all.bouton)
-        && hintPair(scope.all.hint)?.done === hintPair(scope.all.hint)?.total
-        && labelCount(scope.all.bouton) === hintPair(scope.all.hint)?.total
+      // Le premier nombre de la phrase est celui du bouton : quelle que soit la
+      // formulation, les deux disent la même chose.
+      labelCount(scope.all.hint) === labelCount(scope.all.bouton)
+        && /^Imprimer les \d+ liens$/.test(scope.all.bouton)
         && scope.one.bouton === 'Imprimer la sélection (1)'
-        && hintPair(scope.one.hint)?.done === 1,
-      `coché : « ${scope.all.bouton} » (${scope.all.hint}) · `
-        + `un seul : « ${scope.one.bouton} » (${scope.one.hint})`,
+        && hintPair(scope.one.hint)?.done === 1
+        && labelCount(scope.none.hint) === labelCount(scope.none.bouton)
+        // Et la case maîtresse montre l'état : cochée, partielle, vide.
+        && scope.all.cochee === true && scope.all.partielle === false
+        && scope.one.cochee === false && scope.one.partielle === true
+        && scope.none.cochee === false && scope.none.partielle === false,
+      `maîtresse : cochée=${scope.all.cochee} partielle=${scope.one.partielle} `
+        + `vide=${scope.none.cochee} · « ${scope.one.bouton} » (${scope.one.hint})`,
     );
     record(
       'tout décocher annonce que l\'impression porte sur tout',
@@ -1252,7 +1270,11 @@ async function main() {
       const format = document.getElementById('label-format');
       format.value = 'niimbot-d110';
       format.dispatchEvent(new Event('change'));
-      document.getElementById('select-none').click();
+      // Vider la sélection : la case maîtresse suffit, à condition qu'elle
+      // soit cochée — sinon le clic la coche et sélectionne tout.
+      const master = document.getElementById('select-all-box');
+      if (!master.checked) master.click();
+      master.click();
       const preset = document.getElementById('preset');
       preset.value = 'a4-3x8';
       preset.dispatchEvent(new Event('change'));

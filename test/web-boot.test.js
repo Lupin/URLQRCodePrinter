@@ -220,17 +220,18 @@ test('la grille du tableau peut être masquée', () => {
   assert.equal(registry.get('table-grid').checked, false, 'le DOM de substitution part décoché');
 });
 
-test('la sélection est séparée de la recherche et expliquée', () => {
-  // Les deux boutons étaient collés au champ de recherche, et s'appelaient
-  // « Tout » et « Rien » : ils semblaient régler la recherche, alors qu'ils
-  // cochent les liens à imprimer. Pire, les deux aboutissaient au même résultat
-  // à l'impression — une sélection vide valant « tout ».
-  // Les libellés sont dans le HTML : ils sont vérifiés dans test/web.test.js,
-  // sur le fichier réel. Ici on contrôle le câblage.
-  assert.ok(registry.get('select-all'), 'le bouton « tout cocher » doit exister');
-  assert.ok(registry.get('select-none'), 'le bouton « tout décocher » doit exister');
+test('une case maîtresse commande la sélection', () => {
+  // Deux boutons « Tout » et « Rien » disaient la même chose en deux objets, et
+  // aboutissaient au même résultat à l'impression — une sélection vide valant
+  // « tout ». Une seule case, qui montre son état, dit la même chose mieux.
+  assert.ok(registry.get('select-all-box'), 'la case maîtresse doit exister');
+  assert.equal(registry.has('select-all'), false, 'plus de bouton « tout cocher »');
+  assert.equal(registry.has('select-none'), false, 'plus de bouton « tout décocher »');
 
-  // Collection vide au démarrage : rien à annoncer.
+  // Collection vide au démarrage : la case est inerte, et rien à annoncer.
+  assert.equal(registry.get('select-all-box').disabled, true);
+  assert.equal(registry.get('select-all-box').checked, false);
+  assert.equal(registry.get('select-all-box').indeterminate, false);
   assert.equal(registry.get('selection-hint').textContent, '');
   assert.equal(registry.get('print').textContent, 'Imprimer');
 });

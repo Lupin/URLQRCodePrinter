@@ -534,8 +534,20 @@ function renderLink(link) {
  * et le bouton d'impression rappelle la portée.
  */
 function updateSelectionHint() {
+  // La case maîtresse reflète l'état de la liste : cochée si tout l'est,
+  // indéterminée si une partie seulement. C'est ce qui remplace avantageusement
+  // deux boutons : l'état se lit au lieu de se deviner.
+  const all = links.length > 0 && selected.size >= links.length;
+  el.selectAllBox.checked = all;
+  el.selectAllBox.indeterminate = !all && selected.size > 0;
+  el.selectAllBox.disabled = links.length === 0;
+
   if (links.length === 0) {
     el.selectionHint.textContent = '';
+    return;
+  }
+  if (all) {
+    el.selectionHint.textContent = `Les ${links.length} liens sont cochés.`;
     return;
   }
   el.selectionHint.textContent = selected.size === 0
@@ -2237,19 +2249,22 @@ el.collectionName.addEventListener('input', () => {
   settings.save({ collectionName: collectionName() });
 });
 
-el.selectAll.addEventListener('click', () => {
-  selected = new Set(links.map((link) => link.id));
-  renderList();
-  renderPreview();
-});
+el.selectAllBox.addEventListener('change', () => {
+  // Une case indéterminée devient cochée au clic : la cocher sélectionne tout,
+  // la décocher vide la sélection. Dans les deux cas l'état de la case dit
+  // exactement ce qui vient de se passer.
+  selected = el.selectAllBox.checked
+    ? new Set(links.map((link) => link.id))
+    : new Set();
 
-el.selectNone.addEventListener('click', () => {
-  // Une sélection vide signifie « tout » à l'impression : c'est contre-intuitif,
-  // donc on le dit au moment du clic plutôt que de laisser deviner.
-  selected = new Set();
   renderList();
   renderPreview();
-  toast('Aucun lien coché : l\'impression portera sur toute la collection');
+
+  if (selected.size === 0) {
+    // Une sélection vide signifie « tout » à l'impression : c'est la règle la
+    // moins devinable, on la rappelle au moment où elle s'applique.
+    toast('Aucun lien coché : l\'impression portera sur toute la collection');
+  }
 });
 
 /**

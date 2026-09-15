@@ -53,16 +53,6 @@
         <input id="search" class="input input--compact" type="search" placeholder="Rechercher…">
       </div>
 
-      <!-- La sélection est une autre affaire que la recherche : elle dit ce qui
-           part à l'impression. Les deux groupes étaient mêlés, si bien que
-           « Tout » et « Rien » semblaient régler la recherche. -->
-      <div class="toolbar toolbar--selection">
-        <span class="toolbar__label">Sélection</span>
-        <button id="select-all" class="btn btn--ghost" type="button">Tout cocher</button>
-        <button id="select-none" class="btn btn--ghost" type="button">Tout décocher</button>
-      </div>
-      <p id="selection-hint" class="hint hint--tight" aria-live="polite"></p>
-
       <!-- Raccourcissement : facultatif, jamais automatique. -->
       <div class="shortener">
         <label class="field field--compact">
@@ -73,6 +63,17 @@
         <button id="shorten-clear" class="btn btn--ghost" type="button" hidden>Retirer</button>
       </div>
       <p id="shorten-status" class="hint hint--tight" aria-live="polite"></p>
+
+      <!-- Une seule case commande toute la liste, et montre son état : cochée,
+           vide, ou partielle. Deux boutons « Tout » et « Rien » disaient la même
+           chose en deux objets, et semblaient régler la recherche voisine. -->
+      <div class="list-head">
+        <label class="list-head__box">
+          <input id="select-all-box" type="checkbox">
+          <span class="sr-only">Tout sélectionner</span>
+        </label>
+        <p id="selection-hint" class="hint hint--tight" aria-live="polite"></p>
+      </div>
 
       <ul id="list" class="links"></ul>
       <p id="empty" class="empty">

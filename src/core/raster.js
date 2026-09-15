@@ -143,3 +143,76 @@ export function cropBitmap(bitmap, maxWidth) {
 
   return { width, height: bitmap.height, bytesPerRow, rows };
 }
+
+/**
+ * Fait pivoter un bitmap monochrome d'un quart de tour.
+ *
+ * Sert à rattraper une étiquette qui sort dans le mauvais sens. Les têtes
+ * thermiques impriment ligne par ligne dans le sens du défilement : selon le
+ * rouleau et le modèle, la même image peut sortir à l'endroit, pivotée, ou à
+ * l'envers. Plutôt que de le deviner une fois pour toutes, on laisse le choix —
+ * et le profil garde sa valeur par défaut.
+ *
+ * La rotation est un quart de tour dans le sens des aiguilles d'une montre :
+ * `turns = 1` met la première colonne en première ligne.
+ *
+ * @param {import('./raster.js').MonoBitmap} bitmap
+ * @param {number} turns Nombre de quarts de tour (0 à 3, ou négatif).
+ * @returns {import('./raster.js').MonoBitmap} nouveau bitmap ; l'entrée n'est pas modifiée.
+ * @throws {TypeError} si le bitmap est inexploitable.
+ */
+export function rotateBitmap(bitmap, turns = 0) {
+  if (!bitmap || !Number.isFinite(bitmap.width) || !Number.isFinite(bitmap.height)) {
+    throw new TypeError('rotateBitmap exige un bitmap avec width et height');
+  }
+  if (!Array.isArray(bitmap.rows) || bitmap.rows.length !== bitmap.height) {
+    throw new TypeError('rotateBitmap : lignes incohérentes avec la hauteur');
+  }
+
+  // Un tour complet ne change rien : on évite une copie inutile.
+  const quarter = ((Math.trunc(turns) % 4) + 4) % 4;
+  if (quarter === 0) {
+    return {
+      width: bitmap.width,
+      height: bitmap.height,
+      bytesPerRow: bitmap.bytesPerRow,
+      rows: bitmap.rows.map((row) => Uint8Array.from(row)),
+    };
+  }
+
+  const swapped = quarter === 1 || quarter === 3;
+  const width = swapped ? bitmap.height : bitmap.width;
+  const height = swapped ? bitmap.width : bitmap.height;
+  const bytesPerRow = Math.ceil(width / 8);
+  const rows = [];
+
+  /** Lit un bit du bitmap d'origine : 1 = noir. */
+  const bitAt = (x, y) => (bitmap.rows[y][x >> 3] & (0x80 >> (x & 7))) !== 0;
+
+  for (let y = 0; y < height; y++) {
+    const row = new Uint8Array(bytesPerRow);
+    for (let x = 0; x < width; x++) {
+      // Correspondance inverse : d'où vient ce pixel dans l'image d'origine.
+      let sourceX;
+      let sourceY;
+      if (quarter === 1) {
+        sourceX = y;
+        sourceY = bitmap.height - 1 - x;
+      } else if (quarter === 2) {
+        sourceX = bitmap.width - 1 - x;
+        sourceY = bitmap.height - 1 - y;
+      } else {
+        sourceX = bitmap.width - 1 - y;
+        sourceY = x;
+      }
+
+      if (sourceX >= 0 && sourceX < bitmap.width && sourceY >= 0 && sourceY < bitmap.height
+        && bitAt(sourceX, sourceY)) {
+        row[x >> 3] |= 0x80 >> (x & 7);
+      }
+    }
+    rows.push(row);
+  }
+
+  return { width, height, bytesPerRow, rows };
+}
