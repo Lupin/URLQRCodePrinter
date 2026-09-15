@@ -169,24 +169,31 @@ Pour les planches autocollantes A4 et Letter. Deux familles de dispositions :
 > imprimer », qui affiche une étiquette en grand.
 
 **Choisir le nombre de colonnes, ou remplir la feuille.** Le sélecteur
-Le sélecteur **« Taille des étiquettes définie par »** propose deux approches,
-et la phrase juste en dessous dit ce qui découle de quoi, avec les chiffres de la
-planche en cours :
+**Une seule présentation, six valeurs.** Le sélecteur **Disposition** ne fait
+que *préremplir* les six champs qui suivent ; vous pouvez ensuite les ajuster
+librement, et la taille des étiquettes est recalculée :
 
-- **Cotes de la référence** — les cotes publiées pour la référence choisie
-  ci-dessus font foi ; la grille en découle. C'est le mode d'une planche
-  commerciale : « Les cotes publiées pour « Avery L7160 — 3 × 7 (63,5 × 38,1 mm) »
-  font foi : 63,5 × 38,1 mm. La grille en découle — 3 × 7 par feuille. »
-- **Colonnes et rangées** — vous fixez la grille ; la taille des étiquettes en
-  découle. Vous réglez **colonnes**, **rangées**, la **marge globale** (appliquée
-  aux quatre bords) et l'**écart** entre étiquettes ; la taille est calculée pour
-  occuper exactement la place restante, et annoncée : « Vous fixez la grille ; la
-  taille des étiquettes en découle — 48,5 × 46,2 mm, 4 × 6 par feuille. »
+| Champ | Ce qu'il fait |
+|---|---|
+| **Colonnes** / **Rangées** | la grille voulue sur la feuille |
+| **Marge gauche et droite** | la marge de chaque côté de la grille |
+| **Marge haut et bas** | la marge au-dessus et au-dessous |
+| **Écart entre colonnes** / **Écart entre rangées** | la bande blanche entre deux étiquettes |
+| **Décalage horizontal / vertical** | déplace toute la grille, sans la modifier |
 
-Passer en mode « Colonnes et rangées » reprend la grille de la référence
-affichée : on ajuste un point de départ, on ne repart pas de zéro. Si la demande est
-impossible — trop de colonnes pour la marge choisie — la disposition précédente
-est conservée et le message dit quoi corriger.
+La phrase sous ces champs annonce le résultat, avec vos chiffres : « Taille des
+étiquettes déduite de ces six valeurs : 63,5 × 33,9 mm, 3 × 8 par feuille. », et
+ajoute « Décalage appliqué : 1,5 mm vers la droite et 3,5 mm vers le bas. » si
+vous avez saisi un décalage — c'est ce qui explique une grille qui ne tombe pas
+où vous l'attendiez.
+
+Pour une **planche du commerce**, choisissez sa référence : les six champs
+reprennent alors ses cotes publiées, et la taille obtenue est exacte au centième
+de millimètre. La marge du fabricant n'est pas toujours symétrique — 8,6 mm à
+gauche et 5,1 mm à droite sur une L7160 — et une grille à marge symétrique ne peut
+pas reproduire les deux : le **pas** reste exact, donc les colonnes tombent bien
+en face de leurs cases, mais l'ensemble peut être décalé de quelques dixièmes de
+millimètre. Corrigez-le avec **Décalage horizontal**, jamais avec la marge.
 
 **Calibrer avant d'imprimer sur une planche.** Aucune cote de fabricant ne
 prévoit le décalage d'entraînement de votre imprimante. La marche à suivre :

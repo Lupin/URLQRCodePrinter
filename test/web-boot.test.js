@@ -157,22 +157,31 @@ test('aucun raccourcissement n\'est déclenché de lui-même', () => {
   assert.equal(registry.get('shorten-status').textContent, '');
 });
 
-test('les deux façons de régler une planche sont annoncées clairement', () => {
-  const modes = registry.get('sheet-fit-mode').children.map((o) => [o.value, o.textContent]);
-  assert.deepEqual(modes, [
-    ['preset', 'Cotes de la référence'],
-    ['fill', 'Colonnes et rangées'],
-  ]);
-  // Les anciennes appellations ne disaient ni de quoi ni pour quoi.
-  const labels = modes.map(([, label]) => label).join(' ');
-  assert.equal(/disposition/i.test(labels), false, '« disposition » est déjà pris par le sélecteur voisin');
-  assert.equal(/remplir la feuille/i.test(labels), false, '« remplir la feuille » ne dit pas avec quoi');
+test('la planche se règle par une seule présentation, sans mode', () => {
+  // Il n'y a plus de sélecteur de mode : ni « Cotes de la référence », ni
+  // « Colonnes et rangées ». La grille, les marges et les écarts sont toujours
+  // visibles, et la taille en découle. Le mode « cotes de la référence »
+  // masquait les champs — d'où l'incompréhension.
+  assert.equal(registry.has('sheet-fit-mode'), false, 'aucun sélecteur de mode ne doit subsister');
+  assert.equal(registry.get('sheet-fit-mode'), undefined);
 
-  // La phrase qui explique le mode courant est présente, et parle du mode retenu.
-  // Elle doit l'être **dès le démarrage**, collection vide : c'est le moment où
-  // l'on règle la planche, avant d'avoir des liens.
+  for (const id of [
+    'sheet-columns', 'sheet-rows',
+    'sheet-margin-x', 'sheet-margin-y',
+    'sheet-gap-x', 'sheet-gap-y',
+  ]) {
+    const field = registry.get(id);
+    assert.ok(field, `${id} doit exister`);
+    assert.notEqual(field.value, '', `${id} doit être prérempli au démarrage`);
+  }
+});
+
+test('la phrase annonce la taille déduite, dès le démarrage', () => {
+  // Elle doit être là **avant** le premier lien : c'est au moment où l'on règle
+  // la planche qu'on a besoin de la comprendre.
   const hint = registry.get('sheet-fit-hint').textContent;
-  assert.match(hint, /font foi/, `phrase de mode : « ${hint} »`);
+  assert.match(hint, /déduite de ces six valeurs/, `phrase : « ${hint} »`);
   assert.match(hint, /par feuille/);
   assert.match(hint, /\d+,\d+ × \d+,\d+ mm/, `cotes à la française : « ${hint} »`);
+  assert.equal(/Décalage appliqué/.test(hint), false, 'aucun décalage au départ');
 });

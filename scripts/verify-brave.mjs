@@ -848,10 +848,14 @@ async function main() {
         const svg = document.querySelector('#preview .print-cell svg');
         return svg ? svg.getBoundingClientRect().width : 0;
       };
+      // Mesure **relative à la page**, pas au viewport : l'aperçu défile, et
+      // une position en coordonnées écran change alors sans que la grille bouge.
       const firstCell = () => {
         const cell = document.querySelector('#preview .print-cell');
+        const page = document.querySelector('#preview .print-page');
         const rect = cell.getBoundingClientRect();
-        return { x: rect.x, y: rect.y };
+        const box = page.getBoundingClientRect();
+        return { x: rect.x - box.x, y: rect.y - box.y };
       };
 
       preset.value = 'avery-l7160';
@@ -929,8 +933,10 @@ async function main() {
         && Math.abs(tweaks.backDx - 4 * tweaks.pxPerMm) < 1.5
         && Math.abs(tweaks.backDy - 3 * tweaks.pxPerMm) < 1.5
         && Math.abs(tweaks.movedQr - tweaks.baseQr) < 1.5,
-      `+3 mm → ${tweaks.dx.toFixed(1)} px, −4 mm → ${tweaks.backDx.toFixed(1)} px `
-        + `(attendu ${(4 * tweaks.pxPerMm).toFixed(1)} px à ${tweaks.pxPerMm.toFixed(2)} px/mm)`,
+      `dx ${tweaks.dx.toFixed(1)}/attendu ${(3 * tweaks.pxPerMm).toFixed(1)} · `
+        + `dy ${tweaks.dy.toFixed(1)}/attendu ${(2 * tweaks.pxPerMm).toFixed(1)} · `
+        + `retour x ${tweaks.backDx.toFixed(1)} ${tweaks.backDy === undefined ? '' : `/ y ${tweaks.backDy.toFixed(1)}`}`
+        + `/attendu ${(4 * tweaks.pxPerMm).toFixed(1)} · QR ${tweaks.baseQr.toFixed(1)} → ${tweaks.movedQr.toFixed(1)}`,
     );
 
     // --- Date imprimée sous le QR code -----------------------------------
@@ -1099,22 +1105,24 @@ async function main() {
     // --- Sur des colonnes étroites, la date est écartée proprement ---------
     const narrow = await evaluate(`(async () => {
       const pause = (ms) => new Promise((r) => setTimeout(r, ms));
-      const mode = document.getElementById('sheet-fit-mode');
+      const preset = document.getElementById('preset');
       const columns = document.getElementById('sheet-columns');
       const rows = document.getElementById('sheet-rows');
-      const margin = document.getElementById('sheet-margin');
-      const gap = document.getElementById('sheet-gap');
+      const marginX = document.getElementById('sheet-margin-x');
+      const marginY = document.getElementById('sheet-margin-y');
+      const gapX = document.getElementById('sheet-gap-x');
+      const gapY = document.getElementById('sheet-gap-y');
       const select = document.getElementById('date-mode');
       const info = document.getElementById('sheet-info');
 
       select.value = 'datetime';
       select.dispatchEvent(new Event('change'));
-      mode.value = 'fill';
-      mode.dispatchEvent(new Event('change'));
       columns.value = '12'; columns.dispatchEvent(new Event('input'));
       rows.value = '6'; rows.dispatchEvent(new Event('input'));
-      margin.value = '2'; margin.dispatchEvent(new Event('input'));
-      gap.value = '0'; gap.dispatchEvent(new Event('input'));
+      marginX.value = '2'; marginX.dispatchEvent(new Event('input'));
+      marginY.value = '2'; marginY.dispatchEvent(new Event('input'));
+      gapX.value = '0'; gapX.dispatchEvent(new Event('input'));
+      gapY.value = '0'; gapY.dispatchEvent(new Event('input'));
       await pause(500);
 
       const cell = document.querySelector('#preview .print-page:first-child .print-cell');
@@ -1127,11 +1135,12 @@ async function main() {
         widthMm: cell ? cell.getBoundingClientRect().width : 0,
       };
 
-      mode.value = 'preset';
-      mode.dispatchEvent(new Event('change'));
+      // Remise en état : la grille de la planche A4 3 × 8.
+      preset.value = 'a4-3x8';
+      preset.dispatchEvent(new Event('change'));
       select.value = 'none';
       select.dispatchEvent(new Event('change'));
-      await pause(250);
+      await pause(300);
       return state;
     })()`);
 
@@ -1150,12 +1159,6 @@ async function main() {
       const slider = document.getElementById('sheet-qr');
       const info = document.getElementById('sheet-qr-info');
       const preset = document.getElementById('preset');
-      const mode = document.getElementById('sheet-fit-mode');
-      if (mode.value !== 'preset') {
-        mode.value = 'preset';
-        mode.dispatchEvent(new Event('change'));
-        await pause(200);
-      }
 
       /** Mesure une planche : bornes du curseur et contenu des cellules. */
       const inspect = async (key) => {
@@ -1267,29 +1270,28 @@ async function main() {
     // --- « Remplir la feuille » : la grille choisie est celle imprimée -----
     const fill = await evaluate(`(async () => {
       const pause = () => new Promise((r) => setTimeout(r, 250));
-      const mode = document.getElementById('sheet-fit-mode');
       const preset = document.getElementById('preset');
       const cols = document.getElementById('sheet-columns');
       const rows = document.getElementById('sheet-rows');
-      const margin = document.getElementById('sheet-margin');
-      const gap = document.getElementById('sheet-gap');
+      const marginX = document.getElementById('sheet-margin-x');
+      const marginY = document.getElementById('sheet-margin-y');
+      const gapX = document.getElementById('sheet-gap-x');
+      const gapY = document.getElementById('sheet-gap-y');
       const info = document.getElementById('sheet-info');
-      const field = document.querySelector('[data-fill-only]');
 
-      const hiddenBefore = [...document.querySelectorAll('[data-fill-only]')].every((f) => f.hidden);
-      mode.value = 'fill';
-      mode.dispatchEvent(new Event('change'));
-      await pause();
-      const shownAfter = [...document.querySelectorAll('[data-fill-only]')].every((f) => !f.hidden);
-
-      // La disposition doit avoir prérempli les champs.
-      const prefilled = { columns: cols.value, rows: rows.value };
+      // La disposition doit avoir prérempli les six champs.
+      const prefilled = {
+        columns: cols.value, rows: rows.value,
+        marginX: marginX.value, marginY: marginY.value,
+      };
 
       const run = async (c, r, m, g) => {
         cols.value = String(c); cols.dispatchEvent(new Event('input'));
         rows.value = String(r); rows.dispatchEvent(new Event('input'));
-        margin.value = String(m); margin.dispatchEvent(new Event('input'));
-        gap.value = String(g); gap.dispatchEvent(new Event('input'));
+        marginX.value = String(m); marginX.dispatchEvent(new Event('input'));
+        marginY.value = String(m); marginY.dispatchEvent(new Event('input'));
+        gapX.value = String(g); gapX.dispatchEvent(new Event('input'));
+        gapY.value = String(g); gapY.dispatchEvent(new Event('input'));
         await pause();
 
         const page = document.querySelector('#preview .print-page');
@@ -1313,57 +1315,51 @@ async function main() {
       const fourBySix = await run(4, 6, 5, 2);
       const twoByThree = await run(2, 3, 12, 4);
 
-      mode.value = 'preset';
-      mode.dispatchEvent(new Event('change'));
       preset.value = 'a4-3x8';
       preset.dispatchEvent(new Event('change'));
       await pause();
 
-      return { hiddenBefore, shownAfter, prefilled, fieldLabel: field?.textContent ?? '', fourBySix, twoByThree };
+      return { prefilled, fourBySix, twoByThree };
     })()`);
 
     const wording = await evaluate(`(async () => {
-      const select = document.getElementById('sheet-fit-mode');
       const hint = document.getElementById('sheet-fit-hint');
-      const pause = (ms) => new Promise((r) => setTimeout(r, ms));
-      const label = document.querySelector('label:has(> #sheet-fit-mode) .field__label');
-
-      const options = [...select.options].map((o) => o.textContent);
-      const presetHint = hint.textContent;
-
-      select.value = 'fill';
-      select.dispatchEvent(new Event('change'));
-      await pause(300);
-      const fillHint = hint.textContent;
-
-      select.value = 'preset';
-      select.dispatchEvent(new Event('change'));
-      await pause(250);
-      return { champ: label ? label.textContent : '', options, presetHint, fillHint };
+      const fields = ['sheet-columns', 'sheet-rows', 'sheet-margin-x', 'sheet-margin-y',
+        'sheet-gap-x', 'sheet-gap-y']
+        .map((id) => document.getElementById(id));
+      return {
+        mode: document.getElementById('sheet-fit-mode') ? 'présent' : 'absent',
+        champs: fields.map((f) => (f ? f.value : 'absent')),
+        libelles: fields.map((f) => (f
+          ? f.closest('.field').querySelector('.field__label').textContent
+          : 'absent')),
+        hint: hint.textContent,
+      };
     })()`);
 
     record(
-      'les deux modes sont nommés par ce qu\'on choisit',
-      JSON.stringify(wording.options) === JSON.stringify(['Cotes de la référence', 'Colonnes et rangées'])
-        && /définie par/.test(wording.champ),
-      `« ${wording.champ} » → ${wording.options.join(' / ')}`,
+      'une seule présentation : plus de sélecteur de mode',
+      wording.mode === 'absent',
+      wording.mode,
     );
     record(
-      'la phrase dit ce qui découle de quoi, chiffres en main',
-      /font foi/.test(wording.presetHint) && /en découle/.test(wording.fillHint)
-        && /\d+ × \d+/.test(wording.presetHint) && /mm/.test(wording.fillHint),
-      `référence : « ${wording.presetHint} » / grille : « ${wording.fillHint} »`,
+      'les six valeurs de la grille sont visibles et préremplies',
+      wording.champs.every((value) => value !== 'absent' && value !== '')
+        && wording.libelles.every((label) => label !== 'absent'),
+      wording.libelles.map((label, index) => `${label} = ${wording.champs[index]}`).join(' · '),
+    );
+    record(
+      'la phrase annonce la taille déduite',
+      /déduite de ces six valeurs/.test(wording.hint) && /par feuille/.test(wording.hint),
+      wording.hint,
     );
 
     record(
-      'les champs de remplissage apparaissent avec le mode',
-      fill.hiddenBefore === true && fill.shownAfter === true,
-      fill.fieldLabel.trim().slice(0, 40),
-    );
-    record(
-      'le mode reprend la grille de la disposition affichée',
-      fill.prefilled.columns === '3' && fill.prefilled.rows === '8',
-      `${fill.prefilled.columns} × ${fill.prefilled.rows}`,
+      'changer de planche réécrit les six champs',
+      fill.prefilled.columns === '3' && fill.prefilled.rows === '8'
+        && Number(fill.prefilled.marginX) > 0 && Number(fill.prefilled.marginY) > 0,
+      `${fill.prefilled.columns} × ${fill.prefilled.rows}, `
+        + `marges ${fill.prefilled.marginX} × ${fill.prefilled.marginY} mm`,
     );
     record(
       '4 × 6 demandées donnent 4 × 6 imprimées',

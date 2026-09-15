@@ -730,9 +730,12 @@ export function qrSideMm(labelWidthMm, labelHeightMm, ratio) {
  *
  * C'est l'inverse de `computeSheet` : au lieu de partir des cotes d'une
  * étiquette, on part du nombre de colonnes et de rangées voulu, et l'étiquette
- * prend la place restante. Utile quand on ne cherche pas une référence
- * commerciale précise, mais qu'on veut simplement « 4 colonnes sur cette
- * feuille, avec 4 mm de marge ».
+ * prend la place restante.
+ *
+ * Les marges sont **par axe** (`marginXMm`, `marginYMm`) et non globales : une
+ * planche du commerce a presque toujours une marge haute différente de sa marge
+ * gauche, et c'est la seule façon de reproduire exactement ses cotes. Une marge
+ * globale s'obtient en passant la même valeur aux deux.
  *
  * Les marges rendues peuvent différer de quelques centièmes de millimètre de
  * celles demandées : la taille d'étiquette est arrondie au centième, et l'écart
@@ -746,6 +749,8 @@ export function qrSideMm(labelWidthMm, labelHeightMm, ratio) {
  *   columns: number,
  *   rows: number,
  *   marginMm?: number,
+ *   marginXMm?: number,
+ *   marginYMm?: number,
  *   gapXMm?: number,
  *   gapYMm?: number,
  *   minLabelMm?: number,
@@ -766,13 +771,15 @@ export function fitGrid(options) {
   const pageHeightMm = positive(options.pageHeightMm, 'pageHeightMm');
   const columns = Math.max(1, Math.trunc(options.columns ?? 1));
   const rows = Math.max(1, Math.trunc(options.rows ?? 1));
-  const marginMm = nonNegative(options.marginMm ?? 0);
+  // `marginMm` reste accepté : c'est la marge globale, appliquée aux deux axes.
+  const marginXMm = nonNegative(options.marginXMm ?? options.marginMm ?? 0);
+  const marginYMm = nonNegative(options.marginYMm ?? options.marginMm ?? 0);
   const gapXMm = nonNegative(options.gapXMm ?? 0);
   const gapYMm = nonNegative(options.gapYMm ?? 0);
   const minLabelMm = Number.isFinite(options.minLabelMm) ? options.minLabelMm : 5;
 
-  const usableWidth = pageWidthMm - marginMm * 2;
-  const usableHeight = pageHeightMm - marginMm * 2;
+  const usableWidth = pageWidthMm - marginXMm * 2;
+  const usableHeight = pageHeightMm - marginYMm * 2;
 
   const rawWidth = (usableWidth - (columns - 1) * gapXMm) / columns;
   const rawHeight = (usableHeight - (rows - 1) * gapYMm) / rows;
@@ -782,8 +789,8 @@ export function fitGrid(options) {
     reason,
     labelWidthMm: 0,
     labelHeightMm: 0,
-    marginXMm: marginMm,
-    marginYMm: marginMm,
+    marginXMm,
+    marginYMm,
     columns,
     rows,
   });
@@ -815,9 +822,46 @@ export function fitGrid(options) {
     reason: '',
     labelWidthMm,
     labelHeightMm,
-    marginXMm: floor2(marginMm + slackX / 2),
-    marginYMm: floor2(marginMm + slackY / 2),
+    marginXMm: floor2(marginXMm + slackX / 2),
+    marginYMm: floor2(marginYMm + slackY / 2),
     columns,
     rows,
+  };
+}
+
+/**
+ * Traduit les cotes publiées d'une planche en réglages de grille.
+ *
+ * Une planche du commerce a une marge gauche et une marge haute différentes, et
+ * sa marge de droite n'est pas toujours égale à celle de gauche. La grille, elle,
+ * se règle par une marge symétrique sur chaque axe : on prend donc, pour chaque
+ * axe, ce qui reste une fois les étiquettes et leurs écarts retirés, réparti
+ * également des deux côtés.
+ *
+ * Conséquence, et elle compte : la taille d'étiquette et le **pas** sont exacts,
+ * donc les colonnes tombent bien en face de leurs cases ; seule la position
+ * d'ensemble peut être décalée de quelques dixièmes de millimètre par rapport à
+ * la planche du fabricant. C'est un décalage constant, que les champs de
+ * décalage rattrapent — contrairement à une erreur de pas, qui s'accumulerait.
+ *
+ * @param {{ declaredColumns: number, declaredRows: number, labelWidthMm: number,
+ *   labelHeightMm: number, gapXMm: number, gapYMm: number }} preset
+ * @param {{ widthMm: number, heightMm: number }} page
+ * @returns {{ columns: number, rows: number, marginXMm: number, marginYMm: number,
+ *   gapXMm: number, gapYMm: number }}
+ */
+export function presetToGrid(preset, page) {
+  const middle = (total, count, size, gap) => (total - count * size - (count - 1) * gap) / 2;
+  return {
+    columns: preset.declaredColumns,
+    rows: preset.declaredRows,
+    marginXMm: Math.round(middle(
+      page.widthMm, preset.declaredColumns, preset.labelWidthMm, preset.gapXMm,
+    ) * 100) / 100,
+    marginYMm: Math.round(middle(
+      page.heightMm, preset.declaredRows, preset.labelHeightMm, preset.gapYMm,
+    ) * 100) / 100,
+    gapXMm: preset.gapXMm,
+    gapYMm: preset.gapYMm,
   };
 }

@@ -21,7 +21,7 @@ Markdown, ou envoi direct à une imprimante Niimbot.
 | Socle natif Swift (protocole, session, CoreBluetooth) | fait, testé |
 | Application iOS qui utilise ce socle | à faire |
 
-**586 tests, tous verts** — 482 en JavaScript et 104 en Swift — dont :
+**589 tests, tous verts** — 485 en JavaScript et 104 en Swift — dont :
 
 - la validation **octet à octet** des trames Niimbot contre les relevés
   documentés, **dans les deux langages** : deux implémentations indépendantes
@@ -267,13 +267,26 @@ de l'étiquette pour produire l'intervalle **autorisé** de la largeur du QR :
 - **borne haute** : le QR est carré, il doit tenir dans la largeur **et** laisser
   au moins une ligne de texte sous lui.
 
-Les deux réglages de planche sont nommés par **ce qu'on choisit** — « Cotes de la
-référence » ou « Colonnes et rangées », sous un sélecteur intitulé « Taille des
-étiquettes définie par » — et une phrase sous le sélecteur dit ce qui découle de
-quoi, avec les dimensions réelles de la planche courante. La version précédente
-(« Cotes de la disposition » / « Remplir la feuille ») ne voulait rien dire :
-« disposition » est déjà le nom du sélecteur voisin, et aucune des deux
-appellations n'indiquait laquelle des deux grandeurs commandait l'autre.
+**Une seule présentation, six valeurs.** Colonnes, rangées, marge
+gauche/droite, marge haut/bas, écart entre colonnes, écart entre rangées : la
+taille des étiquettes en découle, et une phrase sous les champs l'annonce avec
+les dimensions réelles — et rappelle le décalage quand il est actif.
+
+Il y a eu deux modes avant celui-ci, et les deux étaient incompréhensibles pour
+une raison différente. « Cotes de la disposition » / « Remplir la feuille »
+n'indiquait pas laquelle des deux grandeurs commandait l'autre. Puis « Cotes de
+la référence » **masquait les champs** : rien ne disait comment la planche était
+remplie. Les champs sont maintenant toujours visibles, et changer de planche
+réécrit leurs six valeurs (`presetToGrid`).
+
+Cette conversion mérite d'être comprise : une planche du commerce a une marge
+gauche différente de sa marge droite, ce qu'une grille à marge symétrique ne peut
+pas reproduire. `presetToGrid` répartit donc également ce qui reste, de sorte que
+la **taille d'étiquette et le pas soient exacts** — les colonnes tombent en face
+de leurs cases — au prix d'un décalage constant de quelques dixièmes de
+millimètre, que les champs de décalage rattrapent. Une erreur de pas, elle,
+s'accumulerait d'une colonne à l'autre. Le test de propriété le vérifie pour les
+treize dispositions du catalogue.
 
 Le curseur reçoit ces bornes : **il ne peut plus demander un QR impossible**, au
 lieu d'afficher un avertissement une fois le réglage fautif choisi. Quand les deux

@@ -32,6 +32,7 @@ import {
   paginate,
   qrSideMm,
   fitGrid,
+  presetToGrid,
   round1,
   qrRatioBounds,
   sheetTextMetrics,
@@ -865,19 +866,6 @@ async function clearShortUrls() {
 
 /** Configuration de la planche à partir du formulaire. */
 /**
- * Les deux façons de régler une planche, nommées par **ce qu'on choisit**.
- *
- * « Cotes de la disposition » ne voulait rien dire : « disposition » est déjà le
- * nom du sélecteur juste au-dessus, et « cotes » ne dit pas de quoi. Chaque
- * libellé annonce désormais sa consigne — les cotes de la référence choisie, ou
- * les colonnes et rangées — et la phrase sous le sélecteur dit ce qui en découle.
- */
-const SHEET_FIT_MODES = Object.freeze([
-  { id: 'preset', label: 'Cotes de la référence' },
-  { id: 'fill', label: 'Colonnes et rangées' },
-]);
-
-/**
  * Écrit un nombre décimal à la française.
  *
  * Les cotes écrites à la main dans les libellés utilisent la virgule
@@ -907,19 +895,25 @@ function clampInt(value, min, max, fallback) {
 /**
  * Configuration de la planche.
  *
- * Deux réglages, pour deux intentions :
- * - **cotes de la disposition** : on imprime sur une planche commerciale, et
- *   ses cotes publiées font foi ;
- * - **remplir la feuille** : on choisit un nombre de colonnes et de rangées,
- *   une marge globale et un écart, et la taille des étiquettes en découle.
+ * **Une seule présentation** : on choisit la grille (colonnes, rangées), les
+ * marges et les écarts ; la taille des étiquettes en découle. Le choix de
+ * planche ne fait que préremplir ces six valeurs.
  *
- * Le décalage, lui, ne change jamais la grille : il ne fait que déplacer
- * l'ensemble, pour rattraper l'entraînement d'une imprimante.
+ * L'écran précédent proposait deux modes — « Cotes de la référence » et
+ * « Colonnes et rangées » — et le premier **masquait les champs** : rien
+ * n'indiquait alors comment la planche était remplie, ce qui le rendait
+ * incompréhensible.
+ *
+ * Le décalage, lui, ne change jamais la grille : il ne fait que la déplacer,
+ * pour rattraper l'entraînement d'une imprimante ou la marge asymétrique d'une
+ * planche du commerce.
  *
  * @returns {object & { problem?: string }}
  */
 function sheetConfig() {
   const preset = SHEET_PRESETS[el.preset.value] ?? SHEET_PRESETS['a4-3x8'];
+  const page = PAGE_SIZES[preset.page];
+
   const config = {
     ...preset,
     qrSizeRatio: Number(el.sheetQr.value) / 100,
@@ -927,22 +921,22 @@ function sheetConfig() {
     offsetYMm: Number(el.sheetOffsetY.value) || 0,
   };
 
-  if (el.sheetFitMode.value !== 'fill') return config;
-
-  const page = PAGE_SIZES[preset.page];
   const columns = clampInt(el.sheetColumns.value, 1, 12, preset.declaredColumns);
   const rows = clampInt(el.sheetRows.value, 1, 30, preset.declaredRows);
-  const marginMm = Math.max(0, Number(el.sheetMargin.value) || 0);
-  const gapMm = Math.max(0, Number(el.sheetGap.value) || 0);
+  const marginXMm = Math.max(0, Number(el.sheetMarginX.value) || 0);
+  const marginYMm = Math.max(0, Number(el.sheetMarginY.value) || 0);
+  const gapXMm = Math.max(0, Number(el.sheetGapX.value) || 0);
+  const gapYMm = Math.max(0, Number(el.sheetGapY.value) || 0);
 
   const grid = fitGrid({
     pageWidthMm: page.widthMm,
     pageHeightMm: page.heightMm,
     columns,
     rows,
-    marginMm,
-    gapXMm: gapMm,
-    gapYMm: gapMm,
+    marginXMm,
+    marginYMm,
+    gapXMm,
+    gapYMm,
   });
 
   if (!grid.ok) {
@@ -959,70 +953,59 @@ function sheetConfig() {
     labelHeightMm: grid.labelHeightMm,
     marginXMm: grid.marginXMm,
     marginYMm: grid.marginYMm,
-    gapXMm: gapMm,
-    gapYMm: gapMm,
+    gapXMm,
+    gapYMm,
   };
 }
 
 /**
- * Explique le mode retenu, avec les chiffres qui en découlent.
+ * Recopie une disposition dans les six champs.
  *
- * C'est cette phrase qui manquait : les deux appellations seules ne disent pas
- * laquelle des deux grandeurs — la taille ou la grille — commande l'autre. Elle
- * est écrite après le calcul de la planche, donc elle annonce des dimensions
- * réelles, pas un exemple.
- *
- * @param {{ fit: string, layout: object, preset: object }} state
+ * La conversion vit dans `core/sheet.js` : c'est elle que les tests confrontent
+ * aux cotes publiées, et une seconde formule ici finirait par en diverger.
  */
-function updateFitHint(state) {
-  const { fit, layout, preset } = state;
-  const size = `${decimal(layout.labelWidthMm)} × ${decimal(layout.labelHeightMm)} mm`;
+function prefillGridFields() {
+  const preset = SHEET_PRESETS[el.preset.value] ?? SHEET_PRESETS['a4-3x8'];
+  const grid = presetToGrid(preset, PAGE_SIZES[preset.page]);
 
-  el.sheetFitHint.textContent = fit === 'preset'
-    ? `Les cotes publiées pour « ${preset.label} » font foi : ${size}. `
-      + `La grille en découle — ${layout.columns} × ${layout.rows} par feuille.`
-    : `Vous fixez la grille ; la taille des étiquettes en découle — ${size}, `
-      + `${layout.columns} × ${layout.rows} par feuille. La marge s'applique aux `
-      + "quatre bords, l'écart entre les deux axes.";
+  el.sheetColumns.value = String(grid.columns);
+  el.sheetRows.value = String(grid.rows);
+  el.sheetMarginX.value = String(grid.marginXMm);
+  el.sheetMarginY.value = String(grid.marginYMm);
+  el.sheetGapX.value = String(grid.gapXMm);
+  el.sheetGapY.value = String(grid.gapYMm);
 }
 
 /**
- * Renseigne la phrase du mode sans construire de page.
+ * Explique ce que les réglages produisent, chiffres en main.
  *
- * Utilisée quand l'aperçu n'a rien à dessiner : la taille des étiquettes et la
- * grille ne dépendent pas du nombre de liens, la phrase est donc exacte.
+ * La phrase porte les dimensions obtenues, la grille, et le décalage s'il est
+ * actif : un petit décalage ne se voit pas dans l'aperçu, et c'est exactement le
+ * genre d'écart qu'on ne s'explique pas.
+ *
+ * @param {{ layout: object, offsetXMm: number, offsetYMm: number }} state
  */
-function refreshFitHint() {
-  const config = sheetConfig();
-  updateFitHint({
-    fit: el.sheetFitMode.value,
-    layout: computeSheet({
-      count: 1,
-      ...config,
-      adviseDenser: el.sheetFitMode.value !== 'fill',
-    }),
-    preset: SHEET_PRESETS[el.preset.value] ?? SHEET_PRESETS['a4-3x8'],
-  });
-}
+function updateFitHint(state) {
+  const { layout, offsetXMm, offsetYMm } = state;
+  const size = `${decimal(layout.labelWidthMm)} × ${decimal(layout.labelHeightMm)} mm`;
 
-/** Affiche les champs propres au mode « colonnes et rangées ». */
-function updateFitFields() {
-  const filling = el.sheetFitMode.value === 'fill';
-  for (const field of document.querySelectorAll('[data-fill-only]')) {
-    field.hidden = !filling;
+  const parts = [
+    `Taille des étiquettes déduite de ces six valeurs : ${size}, `
+    + `${layout.columns} × ${layout.rows} par feuille.`,
+  ];
+
+  if (offsetXMm !== 0 || offsetYMm !== 0) {
+    const moves = [];
+    if (offsetXMm !== 0) {
+      moves.push(`${decimal(Math.abs(offsetXMm))} mm vers la ${offsetXMm > 0 ? 'droite' : 'gauche'}`);
+    }
+    if (offsetYMm !== 0) {
+      moves.push(`${decimal(Math.abs(offsetYMm))} mm vers le ${offsetYMm > 0 ? 'bas' : 'haut'}`);
+    }
+    parts.push(`Décalage appliqué : ${moves.join(' et ')}.`);
   }
-  // Passer en mode « remplir » part des valeurs de la disposition affichée :
-  // on ajuste un point de départ, on ne repart pas de zéro.
-  if (filling) prefillFitFields();
-}
 
-/** Recopie la disposition courante dans les champs de remplissage. */
-function prefillFitFields() {
-  const preset = SHEET_PRESETS[el.preset.value] ?? SHEET_PRESETS['a4-3x8'];
-  el.sheetColumns.value = String(preset.declaredColumns);
-  el.sheetRows.value = String(preset.declaredRows);
-  el.sheetMargin.value = String(Math.min(preset.marginXMm, preset.marginYMm));
-  el.sheetGap.value = String(preset.gapXMm);
+  el.sheetFitHint.textContent = parts.join(' ');
 }
 
 /**
@@ -1039,11 +1022,8 @@ function buildSheetPages(items) {
   // Une grille issue de « remplir la feuille » occupe exactement la place
   // demandée : lui suggérer de resserrer les marges pour gagner une colonne
   // serait contredire le réglage de l'utilisateur.
-  const layout = computeSheet({
-    count: items.length,
-    ...config,
-    adviseDenser: el.sheetFitMode.value !== 'fill',
-  });
+  // La grille est toujours une consigne : on ne suggère pas de la densifier.
+  const layout = computeSheet({ count: items.length, ...config, adviseDenser: false });
   const pages = paginate(items, layout);
   const metrics = sheetTextMetrics();
 
@@ -1104,9 +1084,9 @@ function buildSheetPages(items) {
   applyPrintPageSize(layout.pageWidthMm, layout.pageHeightMm);
 
   updateFitHint({
-    fit: el.sheetFitMode.value,
     layout,
-    preset: SHEET_PRESETS[el.preset.value] ?? SHEET_PRESETS['a4-3x8'],
+    offsetXMm: Number(el.sheetOffsetX.value) || 0,
+    offsetYMm: Number(el.sheetOffsetY.value) || 0,
   });
 
   const warnings = [...layout.warnings];
@@ -1344,9 +1324,14 @@ function renderPreview() {
   el.print.hidden = false;
 
   if (items.length === 0) {
-    // La phrase qui explique le mode doit être là **avant** le premier lien :
-    // c'est au moment où l'on règle la planche qu'on a besoin de la comprendre.
-    refreshFitHint();
+    // La phrase doit être là **avant** le premier lien : c'est au moment où l'on
+    // règle la planche qu'on a besoin de la comprendre. La taille ne dépend pas
+    // du nombre de liens, elle est donc exacte.
+    updateFitHint({
+      layout: computeSheet({ count: 1, ...sheetConfig(), adviseDenser: false }),
+      offsetXMm: Number(el.sheetOffsetX.value) || 0,
+      offsetYMm: Number(el.sheetOffsetY.value) || 0,
+    });
 
     const note = document.createElement('p');
     note.className = 'hint';
@@ -1996,14 +1981,9 @@ function fillPresets() {
   }
   el.preset.value = 'a4-3x8';
 
-  for (const mode of SHEET_FIT_MODES) {
-    const option = document.createElement('option');
-    option.value = mode.id;
-    option.textContent = mode.label;
-    el.sheetFitMode.appendChild(option);
-  }
-  el.sheetFitMode.value = 'preset';
-  updateFitFields();
+  // Les six champs partent des cotes de la première disposition ; en changer
+  // les réécrit.
+  prefillGridFields();
 }
 
 /**
@@ -2196,14 +2176,14 @@ el.qrTarget.addEventListener('change', () => {
 });
 
 el.preset.addEventListener('change', () => {
-  if (el.sheetFitMode.value === 'fill') prefillFitFields();
+  prefillGridFields();
   renderPreview();
 });
-el.sheetFitMode.addEventListener('change', () => {
-  updateFitFields();
-  renderPreview();
-});
-for (const field of [el.sheetColumns, el.sheetRows, el.sheetMargin, el.sheetGap]) {
+for (const field of [
+  el.sheetColumns, el.sheetRows,
+  el.sheetMarginX, el.sheetMarginY,
+  el.sheetGapX, el.sheetGapY,
+]) {
   field.addEventListener('input', renderPreview);
 }
 el.sheetQr.addEventListener('input', renderPreview);

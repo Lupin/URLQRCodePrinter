@@ -30,6 +30,7 @@ import {
   paginate,
   qrSideMm,
   fitGrid,
+  presetToGrid,
   qrRatioBounds,
   sheetTextMetrics,
   sheetCellLines,
@@ -680,4 +681,88 @@ test('une grille déclarée fausse est démasquée par la géométrie', () => {
     `${lying.declaredColumns}x${lying.declaredRows}`,
     'une déclaration fausse ne doit pas être recopiée',
   );
+});
+
+test('les six champs reproduisent exactement chaque planche du catalogue', () => {
+  // C'est la propriété qui compte depuis qu'il n'y a plus qu'une présentation :
+  // choisir une planche du commerce doit redonner ses cotes publiées — la même
+  // taille d'étiquette et le même pas, donc les colonnes en face de leurs cases.
+  for (const [key, preset] of Object.entries(SHEET_PRESETS)) {
+    const page = PAGE_SIZES[preset.page];
+    const grid = presetToGrid(preset, page);
+
+    assert.equal(grid.columns, preset.declaredColumns, `${key} : colonnes`);
+    assert.equal(grid.rows, preset.declaredRows, `${key} : rangées`);
+    assert.ok(grid.marginXMm >= 0 && grid.marginYMm >= 0, `${key} : marges négatives`);
+
+    const fitted = fitGrid({
+      pageWidthMm: page.widthMm,
+      pageHeightMm: page.heightMm,
+      columns: grid.columns,
+      rows: grid.rows,
+      marginXMm: grid.marginXMm,
+      marginYMm: grid.marginYMm,
+      gapXMm: grid.gapXMm,
+      gapYMm: grid.gapYMm,
+    });
+    assert.equal(fitted.ok, true, `${key} : ${fitted.reason}`);
+
+    // La taille est exacte au centième : c'est elle qui fixe le pas.
+    assert.ok(
+      Math.abs(fitted.labelWidthMm - preset.labelWidthMm) <= 0.02,
+      `${key} : largeur ${fitted.labelWidthMm} au lieu de ${preset.labelWidthMm}`,
+    );
+    assert.ok(
+      Math.abs(fitted.labelHeightMm - preset.labelHeightMm) <= 0.02,
+      `${key} : hauteur ${fitted.labelHeightMm} au lieu de ${preset.labelHeightMm}`,
+    );
+
+    // Et la grille calculée est bien celle demandée.
+    const sheet = computeSheet({
+      count: 1,
+      labelWidthMm: fitted.labelWidthMm,
+      labelHeightMm: fitted.labelHeightMm,
+      marginXMm: fitted.marginXMm,
+      marginYMm: fitted.marginYMm,
+      gapXMm: grid.gapXMm,
+      gapYMm: grid.gapYMm,
+      pageWidthMm: page.widthMm,
+      pageHeightMm: page.heightMm,
+      columns: grid.columns,
+      rows: grid.rows,
+      adviseDenser: false,
+    });
+    assert.equal(sheet.columns, preset.declaredColumns, `${key} : grille`);
+    assert.equal(sheet.rows, preset.declaredRows, `${key} : grille`);
+    assert.deepEqual(sheet.warnings, [], `${key} : aucun avertissement attendu`);
+  }
+});
+
+test('une planche du commerce garde son pas, même si sa marge est recentrée', () => {
+  // La L7160 a 8,6 mm à gauche et 5,1 mm à droite : une marge symétrique ne peut
+  // pas reproduire les deux. Ce qui doit être exact, c'est le **pas** — sans quoi
+  // l'erreur s'accumulerait d'une colonne à l'autre.
+  const preset = SHEET_PRESETS['avery-l7160'];
+  const grid = presetToGrid(preset, PAGE_SIZES[preset.page]);
+  const fitted = fitGrid({
+    pageWidthMm: PAGE_SIZES.a4.widthMm,
+    pageHeightMm: PAGE_SIZES.a4.heightMm,
+    columns: grid.columns,
+    rows: grid.rows,
+    marginXMm: grid.marginXMm,
+    marginYMm: grid.marginYMm,
+    gapXMm: grid.gapXMm,
+    gapYMm: grid.gapYMm,
+  });
+
+  const referencePitch = preset.labelWidthMm + preset.gapXMm;
+  const ourPitch = fitted.labelWidthMm + grid.gapXMm;
+  assert.ok(
+    Math.abs(ourPitch - referencePitch) < 0.02,
+    `pas de ${ourPitch} mm au lieu de ${referencePitch} mm`,
+  );
+
+  // Le recentrage reste une constante, que le décalage peut rattraper.
+  const shift = grid.marginXMm - preset.marginXMm;
+  assert.ok(Math.abs(shift) < 3, `recentrage de ${shift} mm : à rattraper au décalage`);
 });
