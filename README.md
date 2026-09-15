@@ -15,21 +15,27 @@ Markdown, ou envoi direct à une imprimante Niimbot.
 | Application web autonome (liste, exports, mises en page) | fait, démarrage vérifié |
 | Extension Safari — projet Xcode multiplateforme | généré, **compile pour macOS** |
 | Extension Safari — exécution dans Safari | à éprouver sur ta machine |
-| Impression Niimbot sur iOS (CoreBluetooth natif) | à faire |
+| Socle natif Swift (protocole, session, CoreBluetooth) | fait, testé |
+| Application iOS qui utilise ce socle | à faire |
 
-**260 tests**, dont la validation octet à octet des trames Niimbot contre les
-relevés documentés, un test qui exécute réellement le démarrage de
-l'application web, et une vérification des icônes PNG par décompression.
+**312 tests** — 260 en JavaScript, 52 en Swift — dont :
+
+- la validation **octet à octet** des trames Niimbot contre les relevés
+  documentés, **dans les deux langages** : deux implémentations indépendantes
+  qui se confirment mutuellement ;
+- l'exécution réelle du démarrage de l'application web ;
+- la vérification des icônes PNG par décompression.
 
 Ce qui reste à éprouver : l'application dans un vrai navigateur (Chrome sans
 interface ne démarre pas dans l'environnement de développement utilisé),
 l'extension chargée dans Safari, et l'impression sur une imprimante physique.
 
-**La cible iOS ne se compile pas dans un environnement restreint.** Xcode a
-besoin d'écrire dans `~/Library/Developer/CoreSimulator` pour lancer
-`IBAgent-iOS`, et clang dans un cache de modules système. Les deux échouent hors
-d'un accès complet au système. Le projet généré est correct : la cible macOS,
-qui n'a besoin d'aucun simulateur, compile.
+**La cible iOS du projet Xcode ne se compile pas dans un environnement
+restreint.** Xcode a besoin d'écrire dans `~/Library/Developer/CoreSimulator`
+pour lancer `IBAgent-iOS`, et clang dans un cache de modules système. Les deux
+échouent hors d'un accès complet. Le projet généré est correct : la cible macOS,
+qui n'a besoin d'aucun simulateur, compile. Le socle Swift, lui, se compile et
+se teste sans réserve (`npm run test:swift`).
 
 Le dossier `qr-niimbot-printer/` est un prototype antérieur. **Son code
 Bluetooth ne peut pas fonctionner** : les UUID sont des valeurs d'exemple et
@@ -64,11 +70,22 @@ scripts/build.mjs      assemble dist/extension et dist/web
 scripts/serve.mjs      serveur statique de développement
 scripts/make-icons.mjs génère les icônes PNG (encodeur maison, sans dépendance)
 scripts/package-safari.mjs  produit le projet Xcode Safari
+scripts/test-swift.mjs lance les tests du socle natif
 native/safari/         projet Xcode généré (macOS + iOS)
+native/niimbot-kit/    socle Swift : protocole, session, CoreBluetooth
 ```
 
 Le cœur ne dépend que de `uqr` (ESM pur, sans dépendance). Aucun bundler : tout
 est en modules ES natifs.
+
+### Pourquoi un second socle en Swift
+
+Aucun navigateur iOS n'expose Web Bluetooth — Apple impose WebKit, qui ne
+l'implémente pas. Imprimer depuis un iPhone passe donc forcément par
+CoreBluetooth, donc par du code natif. `native/niimbot-kit/` est ce socle : le
+même protocole, la même séquence d'impression, les mêmes vecteurs de test que
+l'implémentation JavaScript. Il est indépendant de toute interface, donc
+réutilisable aussi bien par une app iOS que par un compagnon macOS.
 
 ## Utilisation
 
@@ -123,7 +140,9 @@ s'il existe, et l'URL de l'onglet est lue par injection quand `tab.url` manque.
 
 ```bash
 npm install
-npm test
+npm test           # cœur JavaScript et surfaces web
+npm run test:swift # socle natif NiimbotKit
+npm run test:all   # les deux
 ```
 
 `npm test` construit d'abord `dist/` (script `pretest`), car plusieurs tests
