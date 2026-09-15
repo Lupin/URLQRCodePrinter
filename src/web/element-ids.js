@@ -17,6 +17,7 @@ export const ELEMENT_IDS = Object.freeze([
   'search',
   'select-all',
   'select-none',
+  'selection-hint',
   'shortener',
   'shorten',
   'shorten-clear',

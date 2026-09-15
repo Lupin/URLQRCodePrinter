@@ -173,6 +173,11 @@ body {
 
 .toolbar { display: flex; gap: 6px; }
 
+/* Le groupe de sélection se détache de la recherche : un intitulé, puis les
+   deux boutons, alignés sur la même ligne. */
+.toolbar--selection { align-items: center; margin-top: 8px; }
+.toolbar__label { color: var(--text-dim); font-size: 12px; }
+
 /* --- Bandeau d'alerte persistant --- */
 
 .banner {

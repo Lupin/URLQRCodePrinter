@@ -186,6 +186,16 @@ suivre une ligne des yeux.
 que *préremplir* les six champs qui suivent ; vous pouvez ensuite les ajuster
 librement, et la taille des étiquettes est recalculée :
 
+**Sélectionner ce qu'on imprime.** Le groupe **Sélection** (« Tout cocher » /
+« Tout décocher ») agit sur les cases à gauche de chaque ligne, pas sur la
+recherche. La phrase sous les boutons dit toujours ce qui partira à l'impression,
+et le bouton lui-même l'annonce : « Imprimer les 31 liens » ou
+« Imprimer la sélection (3) ».
+
+> **Aucun lien coché signifie « toute la collection ».** C'est la règle la moins
+> devinable de l'application : « Tout décocher » n'imprime pas *rien*, il imprime
+> *tout*. Elle est écrite sous les boutons pour cette raison.
+
 | Champ | Ce qu'il fait |
 |---|---|
 | **Colonnes** / **Rangées** | la grille voulue sur la feuille |

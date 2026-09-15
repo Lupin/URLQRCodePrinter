@@ -21,7 +21,7 @@ Markdown, ou envoi direct à une imprimante Niimbot.
 | Socle natif Swift (protocole, session, CoreBluetooth) | fait, testé |
 | Application iOS qui utilise ce socle | à faire |
 
-**604 tests, tous verts** — 500 en JavaScript et 104 en Swift — dont :
+**607 tests, tous verts** — 503 en JavaScript et 104 en Swift — dont :
 
 - la validation **octet à octet** des trames Niimbot contre les relevés
   documentés, **dans les deux langages** : deux implémentations indépendantes
@@ -44,7 +44,7 @@ Markdown, ou envoi direct à une imprimante Niimbot.
 **L'application est vérifiée dans un vrai navigateur** : `npm run verify:brave`
 lance Brave sur un profil isolé, collecte un lien, le raccourcit, exporte le CSV
 et l'archive d'étiquettes, puis contrôle les fichiers réellement écrits sur le
-disque (signature ZIP, `unzip -t`, contenu du CSV). 91 vérifications, dont le
+disque (signature ZIP, `unzip -t`, contenu du CSV). 93 vérifications, dont le
 rendu des liens cliquables dans l'application *et* dans la fenêtre de
 l'extension, la grille réellement calculée pour quatre références Avery, et
 l'aperçu d'étiquette composé sans aucune imprimante connectée.
@@ -301,6 +301,27 @@ sont posées en ligne à partir du même calcul que la découpe, donc la hauteur
 occupée est exactement la hauteur réservée — un test dans Brave compare les deux.
 Auparavant, le texte était laissé au retour à la ligne du navigateur et pouvait
 déborder de l'étiquette sans que rien ne le signale.
+
+## Ce qui sera imprimé est écrit, pas à deviner
+
+Deux boutons « Tout » et « Rien » étaient collés au champ de recherche, et ils
+cochent en réalité les liens à imprimer. Pire : **les deux aboutissaient au même
+résultat**, puisqu'une sélection vide vaut « toute la collection » pour
+l'impression. De quoi ne rien comprendre, à juste titre.
+
+Trois corrections :
+
+1. **les deux groupes sont séparés** — la recherche d'un côté, puis un groupe
+   intitulé « Sélection » avec « Tout cocher » et « Tout décocher » ;
+2. **la portée est écrite sous les boutons** : « Aucun lien coché : l'impression
+   portera sur toute la collection (31). » ou « 3 liens cochés sur 31. » ;
+3. **le bouton d'impression annonce ce qu'il imprime** : « Imprimer les 31 liens »
+   ou « Imprimer la sélection (3) ». La règle la moins devinable de l'application
+   — pas de sélection = tout — devient visible sans cliquer.
+
+Le libellé suit chaque case cochée, pas seulement les boutons de groupe : la
+vérification dans Brave a justement montré qu'il restait figé sur un état
+antérieur quand on cochait une ligne à la main.
 
 ## Le classeur : un QR par ligne
 

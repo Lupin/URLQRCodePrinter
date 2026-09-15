@@ -219,3 +219,18 @@ test('la grille du tableau peut être masquée', () => {
   assert.ok(registry.get('table-grid'), 'la case « Grille et bordures » doit exister');
   assert.equal(registry.get('table-grid').checked, false, 'le DOM de substitution part décoché');
 });
+
+test('la sélection est séparée de la recherche et expliquée', () => {
+  // Les deux boutons étaient collés au champ de recherche, et s'appelaient
+  // « Tout » et « Rien » : ils semblaient régler la recherche, alors qu'ils
+  // cochent les liens à imprimer. Pire, les deux aboutissaient au même résultat
+  // à l'impression — une sélection vide valant « tout ».
+  // Les libellés sont dans le HTML : ils sont vérifiés dans test/web.test.js,
+  // sur le fichier réel. Ici on contrôle le câblage.
+  assert.ok(registry.get('select-all'), 'le bouton « tout cocher » doit exister');
+  assert.ok(registry.get('select-none'), 'le bouton « tout décocher » doit exister');
+
+  // Collection vide au démarrage : rien à annoncer.
+  assert.equal(registry.get('selection-hint').textContent, '');
+  assert.equal(registry.get('print').textContent, 'Imprimer');
+});

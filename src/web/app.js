@@ -295,6 +295,7 @@ function renderList() {
   el.shorten.disabled = !hasLinks;
   updateShortenStatus();
   updateTargetAvailability();
+  updateSelectionHint();
 
   for (const link of visible) el.list.appendChild(renderLink(link));
 }
@@ -451,6 +452,9 @@ function renderLink(link) {
   check.addEventListener('change', () => {
     if (check.checked) selected.add(link.id);
     else selected.delete(link.id);
+    // La phrase et le libellé du bouton disent ce qui sera imprimé : ils
+    // doivent suivre chaque case cochée, sans quoi ils mentent.
+    updateSelectionHint();
     renderPreview();
   });
 
@@ -519,6 +523,42 @@ function renderLink(link) {
 
   item.append(check, rank, body, linkEditor(link), remove);
   return item;
+}
+
+/**
+ * Explique la sélection courante, et surtout ce qu'elle implique.
+ *
+ * La règle « aucune case cochée = toute la collection » est la moins devinable
+ * de l'application : sans elle, « Tout décocher » ressemble à « n'imprimer
+ * rien » alors que c'est « tout imprimer ». On l'écrit donc en toutes lettres,
+ * et le bouton d'impression rappelle la portée.
+ */
+function updateSelectionHint() {
+  if (links.length === 0) {
+    el.selectionHint.textContent = '';
+    return;
+  }
+  el.selectionHint.textContent = selected.size === 0
+    ? `Aucun lien coché : l'impression portera sur toute la collection (${links.length}).`
+    : `${selected.size} lien${selected.size > 1 ? 's' : ''} coché${selected.size > 1 ? 's' : ''} `
+      + `sur ${links.length}.`;
+}
+
+/**
+ * Libellé du bouton d'impression, portée comprise.
+ *
+ * @param {number} count
+ * @returns {string}
+ */
+function printLabel(count) {
+  if (count === 0) return 'Imprimer';
+
+  // Cocher tous les liens revient à imprimer la collection : le dire ainsi est
+  // plus clair que « la sélection (33) ».
+  const whole = selected.size === 0 || selected.size >= links.length;
+  if (whole) return count === 1 ? 'Imprimer le lien' : `Imprimer les ${count} liens`;
+
+  return `Imprimer la sélection (${count})`;
 }
 
 /** L'ensemble des liens actuellement sélectionnés, dans l'ordre d'affichage. */
@@ -1399,6 +1439,7 @@ function renderPreview() {
   const items = printableLinks().slice(0, 400);
   el.preview.textContent = '';
   el.print.disabled = items.length === 0;
+  el.print.textContent = printLabel(items.length);
 
   if (mode === 'single') {
     el.print.hidden = true;
@@ -2203,11 +2244,12 @@ el.selectAll.addEventListener('click', () => {
 });
 
 el.selectNone.addEventListener('click', () => {
-  // Une sélection vide signifie « tout » à l'impression ; on le dit clairement.
+  // Une sélection vide signifie « tout » à l'impression : c'est contre-intuitif,
+  // donc on le dit au moment du clic plutôt que de laisser deviner.
   selected = new Set();
   renderList();
   renderPreview();
-  toast('Sélection vidée : l\'impression portera sur toute la collection');
+  toast('Aucun lien coché : l\'impression portera sur toute la collection');
 });
 
 /**

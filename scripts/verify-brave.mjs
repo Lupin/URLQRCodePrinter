@@ -938,6 +938,61 @@ async function main() {
     for (const preset of Object.keys(SHEET_CASES)) measured[preset] = await measureSheet(preset);
     for (const [preset, expected] of Object.entries(SHEET_CASES)) checkSheet(preset, expected);
 
+    // --- Ce qui sera imprimé est écrit, pas à deviner ---------------------
+    const scope = await evaluate(`(async () => {
+      const pause = (ms) => new Promise((r) => setTimeout(r, ms));
+      const hint = document.getElementById('selection-hint');
+      const print = document.getElementById('print');
+
+      // Toutes les cases cochées : imprimer la collection entière.
+      document.getElementById('select-all').click();
+      await pause(400);
+      const all = { hint: hint.textContent, bouton: print.textContent };
+
+      // Plus rien de coché : contre-intuitif — c'est « tout » — donc annoncé.
+      document.getElementById('select-none').click();
+      await pause(400);
+      const none = { hint: hint.textContent, bouton: print.textContent };
+
+      // Une seule case cochée : la portée doit suivre.
+      document.querySelector('#list .link__check').click();
+      await pause(400);
+      const one = { hint: hint.textContent, bouton: print.textContent };
+
+      document.getElementById('select-none').click();
+      await pause(300);
+
+      return { all, one, none, total: document.querySelectorAll('#list .link').length };
+    })()`);
+
+    // La liste peut être filtrée par une recherche : on lit les nombres dans
+    // les phrases elles-mêmes plutôt que dans le DOM, et on vérifie qu'ils
+    // concordent avec le libellé du bouton.
+    const labelCount = (text) => Number((text.match(/(\d+)/) ?? [])[1] ?? 0);
+    const hintPair = (text) => {
+      const found = text.match(/(\d+) lien[s]? coché[s]? sur (\d+)/);
+      return found ? { done: Number(found[1]), total: Number(found[2]) } : null;
+    };
+
+    record(
+      'la phrase dit la portée de l\'impression',
+      /^Imprimer les \d+ liens$/.test(scope.all.bouton)
+        && hintPair(scope.all.hint)?.done === hintPair(scope.all.hint)?.total
+        && labelCount(scope.all.bouton) === hintPair(scope.all.hint)?.total
+        && scope.one.bouton === 'Imprimer la sélection (1)'
+        && hintPair(scope.one.hint)?.done === 1,
+      `coché : « ${scope.all.bouton} » (${scope.all.hint}) · `
+        + `un seul : « ${scope.one.bouton} » (${scope.one.hint})`,
+    );
+    record(
+      'tout décocher annonce que l\'impression porte sur tout',
+      /Aucun lien coché/.test(scope.none.hint)
+        && /toute la collection \(\d+\)/.test(scope.none.hint)
+        && /^Imprimer les \d+ liens$/.test(scope.none.bouton)
+        && labelCount(scope.none.bouton) === scope.total,
+      `« ${scope.none.hint} » → « ${scope.none.bouton} »`,
+    );
+
     // --- Sensibilité aux réglages -----------------------------------------
     const tweaks = await evaluate(`(async () => {
       const preset = document.getElementById('preset');

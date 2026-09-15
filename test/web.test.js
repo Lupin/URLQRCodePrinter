@@ -96,6 +96,25 @@ test('la grille du tableau est active par défaut', () => {
   assert.match(html, /id="table-grid"[^>]*checked/, 'la grille doit être cochée par défaut');
 });
 
+test('la recherche et la sélection sont deux groupes distincts', () => {
+  // Un champ de recherche suivi de deux boutons « Tout » et « Rien » se lit
+  // comme des réglages de recherche. La sélection a son propre groupe, intitulé.
+  const search = html.indexOf('id="search"');
+  const selection = html.indexOf('toolbar--selection');
+  assert.ok(search !== -1 && selection !== -1);
+  assert.ok(selection > search, 'le groupe de sélection suit la recherche');
+  assert.match(html, /toolbar--selection[\s\S]*?Sélection/, 'le groupe porte un intitulé');
+});
+
+test('les boutons de sélection disent ce qu\'ils font', () => {
+  // « Tout » et « Rien » collés à un champ de recherche se lisaient comme des
+  // réglages de recherche. Et les deux aboutissaient au même résultat à
+  // l'impression : une sélection vide vaut « toute la collection ».
+  assert.match(html, /id="select-all"[^>]*>Tout cocher</);
+  assert.match(html, /id="select-none"[^>]*>Tout décocher</);
+  assert.equal(/>Rien</.test(html), false, 'plus de libellé « Rien »');
+});
+
 test('index.html ne contient aucun script inline', () => {
   const inline = [...html.matchAll(/<script\b([^>]*)>/gi)].filter(
     (match) => !/\bsrc\s*=/i.test(match[1]),
