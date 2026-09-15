@@ -653,6 +653,209 @@ async function main() {
       /(sélection \(1\)|le lien coché)/.test(scopeChoice?.une.label ?? ''),
       `« ${scopeChoice?.une.label} »`,
     );
+    // --- Les cinq modes de contenu rendent tous quelque chose --------------
+    //
+    // Regression : « QR code seul » et « QR + titre » ne dessinaient aucun
+    // canevas. La geometrie encodait le texte imprime comme contenu du QR, et
+    // levait des que ce texte etait vide.
+    const modes = await evaluate(`(async () => {
+      const pause = (ms) => new Promise((r) => setTimeout(r, ms));
+      const out = {};
+      const content = document.getElementById('label-content');
+      const dateMode = document.getElementById('date-mode');
+      const rotation = document.getElementById('label-rotation');
+      const length = document.getElementById('label-length');
+
+      // Etat neutre : ni date, ni rotation, ni longueur imposee.
+      dateMode.value = 'none'; dateMode.dispatchEvent(new Event('change'));
+      rotation.value = '0'; rotation.dispatchEvent(new Event('change'));
+      length.value = ''; length.dispatchEvent(new Event('input'));
+      await pause(400);
+
+      for (const mode of ['none', 'title', 'url', 'title-url', 'host']) {
+        content.value = mode;
+        content.dispatchEvent(new Event('change'));
+        await pause(400);
+        const canvas = document.querySelector('#preview canvas');
+        let ink = 0;
+        if (canvas) {
+          const ctx = canvas.getContext('2d');
+          const data = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+          for (let i = 0; i < data.length; i += 4) if (data[i] < 128) ink += 1;
+        }
+        out[mode] = {
+          hauteur: canvas ? canvas.height : 0,
+          ink,
+          legende: document.querySelector('#preview .hint')?.textContent ?? '',
+        };
+      }
+      // Remise a l'etat initial pour la suite.
+      content.value = 'url'; content.dispatchEvent(new Event('change'));
+      await pause(300);
+      return out;
+    })()`);
+
+    const modesAttendus = ['none', 'title', 'url', 'title-url', 'host'];
+    record(
+      "les cinq contenus d'etiquette rendent tous un apercu",
+      modesAttendus.every((mode) => (modes?.[mode]?.ink ?? 0) > 0
+        && (modes?.[mode]?.hauteur ?? 0) > 0),
+      modesAttendus.map((mode) => `${mode} ${modes?.[mode]?.ink ?? 0} px`).join(' · '),
+    );
+    record(
+      "« QR code seul » est plus court que « QR + URL »",
+      (modes?.none?.hauteur ?? 0) > 0 && (modes?.none?.hauteur ?? 1) < (modes?.url?.hauteur ?? 0),
+      `seul ${modes?.none?.hauteur} px < URL ${modes?.url?.hauteur} px`,
+    );
+
+    // --- La date et l'heure tiennent sur une tete de 12 mm -----------------
+    const dates = await evaluate(`(async () => {
+      const pause = (ms) => new Promise((r) => setTimeout(r, ms));
+      const out = {};
+      const mode = document.getElementById('date-mode');
+      const hauteur = () => {
+        const canvas = document.querySelector('#preview canvas');
+        return canvas ? canvas.height : 0;
+      };
+      for (const value of ['none', 'date', 'datetime']) {
+        mode.value = value;
+        mode.dispatchEvent(new Event('change'));
+        await pause(400);
+        out[value] = {
+          hauteur: hauteur(),
+          legende: document.querySelector('#preview .hint')?.textContent ?? '',
+        };
+      }
+      mode.value = 'none';
+      mode.dispatchEvent(new Event('change'));
+      await pause(300);
+      return out;
+    })()`);
+
+    record(
+      "la date et l'heure s'impriment sur une etiquette de 12 mm",
+      (dates?.datetime?.hauteur ?? 0) > (dates?.none?.hauteur ?? 0)
+        && (dates?.date?.hauteur ?? 0) > (dates?.none?.hauteur ?? 0),
+      `sans date ${dates?.none?.hauteur} px · date ${dates?.date?.hauteur} px `
+        + `· date et heure ${dates?.datetime?.hauteur} px`,
+    );
+    record(
+      "aucune date n'est annoncee abandonnee quand elle tient",
+      (dates?.datetime?.legende ?? '').includes('aucune date') === false,
+      dates?.datetime?.legende,
+    );
+
+    // --- Orientation : l'apercu tourne comme l'impression ------------------
+    const turns = await evaluate(`(async () => {
+      const pause = (ms) => new Promise((r) => setTimeout(r, ms));
+      const rotation = document.getElementById('label-rotation');
+      const size = () => {
+        const canvas = document.querySelector('#preview canvas');
+        return canvas ? { w: canvas.width, h: canvas.height } : { w: 0, h: 0 };
+      };
+      const out = {};
+      for (const value of ['0', '1', '2', '3']) {
+        rotation.value = value;
+        rotation.dispatchEvent(new Event('change'));
+        await pause(400);
+        out[value] = size();
+      }
+      rotation.value = '0';
+      rotation.dispatchEvent(new Event('change'));
+      await pause(300);
+      return out;
+    })()`);
+
+    record(
+      "l'orientation tourne reellement l'apercu",
+      turns?.['0']?.h > 0
+        && turns['1'].h < turns['0'].h && turns['1'].w > turns['0'].w
+        && turns['1'].w === turns['0'].h && turns['1'].h === turns['0'].w
+        && turns['2'].w === turns['0'].w && turns['2'].h === turns['0'].h,
+      `0° ${turns?.['0']?.w}×${turns?.['0']?.h} · 90° ${turns?.['1']?.w}×${turns?.['1']?.h} `
+        + `· 180° ${turns?.['2']?.w}×${turns?.['2']?.h}`,
+    );
+
+    // --- La longueur se remet a « libre » ----------------------------------
+    const freeLength = await evaluate(`(async () => {
+      const pause = (ms) => new Promise((r) => setTimeout(r, ms));
+      const length = document.getElementById('label-length');
+      const clear = document.getElementById('label-length-clear');
+      const hauteur = () => {
+        const canvas = document.querySelector('#preview canvas');
+        return canvas ? canvas.height : 0;
+      };
+
+      length.value = ''; length.dispatchEvent(new Event('input'));
+      await pause(350);
+      const libre = hauteur();
+
+      length.value = '30'; length.dispatchEvent(new Event('input'));
+      await pause(350);
+      const rempli = hauteur();
+
+      clear.click();
+      await pause(400);
+      return { libre, rempli, apresBouton: hauteur(), champ: length.value };
+    })()`);
+
+    record(
+      "le bouton « Libre » rend le rouleau continu",
+      freeLength?.rempli > freeLength?.libre
+        && freeLength?.champ === ''
+        && freeLength?.apresBouton === freeLength?.libre,
+      `libre ${freeLength?.libre} px · 30 mm ${freeLength?.rempli} px `
+        + `· apres « Libre » ${freeLength?.apresBouton} px`,
+    );
+
+    // --- La disposition deplace reellement le contenu ----------------------
+    const layouts = await evaluate(`(async () => {
+      const pause = (ms) => new Promise((r) => setTimeout(r, ms));
+      const length = document.getElementById('label-length');
+      const alignment = document.getElementById('label-alignment');
+      const rotation = document.getElementById('label-rotation');
+      rotation.value = '0'; rotation.dispatchEvent(new Event('change'));
+      length.value = '30'; length.dispatchEvent(new Event('input'));
+      await pause(400);
+
+      const out = {};
+      for (const value of ['center', 'top', 'spread']) {
+        alignment.value = value;
+        alignment.dispatchEvent(new Event('change'));
+        await pause(400);
+        const canvas = document.querySelector('#preview canvas');
+        let first = -1;
+        let last = -1;
+        if (canvas) {
+          const data = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height).data;
+          const rowInk = (y) => {
+            for (let x = 0; x < canvas.width; x++) {
+              if (data[(y * canvas.width + x) * 4] < 128) return true;
+            }
+            return false;
+          };
+          for (let y = 0; y < canvas.height; y++) {
+            if (rowInk(y)) { if (first < 0) first = y; last = y; }
+          }
+        }
+        out[value] = { first, last };
+      }
+
+      alignment.value = 'center'; alignment.dispatchEvent(new Event('change'));
+      length.value = ''; length.dispatchEvent(new Event('input'));
+      await pause(300);
+      return out;
+    })()`);
+
+    record(
+      "la disposition deplace le contenu sur la longueur",
+      (layouts?.top?.first ?? -1) < (layouts?.center?.first ?? -1)
+        && (layouts?.spread?.last ?? -1) > (layouts?.top?.last ?? -1),
+      `premiere encre : haut ${layouts?.top?.first} · centre ${layouts?.center?.first} `
+        + `· reparti ${layouts?.spread?.first} — derniere : haut ${layouts?.top?.last} `
+        + `· reparti ${layouts?.spread?.last}`,
+    );
+
     // --- Aucun chevauchement dans le panneau Niimbot ----------------------
     //
     // Constaté à l'écran : cinq champs sur une ligne se recouvraient, chaque
