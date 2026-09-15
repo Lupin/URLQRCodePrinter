@@ -85,15 +85,58 @@ test('une étiquette plus grande que la zone utile produit un avertissement', ()
   assert.match(layout.warnings[0], /Aucune étiquette ne tient/);
 });
 
-test('un espace horizontal perdu est signalé', () => {
-  // 210 mm de large, marges de 50 mm : une seule colonne de 60 mm tient, et
-  // 50 mm restent perdus — assez pour justifier un avertissement.
+test('un espace perdu à droite de la grille est signalé', () => {
+  // 210 mm de large, première étiquette à 100 mm du bord : une seule colonne de
+  // 60 mm tient, et 50 mm restent perdus à droite — de quoi en placer une autre.
   const layout = computeSheet({
     count: 2, pageWidthMm: 210, pageHeightMm: 297,
-    labelWidthMm: 60, labelHeightMm: 60, marginXMm: 50, marginYMm: 10,
+    labelWidthMm: 60, labelHeightMm: 60, marginXMm: 100, marginYMm: 10,
   });
   assert.equal(layout.columns, 1);
-  assert.ok(layout.warnings.some((w) => /Marge horizontale perdue/.test(w)));
+  assert.ok(layout.warnings.some((w) => /à droite de la dernière colonne/.test(w)));
+});
+
+test('les marges situent la première étiquette, elles ne sont pas symétriques', () => {
+  // Cotes réelles d'une Avery L7160 : 8,6 mm à gauche, 5,1 mm à droite.
+  // Un modèle à marges symétriques ne placerait que deux colonnes sur trois.
+  const layout = computeSheet({ count: 21, ...SHEET_PRESETS['avery-l7160'] });
+  assert.equal(layout.columns, 3);
+  assert.equal(layout.rows, 7);
+  assert.equal(layout.perPage, 21);
+
+  const gridWidth = 3 * 63.5 + 2 * 2.9;
+  assert.equal(layout.cells[0].xMm, 8.6);
+  assert.equal(
+    Math.round((layout.pageWidthMm - 8.6 - gridWidth) * 10) / 10,
+    5.1,
+    'la marge de droite est ce qui reste, pas 8,6 mm',
+  );
+  assert.deepEqual(layout.warnings, []);
+});
+
+test('chaque préréglage place le nombre d\'étiquettes annoncé', () => {
+  // Les cotes commerciales sont publiées avec un nombre d'étiquettes par
+  // feuille. Ce test confronte la géométrie à cette promesse : une marge ou un
+  // pas mal recopié se traduit ici par une rangée manquante.
+  for (const [key, preset] of Object.entries(SHEET_PRESETS)) {
+    const layout = computeSheet({ count: 1, ...preset });
+    assert.equal(layout.columns, preset.columns, `${key} : colonnes`);
+    assert.equal(layout.rows, preset.rows, `${key} : rangées`);
+    assert.deepEqual(layout.warnings, [], `${key} : aucun avertissement attendu`);
+  }
+});
+
+test('le décalage d\'impression déplace la grille sans la déformer', () => {
+  const base = computeSheet({ count: 24, ...BASE });
+  const shifted = computeSheet({ count: 24, ...BASE, offsetXMm: 1.5, offsetYMm: -0.5 });
+
+  assert.equal(shifted.columns, base.columns, 'la forme de la grille ne change pas');
+  assert.equal(shifted.rows, base.rows);
+  assert.equal(shifted.offsetXMm, 1.5);
+  assert.equal(shifted.cells[0].xMm, base.cells[0].xMm + 1.5);
+  assert.equal(shifted.cells[0].yMm, base.cells[0].yMm - 0.5);
+  // Le décalage se cumule à chaque cellule, il ne se perd pas en route.
+  assert.equal(shifted.cells[5].xMm, base.cells[5].xMm + 1.5);
 });
 
 test('count à 0 reste cohérent', () => {

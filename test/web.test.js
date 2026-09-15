@@ -50,6 +50,15 @@ test('chaque identifiant attendu par app.js existe dans index.html', () => {
   assert.deepEqual(missing, [], `identifiants absents du HTML : ${missing.join(', ')}`);
 });
 
+test('les réglages de planche ont une valeur par défaut dans le HTML', () => {
+  // Un décalage d'impression qui ne part pas de zéro décalerait toutes les
+  // planches sans que personne ne l'ait demandé.
+  for (const id of ['sheet-offset-x', 'sheet-offset-y']) {
+    const field = new RegExp(`id="${id}"[^>]*value="0"`);
+    assert.match(html, field, `${id} doit partir de 0`);
+  }
+});
+
 test('index.html ne contient aucun script inline', () => {
   const inline = [...html.matchAll(/<script\b([^>]*)>/gi)].filter(
     (match) => !/\bsrc\s*=/i.test(match[1]),

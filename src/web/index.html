@@ -95,6 +95,20 @@
             <input id="sheet-qr" class="input" type="range" min="30" max="100" value="70">
           </label>
         </div>
+        <div class="fields">
+          <label class="field">
+            <span class="field__label">Décalage horizontal (mm)</span>
+            <input id="sheet-offset-x" class="input" type="number" min="-10" max="10" step="0.5" value="0">
+          </label>
+          <label class="field">
+            <span class="field__label">Décalage vertical (mm)</span>
+            <input id="sheet-offset-y" class="input" type="number" min="-10" max="10" step="0.5" value="0">
+          </label>
+        </div>
+        <p class="hint hint--tight">
+          Imprimez d'abord sur papier ordinaire, superposez la feuille obtenue à
+          votre planche : si le texte est trop haut ou trop à gauche, corrigez ici.
+        </p>
         <p id="sheet-info" class="hint"></p>
       </div>
 
@@ -116,6 +130,10 @@
       <!-- Étiquette Niimbot -->
       <div class="mode" data-mode-panel="single" hidden>
         <div class="fields">
+          <label class="field">
+            <span class="field__label">Format d'étiquette</span>
+            <select id="label-profile" class="input"></select>
+          </label>
           <label class="field">
             <span class="field__label">Densité</span>
             <input id="density" class="input" type="number" min="1" max="3" value="2">
@@ -141,6 +159,7 @@
           </div>
         </div>
 
+        <p id="profile-hint" class="hint hint--tight"></p>
         <p id="ble-support" class="hint" hidden></p>
         <button id="print-label" class="btn btn--primary btn--wide" type="button" disabled>
           Imprimer sur l'étiquette

@@ -314,6 +314,10 @@ body {
 }
 
 .shortener .field { min-width: 0; }
+
+/* Le libellé de l'onglet « Étiquette Niimbot » reste lisible même quand la
+   fenêtre est étroite : le format d'étiquette y prend toute la largeur. */
+#label-profile { min-width: 210px; }
 .field__label em { font-style: normal; opacity: 0.7; }
 
 /* Le domaine reste discret, la ligne raccourcie encore plus : elle doit se
@@ -338,6 +342,29 @@ body {
 }
 
 .link__short-provider { flex: none; opacity: 0.65; }
+
+/* --- Note d'un lien --- */
+
+.link__note { margin-top: 3px; }
+
+.link__note-button {
+  display: block;
+  max-width: 100%;
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  background: none;
+  color: var(--text-dim);
+  font: inherit;
+  font-size: 11px;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.link__note-button:hover { color: var(--primary); text-decoration: underline; }
+.link__note-input { width: 100%; }
 
 /* Une URL cliquable : soulignée au survol seulement, pour ne pas transformer
    la liste en guirlande de liens bleus. */
@@ -416,10 +443,76 @@ body {
 .toast--error { background: var(--danger); color: #fff; }
 
 /* ==========================================================================
-   Rendu papier
+   Planche d'étiquettes : écran et papier
+
+   La géométrie vit **hors** de `@media print`, et c'est essentiel : l'aperçu à
+   l'écran et la feuille imprimée partagent exactement les mêmes règles, donc la
+   même mise en page. Tant que ces règles vivaient dans le bloc d'impression,
+   l'aperçu empilait les étiquettes en colonne au lieu de dessiner la grille, et
+   le curseur de largeur du QR n'avait aucun effet visible — le SVG gardait sa
+   taille intrinsèque.
+
+   Ne restent dans `@media print` que les règles propres au papier : masquer
+   l'interface, forcer le noir, et couper les pages.
    ========================================================================== */
 
 .print-root { display: none; }
+
+.print-page {
+  position: relative;
+  overflow: hidden;
+  background: #fff;
+}
+
+/* L'ombre d'une feuille posée sur le bureau, à l'écran seulement. */
+.print-page--screen { box-shadow: 0 1px 6px rgba(0, 0, 0, 0.12); }
+
+.print-cell {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.5mm;
+  overflow: hidden;
+  /* Les traits fins disparaissent à l'impression ; on force le noir. */
+  color: #000;
+}
+
+.print-cell__qr { display: block; }
+.print-cell__qr svg { display: block; width: 100%; height: auto; }
+
+.print-cell__text {
+  max-width: 100%;
+  font-size: 7pt;
+  line-height: 1.15;
+  text-align: center;
+  word-break: break-all;
+}
+
+.print-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 8pt;
+  background: #fff;
+}
+
+.print-table th,
+.print-table td {
+  padding: 1.5mm;
+  border: 0.2mm solid #000;
+  text-align: left;
+  vertical-align: middle;
+}
+
+.print-table th { background: #eee; }
+
+.print-table tr {
+  page-break-inside: avoid;
+  break-inside: avoid;
+}
+
+.print-table__qr { width: 1%; }
 
 @media print {
   /* Une seule règle gouverne tout : rien ne s'imprime en dehors de la racine
@@ -436,14 +529,15 @@ body {
     position: static;
   }
 
+  /* La taille du papier est posée dynamiquement par `applyPrintPageSize()` :
+     une planche Letter ne doit pas être imprimée sur du A4. Seule la marge
+     nulle est universelle. */
   @page {
-    size: A4 portrait;
     margin: 0;
   }
 
   .print-page {
-    position: relative;
-    overflow: hidden;
+    box-shadow: none;
     page-break-after: always;
     break-after: page;
   }
@@ -452,50 +546,4 @@ body {
     page-break-after: auto;
     break-after: auto;
   }
-
-  .print-cell {
-    position: absolute;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 1.5mm;
-    overflow: hidden;
-    /* Les traits fins disparaissent à l'impression ; on force le noir. */
-    color: #000;
-  }
-
-  .print-cell__qr { display: block; }
-  .print-cell__qr svg { display: block; width: 100%; height: auto; }
-
-  .print-cell__text {
-    max-width: 100%;
-    font-size: 7pt;
-    line-height: 1.15;
-    text-align: center;
-    word-break: break-all;
-  }
-
-  .print-table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 8pt;
-  }
-
-  .print-table th,
-  .print-table td {
-    padding: 1.5mm;
-    border: 0.2mm solid #000;
-    text-align: left;
-    vertical-align: middle;
-  }
-
-  .print-table th { background: #eee; }
-
-  .print-table tr {
-    page-break-inside: avoid;
-    break-inside: avoid;
-  }
-
-  .print-table__qr { width: 1%; }
 }

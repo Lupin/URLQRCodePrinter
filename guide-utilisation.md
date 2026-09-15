@@ -1,176 +1,250 @@
-# Guide d'utilisation - Générateur QR Code pour Niimbot D110A
+# Guide d'utilisation
+
+Ce guide décrit l'application telle qu'elle est aujourd'hui : collecter des URL
+depuis le navigateur, les mettre en page, puis les imprimer — sur une étiqueteuse
+Niimbot, sur une planche d'étiquettes autocollantes, ou sur n'importe quelle
+imprimante via un dossier d'images.
+
+> Une version antérieure de ce document décrivait un prototype à une seule URL,
+> avec des rouleaux de 15 mm et une densité de 1 à 5. Elle ne correspond plus au
+> code : la tête du D110 fait 12 mm utiles (96 px à 203 dpi) et sa densité va de
+> 1 à 3.
 
 ## Vue d'ensemble
 
-Cette application web permet de convertir n'importe quelle URL en code QR et de l'imprimer directement sur votre imprimante d'étiquettes Niimbot D110A via Bluetooth. L'application fonctionne entièrement dans votre navigateur et ne nécessite aucune installation.
+Deux surfaces, un seul cœur :
 
-## Prérequis
+- **l'extension Brave / Chrome / Edge** — collecte un lien au clic droit ou
+  depuis la barre d'outils ;
+- **l'application** (page de l'extension, ou `npm run serve` sur
+  `http://127.0.0.1:4173/`) — relit la collection, met en page, imprime et
+  exporte.
 
-### Matériel
-- Imprimante d'étiquettes Niimbot D110A
-- Ordinateur ou smartphone avec Bluetooth activé
-- Rouleau d'étiquettes de 15mm compatible Niimbot
+Les liens restent sur votre machine : le stockage est local (IndexedDB ou
+`chrome.storage.local`). La seule sortie réseau est le raccourcissement d'URL,
+et il n'a lieu que si vous cliquez dessus.
 
-### Logiciel
-- **Navigateur recommandé** : Chrome, Edge ou Opera (support Web Bluetooth)
-- **Système d'exploitation** : Windows, Mac, Linux, Android
-- **Note** : Safari (iOS) ne supporte pas Web Bluetooth actuellement
+## Collecter des liens
 
-## Configuration initiale
+| Moyen | Où |
+|---|---|
+| Clic droit sur un lien ou une page | « Enregistrer ce lien en QR » |
+| Bouton de la barre d'outils | enregistre l'onglet courant |
+| Champ « Ajouter » | saisie manuelle |
+| Bouton « Importer » | relit une archive JSON exportée précédemment |
 
-### 1. Préparation de l'imprimante
-1. Assurez-vous que votre Niimbot D110A est chargée (voyant bleu clignotant lentement)
-2. Installez un rouleau d'étiquettes de 15mm dans l'imprimante
-3. Allumez l'imprimante en maintenant le bouton d'alimentation 3-5 secondes
-4. Activez le Bluetooth sur votre appareil
+**Notes.** Chaque ligne porte un discret « ＋ note » : cliquez, tapez, validez
+par Entrée. La note sert à annoter un lien (emplacement, personne, raison de la
+collecte) et apparaît dans le tableau imprimé si vous cochez « Afficher les
+notes », ainsi que dans l'export CSV.
 
-### 2. Activation des fonctionnalités du navigateur
-Pour Chrome/Edge, vous devrez peut-être activer les fonctionnalités expérimentales :
-1. Ouvrez `chrome://flags/` dans votre navigateur
-2. Recherchez "Experimental Web Platform Features"
-3. Activez cette option
-4. Redémarrez le navigateur
+Les URL sont normalisées à l'entrée : `https://` ajouté si absent, fragment
+retiré, paramètres de campagne (`utm_*`, `fbclid`, `gclid`…) supprimés — ils
+allongent le QR sans rien apporter au papier. Un doublon n'est pas ajouté deux
+fois ; l'application vous le dit au lieu de rester silencieuse.
 
-## Utilisation de l'application
+**Ouvrir un lien collecté.** Le titre et l'URL de chaque ligne sont des
+hyperliens : ils s'ouvrent dans un nouvel onglet, depuis l'application comme
+depuis la fenêtre de l'extension.
 
-### Étape 1 : Génération du QR Code
-1. **Ouvrez l'application** dans votre navigateur
-2. **Saisissez votre URL** dans le champ de texte (ex: https://www.example.com)
-3. **Cliquez sur "Générer QR Code"**
-4. **Vérifiez l'aperçu** : le QR code et l'URL apparaissent dans la section aperçu
+## Raccourcir, en option
 
-### Étape 2 : Connexion à l'imprimante
-1. **Cliquez sur "Connecter l'imprimante"**
-2. **Sélectionnez votre Niimbot D110A** dans la liste des appareils Bluetooth
-3. **Attendez la confirmation** : le statut passe au vert "Connecté"
-4. Le nom de votre imprimante apparaît dans l'interface
+Le bloc « Raccourcir » se trouve sous la barre de recherche.
 
-### Étape 3 : Configuration d'impression
-1. **Densité d'impression** : Choisissez de 1 (léger) à 5 (foncé) - recommandé : 3
-2. **Nombre de copies** : Sélectionnez de 1 à 10 étiquettes
-3. **Prévisualisez** l'étiquette finale dans la section aperçu
+1. Choisissez le service : **TinyURL** (défaut), is.gd, v.gd ou spoo.me. Aucun ne
+   demande de clé d'API.
+2. Cochez les liens voulus — sans rien cocher, le bouton porte sur toute la
+   collection.
+3. Cliquez « Raccourcir ». Un second clic annule le lot en cours.
+4. « Retirer » efface tous les raccourcis.
 
-### Étape 4 : Impression
-1. **Cliquez sur "Imprimer étiquette"**
-2. **Attendez le traitement** : l'application convertit l'image pour l'imprimante
-3. **Vérifiez l'impression** : l'étiquette sort automatiquement de l'imprimante
+Ce qui se passe, et ce qui ne se passe pas :
 
-## Spécifications techniques
+- **l'URL d'origine n'est jamais remplacée** ; le raccourci est enregistré à
+  côté, avec le nom du service et la date ;
+- **l'URL complète est transmise au service choisi** — c'est le prix du
+  raccourcissement, et l'interface le rappelle ;
+- **le lien imprimé dépend ensuite de ce service.** Pour une étiquette qui doit
+  vivre des années, gardez l'URL d'origine.
 
-### Format des étiquettes
-- **Largeur maximale** : 15mm (contrainte du D110A)
-- **Hauteur** : Variable selon la longueur de l'URL
-- **Résolution** : 203 DPI
-- **Composition** :
-  - QR code centré en haut
-  - URL en texte lisible en bas
-  - Retour à la ligne automatique si nécessaire
+L'intérêt est concret sur une petite étiquette : moins de caractères donnent
+moins de modules, donc un QR plus lisible et imprimable plus petit.
 
-### Connectivité Bluetooth
-- **Protocol** : Bluetooth 4.0 (BLE)
-- **Portée** : Jusqu'à 10 mètres (recommandé : 3-4 mètres)
-- **Connexion** : Via Web Bluetooth API
-- **Sécurité** : Connexion chiffrée standard Bluetooth
+Ensuite, le sélecteur **« Le QR code pointe vers »** (colonne de droite) décide
+ce qui part à l'impression : l'URL collectée, ou le raccourci. Il vaut pour
+toutes les sorties imprimées.
+
+## Mettre en page
+
+Quatre onglets, quatre usages.
+
+### Planche d'étiquettes
+
+Pour les planches autocollantes A4 et Letter. Deux familles de dispositions :
+
+- **génériques** — des grilles géométriquement valides, à régler vous-même ;
+- **références commerciales** — les cotes publiées pour ces produits :
+
+| Référence | Grille | Étiquette | Papier |
+|---|---|---|---|
+| Avery L7160 | 3 × 7 = 21 | 63,5 × 38,1 mm | A4 |
+| Avery L7159 | 3 × 8 = 24 | 63,5 × 33,9 mm | A4 |
+| Avery L7162 | 2 × 8 = 16 | 99,1 × 33,9 mm | A4 |
+| Avery L7163 | 2 × 7 = 14 | 99,1 × 38,1 mm | A4 |
+| Avery Zweckform 3475 | 3 × 8 = 24 | 70 × 36 mm | A4 |
+| Avery 5160 / 8160 | 3 × 10 = 30 | 66,7 × 25,4 mm | Letter |
+| Avery 5162 / 8162 | 2 × 7 = 14 | 101,6 × 33,9 mm | Letter |
+| Avery 5163 / 8163 | 2 × 5 = 10 | 101,6 × 50,8 mm | Letter |
+| Avery 6871 | 3 × 6 = 18 | 60,3 × 31,8 mm | Letter |
+
+> **L'aperçu est à l'échelle de la fenêtre**, pas à 100 % : le texte y paraît
+> donc petit. C'est la *disposition* qu'il faut y vérifier. Pour juger du rendu
+> réel, imprimez sur papier ordinaire — ou regardez l'onglet « Images à
+> imprimer », qui affiche une étiquette en grand.
+
+**Calibrer avant d'imprimer sur une planche.** Aucune cote de fabricant ne
+prévoit le décalage d'entraînement de votre imprimante. La marche à suivre :
+
+1. imprimez sur **papier ordinaire**, à l'échelle **100 %** (jamais « ajuster à
+   la page » : c'est la cause n° 1 des planches décalées) ;
+2. superposez la feuille obtenue à votre planche d'étiquettes, en la tenant
+   devant une fenêtre ;
+3. si le texte est trop haut ou trop à gauche, corrigez avec **Décalage
+   horizontal** et **Décalage vertical** (en mm, valeurs négatives acceptées).
+
+Les décalages déplacent la grille sans la modifier. Une fois réglés, ils valent
+pour toutes les planches.
+
+### Tableau
+
+Un tableau dense — QR code, titre, domaine, notes — pour relire ou archiver sur
+papier.
+
+### Étiquette Niimbot
+
+Pour l'impression directe sur une D110 ou une M2. Voir la section suivante.
+
+### Images à imprimer
+
+Un dossier d'images prêtes à imprimer, **sans aucune imprimante**. Voir
+« Exporter sans Niimbot ».
+
+## Imprimer sur une Niimbot
+
+### Le format se prévisualise sans imprimante
+
+Le sélecteur **Format d'étiquette** propose :
+
+- **Niimbot D110** — 12 mm utiles, 203 dpi ;
+- **Niimbot M2** — 48 mm utiles, 300 dpi (576 px de tête).
+
+L'aperçu est composé **même sans imprimante connectée** : dimensions, nombre de
+modules et lisibilité sont exacts. C'est ce qui permet de juger un rendu, ou de
+vérifier qu'une URL tient, avant d'acheter le matériel.
+
+Sous l'aperçu, une légende indique le profil utilisé et le nombre de pixels par
+module. Deux pixels par module est le minimum : en dessous, une tête thermique
+fusionne les points.
+
+Une fois une imprimante connectée, l'aperçu se cale sur son profil réel, et
+l'impression utilise **toujours** le profil du matériel — jamais celui de
+l'aperçu. Vous pouvez donc explorer le format M2 tout en étant branché sur une
+D110 sans risque d'imprimer à la mauvaise largeur.
+
+### Connecter
+
+1. **Brave** : activez Web Bluetooth dans `brave://flags#brave-web-bluetooth-api`,
+   puis redémarrez le navigateur. Chrome et Edge n'ont pas cette contrainte.
+2. Allumez l'imprimante et mettez-la en appairage.
+3. Onglet « Étiquette Niimbot » → **Connecter** → choisissez l'appareil.
+4. Le modèle est lu à la connexion, et la largeur de tête réellement rapportée
+   corrige le profil si elle en diffère.
+
+### Imprimer
+
+- **Densité** : 1 à 3 sur D110, 1 à 5 sur M2. 2 est un bon point de départ ; une
+  impression pâle se corrige en montant d'un cran.
+- **Copies** : 1 à 20.
+- **Inclure le titre** : ajoute le titre de la page au-dessus de l'URL. La ligne
+  est réservée dans la hauteur, rien n'est rogné.
+
+L'impression refuse un bitmap plus large que la tête plutôt que de le laisser
+rogner en silence.
+
+## Exporter sans Niimbot
+
+### Dossier d'images (onglet « Images à imprimer »)
+
+Le chemin le plus court vers n'importe quelle étiqueteuse. Choisissez :
+
+- **Format d'étiquette** — Niimbot D110 / M2, Brother QL 62 mm, Dymo LabelWriter
+  54 mm, Zebra 2 pouces, génériques 50 × 30 et 70 × 40 mm, planche A4 3 × 8 ;
+- **Texte imprimé** — titre + URL, URL seule, titre seul, domaine seul, ou rien ;
+- **Marge**, **taille du texte**, **traits de coupe**.
+
+L'aperçu se met à jour à chaque changement. « Exporter les images (ZIP) »
+produit une archive autonome :
+
+```
+etiquettes/1-un-article.png     un PNG par lien, à la résolution du format
+liens.csv                       la correspondance URL ↔ image
+planche.html                    à ouvrir dans un navigateur, puis Imprimer
+export.json                     les réglages retenus, et l'URL d'origine
+```
+
+Ouvrez `planche.html` et imprimez : c'est le chemin le plus direct vers le
+papier, sans pilote ni application de fabricant.
+
+### Tableur `.xlsx` avec les QR codes intégrés
+
+Le bouton **« Tableur + QR »** produit un vrai classeur où chaque ligne porte son
+QR code **et** son URL cliquable. Un CSV ne peut pas transporter d'image : c'est
+tout l'intérêt de cet export.
+
+Quand un lien est raccourci, le classeur suit la cible imprimée et ajoute l'URL
+d'origine en fin de tableau.
+
+### CSV, Markdown, archive JSON
+
+- **CSV** (`;`, BOM UTF-8, conforme RFC 4180) — l'URL d'origine en colonne
+  principale, le raccourci dans une colonne « URL courte » s'il existe ;
+- **Markdown** — tableau ou liste à puces, avec titres cliquables ;
+- **Archive JSON** — tout le modèle, réimportable via « Importer ».
 
 ## Dépannage
 
-### Problèmes de connexion Bluetooth
+**La planche est décalée.** Vérifiez d'abord que l'impression est à 100 %
+(« taille réelle »), puis réglez les décalages horizontaux et verticaux. Un
+décalage qui augmente de rangée en rangée signale un mauvais pas, pas une
+mauvaise marge : choisissez la référence exacte plutôt que de compenser.
 
-**L'imprimante n'apparaît pas dans la liste**
-- Vérifiez que l'imprimante est allumée (voyant bleu)
-- Assurez-vous qu'elle n'est pas déjà connectée à un autre appareil
-- Redémarrez le Bluetooth sur votre appareil
-- Rapprochez-vous de l'imprimante
+**Le QR est illisible.** La légende sous l'aperçu donne les pixels par module.
+Sous 2, raccourcissez l'URL (le raccourcisseur est fait pour ça), réduisez le
+texte imprimé, ou prenez une étiquette plus large.
 
-**Échec de connexion**
-- Éteignez et rallumez l'imprimante
-- Effacez le cache de votre navigateur
-- Vérifiez que Web Bluetooth est activé dans les paramètres
+**L'imprimante n'apparaît pas.** Sur Brave, le drapeau Web Bluetooth est la
+première chose à vérifier. Éloignez l'imprimante des autres appareils Bluetooth,
+et réveillez-la avant de cliquer « Connecter ».
 
-### Problèmes d'impression
+**L'impression est pâle.** Montez la densité d'un cran. La tête thermique peut
+aussi être encrassée : nettoyez-la avec un coton-tige imbibé d'alcool isopropylique,
+imprimante éteinte.
 
-**L'impression est trop claire**
-- Augmentez la densité d'impression (valeur 4 ou 5)
-- Vérifiez que le rouleau d'étiquettes est bien installé
-- Assurez-vous que l'imprimante est suffisamment chargée
+**Une étiquette sort pivotée de 90°.** Le profil D110 porte un booléen
+`transposed` fondé sur la convention des implémentations de référence, jamais
+vérifié sur du matériel réel. Signalez-le : c'est ce booléen qu'il faut basculer.
 
-**L'impression est coupée**
-- Vérifiez que l'URL n'est pas trop longue
-- Utilisez des URLs courtes ou des raccourcisseurs d'URL
+## Limites assumées
 
-**Rien ne s'imprime**
-- Vérifiez la connexion Bluetooth
-- Assurez-vous qu'il y a du papier dans l'imprimante
-- Redémarrez l'application et reconnectez l'imprimante
-
-### Problèmes de QR Code
-
-**Le QR code ne se génère pas**
-- Vérifiez que l'URL est valide (doit commencer par http:// ou https://)
-- Évitez les caractères spéciaux dans l'URL
-- Testez avec une URL simple d'abord
-
-**Le QR code ne fonctionne pas**
-- Testez le QR code avec l'appareil photo de votre téléphone
-- Assurez-vous que l'URL est accessible
-- Vérifiez que l'impression est nette et contrastée
-
-## Conseils d'utilisation
-
-### Pour de meilleurs résultats
-1. **URLs courtes** : Privilégiez des URLs courtes pour une meilleure lisibilité
-2. **Test préalable** : Testez toujours le QR code avant impression massive
-3. **Qualité d'impression** : Utilisez une densité 3-4 pour un bon contraste
-4. **Stockage des étiquettes** : Les étiquettes thermiques peuvent s'effacer avec la chaleur
-
-### Optimisation de l'autonomie
-- Éteignez l'imprimante après utilisation
-- Déconnectez le Bluetooth quand non utilisé
-- Rechargez régulièrement l'imprimante
-
-## Support et maintenance
-
-### Nettoyage de l'imprimante
-- Nettoyez la tête d'impression avec un coton-tige et de l'alcool isopropylique
-- Évitez de toucher les composants électroniques
-- Nettoyez régulièrement pour maintenir la qualité d'impression
-
-### Mise à jour
-- L'application se met à jour automatiquement
-- Actualisez la page pour obtenir la dernière version
-- Vérifiez régulièrement les mises à jour du navigateur
-
-## Limitations techniques
-
-### Navigateurs non supportés
-- Safari sur iOS (pas de support Web Bluetooth)
-- Navigateurs anciens (< 2019)
-- Certains navigateurs mobiles alternatifs
-
-### Contraintes d'impression
-- Largeur limitée à 15mm (spécification D110A)
-- Impression en noir et blanc uniquement
-- Pas de couleurs ou niveaux de gris
-
-### Portée Bluetooth
-- Distance maximale : 10 mètres
-- Obstacles peuvent réduire la portée
-- Interférences possibles avec d'autres appareils
-
-## Ressources additionnelles
-
-### Documentation officielle Niimbot
-- Manuel utilisateur D110A
-- Application mobile Niimbot (alternative)
-- Support technique Niimbot
-
-### Développement et personnalisation
-- Code source disponible pour modifications
-- API Web Bluetooth pour développeurs
-- Bibliothèque QRCode.js pour génération
-
----
-
-**Version du guide** : 1.0  
-**Dernière mise à jour** : Juillet 2025  
-**Compatibilité** : Niimbot D110A uniquement
+- **L'impression Niimbot n'a pas été validée sur du matériel physique.** Le
+  protocole est implémenté d'après la spécification et vérifié octet à octet en
+  test, mais aucune étiquette n'est sortie d'une vraie D110.
+- **Safari** n'implémente pas Web Bluetooth. L'extension Safari fonctionne pour
+  la collecte, pas pour l'impression directe : utilisez le dossier d'images.
+- **Avery et Niimbot sont des marques de leurs propriétaires respectifs.** Les
+  cotes reproduites sont celles publiées pour ces références ; ce projet n'est ni
+  affilié ni approuvé par ces fabricants.
+- **Le raccourcissement dépend d'un tiers.** TinyURL, is.gd, v.gd et spoo.me sont
+  des services externes : s'ils ferment, un lien déjà imprimé cesse de
+  fonctionner. L'URL d'origine reste toujours dans votre collection et dans vos
+  exports.

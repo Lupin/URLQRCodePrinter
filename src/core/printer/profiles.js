@@ -69,6 +69,19 @@ export const ALL_NAME_PREFIXES = Object.freeze([
 ]);
 
 /**
+ * Retrouve un profil par son identifiant lisible (« D110 », « M2 »).
+ *
+ * Sert à l'aperçu : on veut pouvoir composer une étiquette au format d'une
+ * imprimante qu'on ne possède pas, ou qui n'est pas connectée.
+ *
+ * @param {string} id
+ * @returns {PrinterProfile|undefined}
+ */
+export function findProfile(id) {
+  return PROFILES.find((profile) => profile.id === id);
+}
+
+/**
  * Retrouve un profil à partir du modelId rapporté par l'imprimante.
  *
  * @param {number} modelId

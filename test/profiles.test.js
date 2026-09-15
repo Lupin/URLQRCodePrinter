@@ -17,6 +17,7 @@ import {
   ALL_NAME_PREFIXES,
   findByModelId,
   findByName,
+  findProfile,
   withReportedHead,
   planPageWidth,
 } from '../src/core/printer/profiles.js';
@@ -108,4 +109,25 @@ test('le profil par défaut est le D110', () => {
 test('les préfixes de nom sont dédoublonnés', () => {
   assert.equal(ALL_NAME_PREFIXES.length, new Set(ALL_NAME_PREFIXES).size);
   assert.ok(ALL_NAME_PREFIXES.includes('D110'));
+});
+
+test('findProfile retrouve un profil par son identifiant', () => {
+  // Sert à l'aperçu : on compose une étiquette au format d'une imprimante qui
+  // n'est pas connectée, voire qu'on ne possède pas.
+  assert.equal(findProfile('D110')?.printheadPixels, 96);
+  assert.equal(findProfile('M2')?.printheadPixels, 576);
+  assert.equal(findProfile('D1110'), undefined);
+  assert.equal(findProfile(''), undefined);
+});
+
+test('chaque profil annonce une largeur utile cohérente', () => {
+  for (const profile of PROFILES) {
+    const printableMm = (profile.printheadPixels / profile.dpi) * 25.4;
+    // La largeur d'étiquette acceptée par le fabricant ne peut pas être
+    // inférieure à ce que la tête sait imprimer.
+    assert.ok(
+      profile.maxLabelWidthMm >= printableMm - 0.5,
+      `${profile.id} : ${profile.maxLabelWidthMm} mm annoncés pour ${printableMm.toFixed(1)} mm imprimables`,
+    );
+  }
 });

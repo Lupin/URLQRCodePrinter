@@ -11,14 +11,17 @@ Markdown, ou envoi direct à une imprimante Niimbot.
 | Cœur métier (liens, QR, étiquettes, stockage, exports) | fait, testé |
 | Protocole Niimbot (trames, profils D110 / M2) | fait, testé |
 | Transport Web Bluetooth + session d'impression D110 | fait, testé |
-| Extension Brave / Chrome (clic droit, popup) | fait, testé structurellement |
-| Application web autonome (liste, exports, mises en page) | fait, démarrage vérifié |
+| Extension Brave / Chrome (clic droit, popup, liens cliquables) | fait, vérifié dans Brave |
+| Application web autonome (liste, exports, mises en page) | fait, vérifié dans Brave |
+| Raccourcissement d'URL en option (TinyURL, is.gd, v.gd, spoo.me) | fait, vérifié dans Brave |
+| Planches Avery A4 et Letter, calibrage d'impression | fait, géométrie confrontée aux cotes publiées |
+| Aperçu d'étiquette Niimbot sans imprimante connectée | fait, vérifié dans Brave |
 | Extension Safari — projet Xcode multiplateforme | généré, **compile pour macOS** |
 | Extension Safari — exécution dans Safari | à éprouver sur ta machine |
 | Socle natif Swift (protocole, session, CoreBluetooth) | fait, testé |
 | Application iOS qui utilise ce socle | à faire |
 
-**498 tests, tous verts** — 394 en JavaScript et 104 en Swift — dont :
+**527 tests, tous verts** — 423 en JavaScript et 104 en Swift — dont :
 
 - la validation **octet à octet** des trames Niimbot contre les relevés
   documentés, **dans les deux langages** : deux implémentations indépendantes
@@ -27,14 +30,18 @@ Markdown, ou envoi direct à une imprimante Niimbot.
 - la vérification des icônes PNG par décompression ;
 - le raccourcissement d'URL, réseau simulé : les pannes réelles des services
   (texte d'erreur renvoyé avec un statut 200, réponse JSON, lien refusé) sont
-  reproduites pour être traitées, pas devinées.
+  reproduites pour être traitées, pas devinées ;
+- une **matrice de mise en page** sur les treize dispositions d'étiquettes et
+  leurs cas limites — aucune superposition, aucune étiquette hors feuille, pas
+  de dérive cumulée — doublée d'une mesure du rendu réel dans Brave.
 
 **L'application est vérifiée dans un vrai navigateur** : `npm run verify:brave`
 lance Brave sur un profil isolé, collecte un lien, le raccourcit, exporte le CSV
 et l'archive d'étiquettes, puis contrôle les fichiers réellement écrits sur le
-disque (signature ZIP, `unzip -t`, contenu du CSV). 23 vérifications, dont le
+disque (signature ZIP, `unzip -t`, contenu du CSV). 46 vérifications, dont le
 rendu des liens cliquables dans l'application *et* dans la fenêtre de
-l'extension.
+l'extension, la grille réellement calculée pour quatre références Avery, et
+l'aperçu d'étiquette composé sans aucune imprimante connectée.
 
 Ce qui reste à éprouver : l'extension chargée dans Safari, et l'impression sur
 une imprimante physique.
@@ -58,14 +65,21 @@ par toutes les surfaces :
 
 ```
 src/core/
-  link.js              modèle de lien, normalisation d'URL, dédoublonnage
+  link.js              modèle de lien, normalisation, cible du QR, href sûr
   capture.js           décision de capture depuis un clic contextuel
-  qr.js                encodage QR → matrice → bitmap 1 bit/pixel
+  qr.js                encodage QR → matrice → bitmap 1 bit/pixel, PNG
   label.js             géométrie d'étiquette, découpe de texte, lisibilité
   raster.js            ImageData → bitmap monochrome pour tête thermique
-  sheet.js             géométrie des planches d'impression, pagination
+  sheet.js             planches d'impression : cotes, pagination, calibrage
   store.js             IndexedDB / chrome.storage / mémoire, même interface
   exporters.js         CSV (RFC 4180), Markdown, JSON
+  spreadsheet.js       classeur .xlsx avec les QR codes intégrés
+  label-export.js      formats d'étiquettes, planche HTML, archive ZIP
+  shorten.js           raccourcissement d'URL : services, pannes, rythme
+  settings.js          préférences retenues (service, cible du QR)
+  png.js               encodeur PNG (CompressionStream), CRC et déflate
+  zip.js               écriture ZIP sans compression
+  xlsx.js              écriture OOXML, images ancrées aux cellules
   download.js          enregistrement de fichier et presse-papiers
   printer/
     packet.js          trames Niimbot, checksum, décodeur de flux
@@ -73,16 +87,22 @@ src/core/
     transport.js       Web Bluetooth : filtrage, groupage, notifications
     printer.js         session d'impression, séquence et acquittements
 
-src/extension/         extension MV3 (Brave, Chrome, Edge, Safari)
+src/extension-src/     extension MV3 (Brave, Chrome, Edge, Safari)
 src/web/               application autonome
 scripts/build.mjs      assemble dist/extension et dist/web
 scripts/serve.mjs      serveur statique de développement
 scripts/make-icons.mjs génère les icônes PNG (encodeur maison, sans dépendance)
+scripts/verify-brave.mjs  parcours complet dans Brave, sur un profil isolé
 scripts/package-safari.mjs  produit le projet Xcode Safari
 scripts/test-swift.mjs lance les tests du socle natif
 native/safari/         projet Xcode généré (macOS + iOS)
 native/niimbot-kit/    socle Swift : protocole, session, CoreBluetooth
 ```
+
+`src/extension-src/` ne contient **pas** de `manifest.json` : le manifeste est un
+gabarit (`manifest.template.json`) que la construction décline en deux variantes.
+Ce dossier n'est donc pas chargeable tel quel par un navigateur, ce qui évite la
+confusion avec `dist/extension`.
 
 Le cœur ne dépend que de `uqr` (ESM pur, sans dépendance). Aucun bundler : tout
 est en modules ES natifs.
@@ -222,6 +242,39 @@ s'il existe, et l'URL de l'onglet est lue par injection quand `tab.url` manque.
   de 4 octets ; le format « v4 » (13 octets) le fait répondre une erreur
   `DataError` au lieu d'imprimer.
 
+## Planches d'étiquettes
+
+Les dispositions sont rangées en deux familles : des **grilles génériques**, à
+régler soi-même, et des **références commerciales** dont les cotes sont
+reproduites telles que les fabricants les publient — Avery L7160, L7159, L7162,
+L7163, Zweckform 3475 sur A4, et 5160 / 5162 / 5163 / 6871 sur Letter.
+
+Deux points de conception méritent d'être connus avant de toucher à ce code.
+
+**Les marges situent le coin de la première étiquette**, elles ne sont pas
+symétriques. Sur une L7160 il y a 8,6 mm à gauche et 5,1 mm à droite ; un modèle
+à marges symétriques ne placerait que deux colonnes sur trois. `marginXMm` et
+`marginYMm` sont donc des décalages depuis le bord gauche et le bord haut, et la
+marge de droite est ce qui reste.
+
+**La géométrie de la planche vit hors de `@media print`.** L'aperçu à l'écran et
+la feuille imprimée partagent les mêmes règles, donc la même mise en page. Ça
+n'a pas toujours été le cas : tant que `.print-cell` n'était positionné que dans
+le bloc d'impression, l'aperçu empilait les étiquettes en une seule colonne, le
+texte d'une étiquette débordait sur sa voisine, et le curseur de largeur du QR
+n'avait aucun effet — le SVG gardait sa taille intrinsèque dans une boîte que
+personne ne contraignait. La leçon est dans les tests : `test/sheet-matrix.test.js`
+couvre la géométrie pure sur tous les formats, et `npm run verify:brave` mesure
+le DOM réellement calculé par le navigateur (colonnes distinctes, aucune
+superposition, QR contenu dans sa boîte, effet du curseur). Un test de géométrie
+seul n'aurait jamais vu ce défaut.
+
+**Calibrer reste nécessaire.** Aucune cote de fabricant ne prévoit l'entraînement
+d'une imprimante donnée : les champs « Décalage horizontal / vertical » déplacent
+toute la grille, sans la modifier. Et la taille du papier est posée
+dynamiquement (`@page`), sans quoi une planche Letter partirait sur du A4, donc
+réduite et décalée.
+
 ## Raccourcir les URL, et ouvrir les liens collectés
 
 Deux fonctions qui se répondent, autour de la même question : quelle adresse
@@ -306,7 +359,9 @@ construit échoue avec un message explicite.
   et les points restant à vérifier sur matériel.
 - `docs/note-capacites-capture-url-safari-brave.md` — matrice de capacités des
   extensions navigateur sur Safari macOS, Safari iOS et Brave.
-- `guide-utilisation.md` — le parcours complet, de la collecte à l'impression.
+- `guide-utilisation.md` — le parcours complet, de la collecte à l'impression :
+  raccourcissement, planches Avery et leur calibrage, aperçu Niimbot hors ligne,
+  exports sans imprimante, dépannage.
 
 ## Incertitudes assumées
 

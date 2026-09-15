@@ -193,14 +193,52 @@ test('le compteur affiche zéro lien au démarrage', () => {
   assert.equal(registry.get('count').textContent, '0 lien');
 });
 
-test('les dispositions de planche sont proposées', () => {
+test('les dispositions de planche sont proposées, groupées par famille', () => {
   const preset = registry.get('preset');
-  assert.equal(preset.children.length, 4, 'les quatre préréglages doivent être listés');
   assert.equal(preset.value, 'a4-3x8', 'le préréglage par défaut doit être sélectionné');
-  for (const option of preset.children) {
-    assert.equal(option.tagName, 'OPTION');
-    assert.ok(option.value, 'chaque option doit porter une valeur');
-    assert.ok(option.textContent, 'chaque option doit porter un libellé');
+
+  // Les préréglages sont rangés par famille : les dispositions génériques se
+  // règlent, les références Avery se choisissent sur l'emballage.
+  const groups = preset.children;
+  assert.ok(groups.length >= 3, `${groups.length} famille(s) attendues`);
+  for (const group of groups) {
+    assert.equal(group.tagName, 'OPTGROUP');
+    assert.ok(group.label, 'chaque famille porte un titre');
+    assert.ok(group.children.length > 0, `${group.label} ne doit pas être vide`);
+    for (const option of group.children) {
+      assert.equal(option.tagName, 'OPTION');
+      assert.ok(option.value, 'chaque option doit porter une valeur');
+      assert.ok(option.textContent, 'chaque option doit porter un libellé');
+    }
+  }
+
+  const keys = groups.flatMap((group) => group.children.map((option) => option.value));
+  assert.ok(keys.includes('avery-l7160'), 'la référence Avery L7160 doit être proposée');
+  assert.ok(keys.includes('avery-5160'), 'la référence Avery 5160 (Letter) doit être proposée');
+});
+
+test('le format d\'étiquette Niimbot est visible sans imprimante', () => {
+  const profiles = registry.get('label-profile').children;
+  assert.ok(profiles.length >= 2, 'les formats D110 et M2 doivent être proposés');
+  assert.equal(registry.get('label-profile').value, 'D110', 'le D110 est retenu par défaut');
+
+  const labels = profiles.map((option) => option.textContent).join(' | ');
+  assert.match(labels, /D110/);
+  assert.match(labels, /M2/);
+  assert.match(labels, /mm/, 'chaque format annonce sa largeur utile en millimètres');
+
+  // Node n'a pas de Web Bluetooth : c'est exactement le cas « pas d'imprimante ».
+  // L'aperçu doit malgré tout annoncer avec quel profil il compose.
+  assert.match(registry.get('profile-hint').textContent, /sans imprimante connectée/);
+  assert.match(registry.get('profile-hint').textContent, /D110/);
+});
+
+test('le décalage d\'impression est câblé, sans effet au départ', () => {
+  // Le DOM factice ne lit pas les attributs du HTML : la valeur par défaut est
+  // vérifiée dans test/web.test.js, sur le fichier réel. Ici on s'assure que le
+  // champ est bien celui qu'app.js interroge — une valeur vide vaut zéro.
+  for (const id of ['sheet-offset-x', 'sheet-offset-y']) {
+    assert.equal(registry.get(id).value, '', `${id} n'est pas initialisé par app.js`);
   }
 });
 

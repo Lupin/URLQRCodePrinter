@@ -23,7 +23,16 @@ import {
 import { encodeQr, toSvg } from './core/qr.js';
 import { computeLabelGeometry, drawLabel, checkQrLegibility } from './core/label.js';
 import { imageDataToMono, validateBitmap } from './core/raster.js';
-import { SHEET_PRESETS, PAGE_SIZES, computeSheet, paginate } from './core/sheet.js';
+import {
+  SHEET_PRESETS,
+  SHEET_GROUPS,
+  PAGE_SIZES,
+  computeSheet,
+  paginate,
+  qrSideMm,
+  cellContentFits,
+} from './core/sheet.js';
+import { PROFILES, DEFAULT_PROFILE, findProfile } from './core/printer/profiles.js';
 import { toCsv, toMarkdown, toJson, parseJsonExport, exportFilename } from './core/exporters.js';
 import { downloadText, downloadBytes } from './core/download.js';
 import { buildLinkSpreadsheet } from './core/spreadsheet.js';
@@ -45,6 +54,9 @@ import {
 import { NiimbotPrinter } from './core/printer/printer.js';
 
 const PX_PER_MM = 96 / 25.4;
+
+/** Identifiant de la feuille de style qui porte la taille de papier. */
+const PRINT_PAGE_STYLE_ID = 'print-page-size';
 
 // ---------------------------------------------------------------------------
 // État
@@ -222,6 +234,67 @@ function linkAnchor(url, className, label = url) {
 }
 
 /**
+ * Champ de note d'un lien.
+ *
+ * La note existait dans le modèle, dans l'import et dans les exports, mais rien
+ * ne permettait de la saisir : la colonne « Note » du tableau et l'option
+ * « Afficher les notes » ne pouvaient donc jamais rien montrer. Ce champ comble
+ * ce trou, sans alourdir la ligne tant qu'on ne s'en sert pas.
+ *
+ * @param {import('./core/link.js').LinkRecord} link
+ * @returns {HTMLElement}
+ */
+function noteField(link) {
+  const wrap = document.createElement('div');
+  wrap.className = 'link__note';
+
+  const open = button(link.note ? link.note : '＋ note', 'link__note-button', () => {
+    let settled = false;
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.className = 'input input--compact link__note-input';
+    input.value = link.note ?? '';
+    input.placeholder = 'Note…';
+    input.setAttribute('aria-label', `Note pour ${link.title || link.url}`);
+
+    const finish = async (save) => {
+      if (settled) return;
+      settled = true;
+      const value = input.value.trim();
+      if (save && value !== (link.note ?? '')) {
+        await store.put({ ...link, note: value });
+        toast(value === '' ? 'Note effacée' : 'Note enregistrée');
+      }
+      await refresh();
+    };
+
+    input.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        finish(true);
+      } else if (event.key === 'Escape') {
+        event.preventDefault();
+        finish(false);
+      }
+    });
+    // Quitter le champ enregistre : c'est ce qu'on attend d'un formulaire, et
+    // une note perdue serait invisible.
+    input.addEventListener('blur', () => finish(true));
+
+    wrap.textContent = '';
+    wrap.appendChild(input);
+    input.focus();
+  });
+  open.setAttribute('aria-label', link.note
+    ? `Modifier la note de ${link.title || link.url}`
+    : `Ajouter une note à ${link.title || link.url}`);
+  open.title = link.note || 'Ajouter une note';
+
+  wrap.appendChild(open);
+  return wrap;
+}
+
+/**
  * Construit une ligne de la collection.
  * @param {import('./core/link.js').LinkRecord} link
  * @returns {HTMLLIElement}
@@ -264,6 +337,8 @@ function renderLink(link) {
     short.append(mark, linkAnchor(link.shortUrl, 'link__short-url'), provider);
     body.appendChild(short);
   }
+
+  body.appendChild(noteField(link));
 
   if (link.tags.length) {
     const tags = document.createElement('div');
@@ -571,6 +646,10 @@ function sheetConfig() {
   return {
     ...preset,
     qrSizeRatio: Number(el.sheetQr.value) / 100,
+    // Décalage d'entraînement de l'imprimante : il ne change pas la grille,
+    // seulement sa position sur la feuille.
+    offsetXMm: Number(el.sheetOffsetX.value) || 0,
+    offsetYMm: Number(el.sheetOffsetY.value) || 0,
   };
 }
 
@@ -588,10 +667,26 @@ function buildSheetPages(items) {
   const layout = computeSheet({ count: items.length, ...config });
   const pages = paginate(items, layout);
 
+  const side = qrSideMm(layout.labelWidthMm, layout.labelHeightMm, config.qrSizeRatio);
+  // Le QR ne doit pas chasser le texte hors de l'étiquette : à 100 % sur une
+  // étiquette basse, il ne reste plus une seule ligne de place.
+  const content = cellContentFits({
+    labelWidthMm: layout.labelWidthMm,
+    labelHeightMm: layout.labelHeightMm,
+    qrSideMm: side,
+  });
+
+  // Une planche Letter ne doit pas partir sur du A4 : la taille du papier est
+  // posée ici, une fois pour toutes les sorties (aperçu, impression, Ctrl+P).
+  applyPrintPageSize(layout.pageWidthMm, layout.pageHeightMm);
+
+  const warnings = [...layout.warnings];
+  if (!content.ok) warnings.push(content.reason);
+
   el.sheetInfo.textContent = layout.perPage > 0
     ? `${layout.columns} × ${layout.rows} = ${layout.perPage} étiquettes par page, ` +
       `${layout.pages} page${layout.pages > 1 ? 's' : ''}` +
-      (layout.warnings.length ? ` — ${layout.warnings.join(' ')}` : '')
+      (warnings.length ? ` — ${warnings.join(' ')}` : '')
     : layout.warnings.join(' ');
 
   return pages.map((page) => {
@@ -610,7 +705,6 @@ function buildSheetPages(items) {
 
       const qrBox = document.createElement('div');
       qrBox.className = 'print-cell__qr';
-      const side = Math.min(layout.labelWidthMm, layout.labelHeightMm) * config.qrSizeRatio;
       qrBox.style.width = `${side}mm`;
       qrBox.appendChild(qrElement(item.url));
 
@@ -739,21 +833,42 @@ function scaleForScreen(page) {
   const available = Math.max(280, el.preview.clientWidth - 40);
   const scale = Math.min(0.6, available / (widthMm * PX_PER_MM));
 
-  const wrapper = document.createElement('div');
-  wrapper.style.width = `${widthMm * PX_PER_MM * scale}px`;
-  wrapper.style.height = `${heightMm * PX_PER_MM * scale}px`;
+  const frame = document.createElement('div');
+  frame.className = 'preview__frame';
+  frame.style.width = `${widthMm * PX_PER_MM * scale}px`;
+  frame.style.height = `${heightMm * PX_PER_MM * scale}px`;
+  frame.style.overflow = 'hidden';
 
-  const inner = document.createElement('div');
-  inner.className = 'preview__page';
-  inner.style.width = `${widthMm}mm`;
-  inner.style.height = `${heightMm}mm`;
-  inner.style.transform = `scale(${scale})`;
-  inner.style.transformOrigin = 'top left';
-  inner.style.padding = '0';
+  // La page est mise à l'échelle **telle quelle**, sans être déballée : c'est
+  // le même élément et les mêmes règles qu'à l'impression. La déballer, comme
+  // on le faisait, perdait le positionnement des cellules et l'aperçu ne
+  // montrait plus du tout la planche qui allait sortir.
+  page.classList.add('print-page--screen');
+  page.style.transform = `scale(${scale})`;
+  page.style.transformOrigin = 'top left';
 
-  while (page.firstChild) inner.appendChild(page.firstChild);
-  wrapper.appendChild(inner);
-  return wrapper;
+  frame.appendChild(page);
+  return frame;
+}
+
+/**
+ * Pose la taille de papier utilisée à l'impression.
+ *
+ * `@page` n'accepte pas de style en ligne : il faut une feuille de style. Sans
+ * cela, une planche Letter serait posée sur du A4, donc réduite et décalée —
+ * et aucune cote d'étiquette ne pourrait la rattraper.
+ *
+ * @param {number} widthMm
+ * @param {number} heightMm
+ */
+function applyPrintPageSize(widthMm, heightMm) {
+  let style = document.getElementById(PRINT_PAGE_STYLE_ID);
+  if (!style) {
+    style = document.createElement('style');
+    style.id = PRINT_PAGE_STYLE_ID;
+    (document.head ?? document.body).appendChild(style);
+  }
+  style.textContent = `@page { size: ${widthMm}mm ${heightMm}mm; margin: 0; }`;
 }
 
 /** Aperçu de l'étiquette destinée à l'imprimante Niimbot. */
@@ -763,17 +878,18 @@ function renderSingleLabel(link) {
     labelPreviewUrl = null;
   }
 
-  if (!link || !printer?.profile) {
+  if (!link) {
     const note = document.createElement('p');
     note.className = 'hint';
-    note.textContent = printer?.profile
-      ? 'Sélectionnez un lien pour voir l\'étiquette.'
-      : 'Connectez une imprimante pour composer l\'étiquette.';
+    note.textContent = 'Sélectionnez un lien pour voir l\'étiquette.';
     el.preview.appendChild(note);
     return;
   }
 
-  const { geometry, verdict } = composeLabel(link, printer.profile);
+  // Le profil vient de l'imprimante quand il y en a une, sinon du format
+  // choisi : on doit pouvoir juger un rendu avant d'acheter le matériel.
+  const profile = previewProfile();
+  const { geometry, verdict } = composeLabel(link, profile);
 
   const frame = document.createElement('div');
   frame.className = 'preview__page';
@@ -800,12 +916,14 @@ function renderSingleLabel(link) {
   const caption = document.createElement('p');
   caption.className = 'hint';
   caption.textContent = verdict.ok
-    ? `${geometry.width} × ${geometry.height} px — ${verdict.pxPerModule.toFixed(1)} px par module`
-    : verdict.reason;
+    ? `${profile.id} — ${geometry.width} × ${geometry.height} px, `
+      + `${verdict.pxPerModule.toFixed(1)} px par module`
+    : `${profile.id} — ${verdict.reason}`;
   if (!verdict.ok) caption.style.color = 'var(--danger)';
   frame.appendChild(caption);
 
   el.preview.appendChild(frame);
+  updateProfileHint();
 }
 
 // ---------------------------------------------------------------------------
@@ -1091,9 +1209,11 @@ function printSelection() {
   el.printRoot.textContent = '';
 
   if (mode === 'table') {
+    // Le tableau s'imprime sur A4 : il n'a pas de cotes d'étiquette à honorer,
+    // seulement une largeur de papier à fixer.
+    applyPrintPageSize(PAGE_SIZES.a4.widthMm, PAGE_SIZES.a4.heightMm);
     const page = document.createElement('div');
     page.className = 'print-page';
-    page.style.position = 'static';
     page.appendChild(buildTable(items));
     el.printRoot.appendChild(page);
   } else {
@@ -1153,6 +1273,10 @@ async function connectPrinter() {
     ];
     if (reportedHeadPixels !== null) details.push(`largeur mesurée ${reportedHeadPixels} px`);
     el.printStatus.textContent = `Connecté : ${details.join(', ')}.`;
+
+    // L'aperçu se cale sur le matériel présent : ce qu'on voit est ce qu'on
+    // imprimera. Le sélecteur reste modifiable pour explorer un autre format.
+    if (findProfile(profile.id)) el.labelProfile.value = profile.id;
 
     device.addEventListener('gattserverdisconnected', handlePrinterLost);
     renderPreview();
@@ -1251,13 +1375,65 @@ async function printOneLabel() {
 // ---------------------------------------------------------------------------
 
 function fillPresets() {
-  for (const [key, preset] of Object.entries(SHEET_PRESETS)) {
-    const option = document.createElement('option');
-    option.value = key;
-    option.textContent = preset.label;
-    el.preset.appendChild(option);
+  // Regroupés par famille : une planche générique se règle, une planche Avery
+  // se choisit par la référence imprimée sur l'emballage.
+  for (const group of SHEET_GROUPS) {
+    const entries = Object.entries(SHEET_PRESETS).filter(([, p]) => p.group === group.id);
+    if (entries.length === 0) continue;
+
+    const optgroup = document.createElement('optgroup');
+    optgroup.label = group.label;
+    for (const [key, preset] of entries) {
+      const option = document.createElement('option');
+      option.value = key;
+      option.textContent = preset.label;
+      optgroup.appendChild(option);
+    }
+    el.preset.appendChild(optgroup);
   }
   el.preset.value = 'a4-3x8';
+}
+
+/**
+ * Remplit le choix du format d'étiquette Niimbot.
+ *
+ * Ce choix pilote l'aperçu, pas l'impression : celle-ci utilise toujours le
+ * profil du matériel réellement connecté, pour qu'un aperçu ne puisse jamais
+ * faire imprimer à la mauvaise largeur.
+ */
+function fillProfiles() {
+  for (const profile of PROFILES) {
+    const option = document.createElement('option');
+    option.value = profile.id;
+    const printableMm = Math.round((profile.printheadPixels / profile.dpi) * 25.4);
+    option.textContent = `Niimbot ${profile.id} — ${printableMm} mm utiles, ${profile.dpi} dpi`;
+    el.labelProfile.appendChild(option);
+  }
+  el.labelProfile.value = DEFAULT_PROFILE.id;
+}
+
+/** Le profil retenu pour l'aperçu : celui du matériel, ou celui choisi. */
+function previewProfile() {
+  const fallback = printer?.profile ?? findProfile(el.labelProfile.value) ?? DEFAULT_PROFILE;
+  return fallback;
+}
+
+/** Explique avec quel profil l'aperçu est composé, et ce qui sera imprimé. */
+function updateProfileHint() {
+  const profile = previewProfile();
+  const selected = findProfile(el.labelProfile.value) ?? DEFAULT_PROFILE;
+  const printableMm = ((profile.printheadPixels / profile.dpi) * 25.4).toFixed(1);
+
+  if (!printer) {
+    el.profileHint.textContent =
+      `Aperçu composé avec le ${profile.id} (${printableMm} mm utiles, ${profile.dpi} dpi), `
+      + 'sans imprimante connectée : les dimensions et le nombre de modules sont exacts.';
+    return;
+  }
+  el.profileHint.textContent = selected.id === profile.id
+    ? `Imprimante connectée : ${profile.id}. Aperçu et impression identiques.`
+    : `Imprimante connectée : ${profile.id}. L'aperçu montre un ${selected.id} ; `
+      + `l'impression se fera au format du ${profile.id}.`;
 }
 
 /** Remplit les listes de formats et de modes de texte. */
@@ -1382,6 +1558,12 @@ el.qrTarget.addEventListener('change', () => {
 
 el.preset.addEventListener('change', renderPreview);
 el.sheetQr.addEventListener('input', renderPreview);
+el.sheetOffsetX.addEventListener('input', renderPreview);
+el.sheetOffsetY.addEventListener('input', renderPreview);
+el.labelProfile.addEventListener('change', () => {
+  updateProfileHint();
+  renderPreview();
+});
 el.tableQr.addEventListener('input', renderPreview);
 el.tableNote.addEventListener('change', renderPreview);
 el.showTitle.addEventListener('change', renderPreview);
@@ -1402,9 +1584,9 @@ window.addEventListener('beforeprint', () => {
   if (el.printRoot.childElementCount === 0 && mode !== 'single') {
     const items = printableLinks();
     if (mode === 'table') {
+      applyPrintPageSize(PAGE_SIZES.a4.widthMm, PAGE_SIZES.a4.heightMm);
       const page = document.createElement('div');
       page.className = 'print-page';
-      page.style.position = 'static';
       page.appendChild(buildTable(items));
       el.printRoot.appendChild(page);
     } else {
@@ -1417,6 +1599,7 @@ window.addEventListener('beforeprint', () => {
 
 fillPresets();
 fillLabelForm();
+fillProfiles();
 fillShorteners();
 fillTargets();
 
@@ -1428,6 +1611,7 @@ el.qrTarget.value = preferences.targetMode;
 
 reportBluetoothSupport();
 switchMode('sheet');
+updateProfileHint();
 
 if (storeKind === 'memory') {
   toast('Stockage temporaire : IndexedDB indisponible, les liens seront perdus', 'error');

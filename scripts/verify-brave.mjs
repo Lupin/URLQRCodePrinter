@@ -254,6 +254,118 @@ async function main() {
       await evaluate("document.getElementById('qr-target').value") === 'short',
     );
 
+    // --- Planches : les cotes commerciales sont proposées -------------------
+    const sheetGroups = await evaluate(`(() => {
+      const select = document.getElementById('preset');
+      return [...select.querySelectorAll('optgroup')].map((group) => ({
+        label: group.label,
+        values: [...group.children].map((option) => option.value),
+      }));
+    })()`);
+    const allPresets = (sheetGroups ?? []).flatMap((group) => group.values);
+    record(
+      'les planches sont groupées par famille',
+      Array.isArray(sheetGroups) && sheetGroups.length >= 3,
+      (sheetGroups ?? []).map((g) => g.label).join(' | '),
+    );
+    record(
+      'les références Avery sont proposées',
+      ['avery-l7160', 'avery-l7159', 'avery-5160', 'zweckform-3475'].every((key) =>
+        allPresets.includes(key)),
+      `${allPresets.length} dispositions`,
+    );
+
+    // Chaque référence doit produire la grille annoncée sur son emballage,
+    // mesurée ici sur la page réellement affichée.
+    const grids = await evaluate(`(async () => {
+      const select = document.getElementById('preset');
+      const info = document.getElementById('sheet-info');
+      const out = {};
+      for (const key of ['avery-l7160', 'avery-l7159', 'avery-5160', 'avery-5162']) {
+        select.value = key;
+        select.dispatchEvent(new Event('change'));
+        await new Promise((r) => setTimeout(r, 60));
+        out[key] = info.textContent.trim();
+      }
+      select.value = 'a4-3x8';
+      select.dispatchEvent(new Event('change'));
+      await new Promise((r) => setTimeout(r, 60));
+      return out;
+    })()`);
+    record(
+      'la planche L7160 place 21 étiquettes (3 × 7)',
+      /3 × 7 = 21/.test(grids?.['avery-l7160'] ?? ''),
+      grids?.['avery-l7160'],
+    );
+    record(
+      'la planche L7159 place 24 étiquettes (3 × 8)',
+      /3 × 8 = 24/.test(grids?.['avery-l7159'] ?? ''),
+      grids?.['avery-l7159'],
+    );
+    record(
+      'la planche 5160 place 30 étiquettes (3 × 10)',
+      /3 × 10 = 30/.test(grids?.['avery-5160'] ?? ''),
+      grids?.['avery-5160'],
+    );
+    record(
+      'la planche 5162 place 14 étiquettes (2 × 7)',
+      /2 × 7 = 14/.test(grids?.['avery-5162'] ?? ''),
+      grids?.['avery-5162'],
+    );
+
+    // --- Étiquette Niimbot : aperçu sans imprimante ------------------------
+    await evaluate(`[...document.querySelectorAll('.tab')].find(t => t.dataset.mode === 'single').click()`);
+    await new Promise((r) => setTimeout(r, 600));
+
+    const noPrinter = await evaluate(`(() => {
+      const canvas = document.querySelector('#preview canvas');
+      return {
+        hasCanvas: Boolean(canvas),
+        width: canvas ? canvas.width : 0,
+        height: canvas ? canvas.height : 0,
+        dot: document.getElementById('printer-dot').className,
+        hint: document.getElementById('profile-hint').textContent,
+        caption: document.querySelector('#preview .hint')?.textContent ?? '',
+        profiles: [...document.getElementById('label-profile').options].map((o) => o.value),
+      };
+    })()`);
+    record('aucune imprimante n\'est connectée', String(noPrinter?.dot).includes('dot--off'));
+    record(
+      "l'aperçu d'étiquette est rendu sans imprimante",
+      noPrinter?.hasCanvas === true && noPrinter.width > 0 && noPrinter.height > 0,
+      noPrinter ? `${noPrinter.width} × ${noPrinter.height} px` : 'aucun canvas',
+    );
+    record(
+      "l'aperçu annonce le profil utilisé, hors ligne",
+      /sans imprimante connectée/.test(noPrinter?.hint ?? '')
+        && /D110/.test(noPrinter?.caption ?? ''),
+      noPrinter?.caption,
+    );
+
+    // Le format M2 doit pouvoir être prévisualisé aussi, sans le posséder.
+    const m2 = await evaluate(`(async () => {
+      const select = document.getElementById('label-profile');
+      select.value = 'M2';
+      select.dispatchEvent(new Event('change'));
+      await new Promise((r) => setTimeout(r, 300));
+      const canvas = document.querySelector('#preview canvas');
+      return {
+        width: canvas ? canvas.width : 0,
+        caption: document.querySelector('#preview .hint')?.textContent ?? '',
+      };
+    })()`);
+    record(
+      'un second format se prévisualise aussi',
+      (noPrinter?.profiles ?? []).includes('M2') && m2.width > noPrinter.width,
+      `D110 ${noPrinter?.width} px → M2 ${m2.width} px`,
+    );
+
+    // L'impression, elle, reste impossible sans matériel.
+    record(
+      'impression impossible sans imprimante',
+      await evaluate("document.getElementById('print-label').disabled") === true,
+    );
+
     // --- Export des données : le raccourci est consigné, pas substitué -----
     await evaluate("document.getElementById('export-csv').click()");
     const csvName = await waitFor(
@@ -335,6 +447,289 @@ async function main() {
       (await popupEval("document.querySelectorAll('#list .item__short').length")) === 1,
     );
     popup.ws.close();
+
+    // --- Matrice de mise en page, mesurée sur le rendu réel ----------------
+    //
+    // C'est ce bloc qui manquait quand la planche s'affichait en une seule
+    // colonne : la géométrie était juste, mais appliquée uniquement à
+    // l'impression. On mesure donc ici le DOM tel que le navigateur le calcule.
+    await evaluate(`(async () => {
+      for (let i = 0; i < 30; i++) {
+        await chrome.runtime.sendMessage({ type: 'record-capture', capture: {
+          url: 'https://exemple.fr/page-' + i, title: 'Page ' + i } });
+      }
+    })()`);
+    await evaluate('location.reload()');
+    await waitForEval("document.querySelectorAll('#list .link').length >= 30 || ''", 'la collection de 30 liens');
+    await evaluate(`[...document.querySelectorAll('.tab')].find(t => t.dataset.mode === 'sheet').click()`);
+    await new Promise((r) => setTimeout(r, 600));
+
+    /**
+     * Mesure la première page de la planche pour un préréglage donné.
+     * @param {string} preset
+     */
+    const measureSheet = (preset) => evaluate(`(async () => {
+      const select = document.getElementById('preset');
+      select.value = ${JSON.stringify(preset)};
+      select.dispatchEvent(new Event('change'));
+      await new Promise((r) => setTimeout(r, 250));
+
+      const page = document.querySelector('#preview .print-page');
+      if (!page) return { error: 'aucune page rendue' };
+
+      const pageRect = page.getBoundingClientRect();
+      const pageStyle = getComputedStyle(page);
+      const cells = [...page.querySelectorAll('.print-cell')].map((cell) => {
+        const rect = cell.getBoundingClientRect();
+        const box = cell.querySelector('.print-cell__qr');
+        const svg = cell.querySelector('svg');
+        const text = cell.querySelector('.print-cell__text');
+        return {
+          x: rect.x, y: rect.y, w: rect.width, h: rect.height,
+          position: getComputedStyle(cell).position,
+          overflow: getComputedStyle(cell).overflow,
+          boxW: box ? box.getBoundingClientRect().width : 0,
+          svgW: svg ? svg.getBoundingClientRect().width : 0,
+          textOverflow: text ? text.scrollHeight > text.clientHeight + 1 : false,
+          textClipped: cell.scrollHeight > cell.clientHeight + 1,
+        };
+      });
+
+      const paper = document.getElementById('print-page-size');
+      return {
+        count: cells.length,
+        info: document.getElementById('sheet-info').textContent.trim(),
+        page: { x: pageRect.x, y: pageRect.y, w: pageRect.width, h: pageRect.height },
+        pagePosition: pageStyle.position,
+        pageOverflow: pageStyle.overflow,
+        paper: paper ? paper.textContent : '',
+        cells,
+      };
+    })()`);
+
+    /** Vérifie une page mesurée contre le préréglage attendu. */
+    const checkSheet = (preset, expected) => {
+      const label = `${preset} (${expected.columns} × ${expected.rows})`;
+      const sheet = measured[preset];
+      if (!sheet || sheet.error) {
+        record(`planche ${label}`, false, sheet?.error ?? 'non mesurée');
+        return;
+      }
+
+      const xs = new Set(sheet.cells.map((c) => Math.round(c.x)));
+      const ys = new Set(sheet.cells.map((c) => Math.round(c.y)));
+      const expectedCount = Math.min(30, expected.columns * expected.rows);
+
+      const problems = [];
+      if (sheet.cells.length !== expectedCount) {
+        problems.push(`${sheet.cells.length} étiquettes au lieu de ${expectedCount}`);
+      }
+      if (xs.size !== expected.columns) problems.push(`${xs.size} colonnes au lieu de ${expected.columns}`);
+      if (ys.size !== Math.min(expected.rows, Math.ceil(expectedCount / expected.columns))) {
+        problems.push(`${ys.size} rangées inattendues`);
+      }
+      if (sheet.cells.some((c) => c.position !== 'absolute')) problems.push('cellule non positionnée');
+      if (sheet.cells.some((c) => c.overflow !== 'hidden')) problems.push('débordement non masqué');
+      if (sheet.cells.some((c) => Math.abs(c.svgW - c.boxW) > 1.5)) {
+        problems.push('QR plus large que sa boîte');
+      }
+      if (sheet.cells.some((c) => c.textClipped || c.textOverflow)) problems.push('texte rogné');
+      if (sheet.cells.some((c) => c.x < sheet.page.x - 1 || c.y < sheet.page.y - 1)) {
+        problems.push('étiquette hors de la page');
+      }
+      if (sheet.cells.some((c) =>
+        c.x + c.w > sheet.page.x + sheet.page.w + 1.5 || c.y + c.h > sheet.page.y + sheet.page.h + 1.5)) {
+        problems.push('étiquette débordant de la page');
+      }
+
+      // Aucune superposition : c'est le défaut vu à l'écran.
+      const overlaps = [];
+      for (let a = 0; a < sheet.cells.length; a++) {
+        for (let b = a + 1; b < sheet.cells.length; b++) {
+          const one = sheet.cells[a];
+          const two = sheet.cells[b];
+          if (one.x < two.x + two.w - 1 && two.x < one.x + one.w - 1
+            && one.y < two.y + two.h - 1 && two.y < one.y + one.h - 1) {
+            overlaps.push(`${a}/${b}`);
+          }
+        }
+      }
+      if (overlaps.length > 0) problems.push(`${overlaps.length} chevauchement(s)`);
+
+      // La taille d'une étiquette doit correspondre à ses millimètres.
+      const scale = sheet.page.w / expected.pageWidthMm;
+      const first = sheet.cells[0];
+      if (Math.abs(first.w - expected.labelWidthMm * scale) > 2) {
+        problems.push(`largeur ${Math.round(first.w)} px pour ${expected.labelWidthMm} mm`);
+      }
+      if (Math.abs(first.h - expected.labelHeightMm * scale) > 2) {
+        problems.push(`hauteur ${Math.round(first.h)} px pour ${expected.labelHeightMm} mm`);
+      }
+      if (!sheet.paper.includes(`${expected.pageWidthMm}mm ${expected.pageHeightMm}mm`)) {
+        problems.push(`papier « ${sheet.paper} »`);
+      }
+
+      record(
+        `planche ${label}`,
+        problems.length === 0,
+        problems.length === 0
+          ? `${xs.size} colonnes × ${ys.size} rangées, ${sheet.cells.length} étiquettes, `
+            + `${Math.round(first.w)} × ${Math.round(first.h)} px`
+          : problems.join(' ; '),
+      );
+    };
+
+    const SHEET_CASES = {
+      'a4-3x8': { columns: 3, rows: 8, labelWidthMm: 63.5, labelHeightMm: 33.9, pageWidthMm: 210, pageHeightMm: 297 },
+      'avery-l7160': { columns: 3, rows: 7, labelWidthMm: 63.5, labelHeightMm: 38.1, pageWidthMm: 210, pageHeightMm: 297 },
+      'avery-l7162': { columns: 2, rows: 8, labelWidthMm: 99.1, labelHeightMm: 33.9, pageWidthMm: 210, pageHeightMm: 297 },
+      'zweckform-3475': { columns: 3, rows: 8, labelWidthMm: 70, labelHeightMm: 36, pageWidthMm: 210, pageHeightMm: 297 },
+      'avery-5160': { columns: 3, rows: 10, labelWidthMm: 66.7, labelHeightMm: 25.4, pageWidthMm: 215.9, pageHeightMm: 279.4 },
+      'avery-5163': { columns: 2, rows: 5, labelWidthMm: 101.6, labelHeightMm: 50.8, pageWidthMm: 215.9, pageHeightMm: 279.4 },
+      'a4-qr-3x4': { columns: 3, rows: 4, labelWidthMm: 60, labelHeightMm: 60, pageWidthMm: 210, pageHeightMm: 297 },
+    };
+
+    const measured = {};
+    for (const preset of Object.keys(SHEET_CASES)) measured[preset] = await measureSheet(preset);
+    for (const [preset, expected] of Object.entries(SHEET_CASES)) checkSheet(preset, expected);
+
+    // --- Sensibilité aux réglages -----------------------------------------
+    const tweaks = await evaluate(`(async () => {
+      const preset = document.getElementById('preset');
+      const slider = document.getElementById('sheet-qr');
+      const offsetX = document.getElementById('sheet-offset-x');
+      const offsetY = document.getElementById('sheet-offset-y');
+      const info = document.getElementById('sheet-info');
+      const pause = () => new Promise((r) => setTimeout(r, 220));
+
+      const qrWidth = () => {
+        const svg = document.querySelector('#preview .print-cell svg');
+        return svg ? svg.getBoundingClientRect().width : 0;
+      };
+      const firstCell = () => {
+        const cell = document.querySelector('#preview .print-cell');
+        const rect = cell.getBoundingClientRect();
+        return { x: rect.x, y: rect.y };
+      };
+
+      preset.value = 'avery-l7160';
+      preset.dispatchEvent(new Event('change'));
+      offsetX.value = '0'; offsetX.dispatchEvent(new Event('input'));
+      offsetY.value = '0'; offsetY.dispatchEvent(new Event('input'));
+      await pause();
+
+      slider.value = '30'; slider.dispatchEvent(new Event('input'));
+      await pause();
+      const small = qrWidth();
+      const smallInfo = info.textContent;
+
+      slider.value = '100'; slider.dispatchEvent(new Event('input'));
+      await pause();
+      const big = qrWidth();
+      const bigInfo = info.textContent;
+
+      slider.value = '70'; slider.dispatchEvent(new Event('input'));
+      await pause();
+      const base = firstCell();
+      const baseQr = qrWidth();
+
+      offsetX.value = '3'; offsetX.dispatchEvent(new Event('input'));
+      offsetY.value = '2'; offsetY.dispatchEvent(new Event('input'));
+      await pause();
+      const moved = firstCell();
+      const movedQr = qrWidth();
+
+      offsetX.value = '-4'; offsetX.dispatchEvent(new Event('input'));
+      offsetY.value = '-3'; offsetY.dispatchEvent(new Event('input'));
+      await pause();
+      const back = firstCell();
+
+      offsetX.value = '0'; offsetX.dispatchEvent(new Event('input'));
+      offsetY.value = '0'; offsetY.dispatchEvent(new Event('input'));
+      slider.value = '70'; slider.dispatchEvent(new Event('input'));
+      preset.value = 'a4-3x8'; preset.dispatchEvent(new Event('change'));
+      await pause();
+
+      // L'échelle de l'aperçu dépend de la largeur du panneau : on la déduit
+      // de l'étiquette elle-même (63,5 mm pour la L7160) plutôt que de la
+      // supposer. Un aperçu « ajusté au panneau » ne vaut jamais exactement le
+      // plafond de 60 %.
+      const cellW = document.querySelector('#preview .print-cell').getBoundingClientRect().width;
+      const pxPerMm = cellW / 63.5;
+      return {
+        small, big, smallInfo, bigInfo, baseQr, movedQr, pxPerMm,
+        dx: moved.x - base.x, dy: moved.y - base.y,
+        backDx: base.x - back.x, backDy: base.y - back.y,
+      };
+    })()`);
+
+    record(
+      'le curseur de largeur du QR agit sur le rendu',
+      tweaks.big > tweaks.small * 2,
+      `${Math.round(tweaks.small)} px à 30 % → ${Math.round(tweaks.big)} px à 100 %`,
+    );
+    record(
+      'le rognage du texte est annoncé quand le QR est trop grand',
+      /rogné/.test(tweaks.bigInfo ?? '') && !/rogné/.test(tweaks.smallInfo ?? ''),
+      tweaks.bigInfo?.slice(-70),
+    );
+    record(
+      'le décalage déplace la grille, sans la déformer',
+      // Aller : +3 mm et +2 mm. Retour : −4 mm et −3 mm, donc 4 mm et 3 mm
+      // d'écart par rapport à la position d'origine.
+      Math.abs(tweaks.dx - 3 * tweaks.pxPerMm) < 1.5
+        && Math.abs(tweaks.dy - 2 * tweaks.pxPerMm) < 1.5
+        && Math.abs(tweaks.backDx - 4 * tweaks.pxPerMm) < 1.5
+        && Math.abs(tweaks.backDy - 3 * tweaks.pxPerMm) < 1.5
+        && Math.abs(tweaks.movedQr - tweaks.baseQr) < 1.5,
+      `+3 mm → ${tweaks.dx.toFixed(1)} px, −4 mm → ${tweaks.backDx.toFixed(1)} px `
+        + `(attendu ${(4 * tweaks.pxPerMm).toFixed(1)} px à ${tweaks.pxPerMm.toFixed(2)} px/mm)`,
+    );
+
+    // --- Notes : saisissables, donc utiles au tableau ----------------------
+    const noted = await evaluate(`(async () => {
+      const open = document.querySelector('#list .link__note-button');
+      if (!open) return { error: 'aucun bouton de note' };
+      open.click();
+      await new Promise((r) => setTimeout(r, 120));
+
+      const input = document.querySelector('#list .link__note-input');
+      if (!input) return { error: 'champ de note absent' };
+      input.value = 'note de vérification';
+      input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+      await new Promise((r) => setTimeout(r, 500));
+
+      const stored = await new Promise((resolve) => {
+        chrome.storage.local.get('links', (data) => resolve(
+          (data.links ?? []).filter((link) => link.note === 'note de vérification').length,
+        ));
+      });
+
+      [...document.querySelectorAll('.tab')].find((t) => t.dataset.mode === 'table').click();
+      await new Promise((r) => setTimeout(r, 400));
+      const checkbox = document.getElementById('table-note');
+      checkbox.checked = true;
+      checkbox.dispatchEvent(new Event('change'));
+      await new Promise((r) => setTimeout(r, 400));
+
+      const headers = [...document.querySelectorAll('#preview .print-table th')].map((th) => th.textContent);
+      const hasNote = [...document.querySelectorAll('#preview .print-table td')]
+        .some((td) => td.textContent === 'note de vérification');
+
+      [...document.querySelectorAll('.tab')].find((t) => t.dataset.mode === 'sheet').click();
+      return { stored, headers, hasNote };
+    })()`);
+
+    record(
+      'une note peut être saisie depuis la liste',
+      noted?.stored === 1,
+      noted?.error ?? `${noted?.stored} note(s) enregistrée(s)`,
+    );
+    record(
+      'le tableau affiche les notes saisies',
+      Array.isArray(noted?.headers) && noted.headers.includes('Note') && noted.hasNote === true,
+      (noted?.headers ?? []).join(' / '),
+    );
 
     app.ws.close();
     control.ws.close();

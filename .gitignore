@@ -22,3 +22,6 @@ build/
 .brave-test/
 .verify-brave/
 .npm-cache/
+
+# Sondes de mesure ponctuelles
+.probe-*/
