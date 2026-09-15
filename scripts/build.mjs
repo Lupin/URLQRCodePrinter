@@ -214,6 +214,8 @@ async function buildTarget(name) {
     await cp(sharedDir, join(outDir, sharedName), { recursive: true });
   }
 
+  await stripSystemFiles(outDir);
+
   const removed = await materialiseManifest(outDir, target.manifest);
   if (removed.length > 0) {
     console.log(`  ${name} : clés retirées du manifeste (${removed.join(', ')})`);
@@ -233,6 +235,30 @@ async function buildTarget(name) {
   }
 
   return { name, outDir, files: await countFiles(outDir) };
+}
+
+/**
+ * Retire les fichiers de travail du système.
+ *
+ * macOS sème des `.DS_Store` dans les dossiers parcourus par le Finder. Ils se
+ * retrouvent recopiés dans le livrable, où ils n'ont rien à faire — et où ils
+ * peuvent faire échouer une vérification d'intégrité.
+ *
+ * @param {string} dir
+ * @returns {Promise<number>} nombre de fichiers retirés
+ */
+async function stripSystemFiles(dir) {
+  let removed = 0;
+  for (const entry of await readdir(dir, { withFileTypes: true })) {
+    const path = join(dir, entry.name);
+    if (entry.isDirectory()) {
+      removed += await stripSystemFiles(path);
+    } else if (entry.name === '.DS_Store' || entry.name === 'Thumbs.db') {
+      await rm(path, { force: true });
+      removed += 1;
+    }
+  }
+  return removed;
 }
 
 /**
