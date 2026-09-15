@@ -91,6 +91,11 @@ test('les colonnes du tableau ont leurs valeurs par défaut dans le HTML', () =>
   }
 });
 
+test('la grille du tableau est active par défaut', () => {
+  // Un tableau sans bordures est un choix : c'est à l'utilisateur de le faire.
+  assert.match(html, /id="table-grid"[^>]*checked/, 'la grille doit être cochée par défaut');
+});
+
 test('index.html ne contient aucun script inline', () => {
   const inline = [...html.matchAll(/<script\b([^>]*)>/gi)].filter(
     (match) => !/\bsrc\s*=/i.test(match[1]),

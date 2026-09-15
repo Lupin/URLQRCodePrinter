@@ -631,6 +631,20 @@ body {
 
 .print-table__qr { width: 1%; }
 
+/* Variante sans grille. Le sélecteur porte deux classes pour l'emporter sur
+   les règles d'impression, quelle que soit leur position dans la feuille : à
+   spécificité égale, c'est le dernier bloc qui gagne, et l'ordre ne doit pas
+   décider de l'apparence d'un tableau. */
+.print-table.print-table--bare th,
+.print-table.print-table--bare td {
+  border: 0;
+  background: none;
+}
+
+/* Sans bordures, un peu plus d'air entre les lignes : c'est le seul repère qui
+   reste pour suivre une ligne des yeux. */
+.print-table.print-table--bare td { padding-top: 2.2mm; padding-bottom: 2.2mm; }
+
 @media print {
   /* Une seule règle gouverne tout : rien ne s'imprime en dehors de la racine
      dédiée, dont les positions sont calculées en millimètres. */

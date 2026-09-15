@@ -1268,6 +1268,7 @@ function buildTable(items) {
 
   const table = document.createElement('table');
   table.className = 'print-table';
+  if (!el.tableGrid.checked) table.classList.add('print-table--bare');
 
   const head = document.createElement('thead');
   const headRow = document.createElement('tr');
@@ -2304,6 +2305,7 @@ el.tableQr.addEventListener('input', renderPreview);
 for (const box of [
   el.tableColIndex, el.tableColQr, el.tableColUrl,
   el.tableColTitle, el.tableColTags, el.tableColNote,
+  el.tableGrid,
 ]) {
   box.addEventListener('change', renderPreview);
 }

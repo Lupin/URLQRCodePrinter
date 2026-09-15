@@ -211,3 +211,11 @@ test('tags et note ne sont proposés que si la collection en contient', () => {
   const hint = registry.get('table-hint').textContent;
   assert.match(hint, /bouton ✎/, `la phrase doit dire comment les activer : « ${hint} »`);
 });
+
+test('la grille du tableau peut être masquée', () => {
+  // Le DOM de substitution ne lit pas les attributs : la valeur par défaut est
+  // vérifiée dans test/web.test.js. Ici, on s'assure que l'interrupteur existe
+  // et qu'il est branché (une case absente ferait échouer le démarrage).
+  assert.ok(registry.get('table-grid'), 'la case « Grille et bordures » doit exister');
+  assert.equal(registry.get('table-grid').checked, false, 'le DOM de substitution part décoché');
+});

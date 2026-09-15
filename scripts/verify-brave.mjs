@@ -592,6 +592,53 @@ async function main() {
       [...freshness.stylesheet, ...freshness.scripts].join(', '),
     );
 
+    // --- Grille du tableau : masquable, à l'écran comme au papier ---------
+    const grid = await evaluate(`(async () => {
+      const pause = (ms) => new Promise((r) => setTimeout(r, ms));
+      [...document.querySelectorAll('.tab')].find((t) => t.dataset.mode === 'table').click();
+      await pause(400);
+
+      const box = document.getElementById('table-grid');
+      const border = () => {
+        const cell = document.querySelector('#preview .print-table td');
+        const style = getComputedStyle(cell);
+        return { top: style.borderTopWidth, bottom: style.borderBottomWidth };
+      };
+      const header = () => getComputedStyle(
+        document.querySelector('#preview .print-table th'),
+      ).backgroundColor;
+
+      const checked = box.checked;
+      const withGrid = { ...border(), fond: header() };
+
+      box.checked = false;
+      box.dispatchEvent(new Event('change'));
+      await pause(400);
+      const without = { ...border(), fond: header(), classe: document.querySelector('#preview .print-table')?.className ?? '' };
+
+      box.checked = true;
+      box.dispatchEvent(new Event('change'));
+      await pause(300);
+
+      return { checked, withGrid, without };
+    })()`);
+
+    record(
+      'la grille du tableau est active par défaut',
+      grid.checked === true
+        && parseFloat(grid.withGrid.top) > 0
+        && parseFloat(grid.withGrid.bottom) > 0,
+      `bordures ${grid.withGrid.top} / ${grid.withGrid.bottom}, fond ${grid.withGrid.fond}`,
+    );
+    record(
+      'la masquer retire les bordures et le fond d\'en-tête',
+      parseFloat(grid.without.top) === 0
+        && parseFloat(grid.without.bottom) === 0
+        && grid.without.classe.includes('print-table--bare')
+        && grid.without.fond !== grid.withGrid.fond,
+      `bordures ${grid.without.top} / ${grid.without.bottom}, fond ${grid.without.fond}`,
+    );
+
     // --- Nommer la collection, et remplir les champs exportés -------------
     //
     // Ces champs partent dans les exports : ils doivent être saisissables, et

@@ -197,7 +197,7 @@
              proposés que si la collection en contient : une colonne vide sur
              toute une page n'apprend rien. -->
         <fieldset class="columns">
-          <legend class="columns__legend">Colonnes imprimées</legend>
+          <legend class="columns__legend">Tableau imprimé</legend>
           <label class="columns__item field__label">
             <input id="table-col-index" type="checkbox" checked>
             <span>N°</span>
@@ -221,6 +221,12 @@
           <label class="columns__item field__label">
             <input id="table-col-note" type="checkbox">
             <span>Note</span>
+          </label>
+          <!-- Sans bordures, le tableau se lit comme une liste et s'allège à
+               l'impression : utile quand on colle les étiquettes au cutter. -->
+          <label class="columns__item field__label">
+            <input id="table-grid" type="checkbox" checked>
+            <span>Grille et bordures</span>
           </label>
         </fieldset>
         <p id="table-hint" class="hint hint--tight"></p>

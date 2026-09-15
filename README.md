@@ -21,7 +21,7 @@ Markdown, ou envoi direct à une imprimante Niimbot.
 | Socle natif Swift (protocole, session, CoreBluetooth) | fait, testé |
 | Application iOS qui utilise ce socle | à faire |
 
-**602 tests, tous verts** — 498 en JavaScript et 104 en Swift — dont :
+**604 tests, tous verts** — 500 en JavaScript et 104 en Swift — dont :
 
 - la validation **octet à octet** des trames Niimbot contre les relevés
   documentés, **dans les deux langages** : deux implémentations indépendantes
@@ -44,7 +44,7 @@ Markdown, ou envoi direct à une imprimante Niimbot.
 **L'application est vérifiée dans un vrai navigateur** : `npm run verify:brave`
 lance Brave sur un profil isolé, collecte un lien, le raccourcit, exporte le CSV
 et l'archive d'étiquettes, puis contrôle les fichiers réellement écrits sur le
-disque (signature ZIP, `unzip -t`, contenu du CSV). 89 vérifications, dont le
+disque (signature ZIP, `unzip -t`, contenu du CSV). 91 vérifications, dont le
 rendu des liens cliquables dans l'application *et* dans la fenêtre de
 l'extension, la grille réellement calculée pour quatre références Avery, et
 l'aperçu d'étiquette composé sans aucune imprimante connectée.

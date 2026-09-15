@@ -168,6 +168,19 @@ Pour les planches autocollantes A4 et Letter. Deux familles de dispositions :
 > réel, imprimez sur papier ordinaire — ou regardez l'onglet « Images à
 > imprimer », qui affiche une étiquette en grand.
 
+**Choisir les colonnes du tableau.** Dans l'onglet « Tableau », le groupe
+**Tableau imprimé** permet de cocher une à une les colonnes : N°, QR, URL, Titre,
+Tags, Note. La date suit le réglage global « Date sous le QR code ».
+
+Deux d'entre elles ne sont proposées que si elles ont du contenu : une colonne
+« Tags » ou « Note » vide sur toute une page n'apprend rien. Elles s'activent
+depuis la liste, avec le bouton **✎** de chaque ligne.
+
+**Masquer la grille.** La case **« Grille et bordures »** retire les traits et le
+fond gris de l'en-tête : le tableau se lit alors comme une liste, et s'allège à
+l'impression. Les lignes gardent un peu plus d'air, seul repère qui reste pour
+suivre une ligne des yeux.
+
 **Choisir le nombre de colonnes, ou remplir la feuille.** Le sélecteur
 **Une seule présentation, six valeurs.** Le sélecteur **Disposition** ne fait
 que *préremplir* les six champs qui suivent ; vous pouvez ensuite les ajuster

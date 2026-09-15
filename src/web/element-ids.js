@@ -54,6 +54,7 @@ export const ELEMENT_IDS = Object.freeze([
   'table-col-title',
   'table-col-tags',
   'table-col-note',
+  'table-grid',
   'table-hint',
   'label-profile',
   'profile-hint',
