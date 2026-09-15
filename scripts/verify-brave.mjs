@@ -684,6 +684,11 @@ async function main() {
       mdName,
     );
 
+    // Lu directement dans le stockage : le helper `readStore` est défini plus
+    // bas, avec le bloc d'import.
+    const linksCount = await evaluate(`new Promise((resolve) => {
+      chrome.storage.local.get('links', (data) => resolve((data.links ?? []).length));
+    })`);
     const namedCsv = await waitForFile('csv-export');
     const csvExport = readFileSync(join(DOWNLOADS, namedCsv), 'utf8');
     record(
@@ -708,6 +713,30 @@ async function main() {
     const missing = Object.entries(wanted)
       .filter(([, text]) => !xlsxSheet.includes(text))
       .map(([field]) => field);
+    // Un QR par ligne, ancré comme Excel l'écrit, et une mise en page qui
+    // ramène le tableau à une largeur de page : sans quoi un QR peut sortir sur
+    // une autre feuille que son URL.
+    const drawing = spawnSync(
+      '/usr/bin/unzip', ['-p', join(DOWNLOADS, xlsxName), 'xl/drawings/drawing1.xml'],
+      { encoding: 'utf8' },
+    ).stdout ?? '';
+    const anchors = [...drawing.matchAll(
+      /<xdr:twoCellAnchor editAs="oneCell">\s*<xdr:from>\s*<xdr:col>(\d+)<\/xdr:col>[\s\S]*?<xdr:row>(\d+)<\/xdr:row>/g,
+    )].map((m) => ({ col: Number(m[1]), row: Number(m[2]) }));
+
+    record(
+      'le classeur ancre un QR par ligne, comme Excel',
+      anchors.length === linksCount
+        && anchors.every((a) => a.col === anchors[0].col)
+        && new Set(anchors.map((a) => a.row)).size === anchors.length,
+      `${anchors.length} ancrage(s) pour ${linksCount} lien(s), lignes ${anchors.map((a) => a.row).join(',')}`,
+    );
+    record(
+      'la feuille est mise en page pour que la ligne tienne sur une page',
+      /fitToPage="1"/.test(xlsxSheet) && /fitToWidth="1"/.test(xlsxSheet),
+      xlsxSheet.includes('orientation="landscape"') ? 'paysage, ajusté à une page de large' : 'mise en page absente',
+    );
+
     record(
       'le classeur reprend les mêmes champs',
       missing.length === 0,

@@ -15,11 +15,26 @@ import { qrPng } from './qr.js';
 import { buildXlsx } from './xlsx.js';
 import { formatDateTime } from './exporters.js';
 
-/** Taille d'image visée, en pixels, avant réduction au besoin. */
-const QR_TARGET_PX = 128;
+/**
+ * Taille d'image visée, en pixels, avant réduction au besoin.
+ *
+ * 96 px : à 96 dpi cela fait exactement un pouce (25,4 mm), soit un QR d'environ
+ * 21 mm de côté une fois posé — imprimable, scannable, et assez petit pour que
+ * dix lignes tiennent sur une page. Une image plus grande obligeait à des lignes
+ * de 100 points, et le tableau ne tenait plus sur une page en largeur.
+ */
+const QR_TARGET_PX = 96;
 
 /** En-têtes du classeur, dans l'ordre des colonnes, sans la note. */
 export const SPREADSHEET_HEADERS = ['N°', 'URL', 'Titre', 'Domaine', 'Tags', 'Ajouté le', 'QR code'];
+
+/**
+ * Largeur de la colonne des QR codes, en unités Excel (caractères).
+ *
+ * 19 unités ≈ 138 px, pour une image de 96 px : elle tient dans sa cellule avec
+ * de la marge, sans déborder sur la colonne suivante.
+ */
+export const QR_WIDTH_UNITS = 19;
 
 /** Index de la colonne qui reçoit les images, dans la forme de référence. */
 export const QR_COLUMN_INDEX = SPREADSHEET_HEADERS.indexOf('QR code');
@@ -99,8 +114,11 @@ export async function buildLinkSpreadsheet(links, options = {}) {
     options.onProgress?.(index + 1, links.length);
   }
 
-  // Largeurs alignées sur les colonnes réellement écrites.
-  const baseWidths = [5, 55, 32, 20, 18, ...(layout.noteColumn >= 0 ? [40] : []), 17, 14];
+  // Largeurs alignées sur les colonnes réellement écrites. La colonne du QR
+  // fait au moins la largeur de l'image (19 unités ≈ 138 px) : une image plus
+  // large que sa cellule déborde sur la voisine, et un lecteur qui rogne à la
+  // cellule en couperait un morceau.
+  const baseWidths = [5, 55, 32, 20, 18, ...(layout.noteColumn >= 0 ? [40] : []), 17, QR_WIDTH_UNITS];
   const widths = withOriginal ? [...baseWidths, 55] : baseWidths;
 
   return buildXlsx({

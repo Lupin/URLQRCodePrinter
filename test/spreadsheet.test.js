@@ -214,7 +214,7 @@ test('l\'export tableur intègre un QR par lien', async () => {
   assert.equal(sheet.match(/<row /g).length, links.length + 1, 'en-tête + liens');
 
   const drawing = new TextDecoder().decode(entries.get('xl/drawings/drawing1.xml').data);
-  assert.equal(drawing.match(/<xdr:oneCellAnchor>/g).length, links.length);
+  assert.equal(drawing.match(/<xdr:twoCellAnchor/g).length, links.length);
 });
 
 test('l\'en-tête déclare une colonne pour les QR', () => {
@@ -330,11 +330,93 @@ test('le classeur n\'ajoute la note que si elle sert, sans décaler les images',
   assert.ok(sheet.includes('>Note<'), 'en-tête de la note');
   assert.ok(sheet.includes('à relire'));
   // Les ancres d'image vivent dans le dessin, pas dans la feuille.
-  assert.equal(sheet.includes('oneCellAnchor'), false);
+  assert.equal(sheet.includes('CellAnchor'), false);
 
   const drawing = new TextDecoder().decode(entries.get('xl/drawings/drawing1.xml').data);
-  assert.equal(drawing.match(/<xdr:oneCellAnchor>/g).length, withNote.length);
-  // La colonne de l'ancre, en base 0 : « Note » occupe la 5e, le QR la 7e.
-  const columns = [...drawing.matchAll(/<xdr:col>(\d+)<\/xdr:col>/g)].map((m) => Number(m[1]));
-  assert.deepEqual(columns, [layout.qrColumn, layout.qrColumn], 'QR ancré sur la bonne colonne');
+  assert.equal(drawing.match(/<xdr:twoCellAnchor/g).length, withNote.length);
+  // La colonne de départ de chaque ancre, en base 0 : « Note » occupe la 5e, le
+  // QR la 7e. Chaque image porte un `from` et un `to` : on ne lit que les `from`.
+  const columns = [...drawing.matchAll(/<xdr:from><xdr:col>(\d+)<\/xdr:col>/g)]
+    .map((m) => Number(m[1]));
+  assert.deepEqual(
+    columns,
+    Array(withNote.length).fill(layout.qrColumn),
+    'QR ancré sur la bonne colonne',
+  );
+});
+
+test('chaque QR est ancré à sa propre ligne, comme Excel l\'écrit', async () => {
+  // Défaut d'origine : un `oneCellAnchor`, licite mais qu'Excel n'écrit jamais,
+  // et que les visionneuses d'Apple empilaient au coin de la feuille. On écrit
+  // désormais la forme d'Excel : `twoCellAnchor editAs="oneCell"`, marqueurs
+  // `from` ET `to`, une image liée à une seule cellule.
+  const links = Array.from({ length: 4 }, (_, index) => createLink(
+    { url: `https://exemple.fr/page-${index}`, title: `Titre ${index}` }, { now: 1 },
+  ));
+
+  const spreadsheet = await buildLinkSpreadsheet(links, { now: 1 });
+  const drawing = new TextDecoder().decode(readZip(spreadsheet).get('xl/drawings/drawing1.xml').data);
+
+  assert.equal(drawing.match(/<xdr:twoCellAnchor editAs="oneCell">/g).length, links.length);
+  assert.equal(drawing.includes('oneCellAnchor>'), false, 'plus aucun ancrage à une cellule');
+
+  const froms = [...drawing.matchAll(
+    /<xdr:from><xdr:col>(\d+)<\/xdr:col>.*?<xdr:row>(\d+)<\/xdr:row>/g,
+  )].map((m) => ({ col: Number(m[1]), row: Number(m[2]) }));
+  const tos = [...drawing.matchAll(
+    /<xdr:to><xdr:col>(\d+)<\/xdr:col>.*?<xdr:row>(\d+)<\/xdr:row>/g,
+  )].map((m) => ({ col: Number(m[1]), row: Number(m[2]) }));
+
+  assert.equal(froms.length, links.length, 'un marqueur `from` par image');
+  assert.equal(tos.length, links.length, 'un marqueur `to` par image');
+
+  // Une ligne par image, toutes différentes, dans la colonne des QR.
+  assert.deepEqual(froms.map((f) => f.row), [1, 2, 3, 4]);
+  assert.deepEqual(froms.map((f) => f.col), Array(links.length).fill(QR_COLUMN_INDEX));
+  // `to` est la cellule suivante : l'image est liée à cette cellule-là.
+  for (const [index, from] of froms.entries()) {
+    assert.equal(tos[index].row, from.row + 1, `image ${index} : hauteur d\'une cellule`);
+    assert.equal(tos[index].col, from.col + 1, `image ${index} : largeur d\'une cellule`);
+  }
+});
+
+test('l\'image du QR tient dans sa cellule, et la ligne dans une page', async () => {
+  // Trois mesures qui doivent rester cohérentes : la largeur de la colonne, la
+  // hauteur de la ligne, et la mise en page. Une image plus large que sa
+  // colonne déborde ; une ligne trop haute fait sortir le tableau de la page.
+  const links = [createLink({ url: 'https://exemple.fr/page', title: 'Titre' }, { now: 1 })];
+  const spreadsheet = await buildLinkSpreadsheet(links, { now: 1 });
+  const entries = readZip(spreadsheet);
+  const sheet = new TextDecoder().decode(entries.get('xl/worksheets/sheet1.xml').data);
+  const drawing = new TextDecoder().decode(entries.get('xl/drawings/drawing1.xml').data);
+
+  // L'image est de 96 px ; la colonne du QR doit être au moins aussi large.
+  const ext = drawing.match(/<xdr:ext cx="(\d+)" cy="(\d+)"/) ?? drawing.match(/<a:ext cx="(\d+)" cy="(\d+)"/);
+  const imagePx = Number(ext[1]) / 9525;
+  assert.equal(imagePx, 96, 'la taille de l\'image est connue');
+
+  const columns = [...sheet.matchAll(/<col min="(\d+)"[^>]*width="([\d.]+)"/g)]
+    .map((m) => ({ index: Number(m[1]) - 1, width: Number(m[2]) }));
+  const qrColumn = columns.find((c) => c.index === QR_COLUMN_INDEX);
+  // Excel : largeur en caractères ; une unité vaut environ 7 px.
+  assert.ok(
+    qrColumn.width * 7 + 5 >= imagePx,
+    `colonne de ${qrColumn.width} unités (≈ ${Math.round(qrColumn.width * 7 + 5)} px) `
+      + `pour une image de ${imagePx} px`,
+  );
+
+  // La ligne qui porte le QR est assez haute pour lui (1 px = 0,75 point).
+  const height = Number(sheet.match(/<row r="2" ht="(\d+)"/)?.[1] ?? 0);
+  assert.ok(height >= imagePx * 0.75, `ligne de ${height} pt pour une image de ${imagePx} px`);
+
+  // Et la mise en page ramène le tableau à une largeur de page : sans cela, un
+  // QR peut sortir sur une autre feuille que son URL.
+  assert.match(sheet, /<pageSetUpPr fitToPage="1"\/>/);
+  assert.match(sheet, /fitToWidth="1"/);
+  assert.match(sheet, /orientation="landscape"/);
+  // `pageSetup` doit précéder `drawing` : l'ordre du schéma OOXML est imposé.
+  assert.ok(
+    sheet.indexOf('<pageSetup') < sheet.indexOf('<drawing'),
+    'pageSetup doit précéder drawing',
+  );
 });

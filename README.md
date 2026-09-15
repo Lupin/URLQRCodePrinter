@@ -21,7 +21,7 @@ Markdown, ou envoi direct à une imprimante Niimbot.
 | Socle natif Swift (protocole, session, CoreBluetooth) | fait, testé |
 | Application iOS qui utilise ce socle | à faire |
 
-**600 tests, tous verts** — 496 en JavaScript et 104 en Swift — dont :
+**602 tests, tous verts** — 498 en JavaScript et 104 en Swift — dont :
 
 - la validation **octet à octet** des trames Niimbot contre les relevés
   documentés, **dans les deux langages** : deux implémentations indépendantes
@@ -44,7 +44,7 @@ Markdown, ou envoi direct à une imprimante Niimbot.
 **L'application est vérifiée dans un vrai navigateur** : `npm run verify:brave`
 lance Brave sur un profil isolé, collecte un lien, le raccourcit, exporte le CSV
 et l'archive d'étiquettes, puis contrôle les fichiers réellement écrits sur le
-disque (signature ZIP, `unzip -t`, contenu du CSV). 87 vérifications, dont le
+disque (signature ZIP, `unzip -t`, contenu du CSV). 89 vérifications, dont le
 rendu des liens cliquables dans l'application *et* dans la fenêtre de
 l'extension, la grille réellement calculée pour quatre références Avery, et
 l'aperçu d'étiquette composé sans aucune imprimante connectée.
@@ -301,6 +301,39 @@ sont posées en ligne à partir du même calcul que la découpe, donc la hauteur
 occupée est exactement la hauteur réservée — un test dans Brave compare les deux.
 Auparavant, le texte était laissé au retour à la ligne du navigateur et pouvait
 déborder de l'étiquette sans que rien ne le signale.
+
+## Le classeur : un QR par ligne
+
+Deux défauts réels dans l'export `.xlsx`, trouvés en examinant un fichier
+réellement produit :
+
+**L'ancrage n'était pas celui d'Excel.** J'émettais un `oneCellAnchor` — licite,
+et lu correctement par deux analyseurs indépendants (le mien et `openpyxl`) — mais
+qu'Excel n'écrit jamais. Excel écrit `twoCellAnchor` avec `editAs="oneCell"` et
+les marqueurs `from` **et** `to` pour chaque image insérée. On écrit désormais
+cette forme-là, avec `to` sur la cellule suivante : l'image est liée à une seule
+cellule, celle de son QR.
+
+**Le tableau ne tenait pas sur une page en largeur.** Sept colonnes font environ
+309 mm pour du A4 portrait (210 mm) : à l'impression, Excel répartissait les
+colonnes sur plusieurs feuilles, et un QR code pouvait sortir sur une autre page
+que son URL — exactement « pas un QR par ligne ». La feuille porte maintenant
+`fitToPage` + `fitToWidth="1"` et l'orientation paysage, ce qui ramène le tableau
+à une largeur de page.
+
+**Et l'image tient dans sa cellule** : QR de 96 px (25,4 mm, un pouce) au lieu de
+128, colonne de 19 unités (≈ 138 px), ligne de 76 points. Une image plus large
+que sa colonne déborde sur la voisine, et une ligne de 100 points faisait sortir
+le tableau de la page.
+
+> Ce qui n'a **pas** pu être vérifié ici : le rendu visuel du classeur. Quick Look
+> empile les images flottantes au coin de la feuille quel que soit le balisage —
+> je l'ai constaté en changeant la forme de l'ancrage (rendu identique) et en
+> comparant avec un classeur produit par `openpyxl` (aucune image affichée). Excel,
+> lui, ouvre le fichier et voit bien les dix images, mais son API de script refuse
+> les propriétés de géométrie. Les tests vérifient donc ce qui est mesurable :
+> un ancrage par ligne, `editAs="oneCell"`, marqueurs consécutifs, largeur de
+> colonne et hauteur de ligne suffisantes, mise en page ajustée.
 
 ## Brave et Web Bluetooth : détecter, pas espérer
 

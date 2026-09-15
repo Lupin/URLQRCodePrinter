@@ -114,13 +114,33 @@ function buildSheet(rows, widths, rowHeights) {
 
   const drawing = rowHeights.size > 0 ? '<drawing r:id="rId1"/>' : '';
 
+  // `fitToWidth` : à l'impression, le tableau est ramené à une largeur de page.
+  // Sans cela, les colonnes se répartissent sur plusieurs feuilles et un QR code
+  // peut sortir sur une autre page que son URL — donc plus « un QR par ligne ».
+  // `pageSetup` doit précéder `drawing` : l'ordre des éléments d'une feuille est
+  // imposé par le schéma OOXML, et un ordre fautif fait ignorer la mise en page.
   return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
-${cols}<sheetData>${body}</sheetData>${drawing}</worksheet>`;
+<sheetPr><pageSetUpPr fitToPage="1"/></sheetPr>
+${cols}<sheetData>${body}</sheetData>
+<pageMargins left="0.3" right="0.3" top="0.4" bottom="0.4" header="0.3" footer="0.3"/>
+<pageSetup paperSize="9" orientation="landscape" fitToWidth="1" fitToHeight="0"/>
+${drawing}</worksheet>`;
 }
 
 /**
  * Construit le dessin : une image ancrée par QR code.
+ *
+ * L'ancrage est un **`twoCellAnchor` avec `editAs="oneCell"`**, marqueurs `from`
+ * **et** `to` : c'est exactement ce qu'Excel écrit quand on insère une image
+ * dans une cellule, et donc la forme que tous les lecteurs savent replacer.
+ * La version précédente émettait un `oneCellAnchor` — licite, lu correctement
+ * par les analyseurs, mais qu'Excel n'écrit jamais : les visionneuses d'Apple
+ * empilaient les images au coin de la feuille au lieu de les placer dans leurs
+ * lignes.
+ *
+ * `editAs="oneCell"` signifie « l'image suit sa cellule sans se redimensionner
+ * avec elle » : le QR garde sa taille exacte, et ne peut pas être étiré.
  *
  * @param {Array<{ row: number, column: number, widthPx: number, heightPx: number }>} images
  * @returns {string}
@@ -130,16 +150,19 @@ function buildDrawing(images) {
     .map((image, index) => {
       const cx = image.widthPx * EMU_PER_PIXEL;
       const cy = image.heightPx * EMU_PER_PIXEL;
-      return `<xdr:oneCellAnchor>
+      // Le marqueur `to` désigne la cellule suivante : l'image est liée à une
+      // seule cellule, celle de son QR.
+      const to = `<xdr:to><xdr:col>${image.column + 1}</xdr:col><xdr:colOff>0</xdr:colOff><xdr:row>${image.row + 1}</xdr:row><xdr:rowOff>0</xdr:rowOff></xdr:to>`;
+      return `<xdr:twoCellAnchor editAs="oneCell">
 <xdr:from><xdr:col>${image.column}</xdr:col><xdr:colOff>${EMU_PER_PIXEL}</xdr:colOff><xdr:row>${image.row}</xdr:row><xdr:rowOff>${EMU_PER_PIXEL}</xdr:rowOff></xdr:from>
-<xdr:ext cx="${cx}" cy="${cy}"/>
+${to}
 <xdr:pic>
-<xdr:nvPicPr><xdr:cNvPr id="${index + 2}" name="QR ${index + 1}"/><xdr:cNvPicPr><a:picLocks noChangeAspect="1"/></xdr:cNvPicPr></xdr:nvPicPr>
+<xdr:nvPicPr><xdr:cNvPr id="${index + 2}" name="QR ${index + 1}" descr="QR code du lien"/><xdr:cNvPicPr><a:picLocks noChangeAspect="1"/></xdr:cNvPicPr></xdr:nvPicPr>
 <xdr:blipFill><a:blip r:embed="rId${index + 1}"/><a:stretch><a:fillRect/></a:stretch></xdr:blipFill>
 <xdr:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="${cx}" cy="${cy}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></xdr:spPr>
 </xdr:pic>
 <xdr:clientData/>
-</xdr:oneCellAnchor>`;
+</xdr:twoCellAnchor>`;
     })
     .join('');
 
