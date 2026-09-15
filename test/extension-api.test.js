@@ -14,7 +14,7 @@ import {
   contextMenusAvailable,
   readTabContext,
   installContextMenus,
-} from '../src/extension/api.js';
+} from '../src/extension-src/api.js';
 
 /** API factice imitant Chrome. */
 function chromeLike(overrides = {}) {

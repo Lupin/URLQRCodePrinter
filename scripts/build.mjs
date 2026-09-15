@@ -35,12 +35,12 @@ const DIST = join(ROOT, 'dist');
  */
 const TARGETS = {
   extension: {
-    from: join(SRC, 'extension'),
+    from: join(SRC, 'extension-src'),
     shared: [join(SRC, 'core')],
     manifest: 'chromium',
   },
   'extension-safari': {
-    from: join(SRC, 'extension'),
+    from: join(SRC, 'extension-src'),
     shared: [join(SRC, 'core')],
     manifest: 'safari',
   },

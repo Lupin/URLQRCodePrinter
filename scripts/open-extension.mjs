@@ -52,7 +52,7 @@ if (!existsSync(join(DIST, 'manifest.json'))) {
 // Le manifeste est produit à la construction : le dossier source n'en contient
 // pas, et ne peut donc pas être chargé par erreur. On le vérifie, car un
 // manifeste présent dans les sources signalerait une régression.
-if (existsSync(join(ROOT, 'src', 'extension', 'manifest.json'))) {
+if (existsSync(join(ROOT, 'src', 'extension-src', 'manifest.json'))) {
   console.error(
     '✗ src/extension contient un manifest.json : ce dossier n\'est pas\n' +
     '  l\'extension construite, il ne doit pas pouvoir être chargé.',

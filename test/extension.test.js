@@ -15,7 +15,7 @@ import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const EXT = join(ROOT, 'src', 'extension');
+const EXT = join(ROOT, 'src', 'extension-src');
 const DIST_EXT = join(ROOT, 'dist', 'extension');
 
 // L'extension n'est complète qu'une fois le cœur partagé recopié : plusieurs

@@ -25,7 +25,7 @@ import {
 } from '../scripts/make-icons.mjs';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const ICONS_DIR = join(ROOT, 'src', 'extension', 'icons');
+const ICONS_DIR = join(ROOT, 'src', 'extension-src', 'icons');
 
 const PNG_SIGNATURE = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
 
@@ -214,14 +214,14 @@ test('les icônes déclarées dans le manifeste existent et sont valides', () =>
   // Le manifeste vit sous forme de gabarit dans les sources : il est
   // spécialisé par navigateur à la construction.
   const manifest = JSON.parse(
-    readFileSync(join(ROOT, 'src', 'extension', 'manifest.template.json'), 'utf8'),
+    readFileSync(join(ROOT, 'src', 'extension-src', 'manifest.template.json'), 'utf8'),
   );
 
   const declared = { ...manifest.icons, ...(manifest.action?.default_icon ?? {}) };
   assert.ok(Object.keys(declared).length >= 4, 'trop peu d\'icônes déclarées');
 
   for (const [size, path] of Object.entries(declared)) {
-    const file = join(ROOT, 'src', 'extension', path);
+    const file = join(ROOT, 'src', 'extension-src', path);
     assert.ok(existsSync(file), `fichier déclaré absent : ${path}`);
 
     const decoded = decodePng(readFileSync(file));
@@ -236,7 +236,7 @@ test('les icônes déclarées dans le manifeste existent et sont valides', () =>
 test('le manifeste déclare une icône assez grande pour l\'App Store', () => {
   // Le convertisseur Safari refuse l'empaquetage sans grande icône.
   const manifest = JSON.parse(
-    readFileSync(join(ROOT, 'src', 'extension', 'manifest.template.json'), 'utf8'),
+    readFileSync(join(ROOT, 'src', 'extension-src', 'manifest.template.json'), 'utf8'),
   );
   const sizes = Object.keys(manifest.icons).map(Number);
   assert.ok(Math.max(...sizes) >= 512, `plus grande icône : ${Math.max(...sizes)} px`);

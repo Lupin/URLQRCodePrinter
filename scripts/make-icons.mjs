@@ -222,7 +222,7 @@ export async function writeIcons(outDir) {
 
 // Exécution directe.
 if (process.argv[1] && resolve(process.argv[1]) === resolve(fileURLToPath(import.meta.url))) {
-  const outDir = join(ROOT, 'src', 'extension', 'icons');
+  const outDir = join(ROOT, 'src', 'extension-src', 'icons');
   const written = await writeIcons(outDir);
   for (const icon of written) {
     console.log(`✓ icon-${icon.size}.png  ${icon.bytes} octets`);
