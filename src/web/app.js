@@ -13,7 +13,7 @@
 import { createLink, hostOf, hasShortUrl, safeHref, resolveTargets } from './core/link.js';
 import { resolveDefaultStore } from './core/store.js';
 import { ELEMENT_IDS } from './element-ids.js';
-import { createSettingsStore } from './core/settings.js';
+import { createSettingsStore, DEFAULT_SETTINGS, COLLECTION_NAME_MAX } from './core/settings.js';
 import {
   SHORTENERS,
   findShortener,
@@ -272,61 +272,107 @@ function linkAnchor(url, className, label = url) {
 }
 
 /**
- * Champ de note d'un lien.
+ * Éditeur des champs de saisie d'un lien : titre, tags, note.
  *
- * La note existait dans le modèle, dans l'import et dans les exports, mais rien
- * ne permettait de la saisir : la colonne « Note » du tableau et l'option
- * « Afficher les notes » ne pouvaient donc jamais rien montrer. Ce champ comble
- * ce trou, sans alourdir la ligne tant qu'on ne s'en sert pas.
+ * Ces trois champs partent dans les exports — colonnes « Titre », « Tags » et
+ * « Note » du CSV, du Markdown et du classeur. Tant qu'ils n'étaient pas
+ * saisissables, les exports transportaient des colonnes qu'aucune interface ne
+ * pouvait remplir : le titre restait vide sur un lien ajouté à la main, et les
+ * tags ne pouvaient venir que d'un import. Un export n'a de sens que s'il est
+ * raccord avec ce qu'on peut saisir.
+ *
+ * L'édition reste repliée derrière un bouton : la ligne doit rester lisible
+ * quand on ne modifie rien.
  *
  * @param {import('./core/link.js').LinkRecord} link
  * @returns {HTMLElement}
  */
-function noteField(link) {
+function linkEditor(link) {
   const wrap = document.createElement('div');
-  wrap.className = 'link__note';
+  wrap.className = 'link__editor';
 
-  const open = button(link.note ? link.note : '＋ note', 'link__note-button', () => {
+  const open = button('✎', 'link__edit', () => {
     let settled = false;
-    const input = document.createElement('input');
-    input.type = 'text';
-    input.className = 'input input--compact link__note-input';
-    input.value = link.note ?? '';
-    input.placeholder = 'Note…';
-    input.setAttribute('aria-label', `Note pour ${link.title || link.url}`);
+
+    const form = document.createElement('div');
+    form.className = 'link__editor-form';
+
+    const fields = [
+      { key: 'title', label: 'Titre', value: link.title, placeholder: 'Titre de la page' },
+      { key: 'tags', label: 'Tags', value: link.tags.join(', '), placeholder: 'veille, travail' },
+      { key: 'note', label: 'Note', value: link.note, placeholder: 'Note libre' },
+    ];
+
+    const inputs = new Map();
+    for (const field of fields) {
+      const line = document.createElement('label');
+      line.className = 'link__editor-field';
+
+      const caption = document.createElement('span');
+      caption.className = 'link__editor-label';
+      caption.textContent = field.label;
+
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.className = 'input input--compact';
+      input.value = field.value ?? '';
+      input.placeholder = field.placeholder;
+      input.setAttribute('aria-label', `${field.label} pour ${link.url}`);
+
+      line.append(caption, input);
+      form.appendChild(line);
+      inputs.set(field.key, input);
+    }
+
+    const hint = document.createElement('p');
+    hint.className = 'hint hint--tight';
+    hint.textContent = 'Entrée pour enregistrer, Échap pour annuler. Tags séparés par des virgules.';
+    form.appendChild(hint);
 
     const finish = async (save) => {
       if (settled) return;
       settled = true;
-      const value = input.value.trim();
-      if (save && value !== (link.note ?? '')) {
-        await store.put({ ...link, note: value });
-        toast(value === '' ? 'Note effacée' : 'Note enregistrée');
+
+      if (save) {
+        // `createLink` normalise : les tags sont dédoublonnés et mis en forme,
+        // le titre comme la note sont bornés.
+        const updated = createLink({
+          ...link,
+          title: inputs.get('title').value,
+          note: inputs.get('note').value,
+          tags: inputs.get('tags').value.split(','),
+        });
+        const changed = updated.title !== link.title
+          || updated.note !== link.note
+          || updated.tags.join(',') !== link.tags.join(',');
+        if (changed) {
+          await store.put({ ...link, title: updated.title, note: updated.note, tags: updated.tags });
+          await refresh();
+          toast('Lien mis à jour');
+          return;
+        }
       }
       await refresh();
     };
 
-    input.addEventListener('keydown', (event) => {
-      if (event.key === 'Enter') {
-        event.preventDefault();
-        finish(true);
-      } else if (event.key === 'Escape') {
-        event.preventDefault();
-        finish(false);
-      }
-    });
-    // Quitter le champ enregistre : c'est ce qu'on attend d'un formulaire, et
-    // une note perdue serait invisible.
-    input.addEventListener('blur', () => finish(true));
+    for (const input of inputs.values()) {
+      input.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter') {
+          event.preventDefault();
+          finish(true);
+        } else if (event.key === 'Escape') {
+          event.preventDefault();
+          finish(false);
+        }
+      });
+    }
 
     wrap.textContent = '';
-    wrap.appendChild(input);
-    input.focus();
+    wrap.appendChild(form);
+    inputs.get('title')?.focus();
   });
-  open.setAttribute('aria-label', link.note
-    ? `Modifier la note de ${link.title || link.url}`
-    : `Ajouter une note à ${link.title || link.url}`);
-  open.title = link.note || 'Ajouter une note';
+  open.setAttribute('aria-label', `Modifier titre, tags et note de ${link.title || link.url}`);
+  open.title = 'Modifier le titre, les tags et la note';
 
   wrap.appendChild(open);
   return wrap;
@@ -376,15 +422,27 @@ function renderLink(link) {
     body.appendChild(short);
   }
 
-  body.appendChild(noteField(link));
+  // La note est visible sans ouvrir l'éditeur : c'est souvent la seule chose
+  // qu'on veut relire.
+  if (link.note) {
+    const note = document.createElement('div');
+    note.className = 'link__note';
+    note.textContent = link.note;
+    note.title = link.note;
+    body.appendChild(note);
+  }
 
   if (link.tags.length) {
     const tags = document.createElement('div');
     tags.className = 'link__tags';
     for (const tag of link.tags) {
-      const chip = document.createElement('span');
-      chip.className = 'tag';
-      chip.textContent = `#${tag}`;
+      // Cliquer une puce filtre la collection sur ce tag : c'est le seul
+      // intérêt de classer, et cela évite d'avoir à le retaper.
+      const chip = button(`#${tag}`, 'tag', () => {
+        el.search.value = tag;
+        renderList();
+      });
+      chip.title = `Filtrer sur #${tag}`;
       tags.appendChild(chip);
     }
     body.appendChild(tags);
@@ -398,7 +456,7 @@ function renderLink(link) {
   });
   remove.setAttribute('aria-label', `Supprimer ${link.title || link.url}`);
 
-  item.append(check, body, remove);
+  item.append(check, body, linkEditor(link), remove);
   return item;
 }
 
@@ -408,6 +466,24 @@ function selectedLinks() {
   // Sans sélection explicite, tout est imprimé : c'est l'intention la plus
   // probable quand on clique « Imprimer ».
   return picked.length > 0 ? picked : links;
+}
+
+/**
+ * Nom de la collection, tel qu'il part dans les exports.
+ *
+ * Un champ vidé retombe sur la valeur par défaut : un export sans titre n'aurait
+ * pas de sens, et personne n'a à ressaisir « Mes liens » pour l'obtenir.
+ *
+ * @returns {string}
+ */
+function collectionName() {
+  const typed = el.collectionName.value.trim();
+  return typed === '' ? DEFAULT_SETTINGS.collectionName : typed.slice(0, COLLECTION_NAME_MAX);
+}
+
+/** Reporte le nom de collection sur le titre de la page. */
+function applyCollectionName() {
+  document.title = `${collectionName()} — URLQRCodePrinter`;
 }
 
 /**
@@ -457,13 +533,20 @@ async function addFromInput() {
 function exportAs(format) {
   if (links.length === 0) return;
 
+  const name = collectionName();
   const specs = {
     csv: { text: toCsv(links), ext: 'csv', mime: 'text/csv;charset=utf-8' },
-    md: { text: toMarkdown(links), ext: 'md', mime: 'text/markdown;charset=utf-8' },
+    // Le titre du Markdown est le nom de la collection : ce que l'utilisateur a
+    // nommé, et non un libellé choisi par le programme.
+    md: {
+      text: toMarkdown(links, { title: name }),
+      ext: 'md',
+      mime: 'text/markdown;charset=utf-8',
+    },
     json: { text: toJson(links), ext: 'json', mime: 'application/json' },
   };
   const spec = specs[format];
-  const filename = exportFilename('liens-qr', spec.ext);
+  const filename = exportFilename(name, spec.ext);
 
   const ok = downloadText(filename, spec.text, { mime: spec.mime });
   toast(ok ? `${filename} enregistré` : 'Téléchargement impossible', ok ? 'info' : 'error');
@@ -1300,13 +1383,14 @@ async function exportLabelImages() {
     }
 
     el.exportLabels.textContent = 'Assemblage…';
+    const name = collectionName();
     const archive = buildLabelArchive({
       planned,
       images,
-      settings: { ...options, title: 'Mes liens' },
+      settings: { ...options, title: name },
     });
 
-    const filename = labelArchiveName();
+    const filename = labelArchiveName(Date.now(), name);
     const ok = downloadBytes(filename, archive, { mime: 'application/zip' });
     toast(
       ok
@@ -1612,6 +1696,13 @@ el.addForm.addEventListener('submit', (event) => {
 
 el.search.addEventListener('input', renderList);
 
+el.collectionName.addEventListener('input', () => {
+  applyCollectionName();
+  // Enregistré à la volée : le nom se retape rarement, mais le perdre serait
+  // agaçant, et ce champ n'appartient à aucun formulaire.
+  settings.save({ collectionName: collectionName() });
+});
+
 el.selectAll.addEventListener('click', () => {
   selected = new Set(links.map((link) => link.id));
   renderList();
@@ -1645,7 +1736,7 @@ async function exportSpreadsheet() {
         el.exportXlsx.textContent = `QR ${done}/${total}…`;
       },
     });
-    const filename = exportFilename('liens-qr', 'xlsx');
+    const filename = exportFilename(collectionName(), 'xlsx');
     const ok = downloadBytes(filename, bytes, {
       mime: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     });
@@ -1755,6 +1846,8 @@ fillTargets();
 const preferences = settings.load();
 el.shortener.value = preferences.shortener;
 el.qrTarget.value = preferences.targetMode;
+el.collectionName.value = preferences.collectionName;
+applyCollectionName();
 
 reportBluetoothSupport();
 switchMode('sheet');

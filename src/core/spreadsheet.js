@@ -17,11 +17,36 @@ import { formatDateTime } from './exporters.js';
 /** Taille d'image visée, en pixels, avant réduction au besoin. */
 const QR_TARGET_PX = 128;
 
-/** En-têtes du classeur, dans l'ordre des colonnes. */
+/** En-têtes du classeur, dans l'ordre des colonnes, sans la note. */
 export const SPREADSHEET_HEADERS = ['N°', 'URL', 'Titre', 'Domaine', 'Tags', 'Ajouté le', 'QR code'];
 
-/** Index de la colonne qui reçoit les images. */
+/** Index de la colonne qui reçoit les images, dans la forme de référence. */
 export const QR_COLUMN_INDEX = SPREADSHEET_HEADERS.indexOf('QR code');
+
+/**
+ * Colonnes réellement écrites, et index de celle qui porte les images.
+ *
+ * La colonne « Note » n'est ajoutée que si au moins un lien en a une : un
+ * classeur ne doit pas transporter une colonne vide sur toute sa hauteur. Elle
+ * se place **avant** la colonne des QR codes, dont l'index est donc recalculé —
+ * une image ancrée sur la mauvaise colonne serait invisible.
+ *
+ * @param {import('./link.js').LinkRecord[]} links
+ * @returns {{ headers: string[], qrColumn: number, noteColumn: number }}
+ */
+export function spreadsheetLayout(links) {
+  const withNote = links.some((link) => typeof link.note === 'string' && link.note !== '');
+  const headers = [
+    'N°', 'URL', 'Titre', 'Domaine', 'Tags',
+    ...(withNote ? ['Note'] : []),
+    'Ajouté le', 'QR code',
+  ];
+  return {
+    headers,
+    qrColumn: headers.indexOf('QR code'),
+    noteColumn: withNote ? headers.indexOf('Note') : -1,
+  };
+}
 
 /**
  * Construit le classeur des liens, avec leurs QR codes.
@@ -39,16 +64,20 @@ export async function buildLinkSpreadsheet(links, options = {}) {
   const now = options.now ?? Date.now();
 
   const withOriginal = links.some((link) => sourceUrl(link) !== link.url);
+  const layout = spreadsheetLayout(links);
   const headers = withOriginal
-    ? [...SPREADSHEET_HEADERS, 'URL d\'origine']
-    : SPREADSHEET_HEADERS;
+    ? [...layout.headers, 'URL d\'origine']
+    : layout.headers;
 
   const rows = links.map((link, index) => [
     index + 1,
     link.url,
     link.title,
     sourceHost(link),
-    link.tags.map((tag) => `#${tag}`).join(' '),
+    // Tags sans « # » : dans un tableur, le dièse n'apporte rien et gêne le
+    // filtrage. C'est la même forme que la colonne « Tags » du CSV.
+    link.tags.join(' '),
+    ...(layout.noteColumn >= 0 ? [link.note] : []),
     formatDateTime(link.createdAt),
     // La cellule sous l'image reste vide : le QR est ancré par-dessus.
     '',
@@ -61,7 +90,7 @@ export async function buildLinkSpreadsheet(links, options = {}) {
     // `row` compte la ligne d'en-tête : les données commencent à la ligne 1.
     images.push({
       row: index + 1,
-      column: QR_COLUMN_INDEX,
+      column: layout.qrColumn,
       data: png,
       widthPx: QR_TARGET_PX,
       heightPx: QR_TARGET_PX,
@@ -69,9 +98,9 @@ export async function buildLinkSpreadsheet(links, options = {}) {
     options.onProgress?.(index + 1, links.length);
   }
 
-  const widths = withOriginal
-    ? [5, 55, 32, 20, 18, 17, 14, 55]
-    : [5, 55, 32, 20, 18, 17, 14];
+  // Largeurs alignées sur les colonnes réellement écrites.
+  const baseWidths = [5, 55, 32, 20, 18, ...(layout.noteColumn >= 0 ? [40] : []), 17, 14];
+  const widths = withOriginal ? [...baseWidths, 55] : baseWidths;
 
   return buildXlsx({
     sheetName: 'Liens',

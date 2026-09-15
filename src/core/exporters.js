@@ -195,13 +195,25 @@ export function toMarkdown(links, options = {}) {
     return out.join('\n');
   }
 
-  out.push('| N° | URL | Titre | Tags | Ajouté le |');
-  out.push('| ---: | --- | --- | --- | --- |');
+  // La colonne « Note » n'apparaît que si elle a du contenu : un tableau
+  // Markdown se lit mal quand une colonne reste vide, et la note est le seul
+  // champ dont la longueur n'est pas bornée.
+  const withNote = links.some((link) => typeof link.note === 'string' && link.note !== '');
+
+  out.push(withNote
+    ? '| N° | URL | Titre | Tags | Note | Ajouté le |'
+    : '| N° | URL | Titre | Tags | Ajouté le |');
+  out.push(withNote
+    ? '| ---: | --- | --- | --- | --- | --- |'
+    : '| ---: | --- | --- | --- | --- |');
+
   links.forEach((link, index) => {
     const linkCell = `[${escapeMarkdownCell(link.url)}](${link.url})`;
+    const noteCell = withNote ? `${escapeMarkdownCell(link.note)} | ` : '';
     out.push(
       `| ${index + 1} | ${linkCell} | ${escapeMarkdownCell(link.title)} | ` +
-        `${link.tags.map((t) => '`#' + t + '`').join(' ')} | ${formatDateIso(link.createdAt)} |`,
+        `${link.tags.map((t) => '`#' + t + '`').join(' ')} | ${noteCell}` +
+        `${formatDateIso(link.createdAt)} |`,
     );
   });
   out.push('');

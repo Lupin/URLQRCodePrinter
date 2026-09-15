@@ -33,10 +33,26 @@ et il n'a lieu que si vous cliquez dessus.
 | Champ « Ajouter » | saisie manuelle |
 | Bouton « Importer » | relit une archive JSON exportée précédemment |
 
-**Notes.** Chaque ligne porte un discret « ＋ note » : cliquez, tapez, validez
-par Entrée. La note sert à annoter un lien (emplacement, personne, raison de la
-collecte) et apparaît dans le tableau imprimé si vous cochez « Afficher les
-notes », ainsi que dans l'export CSV.
+**Nommer la collection.** Le champ « Nom de la collection » (sous le titre du
+panneau) donne son titre à l'export Markdown, à la planche HTML de l'archive
+d'images, et son nom aux fichiers exportés — `Veille-du-vendredi-20260915-1741.md`
+plutôt que `liens-qr-….md`.
+
+**Titre, tags et note.** Le bouton **✎** de chaque ligne ouvre les trois champs
+qui partent dans les exports :
+
+- **Titre** — le titre de la page est repris automatiquement à la capture, mais
+  un lien ajouté à la main n'en a pas : c'est ici qu'on le donne ;
+- **Tags** — séparés par des virgules, dédoublonnés et mis en forme
+  automatiquement (`veille, travail, veille` → `veille` et `travail`). Les puces
+  affichées sous la ligne filtrent la collection d'un clic ;
+- **Note** — texte libre, visible sous la ligne et repris dans le tableau
+  imprimé si vous cochez « Afficher les notes ».
+
+Entrée enregistre, Échap annule. Ces trois champs apparaissent dans le CSV, le
+Markdown et le classeur — et seulement s'ils ont du contenu, pour ne pas ajouter
+de colonnes vides. Les tags ne s'impriment pas sur les étiquettes : ils classent
+la collection.
 
 Les URL sont normalisées à l'entrée : `https://` ajouté si absent, fragment
 retiré, paramètres de campagne (`utm_*`, `fbclid`, `gclid`…) supprimés — ils

@@ -20,10 +20,14 @@ import { DEFAULT_SHORTENER, findShortener } from './shorten.js';
 /** Clé de stockage, préfixée pour ne pas entrer en collision avec un autre outil. */
 export const SETTINGS_KEY = 'url-qr-code-printer/settings';
 
+/** Longueur maximale du nom de collection : au-delà, il ne tient plus nulle part. */
+export const COLLECTION_NAME_MAX = 80;
+
 /** Valeurs par défaut : aucun raccourcissement, le QR encode l'URL collectée. */
 export const DEFAULT_SETTINGS = Object.freeze({
   shortener: DEFAULT_SHORTENER,
   targetMode: 'original',
+  collectionName: 'Mes liens',
 });
 
 /**
@@ -33,7 +37,7 @@ export const DEFAULT_SETTINGS = Object.freeze({
  * refusée : un réglage corrompu ne doit pas bloquer l'application.
  *
  * @param {unknown} value
- * @returns {{ shortener: string, targetMode: 'original'|'short' }}
+ * @returns {{ shortener: string, targetMode: 'original'|'short', collectionName: string }}
  */
 export function sanitizeSettings(value) {
   const source = value && typeof value === 'object' ? value : {};
@@ -43,7 +47,15 @@ export function sanitizeSettings(value) {
   const targetMode = TARGET_MODES.includes(source.targetMode)
     ? source.targetMode
     : DEFAULT_SETTINGS.targetMode;
-  return { shortener, targetMode };
+
+  // Un nom vide retombe sur le défaut : un export sans titre n'aurait aucun
+  // intérêt, et l'utilisateur n'a pas à saisir « Mes liens » pour l'obtenir.
+  const rawName = typeof source.collectionName === 'string' ? source.collectionName.trim() : '';
+  const collectionName = rawName === ''
+    ? DEFAULT_SETTINGS.collectionName
+    : rawName.slice(0, COLLECTION_NAME_MAX);
+
+  return { shortener, targetMode, collectionName };
 }
 
 /**
@@ -98,7 +110,7 @@ export function createSettingsStore(options = {}) {
   const detected = options.storage ? { ...options.storage, persistent: true } : detectStorage();
   const storage = detected;
 
-  /** @type {{ shortener: string, targetMode: 'original'|'short' }} */
+  /** @type {{ shortener: string, targetMode: 'original'|'short', collectionName: string }} */
   let current = { ...DEFAULT_SETTINGS };
   let loaded = false;
 

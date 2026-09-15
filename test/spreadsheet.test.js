@@ -18,7 +18,12 @@ import { fileURLToPath } from 'node:url';
 import { encodePng, crc32, rgbaFromMatrix } from '../src/core/png.js';
 import { createZip } from '../src/core/zip.js';
 import { buildXlsx, columnLetter } from '../src/core/xlsx.js';
-import { buildLinkSpreadsheet, SPREADSHEET_HEADERS, QR_COLUMN_INDEX } from '../src/core/spreadsheet.js';
+import {
+  buildLinkSpreadsheet,
+  SPREADSHEET_HEADERS,
+  QR_COLUMN_INDEX,
+  spreadsheetLayout,
+} from '../src/core/spreadsheet.js';
 import { qrPng, encodeQr } from '../src/core/qr.js';
 import { createLink, resolveTargets } from '../src/core/link.js';
 
@@ -301,4 +306,35 @@ test('le classeur reste inchangé sans lien raccourci', async () => {
   const sheet = new TextDecoder().decode(readZip(xlsx).get('xl/worksheets/sheet1.xml').data);
   assert.equal(sheet.includes('URL d\'origine'), false);
   assert.ok(SPREADSHEET_HEADERS.every((header) => sheet.includes(header.replace('&', '&amp;'))));
+});
+
+test('le classeur n\'ajoute la note que si elle sert, sans décaler les images', async () => {
+  const withoutNote = [createLink({ url: 'https://a.fr', title: 'Un' }, { now: 1 })];
+  assert.deepEqual(spreadsheetLayout(withoutNote).headers, SPREADSHEET_HEADERS);
+  assert.equal(spreadsheetLayout(withoutNote).qrColumn, QR_COLUMN_INDEX);
+
+  const withNote = [
+    createLink({ url: 'https://a.fr', title: 'Un', note: 'à relire' }, { now: 1 }),
+    createLink({ url: 'https://b.fr', title: 'Deux' }, { now: 1 }),
+  ];
+  const layout = spreadsheetLayout(withNote);
+  assert.ok(layout.headers.includes('Note'));
+  assert.equal(layout.noteColumn, 5);
+  // L'image doit rester ancrée sur la colonne du QR, qui s'est décalée.
+  assert.equal(layout.qrColumn, layout.headers.indexOf('QR code'));
+  assert.equal(layout.qrColumn, QR_COLUMN_INDEX + 1);
+
+  const xlsx = await buildLinkSpreadsheet(withNote, { now: 1 });
+  const entries = readZip(xlsx);
+  const sheet = new TextDecoder().decode(entries.get('xl/worksheets/sheet1.xml').data);
+  assert.ok(sheet.includes('>Note<'), 'en-tête de la note');
+  assert.ok(sheet.includes('à relire'));
+  // Les ancres d'image vivent dans le dessin, pas dans la feuille.
+  assert.equal(sheet.includes('oneCellAnchor'), false);
+
+  const drawing = new TextDecoder().decode(entries.get('xl/drawings/drawing1.xml').data);
+  assert.equal(drawing.match(/<xdr:oneCellAnchor>/g).length, withNote.length);
+  // La colonne de l'ancre, en base 0 : « Note » occupe la 5e, le QR la 7e.
+  const columns = [...drawing.matchAll(/<xdr:col>(\d+)<\/xdr:col>/g)].map((m) => Number(m[1]));
+  assert.deepEqual(columns, [layout.qrColumn, layout.qrColumn], 'QR ancré sur la bonne colonne');
 });

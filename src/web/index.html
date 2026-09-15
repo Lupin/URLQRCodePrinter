@@ -31,6 +31,15 @@
     <section class="panel" aria-labelledby="collection-title">
       <h2 id="collection-title" class="panel__title">Ma collection</h2>
 
+      <!-- Ce nom devient le titre des exports Markdown et de la planche
+           imprimable : il doit donc être saisissable ici. -->
+      <label class="field field--compact">
+        <span class="field__label">Nom de la collection</span>
+        <input id="collection-name" class="input input--compact" type="text"
+               maxlength="80" value="Mes liens" placeholder="Mes liens"
+               autocomplete="off" spellcheck="false">
+      </label>
+
       <form id="add-form" class="add-form">
         <label class="sr-only" for="url-input">URL à ajouter</label>
         <input id="url-input" class="input" type="text" name="url"

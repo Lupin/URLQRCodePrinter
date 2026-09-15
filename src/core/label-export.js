@@ -449,9 +449,12 @@ function escapeCsv(value) {
 
 /**
  * Nom de fichier de l'archive d'étiquettes.
+ *
  * @param {number} [now]
+ * @param {string} [base] Nom de la collection, pour retrouver l'archive dans un
+ *   dossier de téléchargements. Le défaut reste `etiquettes-qr`.
  * @returns {string}
  */
-export function labelArchiveName(now = Date.now()) {
-  return exportFilename('etiquettes-qr', 'zip', now);
+export function labelArchiveName(now = Date.now(), base = 'etiquettes-qr') {
+  return exportFilename(base, 'zip', now || Date.now());
 }

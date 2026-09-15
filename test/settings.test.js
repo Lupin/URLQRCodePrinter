@@ -12,6 +12,7 @@ import assert from 'node:assert/strict';
 import {
   SETTINGS_KEY,
   DEFAULT_SETTINGS,
+  COLLECTION_NAME_MAX,
   sanitizeSettings,
   createSettingsStore,
 } from '../src/core/settings.js';
@@ -44,25 +45,45 @@ test('sanitizeSettings écarte une préférence inconnue', () => {
   assert.deepEqual(sanitizeSettings({ shortener: 'bitly' }), DEFAULT_SETTINGS);
   assert.deepEqual(sanitizeSettings({ targetMode: 'raccourci' }), DEFAULT_SETTINGS);
   assert.deepEqual(
-    sanitizeSettings({ shortener: 'isgd', targetMode: 'short' }),
-    { shortener: 'isgd', targetMode: 'short' },
+    sanitizeSettings({ shortener: 'isgd', targetMode: 'short', collectionName: 'Veille' }),
+    { shortener: 'isgd', targetMode: 'short', collectionName: 'Veille' },
   );
+});
+
+test('le nom de collection est nettoyé', () => {
+  // Le nom devient un titre d'export : il ne peut pas être vide, ne doit pas
+  // garder d'espaces autour, et reste d'une longueur affichable.
+  assert.equal(sanitizeSettings({ collectionName: '  Veille tech  ' }).collectionName, 'Veille tech');
+  assert.equal(sanitizeSettings({ collectionName: '   ' }).collectionName, DEFAULT_SETTINGS.collectionName);
+  assert.equal(sanitizeSettings({ collectionName: '' }).collectionName, DEFAULT_SETTINGS.collectionName);
+  assert.equal(sanitizeSettings({ collectionName: 42 }).collectionName, DEFAULT_SETTINGS.collectionName);
+
+  const long = sanitizeSettings({ collectionName: 'x'.repeat(200) }).collectionName;
+  assert.equal(long.length, COLLECTION_NAME_MAX);
 });
 
 test('les réglages survivent à un redémarrage', () => {
   const storage = fakeStorage();
   const first = createSettingsStore({ storage });
-  first.save({ shortener: 'isgd', targetMode: 'short' });
+  first.save({ shortener: 'isgd', targetMode: 'short', collectionName: 'Veille' });
 
   const second = createSettingsStore({ storage });
-  assert.deepEqual(second.load(), { shortener: 'isgd', targetMode: 'short' });
+  assert.deepEqual(second.load(), {
+    shortener: 'isgd',
+    targetMode: 'short',
+    collectionName: 'Veille',
+  });
 });
 
 test('une écriture partielle ne réinitialise pas le reste', () => {
   const store = createSettingsStore({ storage: fakeStorage() });
   store.save({ shortener: 'spoome' });
   store.save({ targetMode: 'short' });
-  assert.deepEqual(store.load(), { shortener: 'spoome', targetMode: 'short' });
+  assert.deepEqual(store.load(), {
+    shortener: 'spoome',
+    targetMode: 'short',
+    collectionName: DEFAULT_SETTINGS.collectionName,
+  });
 });
 
 test('reset revient aux valeurs par défaut', () => {
@@ -85,6 +106,7 @@ test('un réglage hors catalogue est ignoré à la relecture', () => {
   assert.deepEqual(createSettingsStore({ storage }).load(), {
     shortener: DEFAULT_SETTINGS.shortener,
     targetMode: 'short',
+    collectionName: DEFAULT_SETTINGS.collectionName,
   });
 });
 
@@ -103,6 +125,7 @@ test('un stockage qui refuse d\'écrire ne fait pas échouer l\'enregistrement',
   assert.deepEqual(store.save({ targetMode: 'short' }), {
     shortener: DEFAULT_SETTINGS.shortener,
     targetMode: 'short',
+    collectionName: DEFAULT_SETTINGS.collectionName,
   });
 });
 

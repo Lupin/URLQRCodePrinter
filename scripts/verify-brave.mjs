@@ -152,6 +152,27 @@ async function main() {
     await evaluate('location.reload()');
     await new Promise((r) => setTimeout(r, 2000));
 
+    /**
+     * Attend l'arrivée d'un fichier téléchargé, puis le renvoie.
+     *
+     * Les exports texte et le classeur sont déclenchés depuis la page : leur
+     * nom dépend du nom de collection, d'où cette attente plutôt qu'une lecture
+     * directe du dossier.
+     *
+     * @param {'md'|'csv-export'|'xlsx'} kind
+     * @returns {Promise<string>} nom du fichier
+     */
+    const waitForFile = async (kind) => {
+      const before = new Set(readdirSync(DOWNLOADS));
+      const button = { md: 'export-md', 'csv-export': 'export-csv', xlsx: 'export-xlsx' }[kind];
+      await evaluate(`document.getElementById('${button}').click()`);
+      const extension = kind === 'csv-export' ? '.csv' : `.${kind}`;
+      return waitFor(
+        () => readdirSync(DOWNLOADS).find((n) => !before.has(n) && n.endsWith(extension)),
+        { label: `téléchargement ${kind}`, timeout: 60000 },
+      );
+    };
+
     /** Attend qu'une expression évaluée dans la page devienne vraie. */
     const waitForEval = (expression, label, timeout = 25000) =>
       waitFor(async () => {
@@ -472,6 +493,131 @@ async function main() {
       (freshness.stylesheet ?? []).every((href) => /\?v=[0-9a-f]{12}$/.test(href ?? ''))
         && (freshness.scripts ?? []).every((src) => /\?v=[0-9a-f]{12}$/.test(src ?? '')),
       [...freshness.stylesheet, ...freshness.scripts].join(', '),
+    );
+
+    // --- Nommer la collection, et remplir les champs exportés -------------
+    //
+    // Ces champs partent dans les exports : ils doivent être saisissables, et
+    // ce qu'on saisit doit se retrouver tel quel dans les fichiers produits.
+    const named = await evaluate(`(async () => {
+      const pause = (ms) => new Promise((r) => setTimeout(r, ms));
+
+      const nameField = document.getElementById('collection-name');
+      nameField.value = 'Veille du vendredi';
+      nameField.dispatchEvent(new Event('input'));
+      await pause(200);
+
+      // Édition du premier lien : titre, tags, note.
+      document.querySelector('#list .link__edit').click();
+      await pause(150);
+
+      const inputs = [...document.querySelectorAll('#list .link__editor-form input')];
+      if (inputs.length !== 3) return { error: inputs.length + ' champ(s) au lieu de 3' };
+      const [title, tags, note] = inputs;
+      title.value = 'Titre saisi à la main';
+      tags.value = 'veille,  travail , veille';
+      note.value = 'Note saisie à la main';
+      title.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+      await pause(500);
+
+      const stored = await new Promise((resolve) => {
+        chrome.storage.local.get('links', (data) => resolve(data.links?.[0] ?? null));
+      });
+
+      const chip = document.querySelector('#list .tag');
+      const chipLabel = chip ? chip.textContent : '';
+      if (chip) { chip.click(); await pause(200); }
+      const filtered = document.querySelectorAll('#list .link').length;
+      document.getElementById('search').value = '';
+      document.getElementById('search').dispatchEvent(new Event('input'));
+      await pause(200);
+
+      return {
+        title: stored?.title,
+        tags: stored?.tags,
+        note: stored?.note,
+        chipLabel,
+        filtered,
+        documentTitle: document.title,
+      };
+    })()`);
+
+    record(
+      'le titre, les tags et la note sont saisissables',
+      named?.title === 'Titre saisi à la main'
+        && named?.note === 'Note saisie à la main'
+        && Array.isArray(named?.tags),
+      named?.error ?? `titre « ${named?.title} », note « ${named?.note} »`,
+    );
+    record(
+      'les tags sont normalisés (dédoublonnés, sans espaces)',
+      JSON.stringify(named?.tags) === JSON.stringify(['veille', 'travail']),
+      JSON.stringify(named?.tags),
+    );
+    record(
+      'une puce de tag filtre la collection',
+      named?.chipLabel === '#veille' && named?.filtered === 1,
+      `${named?.chipLabel} → ${named?.filtered} lien(s)`,
+    );
+    record(
+      'le nom de la collection devient le titre de la page',
+      named?.documentTitle === 'Veille du vendredi — URLQRCodePrinter',
+      named?.documentTitle,
+    );
+
+    // --- Ce qui est saisi doit ressortir dans les exports ------------------
+    const mdName = await waitForFile('md');
+    const markdown = readFileSync(join(DOWNLOADS, mdName), 'utf8');
+    record(
+      'le Markdown porte le nom de la collection comme titre',
+      markdown.includes('# Veille du vendredi')
+        && /^title: "Veille du vendredi"$/m.test(markdown),
+      mdName,
+    );
+    record(
+      'le Markdown reprend le titre, les tags et la note saisis',
+      markdown.includes('Titre saisi à la main')
+        && markdown.includes('#veille')
+        && markdown.includes('Note saisie à la main'),
+      markdown.split('\n').find((line) => line.includes('Titre saisi')) ?? '',
+    );
+    record(
+      'le fichier Markdown porte le nom de la collection',
+      mdName.startsWith('Veille-du-vendredi-'),
+      mdName,
+    );
+
+    const namedCsv = await waitForFile('csv-export');
+    const csvExport = readFileSync(join(DOWNLOADS, namedCsv), 'utf8');
+    record(
+      'le CSV reprend les mêmes champs',
+      csvExport.includes('Titre saisi à la main')
+        && csvExport.includes('veille travail')
+        && csvExport.includes('Note saisie à la main'),
+    );
+
+    const xlsxName = await waitForFile('xlsx');
+    const xlsxSheet = spawnSync(
+      '/usr/bin/unzip', ['-p', join(DOWNLOADS, xlsxName), 'xl/worksheets/sheet1.xml'],
+      { encoding: 'utf8' },
+    ).stdout ?? '';
+    // Le détail de ce qui manque est reporté : « échec » sans dire quoi est un
+    // diagnostic inutilisable.
+    const wanted = {
+      titre: 'Titre saisi à la main',
+      tags: 'veille travail',
+      note: 'Note saisie à la main',
+    };
+    const missing = Object.entries(wanted)
+      .filter(([, text]) => !xlsxSheet.includes(text))
+      .map(([field]) => field);
+    record(
+      'le classeur reprend les mêmes champs',
+      missing.length === 0,
+      missing.length === 0
+        ? xlsxName
+        : `${xlsxName} — manquant : ${missing.join(', ')} (colonnes : ${
+          (xlsxSheet.match(/<t[^>]*>([^<]*)<\/t>/g) ?? []).slice(0, 9).join(' ')}`,
     );
 
     // --- Matrice de mise en page, mesurée sur le rendu réel ----------------
@@ -798,49 +944,31 @@ async function main() {
       'toutes les étiquettes dans la page',
     );
 
-    // --- Notes : saisissables, donc utiles au tableau ----------------------
-    const noted = await evaluate(`(async () => {
-      const open = document.querySelector('#list .link__note-button');
-      if (!open) return { error: 'aucun bouton de note' };
-      open.click();
-      await new Promise((r) => setTimeout(r, 120));
-
-      const input = document.querySelector('#list .link__note-input');
-      if (!input) return { error: 'champ de note absent' };
-      input.value = 'note de vérification';
-      input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
-      await new Promise((r) => setTimeout(r, 500));
-
-      const stored = await new Promise((resolve) => {
-        chrome.storage.local.get('links', (data) => resolve(
-          (data.links ?? []).filter((link) => link.note === 'note de vérification').length,
-        ));
-      });
-
+    // --- Les notes saisies ressortent dans le tableau imprimé -------------
+    const tableNotes = await evaluate(`(async () => {
+      const pause = (ms) => new Promise((r) => setTimeout(r, ms));
       [...document.querySelectorAll('.tab')].find((t) => t.dataset.mode === 'table').click();
-      await new Promise((r) => setTimeout(r, 400));
+      await pause(400);
+
       const checkbox = document.getElementById('table-note');
       checkbox.checked = true;
       checkbox.dispatchEvent(new Event('change'));
-      await new Promise((r) => setTimeout(r, 400));
+      await pause(400);
 
       const headers = [...document.querySelectorAll('#preview .print-table th')].map((th) => th.textContent);
       const hasNote = [...document.querySelectorAll('#preview .print-table td')]
-        .some((td) => td.textContent === 'note de vérification');
+        .some((td) => td.textContent === 'Note saisie à la main');
 
       [...document.querySelectorAll('.tab')].find((t) => t.dataset.mode === 'sheet').click();
-      return { stored, headers, hasNote };
+      await pause(200);
+      return { headers, hasNote };
     })()`);
 
     record(
-      'une note peut être saisie depuis la liste',
-      noted?.stored === 1,
-      noted?.error ?? `${noted?.stored} note(s) enregistrée(s)`,
-    );
-    record(
-      'le tableau affiche les notes saisies',
-      Array.isArray(noted?.headers) && noted.headers.includes('Note') && noted.hasNote === true,
-      (noted?.headers ?? []).join(' / '),
+      'le tableau imprimé affiche les notes saisies',
+      Array.isArray(tableNotes?.headers) && tableNotes.headers.includes('Note')
+        && tableNotes.hasNote === true,
+      (tableNotes?.headers ?? []).join(' / '),
     );
 
     app.ws.close();

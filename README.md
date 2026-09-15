@@ -21,7 +21,7 @@ Markdown, ou envoi direct à une imprimante Niimbot.
 | Socle natif Swift (protocole, session, CoreBluetooth) | fait, testé |
 | Application iOS qui utilise ce socle | à faire |
 
-**551 tests, tous verts** — 447 en JavaScript et 104 en Swift — dont :
+**555 tests, tous verts** — 451 en JavaScript et 104 en Swift — dont :
 
 - la validation **octet à octet** des trames Niimbot contre les relevés
   documentés, **dans les deux langages** : deux implémentations indépendantes
@@ -41,7 +41,7 @@ Markdown, ou envoi direct à une imprimante Niimbot.
 **L'application est vérifiée dans un vrai navigateur** : `npm run verify:brave`
 lance Brave sur un profil isolé, collecte un lien, le raccourcit, exporte le CSV
 et l'archive d'étiquettes, puis contrôle les fichiers réellement écrits sur le
-disque (signature ZIP, `unzip -t`, contenu du CSV). 53 vérifications, dont le
+disque (signature ZIP, `unzip -t`, contenu du CSV). 61 vérifications, dont le
 rendu des liens cliquables dans l'application *et* dans la fenêtre de
 l'extension, la grille réellement calculée pour quatre références Avery, et
 l'aperçu d'étiquette composé sans aucune imprimante connectée.
@@ -244,6 +244,40 @@ s'il existe, et l'URL de l'onglet est lue par injection quand `tab.url` manque.
 - **Le dialogue d'impression dépend du modèle.** Un D110 attend un `SetPageSize`
   de 4 octets ; le format « v4 » (13 octets) le fait répondre une erreur
   `DataError` au lieu d'imprimer.
+
+## Un export ne doit rien contenir d'insaisissable
+
+Règle du projet, née de deux remarques justes : le Markdown portait un titre
+choisi par le programme (« Mes liens QR »), et une colonne « Tags » qu'aucune
+interface ne permettait de remplir. Un export qui transporte des colonnes vides,
+ou un titre qui n'est pas celui de l'utilisateur, est un export faux.
+
+Ce qui a été mis en cohérence :
+
+| Champ | Saisie | Sorties |
+|---|---|---|
+| URL | champ « Ajouter », extension | toutes |
+| Titre | éditeur de la ligne (✎) | CSV, Markdown, classeur, nom des fichiers d'étiquettes |
+| Tags | éditeur de la ligne (✎), virgules | CSV, Markdown, classeur |
+| Note | éditeur de la ligne (✎) | CSV, Markdown, classeur, tableau imprimé |
+| Nom de collection | champ « Nom de la collection » | titre du Markdown, titre de la planche HTML, nom des fichiers exportés |
+
+Deux choix méritent d'être connus :
+
+**Les colonnes facultatives n'apparaissent que si elles servent.** « Note » (dans
+le Markdown et le classeur), « URL courte » (CSV) et « URL d'origine » (dans les
+exports d'une collection raccourcie) ne sont ajoutées que si au moins un lien a
+la valeur correspondante. Sans cela, un tableau à sept colonnes dont une vide sur
+toute la hauteur, et les tests existants auraient dû changer à chaque ajout.
+
+**Dans le classeur, la note se place avant la colonne des QR codes**, dont
+l'index est donc recalculé (`spreadsheetLayout`) : une image ancrée sur la
+mauvaise colonne serait tout simplement invisible. Les tags y sont écrits sans
+« # », comme dans le CSV : dans un tableur, le dièse gêne le filtrage.
+
+Les tags ne s'impriment pas sur les étiquettes : ils classent la collection, et
+les étiquettes portent le QR et le texte choisi. Ils ressortent en revanche dans
+tous les exports de données.
 
 ## Planches d'étiquettes
 

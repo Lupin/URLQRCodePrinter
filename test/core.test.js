@@ -392,3 +392,31 @@ test('l\'archive JSON conserve le lien raccourci après relecture', () => {
   assert.equal(restored.shortProvider, 'tinyurl');
   assert.equal(restored.url, 'https://exemple.fr/un-article?id=42');
 });
+
+test('le tableau Markdown n\'ajoute la note que si elle sert', () => {
+  const withoutNote = [createLink({ url: 'https://e.com/a', title: 'Un' }, { now: T0 })];
+  assert.ok(toMarkdown(withoutNote, { now: T0 }).includes('| N° | URL | Titre | Tags | Ajouté le |'));
+  assert.equal(toMarkdown(withoutNote, { now: T0 }).includes('| Note |'), false);
+
+  const withNote = [createLink({ url: 'https://e.com/a', title: 'Un', note: 'à relire' }, { now: T0 })];
+  const md = toMarkdown(withNote, { now: T0 });
+  assert.ok(md.includes('| N° | URL | Titre | Tags | Note | Ajouté le |'), md.split('\n')[8]);
+  assert.ok(md.includes('à relire'));
+  // La ligne de séparation doit compter le même nombre de colonnes.
+  const [header, separator] = md.split('\n').slice(8, 10);
+  assert.equal(
+    header.split('|').length,
+    separator.split('|').length,
+    'en-tête et séparateur désalignés',
+  );
+});
+
+test('le titre du Markdown est celui qu\'on donne', () => {
+  // Le titre par défaut est un libellé de bibliothèque ; l'application passe le
+  // nom de la collection, qui est ce que l'utilisateur a nommé.
+  const links = [createLink({ url: 'https://e.com/a' }, { now: T0 })];
+  const md = toMarkdown(links, { title: 'Veille du vendredi', now: T0 });
+  assert.ok(md.includes('# Veille du vendredi'));
+  assert.ok(md.includes('title: "Veille du vendredi"'));
+  assert.ok(md.includes('_1 lien — exporté le'));
+});
