@@ -226,7 +226,39 @@
             <span class="field__label">Taille du QR</span>
             <input id="table-qr" class="input" type="range" min="20" max="80" value="38">
           </label>
+          <!-- Le sens de la feuille : un tableau large gagne à être couché. -->
+          <label class="field">
+            <span class="field__label">Orientation de la page</span>
+            <select id="table-orientation" class="input"></select>
+          </label>
         </div>
+
+        <!-- Marges de la page imprimée. Elles étaient fixes : un tableau large
+             se faisait rogner, et rien ne permettait de le rattraper. -->
+        <div class="fields">
+          <label class="field">
+            <span class="field__label">Marge haut et bas (mm)</span>
+            <input id="table-margin-y" class="input" type="number" min="0" max="40"
+                   step="1" value="12">
+          </label>
+          <label class="field">
+            <span class="field__label">Marge gauche et droite (mm)</span>
+            <input id="table-margin-x" class="input" type="number" min="0" max="40"
+                   step="1" value="10">
+          </label>
+        </div>
+
+        <fieldset class="columns">
+          <legend class="columns__legend">En-tête de page</legend>
+          <label class="columns__item field__label">
+            <input id="table-title" type="checkbox" checked>
+            <span>Nom de la collection</span>
+          </label>
+          <label class="columns__item field__label">
+            <input id="table-title-date" type="checkbox">
+            <span>Avec la date d'impression</span>
+          </label>
+        </fieldset>
 
         <!-- Colonnes du tableau imprimé. Les tags et la note ne sont
              proposés que si la collection en contient : une colonne vide sur

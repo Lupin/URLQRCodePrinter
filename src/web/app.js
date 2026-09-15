@@ -1471,6 +1471,69 @@ function updateQrInfo(state) {
 }
 
 /**
+ * Les réglages de page du tableau imprimé.
+ *
+ * Le sens de la feuille et ses marges étaient fixes : un tableau large se
+ * faisait rogner, et rien ne permettait de le rattraper.
+ *
+ * @returns {{ widthMm: number, heightMm: number, marginXMm: number, marginYMm: number, orientation: string }}
+ */
+function tablePageConfig() {
+  const base = PAGE_SIZES.a4;
+  const paysage = el.tableOrientation.value === 'landscape';
+  const marginXMm = Math.max(0, Math.min(40, Number(el.tableMarginX.value) || 0));
+  const marginYMm = Math.max(0, Math.min(40, Number(el.tableMarginY.value) || 0));
+
+  return {
+    orientation: paysage ? 'landscape' : 'portrait',
+    // En paysage, la feuille est tournée : les deux cotes s'échangent.
+    widthMm: paysage ? base.heightMm : base.widthMm,
+    heightMm: paysage ? base.widthMm : base.heightMm,
+    marginXMm,
+    marginYMm,
+  };
+}
+
+/**
+ * Enveloppe le tableau dans sa page : marges, et titre de collection.
+ *
+ * @param {HTMLElement} table
+ * @param {{ preview?: boolean }} [options]
+ * @returns {HTMLElement}
+ */
+function buildTablePage(table, options = {}) {
+  const config = tablePageConfig();
+  const page = document.createElement('div');
+  page.className = options.preview ? 'print-page print-page--screen' : 'print-page';
+  page.style.width = `${config.widthMm}mm`;
+  page.style.height = `${config.heightMm}mm`;
+  page.style.padding = `${config.marginYMm}mm ${config.marginXMm}mm`;
+  page.style.boxSizing = 'border-box';
+
+  // Le nom de la collection en tête : sur une liasse imprimée, c'est ce qui
+  // permet de retrouver de quoi il s'agit.
+  if (el.tableTitle.checked) {
+    const title = document.createElement('h1');
+    title.className = 'print-page__title';
+    title.textContent = collectionName();
+    if (el.tableTitleDate.checked) {
+      const quand = document.createElement('span');
+      quand.className = 'print-page__date';
+      quand.textContent = formatCaptureDate(Date.now(), 'datetime');
+      title.appendChild(quand);
+    }
+    page.appendChild(title);
+    // Le titre occupe une bande : le tableau se place dessous, sans le recouvrir.
+    const spacer = document.createElement('div');
+    spacer.className = 'print-page__spacer';
+    page.appendChild(spacer);
+  }
+
+  page.appendChild(table);
+  return page;
+}
+
+/**
  * Construit le tableau imprimable.
  * @param {import('./core/link.js').LinkRecord[]} items
  * @returns {HTMLElement}
@@ -1663,10 +1726,7 @@ function renderPreview() {
       el.preview.appendChild(note);
       return;
     }
-    const scaler = document.createElement('div');
-    scaler.className = 'preview__page';
-    scaler.appendChild(buildTable(items));
-    el.preview.appendChild(scaler);
+    el.preview.appendChild(scaleForScreen(buildTablePage(buildTable(items), { preview: true })));
     return;
   }
 
@@ -2288,12 +2348,10 @@ function printSelection() {
 
   if (mode === 'table') {
     // Le tableau s'imprime sur A4 : il n'a pas de cotes d'étiquette à honorer,
-    // seulement une largeur de papier à fixer.
-    applyPrintPageSize(PAGE_SIZES.a4.widthMm, PAGE_SIZES.a4.heightMm);
-    const page = document.createElement('div');
-    page.className = 'print-page';
-    page.appendChild(buildTable(items));
-    el.printRoot.appendChild(page);
+    // seulement un sens de feuille et des marges à fixer.
+    const config = tablePageConfig();
+    applyPrintPageSize(config.widthMm, config.heightMm);
+    el.printRoot.appendChild(buildTablePage(buildTable(items)));
   } else {
     for (const page of buildSheetPages(items)) el.printRoot.appendChild(page);
   }
@@ -2737,6 +2795,15 @@ function fillLabelChoices() {
   // Le contenu se coche, il ne se choisit plus dans une liste : titre, URL et
   // numéro se cumulent, une liste déroulante n'en acceptait qu'un.
 
+  // Sens de la feuille pour le tableau imprimé.
+  for (const [id, label] of [['portrait', 'Portrait'], ['landscape', 'Paysage']]) {
+    const option = document.createElement('option');
+    option.value = id;
+    option.textContent = label;
+    el.tableOrientation.appendChild(option);
+  }
+  el.tableOrientation.value = 'portrait';
+
   for (const scope of PRINT_SCOPES) {
     const option = document.createElement('option');
     option.value = scope.id;
@@ -3073,6 +3140,16 @@ for (const box of [
 }
 el.labelAlignment.addEventListener('change', renderPreview);
 el.labelFontSize.addEventListener('input', renderPreview);
+// Les réglages de page du tableau se répercutent sur l'aperçu.
+for (const node of [
+  el.tableOrientation, el.tableMarginX, el.tableMarginY,
+]) {
+  node.addEventListener('input', renderPreview);
+  node.addEventListener('change', renderPreview);
+}
+for (const box of [el.tableTitle, el.tableTitleDate]) {
+  box.addEventListener('change', renderPreview);
+}
 el.printScope.addEventListener('change', updatePrintScope);
 el.printCopies.addEventListener('input', updatePrintScope);
 el.labelLink.addEventListener('change', renderPreview);
@@ -3107,11 +3184,9 @@ window.addEventListener('beforeprint', () => {
   if (el.printRoot.childElementCount === 0 && mode !== 'single') {
     const items = printableLinks();
     if (mode === 'table') {
-      applyPrintPageSize(PAGE_SIZES.a4.widthMm, PAGE_SIZES.a4.heightMm);
-      const page = document.createElement('div');
-      page.className = 'print-page';
-      page.appendChild(buildTable(items));
-      el.printRoot.appendChild(page);
+      const config = tablePageConfig();
+      applyPrintPageSize(config.widthMm, config.heightMm);
+      el.printRoot.appendChild(buildTablePage(buildTable(items)));
     } else {
       for (const page of buildSheetPages(items)) el.printRoot.appendChild(page);
     }

@@ -712,6 +712,24 @@ body {
 
 .print-table__qr { width: 1%; }
 
+/* En-tête de la page imprimée : le nom de la collection, et la date si on la
+   demande. Les marges sont posées en ligne, calculées depuis les réglages. */
+.print-page__title {
+  margin: 0;
+  font-size: 12pt;
+  font-weight: 600;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 6mm;
+}
+
+.print-page__date { font-size: 8pt; font-weight: 400; color: #444; }
+
+/* Une bande entre le titre et le tableau : sans elle, la première ligne du
+   tableau colle au titre. */
+.print-page__spacer { height: 4mm; }
+
 /* Variante sans grille. Le sélecteur porte deux classes pour l'emporter sur
    les règles d'impression, quelle que soit leur position dans la feuille : à
    spécificité égale, c'est le dernier bloc qui gagne, et l'ordre ne doit pas

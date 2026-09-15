@@ -2225,6 +2225,97 @@ async function main() {
         + `première ligne du tableau : n° ${table.initial.firstRowNumber}`,
     );
 
+    // --- Tableau imprimé : sens de la feuille, marges et en-tête -----------
+    //
+    // La page était figée en A4 portrait, sans marges réglables ni titre : un
+    // tableau large se faisait rogner, et une liasse imprimée ne disait pas de
+    // quelle collection elle venait.
+    const tablePage = await evaluate(`(async () => {
+      const pause = (ms) => new Promise((r) => setTimeout(r, ms));
+      const el = (id) => document.getElementById(id);
+      [...document.querySelectorAll('.tab')].find((t) => t.dataset.mode === 'table').click();
+      await pause(600);
+
+      const mesurer = () => {
+        const page = document.querySelector('#preview .print-page');
+        if (!page) return null;
+        const titre = page.querySelector('.print-page__title');
+        return {
+          largeurMm: parseFloat(page.style.width),
+          hauteurMm: parseFloat(page.style.height),
+          padding: page.style.padding,
+          titre: titre ? titre.textContent : '',
+          tableau: Boolean(page.querySelector('.print-table')),
+        };
+      };
+
+      const portrait = mesurer();
+
+      el('table-orientation').value = 'landscape';
+      el('table-orientation').dispatchEvent(new Event('change'));
+      await pause(500);
+      const paysage = mesurer();
+
+      el('table-margin-x').value = '25';
+      el('table-margin-x').dispatchEvent(new Event('input'));
+      el('table-margin-y').value = '5';
+      el('table-margin-y').dispatchEvent(new Event('input'));
+      await pause(500);
+      const marges = mesurer();
+
+      el('table-title').checked = false;
+      el('table-title').dispatchEvent(new Event('change'));
+      await pause(400);
+      const sansTitre = mesurer();
+
+      el('table-title').checked = true;
+      el('table-title').dispatchEvent(new Event('change'));
+      el('table-title-date').checked = true;
+      el('table-title-date').dispatchEvent(new Event('change'));
+      await pause(450);
+      const avecDate = mesurer();
+
+      // Remise en etat.
+      el('table-orientation').value = 'portrait';
+      el('table-orientation').dispatchEvent(new Event('change'));
+      el('table-margin-x').value = '10';
+      el('table-margin-x').dispatchEvent(new Event('input'));
+      el('table-margin-y').value = '12';
+      el('table-margin-y').dispatchEvent(new Event('input'));
+      el('table-title-date').checked = false;
+      el('table-title-date').dispatchEvent(new Event('change'));
+      await pause(400);
+
+      return { portrait, paysage, marges, sansTitre, avecDate,
+               collection: el('collection-name').value };
+    })()`);
+
+    record(
+      "le tableau s'imprime en portrait ou en paysage",
+      tablePage?.portrait?.largeurMm === 210 && tablePage?.portrait?.hauteurMm === 297
+        && tablePage?.paysage?.largeurMm === 297 && tablePage?.paysage?.hauteurMm === 210,
+      `portrait ${tablePage?.portrait?.largeurMm}×${tablePage?.portrait?.hauteurMm} mm `
+        + `· paysage ${tablePage?.paysage?.largeurMm}×${tablePage?.paysage?.hauteurMm} mm`,
+    );
+    record(
+      "les marges du tableau sont réglables",
+      tablePage?.marges?.padding === '5mm 25mm',
+      `marges posées : ${tablePage?.marges?.padding}`,
+    );
+    record(
+      "le nom de la collection s'imprime en tête",
+      tablePage?.portrait?.titre === tablePage?.collection
+        && tablePage?.sansTitre?.titre === ''
+        && /\d{2}\/\d{2}\/\d{4}/.test(tablePage?.avecDate?.titre ?? ''),
+      `« ${tablePage?.portrait?.titre} » · sans titre « ${tablePage?.sansTitre?.titre} » `
+        + `· avec date « ${tablePage?.avecDate?.titre} »`,
+    );
+    record(
+      "le tableau reste dans sa page, quel que soit le sens",
+      tablePage?.portrait?.tableau === true && tablePage?.paysage?.tableau === true,
+      'tableau présent dans les deux sens',
+    );
+
     // --- Import : ce que l'application exporte doit se réimporter ---------
     //
     // C'était le malentendu principal : le bouton « Importer » n'acceptait que

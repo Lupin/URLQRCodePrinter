@@ -236,6 +236,17 @@ pour toutes les planches.
 Un tableau dense — QR code, titre, domaine, notes — pour relire ou archiver sur
 papier.
 
+- **Taille du QR** — un curseur, du plus discret au plus lisible.
+- **Orientation de la page** — portrait ou paysage. Un tableau à nombreuses
+  colonnes gagne à être couché : les colonnes respirent au lieu d'être serrées.
+- **Marges** — haut et bas, gauche et droite, en millimètres. Elles étaient
+  fixes : un tableau large se faisait rogner sans recours.
+- **En-tête de page** — le nom de la collection s'imprime en tête, avec la date
+  d'impression si vous la demandez. Sur une liasse, c'est ce qui dit de quelle
+  collection elle vient.
+- **Colonnes** — N°, QR, URL, Titre, Tags, Note, Date. Les tags et la note ne
+  sont proposés que si la collection en contient.
+
 ### Étiquette Niimbot
 
 Pour l'impression directe sur une D110 ou une M2. Voir la section suivante.
