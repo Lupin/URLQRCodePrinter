@@ -21,6 +21,7 @@ import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { writeIcons } from './make-icons.mjs';
+import { patchContainerApp } from './safari-container-app.mjs';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -126,6 +127,15 @@ async function main() {
     for (const change of changes) {
       console.log(`  ${change.setting} : ${change.from} → ${change.to}`);
     }
+  }
+
+  console.log('→ Correction de la fenêtre de l\'application conteneur…');
+  const container = await patchContainerApp(PROJECT_LOCATION);
+  for (const file of container.patched) console.log(`  corrigé : ${file}`);
+  for (const problem of container.missing) {
+    // Le modèle d'Apple a changé : on le signale sans interrompre, la
+    // compilation reste possible.
+    console.log(`  ⚠ non appliqué — ${problem}`);
   }
 
   console.log('\nProjet prêt :');

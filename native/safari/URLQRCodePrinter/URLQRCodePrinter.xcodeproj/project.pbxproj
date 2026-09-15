@@ -7,82 +7,82 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		9384BD7A30596D7A00E1B75F /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9384BD7930596D7A00E1B75F /* AppDelegate.swift */; };
-		9384BD7C30596D7A00E1B75F /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9384BD7B30596D7A00E1B75F /* SceneDelegate.swift */; };
-		9384BD7F30596D7A00E1B75F /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 9384BD7D30596D7A00E1B75F /* LaunchScreen.storyboard */; };
-		9384BD8230596D7A00E1B75F /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 9384BD8030596D7A00E1B75F /* Main.storyboard */; };
-		9384BD8B30596D7A00E1B75F /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9384BD8A30596D7A00E1B75F /* AppDelegate.swift */; };
-		9384BD8E30596D7A00E1B75F /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 9384BD8C30596D7A00E1B75F /* Main.storyboard */; };
-		9384BD9530596D7A00E1B75F /* URLQRCodePrinter Extension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 9384BD9430596D7A00E1B75F /* URLQRCodePrinter Extension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
-		9384BD9F30596D7A00E1B75F /* URLQRCodePrinter Extension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 9384BD9E30596D7A00E1B75F /* URLQRCodePrinter Extension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
-		9384BDA430596D7A00E1B75F /* Main.html in Resources */ = {isa = PBXBuildFile; fileRef = 9384BD6930596D7600E1B75F /* Main.html */; };
-		9384BDA530596D7A00E1B75F /* Main.html in Resources */ = {isa = PBXBuildFile; fileRef = 9384BD6930596D7600E1B75F /* Main.html */; };
-		9384BDA630596D7A00E1B75F /* Icon.png in Resources */ = {isa = PBXBuildFile; fileRef = 9384BD6B30596D7600E1B75F /* Icon.png */; };
-		9384BDA730596D7A00E1B75F /* Icon.png in Resources */ = {isa = PBXBuildFile; fileRef = 9384BD6B30596D7600E1B75F /* Icon.png */; };
-		9384BDA830596D7A00E1B75F /* Style.css in Resources */ = {isa = PBXBuildFile; fileRef = 9384BD6C30596D7600E1B75F /* Style.css */; };
-		9384BDA930596D7A00E1B75F /* Style.css in Resources */ = {isa = PBXBuildFile; fileRef = 9384BD6C30596D7600E1B75F /* Style.css */; };
-		9384BDAA30596D7A00E1B75F /* Script.js in Resources */ = {isa = PBXBuildFile; fileRef = 9384BD6D30596D7600E1B75F /* Script.js */; };
-		9384BDAB30596D7A00E1B75F /* Script.js in Resources */ = {isa = PBXBuildFile; fileRef = 9384BD6D30596D7600E1B75F /* Script.js */; };
-		9384BDAC30596D7A00E1B75F /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9384BD6E30596D7600E1B75F /* ViewController.swift */; };
-		9384BDAD30596D7A00E1B75F /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9384BD6E30596D7600E1B75F /* ViewController.swift */; };
-		9384BDAE30596D7A00E1B75F /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 9384BD6F30596D7A00E1B75F /* Assets.xcassets */; };
-		9384BDAF30596D7A00E1B75F /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 9384BD6F30596D7A00E1B75F /* Assets.xcassets */; };
-		9384BDB030596D7A00E1B75F /* SafariWebExtensionHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9384BD7130596D7A00E1B75F /* SafariWebExtensionHandler.swift */; };
-		9384BDB130596D7A00E1B75F /* SafariWebExtensionHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9384BD7130596D7A00E1B75F /* SafariWebExtensionHandler.swift */; };
-		9384BDCB30596D7B00E1B75F /* popup.js in Resources */ = {isa = PBXBuildFile; fileRef = 9384BDC330596D7B00E1B75F /* popup.js */; };
-		9384BDCC30596D7B00E1B75F /* core in Resources */ = {isa = PBXBuildFile; fileRef = 9384BDC430596D7B00E1B75F /* core */; };
-		9384BDCD30596D7B00E1B75F /* background.js in Resources */ = {isa = PBXBuildFile; fileRef = 9384BDC530596D7B00E1B75F /* background.js */; };
-		9384BDCE30596D7B00E1B75F /* popup.html in Resources */ = {isa = PBXBuildFile; fileRef = 9384BDC630596D7B00E1B75F /* popup.html */; };
-		9384BDCF30596D7B00E1B75F /* icons in Resources */ = {isa = PBXBuildFile; fileRef = 9384BDC730596D7B00E1B75F /* icons */; };
-		9384BDD030596D7B00E1B75F /* manifest.json in Resources */ = {isa = PBXBuildFile; fileRef = 9384BDC830596D7B00E1B75F /* manifest.json */; };
-		9384BDD130596D7B00E1B75F /* popup.css in Resources */ = {isa = PBXBuildFile; fileRef = 9384BDC930596D7B00E1B75F /* popup.css */; };
-		9384BDD230596D7B00E1B75F /* api.js in Resources */ = {isa = PBXBuildFile; fileRef = 9384BDCA30596D7B00E1B75F /* api.js */; };
-		9384BDD330596D7B00E1B75F /* popup.js in Resources */ = {isa = PBXBuildFile; fileRef = 9384BDC330596D7B00E1B75F /* popup.js */; };
-		9384BDD430596D7B00E1B75F /* core in Resources */ = {isa = PBXBuildFile; fileRef = 9384BDC430596D7B00E1B75F /* core */; };
-		9384BDD530596D7B00E1B75F /* background.js in Resources */ = {isa = PBXBuildFile; fileRef = 9384BDC530596D7B00E1B75F /* background.js */; };
-		9384BDD630596D7B00E1B75F /* popup.html in Resources */ = {isa = PBXBuildFile; fileRef = 9384BDC630596D7B00E1B75F /* popup.html */; };
-		9384BDD730596D7B00E1B75F /* icons in Resources */ = {isa = PBXBuildFile; fileRef = 9384BDC730596D7B00E1B75F /* icons */; };
-		9384BDD830596D7B00E1B75F /* manifest.json in Resources */ = {isa = PBXBuildFile; fileRef = 9384BDC830596D7B00E1B75F /* manifest.json */; };
-		9384BDD930596D7B00E1B75F /* popup.css in Resources */ = {isa = PBXBuildFile; fileRef = 9384BDC930596D7B00E1B75F /* popup.css */; };
-		9384BDDA30596D7B00E1B75F /* api.js in Resources */ = {isa = PBXBuildFile; fileRef = 9384BDCA30596D7B00E1B75F /* api.js */; };
+		93B9153630596DFD00F341F9 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 93B9153530596DFD00F341F9 /* AppDelegate.swift */; };
+		93B9153830596DFD00F341F9 /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 93B9153730596DFD00F341F9 /* SceneDelegate.swift */; };
+		93B9153B30596DFD00F341F9 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 93B9153930596DFD00F341F9 /* LaunchScreen.storyboard */; };
+		93B9153E30596DFD00F341F9 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 93B9153C30596DFD00F341F9 /* Main.storyboard */; };
+		93B9154730596DFD00F341F9 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 93B9154630596DFD00F341F9 /* AppDelegate.swift */; };
+		93B9154A30596DFD00F341F9 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 93B9154830596DFD00F341F9 /* Main.storyboard */; };
+		93B9155130596DFD00F341F9 /* URLQRCodePrinter Extension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 93B9155030596DFD00F341F9 /* URLQRCodePrinter Extension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		93B9155B30596DFD00F341F9 /* URLQRCodePrinter Extension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 93B9155A30596DFD00F341F9 /* URLQRCodePrinter Extension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		93B9156030596DFD00F341F9 /* Main.html in Resources */ = {isa = PBXBuildFile; fileRef = 93B9152530596DFB00F341F9 /* Main.html */; };
+		93B9156130596DFD00F341F9 /* Main.html in Resources */ = {isa = PBXBuildFile; fileRef = 93B9152530596DFB00F341F9 /* Main.html */; };
+		93B9156230596DFD00F341F9 /* Icon.png in Resources */ = {isa = PBXBuildFile; fileRef = 93B9152730596DFB00F341F9 /* Icon.png */; };
+		93B9156330596DFD00F341F9 /* Icon.png in Resources */ = {isa = PBXBuildFile; fileRef = 93B9152730596DFB00F341F9 /* Icon.png */; };
+		93B9156430596DFD00F341F9 /* Style.css in Resources */ = {isa = PBXBuildFile; fileRef = 93B9152830596DFB00F341F9 /* Style.css */; };
+		93B9156530596DFD00F341F9 /* Style.css in Resources */ = {isa = PBXBuildFile; fileRef = 93B9152830596DFB00F341F9 /* Style.css */; };
+		93B9156630596DFD00F341F9 /* Script.js in Resources */ = {isa = PBXBuildFile; fileRef = 93B9152930596DFB00F341F9 /* Script.js */; };
+		93B9156730596DFD00F341F9 /* Script.js in Resources */ = {isa = PBXBuildFile; fileRef = 93B9152930596DFB00F341F9 /* Script.js */; };
+		93B9156830596DFD00F341F9 /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 93B9152A30596DFB00F341F9 /* ViewController.swift */; };
+		93B9156930596DFD00F341F9 /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 93B9152A30596DFB00F341F9 /* ViewController.swift */; };
+		93B9156A30596DFD00F341F9 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 93B9152B30596DFD00F341F9 /* Assets.xcassets */; };
+		93B9156B30596DFD00F341F9 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 93B9152B30596DFD00F341F9 /* Assets.xcassets */; };
+		93B9156C30596DFD00F341F9 /* SafariWebExtensionHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 93B9152D30596DFD00F341F9 /* SafariWebExtensionHandler.swift */; };
+		93B9156D30596DFD00F341F9 /* SafariWebExtensionHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 93B9152D30596DFD00F341F9 /* SafariWebExtensionHandler.swift */; };
+		93B9158730596DFE00F341F9 /* popup.js in Resources */ = {isa = PBXBuildFile; fileRef = 93B9157F30596DFE00F341F9 /* popup.js */; };
+		93B9158830596DFE00F341F9 /* core in Resources */ = {isa = PBXBuildFile; fileRef = 93B9158030596DFE00F341F9 /* core */; };
+		93B9158930596DFE00F341F9 /* background.js in Resources */ = {isa = PBXBuildFile; fileRef = 93B9158130596DFE00F341F9 /* background.js */; };
+		93B9158A30596DFE00F341F9 /* popup.html in Resources */ = {isa = PBXBuildFile; fileRef = 93B9158230596DFE00F341F9 /* popup.html */; };
+		93B9158B30596DFE00F341F9 /* icons in Resources */ = {isa = PBXBuildFile; fileRef = 93B9158330596DFE00F341F9 /* icons */; };
+		93B9158C30596DFE00F341F9 /* manifest.json in Resources */ = {isa = PBXBuildFile; fileRef = 93B9158430596DFE00F341F9 /* manifest.json */; };
+		93B9158D30596DFE00F341F9 /* popup.css in Resources */ = {isa = PBXBuildFile; fileRef = 93B9158530596DFE00F341F9 /* popup.css */; };
+		93B9158E30596DFE00F341F9 /* api.js in Resources */ = {isa = PBXBuildFile; fileRef = 93B9158630596DFE00F341F9 /* api.js */; };
+		93B9158F30596DFE00F341F9 /* popup.js in Resources */ = {isa = PBXBuildFile; fileRef = 93B9157F30596DFE00F341F9 /* popup.js */; };
+		93B9159030596DFE00F341F9 /* core in Resources */ = {isa = PBXBuildFile; fileRef = 93B9158030596DFE00F341F9 /* core */; };
+		93B9159130596DFE00F341F9 /* background.js in Resources */ = {isa = PBXBuildFile; fileRef = 93B9158130596DFE00F341F9 /* background.js */; };
+		93B9159230596DFE00F341F9 /* popup.html in Resources */ = {isa = PBXBuildFile; fileRef = 93B9158230596DFE00F341F9 /* popup.html */; };
+		93B9159330596DFE00F341F9 /* icons in Resources */ = {isa = PBXBuildFile; fileRef = 93B9158330596DFE00F341F9 /* icons */; };
+		93B9159430596DFE00F341F9 /* manifest.json in Resources */ = {isa = PBXBuildFile; fileRef = 93B9158430596DFE00F341F9 /* manifest.json */; };
+		93B9159530596DFE00F341F9 /* popup.css in Resources */ = {isa = PBXBuildFile; fileRef = 93B9158530596DFE00F341F9 /* popup.css */; };
+		93B9159630596DFE00F341F9 /* api.js in Resources */ = {isa = PBXBuildFile; fileRef = 93B9158630596DFE00F341F9 /* api.js */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
-		9384BD9630596D7A00E1B75F /* PBXContainerItemProxy */ = {
+		93B9155230596DFD00F341F9 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
-			containerPortal = 9384BD6330596D7600E1B75F /* Project object */;
+			containerPortal = 93B9151F30596DFA00F341F9 /* Project object */;
 			proxyType = 1;
-			remoteGlobalIDString = 9384BD9330596D7A00E1B75F;
+			remoteGlobalIDString = 93B9154F30596DFD00F341F9;
 			remoteInfo = "URLQRCodePrinter Extension (iOS)";
 		};
-		9384BDA030596D7A00E1B75F /* PBXContainerItemProxy */ = {
+		93B9155C30596DFD00F341F9 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
-			containerPortal = 9384BD6330596D7600E1B75F /* Project object */;
+			containerPortal = 93B9151F30596DFA00F341F9 /* Project object */;
 			proxyType = 1;
-			remoteGlobalIDString = 9384BD9D30596D7A00E1B75F;
+			remoteGlobalIDString = 93B9155930596DFD00F341F9;
 			remoteInfo = "URLQRCodePrinter Extension (macOS)";
 		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
-		9384BDB730596D7A00E1B75F /* Embed Foundation Extensions */ = {
+		93B9157330596DFD00F341F9 /* Embed Foundation Extensions */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
 			dstPath = "";
 			dstSubfolderSpec = 13;
 			files = (
-				9384BD9530596D7A00E1B75F /* URLQRCodePrinter Extension.appex in Embed Foundation Extensions */,
+				93B9155130596DFD00F341F9 /* URLQRCodePrinter Extension.appex in Embed Foundation Extensions */,
 			);
 			name = "Embed Foundation Extensions";
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		9384BDBE30596D7A00E1B75F /* Embed Foundation Extensions */ = {
+		93B9157A30596DFD00F341F9 /* Embed Foundation Extensions */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
 			dstPath = "";
 			dstSubfolderSpec = 13;
 			files = (
-				9384BD9F30596D7A00E1B75F /* URLQRCodePrinter Extension.appex in Embed Foundation Extensions */,
+				93B9155B30596DFD00F341F9 /* URLQRCodePrinter Extension.appex in Embed Foundation Extensions */,
 			);
 			name = "Embed Foundation Extensions";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -90,60 +90,60 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		9384BD6A30596D7600E1B75F /* Base */ = {isa = PBXFileReference; lastKnownFileType = text.html; name = Base; path = Base.lproj/Main.html; sourceTree = "<group>"; };
-		9384BD6B30596D7600E1B75F /* Icon.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = Icon.png; sourceTree = "<group>"; };
-		9384BD6C30596D7600E1B75F /* Style.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; path = Style.css; sourceTree = "<group>"; };
-		9384BD6D30596D7600E1B75F /* Script.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = Script.js; sourceTree = "<group>"; };
-		9384BD6E30596D7600E1B75F /* ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewController.swift; sourceTree = "<group>"; };
-		9384BD6F30596D7A00E1B75F /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
-		9384BD7130596D7A00E1B75F /* SafariWebExtensionHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SafariWebExtensionHandler.swift; sourceTree = "<group>"; };
-		9384BD7630596D7A00E1B75F /* URLQRCodePrinter.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = URLQRCodePrinter.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		9384BD7930596D7A00E1B75F /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
-		9384BD7B30596D7A00E1B75F /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
-		9384BD7E30596D7A00E1B75F /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
-		9384BD8130596D7A00E1B75F /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
-		9384BD8330596D7A00E1B75F /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		9384BD8830596D7A00E1B75F /* URLQRCodePrinter.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = URLQRCodePrinter.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		9384BD8A30596D7A00E1B75F /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
-		9384BD8D30596D7A00E1B75F /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
-		9384BD8F30596D7A00E1B75F /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		9384BD9430596D7A00E1B75F /* URLQRCodePrinter Extension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = "URLQRCodePrinter Extension.appex"; sourceTree = BUILT_PRODUCTS_DIR; };
-		9384BD9930596D7A00E1B75F /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		9384BD9E30596D7A00E1B75F /* URLQRCodePrinter Extension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = "URLQRCodePrinter Extension.appex"; sourceTree = BUILT_PRODUCTS_DIR; };
-		9384BDA330596D7A00E1B75F /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		9384BDC330596D7B00E1B75F /* popup.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; name = popup.js; path = Resources/popup.js; sourceTree = "<group>"; };
-		9384BDC430596D7B00E1B75F /* core */ = {isa = PBXFileReference; lastKnownFileType = folder; name = core; path = Resources/core; sourceTree = "<group>"; };
-		9384BDC530596D7B00E1B75F /* background.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; name = background.js; path = Resources/background.js; sourceTree = "<group>"; };
-		9384BDC630596D7B00E1B75F /* popup.html */ = {isa = PBXFileReference; lastKnownFileType = text.html; name = popup.html; path = Resources/popup.html; sourceTree = "<group>"; };
-		9384BDC730596D7B00E1B75F /* icons */ = {isa = PBXFileReference; lastKnownFileType = folder; name = icons; path = Resources/icons; sourceTree = "<group>"; };
-		9384BDC830596D7B00E1B75F /* manifest.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; name = manifest.json; path = Resources/manifest.json; sourceTree = "<group>"; };
-		9384BDC930596D7B00E1B75F /* popup.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; name = popup.css; path = Resources/popup.css; sourceTree = "<group>"; };
-		9384BDCA30596D7B00E1B75F /* api.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; name = api.js; path = Resources/api.js; sourceTree = "<group>"; };
+		93B9152630596DFB00F341F9 /* Base */ = {isa = PBXFileReference; lastKnownFileType = text.html; name = Base; path = Base.lproj/Main.html; sourceTree = "<group>"; };
+		93B9152730596DFB00F341F9 /* Icon.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = Icon.png; sourceTree = "<group>"; };
+		93B9152830596DFB00F341F9 /* Style.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; path = Style.css; sourceTree = "<group>"; };
+		93B9152930596DFB00F341F9 /* Script.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = Script.js; sourceTree = "<group>"; };
+		93B9152A30596DFB00F341F9 /* ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewController.swift; sourceTree = "<group>"; };
+		93B9152B30596DFD00F341F9 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		93B9152D30596DFD00F341F9 /* SafariWebExtensionHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SafariWebExtensionHandler.swift; sourceTree = "<group>"; };
+		93B9153230596DFD00F341F9 /* URLQRCodePrinter.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = URLQRCodePrinter.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		93B9153530596DFD00F341F9 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+		93B9153730596DFD00F341F9 /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
+		93B9153A30596DFD00F341F9 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
+		93B9153D30596DFD00F341F9 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
+		93B9153F30596DFD00F341F9 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		93B9154430596DFD00F341F9 /* URLQRCodePrinter.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = URLQRCodePrinter.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		93B9154630596DFD00F341F9 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+		93B9154930596DFD00F341F9 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
+		93B9154B30596DFD00F341F9 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		93B9155030596DFD00F341F9 /* URLQRCodePrinter Extension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = "URLQRCodePrinter Extension.appex"; sourceTree = BUILT_PRODUCTS_DIR; };
+		93B9155530596DFD00F341F9 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		93B9155A30596DFD00F341F9 /* URLQRCodePrinter Extension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = "URLQRCodePrinter Extension.appex"; sourceTree = BUILT_PRODUCTS_DIR; };
+		93B9155F30596DFD00F341F9 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		93B9157F30596DFE00F341F9 /* popup.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; name = popup.js; path = Resources/popup.js; sourceTree = "<group>"; };
+		93B9158030596DFE00F341F9 /* core */ = {isa = PBXFileReference; lastKnownFileType = folder; name = core; path = Resources/core; sourceTree = "<group>"; };
+		93B9158130596DFE00F341F9 /* background.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; name = background.js; path = Resources/background.js; sourceTree = "<group>"; };
+		93B9158230596DFE00F341F9 /* popup.html */ = {isa = PBXFileReference; lastKnownFileType = text.html; name = popup.html; path = Resources/popup.html; sourceTree = "<group>"; };
+		93B9158330596DFE00F341F9 /* icons */ = {isa = PBXFileReference; lastKnownFileType = folder; name = icons; path = Resources/icons; sourceTree = "<group>"; };
+		93B9158430596DFE00F341F9 /* manifest.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; name = manifest.json; path = Resources/manifest.json; sourceTree = "<group>"; };
+		93B9158530596DFE00F341F9 /* popup.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; name = popup.css; path = Resources/popup.css; sourceTree = "<group>"; };
+		93B9158630596DFE00F341F9 /* api.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; name = api.js; path = Resources/api.js; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
-		9384BD7330596D7A00E1B75F /* Frameworks */ = {
+		93B9152F30596DFD00F341F9 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		9384BD8530596D7A00E1B75F /* Frameworks */ = {
+		93B9154130596DFD00F341F9 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		9384BD9130596D7A00E1B75F /* Frameworks */ = {
+		93B9154D30596DFD00F341F9 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		9384BD9B30596D7A00E1B75F /* Frameworks */ = {
+		93B9155730596DFD00F341F9 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -153,109 +153,109 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		9384BD6230596D7600E1B75F = {
+		93B9151E30596DFA00F341F9 = {
 			isa = PBXGroup;
 			children = (
-				9384BD6730596D7600E1B75F /* Shared (App) */,
-				9384BD7030596D7A00E1B75F /* Shared (Extension) */,
-				9384BD7830596D7A00E1B75F /* iOS (App) */,
-				9384BD8930596D7A00E1B75F /* macOS (App) */,
-				9384BD9830596D7A00E1B75F /* iOS (Extension) */,
-				9384BDA230596D7A00E1B75F /* macOS (Extension) */,
-				9384BD7730596D7A00E1B75F /* Products */,
+				93B9152330596DFB00F341F9 /* Shared (App) */,
+				93B9152C30596DFD00F341F9 /* Shared (Extension) */,
+				93B9153430596DFD00F341F9 /* iOS (App) */,
+				93B9154530596DFD00F341F9 /* macOS (App) */,
+				93B9155430596DFD00F341F9 /* iOS (Extension) */,
+				93B9155E30596DFD00F341F9 /* macOS (Extension) */,
+				93B9153330596DFD00F341F9 /* Products */,
 			);
 			sourceTree = "<group>";
 		};
-		9384BD6730596D7600E1B75F /* Shared (App) */ = {
+		93B9152330596DFB00F341F9 /* Shared (App) */ = {
 			isa = PBXGroup;
 			children = (
-				9384BD6E30596D7600E1B75F /* ViewController.swift */,
-				9384BD6F30596D7A00E1B75F /* Assets.xcassets */,
-				9384BD6830596D7600E1B75F /* Resources */,
+				93B9152A30596DFB00F341F9 /* ViewController.swift */,
+				93B9152B30596DFD00F341F9 /* Assets.xcassets */,
+				93B9152430596DFB00F341F9 /* Resources */,
 			);
 			path = "Shared (App)";
 			sourceTree = "<group>";
 		};
-		9384BD6830596D7600E1B75F /* Resources */ = {
+		93B9152430596DFB00F341F9 /* Resources */ = {
 			isa = PBXGroup;
 			children = (
-				9384BD6930596D7600E1B75F /* Main.html */,
-				9384BD6B30596D7600E1B75F /* Icon.png */,
-				9384BD6C30596D7600E1B75F /* Style.css */,
-				9384BD6D30596D7600E1B75F /* Script.js */,
+				93B9152530596DFB00F341F9 /* Main.html */,
+				93B9152730596DFB00F341F9 /* Icon.png */,
+				93B9152830596DFB00F341F9 /* Style.css */,
+				93B9152930596DFB00F341F9 /* Script.js */,
 			);
 			path = Resources;
 			sourceTree = "<group>";
 		};
-		9384BD7030596D7A00E1B75F /* Shared (Extension) */ = {
+		93B9152C30596DFD00F341F9 /* Shared (Extension) */ = {
 			isa = PBXGroup;
 			children = (
-				9384BDC230596D7B00E1B75F /* Resources */,
-				9384BD7130596D7A00E1B75F /* SafariWebExtensionHandler.swift */,
+				93B9157E30596DFE00F341F9 /* Resources */,
+				93B9152D30596DFD00F341F9 /* SafariWebExtensionHandler.swift */,
 			);
 			path = "Shared (Extension)";
 			sourceTree = "<group>";
 		};
-		9384BD7730596D7A00E1B75F /* Products */ = {
+		93B9153330596DFD00F341F9 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				9384BD7630596D7A00E1B75F /* URLQRCodePrinter.app */,
-				9384BD8830596D7A00E1B75F /* URLQRCodePrinter.app */,
-				9384BD9430596D7A00E1B75F /* URLQRCodePrinter Extension.appex */,
-				9384BD9E30596D7A00E1B75F /* URLQRCodePrinter Extension.appex */,
+				93B9153230596DFD00F341F9 /* URLQRCodePrinter.app */,
+				93B9154430596DFD00F341F9 /* URLQRCodePrinter.app */,
+				93B9155030596DFD00F341F9 /* URLQRCodePrinter Extension.appex */,
+				93B9155A30596DFD00F341F9 /* URLQRCodePrinter Extension.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
 		};
-		9384BD7830596D7A00E1B75F /* iOS (App) */ = {
+		93B9153430596DFD00F341F9 /* iOS (App) */ = {
 			isa = PBXGroup;
 			children = (
-				9384BD7930596D7A00E1B75F /* AppDelegate.swift */,
-				9384BD7B30596D7A00E1B75F /* SceneDelegate.swift */,
-				9384BD7D30596D7A00E1B75F /* LaunchScreen.storyboard */,
-				9384BD8030596D7A00E1B75F /* Main.storyboard */,
-				9384BD8330596D7A00E1B75F /* Info.plist */,
+				93B9153530596DFD00F341F9 /* AppDelegate.swift */,
+				93B9153730596DFD00F341F9 /* SceneDelegate.swift */,
+				93B9153930596DFD00F341F9 /* LaunchScreen.storyboard */,
+				93B9153C30596DFD00F341F9 /* Main.storyboard */,
+				93B9153F30596DFD00F341F9 /* Info.plist */,
 			);
 			path = "iOS (App)";
 			sourceTree = "<group>";
 		};
-		9384BD8930596D7A00E1B75F /* macOS (App) */ = {
+		93B9154530596DFD00F341F9 /* macOS (App) */ = {
 			isa = PBXGroup;
 			children = (
-				9384BD8A30596D7A00E1B75F /* AppDelegate.swift */,
-				9384BD8C30596D7A00E1B75F /* Main.storyboard */,
-				9384BD8F30596D7A00E1B75F /* Info.plist */,
+				93B9154630596DFD00F341F9 /* AppDelegate.swift */,
+				93B9154830596DFD00F341F9 /* Main.storyboard */,
+				93B9154B30596DFD00F341F9 /* Info.plist */,
 			);
 			path = "macOS (App)";
 			sourceTree = "<group>";
 		};
-		9384BD9830596D7A00E1B75F /* iOS (Extension) */ = {
+		93B9155430596DFD00F341F9 /* iOS (Extension) */ = {
 			isa = PBXGroup;
 			children = (
-				9384BD9930596D7A00E1B75F /* Info.plist */,
+				93B9155530596DFD00F341F9 /* Info.plist */,
 			);
 			path = "iOS (Extension)";
 			sourceTree = "<group>";
 		};
-		9384BDA230596D7A00E1B75F /* macOS (Extension) */ = {
+		93B9155E30596DFD00F341F9 /* macOS (Extension) */ = {
 			isa = PBXGroup;
 			children = (
-				9384BDA330596D7A00E1B75F /* Info.plist */,
+				93B9155F30596DFD00F341F9 /* Info.plist */,
 			);
 			path = "macOS (Extension)";
 			sourceTree = "<group>";
 		};
-		9384BDC230596D7B00E1B75F /* Resources */ = {
+		93B9157E30596DFE00F341F9 /* Resources */ = {
 			isa = PBXGroup;
 			children = (
-				9384BDC330596D7B00E1B75F /* popup.js */,
-				9384BDC430596D7B00E1B75F /* core */,
-				9384BDC530596D7B00E1B75F /* background.js */,
-				9384BDC630596D7B00E1B75F /* popup.html */,
-				9384BDC730596D7B00E1B75F /* icons */,
-				9384BDC830596D7B00E1B75F /* manifest.json */,
-				9384BDC930596D7B00E1B75F /* popup.css */,
-				9384BDCA30596D7B00E1B75F /* api.js */,
+				93B9157F30596DFE00F341F9 /* popup.js */,
+				93B9158030596DFE00F341F9 /* core */,
+				93B9158130596DFE00F341F9 /* background.js */,
+				93B9158230596DFE00F341F9 /* popup.html */,
+				93B9158330596DFE00F341F9 /* icons */,
+				93B9158430596DFE00F341F9 /* manifest.json */,
+				93B9158530596DFE00F341F9 /* popup.css */,
+				93B9158630596DFE00F341F9 /* api.js */,
 			);
 			name = Resources;
 			path = "Shared (Extension)";
@@ -264,55 +264,55 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		9384BD7530596D7A00E1B75F /* URLQRCodePrinter (iOS) */ = {
+		93B9153130596DFD00F341F9 /* URLQRCodePrinter (iOS) */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 9384BDB830596D7A00E1B75F /* Build configuration list for PBXNativeTarget "URLQRCodePrinter (iOS)" */;
+			buildConfigurationList = 93B9157430596DFD00F341F9 /* Build configuration list for PBXNativeTarget "URLQRCodePrinter (iOS)" */;
 			buildPhases = (
-				9384BD7230596D7A00E1B75F /* Sources */,
-				9384BD7330596D7A00E1B75F /* Frameworks */,
-				9384BD7430596D7A00E1B75F /* Resources */,
-				9384BDB730596D7A00E1B75F /* Embed Foundation Extensions */,
+				93B9152E30596DFD00F341F9 /* Sources */,
+				93B9152F30596DFD00F341F9 /* Frameworks */,
+				93B9153030596DFD00F341F9 /* Resources */,
+				93B9157330596DFD00F341F9 /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
-				9384BD9730596D7A00E1B75F /* PBXTargetDependency */,
+				93B9155330596DFD00F341F9 /* PBXTargetDependency */,
 			);
 			name = "URLQRCodePrinter (iOS)";
 			packageProductDependencies = (
 			);
 			productName = "URLQRCodePrinter (iOS)";
-			productReference = 9384BD7630596D7A00E1B75F /* URLQRCodePrinter.app */;
+			productReference = 93B9153230596DFD00F341F9 /* URLQRCodePrinter.app */;
 			productType = "com.apple.product-type.application";
 		};
-		9384BD8730596D7A00E1B75F /* URLQRCodePrinter (macOS) */ = {
+		93B9154330596DFD00F341F9 /* URLQRCodePrinter (macOS) */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 9384BDBF30596D7A00E1B75F /* Build configuration list for PBXNativeTarget "URLQRCodePrinter (macOS)" */;
+			buildConfigurationList = 93B9157B30596DFD00F341F9 /* Build configuration list for PBXNativeTarget "URLQRCodePrinter (macOS)" */;
 			buildPhases = (
-				9384BD8430596D7A00E1B75F /* Sources */,
-				9384BD8530596D7A00E1B75F /* Frameworks */,
-				9384BD8630596D7A00E1B75F /* Resources */,
-				9384BDBE30596D7A00E1B75F /* Embed Foundation Extensions */,
+				93B9154030596DFD00F341F9 /* Sources */,
+				93B9154130596DFD00F341F9 /* Frameworks */,
+				93B9154230596DFD00F341F9 /* Resources */,
+				93B9157A30596DFD00F341F9 /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
-				9384BDA130596D7A00E1B75F /* PBXTargetDependency */,
+				93B9155D30596DFD00F341F9 /* PBXTargetDependency */,
 			);
 			name = "URLQRCodePrinter (macOS)";
 			packageProductDependencies = (
 			);
 			productName = "URLQRCodePrinter (macOS)";
-			productReference = 9384BD8830596D7A00E1B75F /* URLQRCodePrinter.app */;
+			productReference = 93B9154430596DFD00F341F9 /* URLQRCodePrinter.app */;
 			productType = "com.apple.product-type.application";
 		};
-		9384BD9330596D7A00E1B75F /* URLQRCodePrinter Extension (iOS) */ = {
+		93B9154F30596DFD00F341F9 /* URLQRCodePrinter Extension (iOS) */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 9384BDB430596D7A00E1B75F /* Build configuration list for PBXNativeTarget "URLQRCodePrinter Extension (iOS)" */;
+			buildConfigurationList = 93B9157030596DFD00F341F9 /* Build configuration list for PBXNativeTarget "URLQRCodePrinter Extension (iOS)" */;
 			buildPhases = (
-				9384BD9030596D7A00E1B75F /* Sources */,
-				9384BD9130596D7A00E1B75F /* Frameworks */,
-				9384BD9230596D7A00E1B75F /* Resources */,
+				93B9154C30596DFD00F341F9 /* Sources */,
+				93B9154D30596DFD00F341F9 /* Frameworks */,
+				93B9154E30596DFD00F341F9 /* Resources */,
 			);
 			buildRules = (
 			);
@@ -322,16 +322,16 @@
 			packageProductDependencies = (
 			);
 			productName = "URLQRCodePrinter Extension (iOS)";
-			productReference = 9384BD9430596D7A00E1B75F /* URLQRCodePrinter Extension.appex */;
+			productReference = 93B9155030596DFD00F341F9 /* URLQRCodePrinter Extension.appex */;
 			productType = "com.apple.product-type.app-extension";
 		};
-		9384BD9D30596D7A00E1B75F /* URLQRCodePrinter Extension (macOS) */ = {
+		93B9155930596DFD00F341F9 /* URLQRCodePrinter Extension (macOS) */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 9384BDBB30596D7A00E1B75F /* Build configuration list for PBXNativeTarget "URLQRCodePrinter Extension (macOS)" */;
+			buildConfigurationList = 93B9157730596DFD00F341F9 /* Build configuration list for PBXNativeTarget "URLQRCodePrinter Extension (macOS)" */;
 			buildPhases = (
-				9384BD9A30596D7A00E1B75F /* Sources */,
-				9384BD9B30596D7A00E1B75F /* Frameworks */,
-				9384BD9C30596D7A00E1B75F /* Resources */,
+				93B9155630596DFD00F341F9 /* Sources */,
+				93B9155730596DFD00F341F9 /* Frameworks */,
+				93B9155830596DFD00F341F9 /* Resources */,
 			);
 			buildRules = (
 			);
@@ -341,195 +341,195 @@
 			packageProductDependencies = (
 			);
 			productName = "URLQRCodePrinter Extension (macOS)";
-			productReference = 9384BD9E30596D7A00E1B75F /* URLQRCodePrinter Extension.appex */;
+			productReference = 93B9155A30596DFD00F341F9 /* URLQRCodePrinter Extension.appex */;
 			productType = "com.apple.product-type.app-extension";
 		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
-		9384BD6330596D7600E1B75F /* Project object */ = {
+		93B9151F30596DFA00F341F9 /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
 				LastSwiftUpdateCheck = 2660;
 				LastUpgradeCheck = 2660;
 				TargetAttributes = {
-					9384BD7530596D7A00E1B75F = {
+					93B9153130596DFD00F341F9 = {
 						CreatedOnToolsVersion = 26.6;
 					};
-					9384BD8730596D7A00E1B75F = {
+					93B9154330596DFD00F341F9 = {
 						CreatedOnToolsVersion = 26.6;
 					};
-					9384BD9330596D7A00E1B75F = {
+					93B9154F30596DFD00F341F9 = {
 						CreatedOnToolsVersion = 26.6;
 					};
-					9384BD9D30596D7A00E1B75F = {
+					93B9155930596DFD00F341F9 = {
 						CreatedOnToolsVersion = 26.6;
 					};
 				};
 			};
-			buildConfigurationList = 9384BD6630596D7600E1B75F /* Build configuration list for PBXProject "URLQRCodePrinter" */;
+			buildConfigurationList = 93B9152230596DFA00F341F9 /* Build configuration list for PBXProject "URLQRCodePrinter" */;
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
 				en,
 				Base,
 			);
-			mainGroup = 9384BD6230596D7600E1B75F;
+			mainGroup = 93B9151E30596DFA00F341F9;
 			minimizedProjectReferenceProxies = 1;
 			preferredProjectObjectVersion = 77;
-			productRefGroup = 9384BD7730596D7A00E1B75F /* Products */;
+			productRefGroup = 93B9153330596DFD00F341F9 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				9384BD7530596D7A00E1B75F /* URLQRCodePrinter (iOS) */,
-				9384BD8730596D7A00E1B75F /* URLQRCodePrinter (macOS) */,
-				9384BD9330596D7A00E1B75F /* URLQRCodePrinter Extension (iOS) */,
-				9384BD9D30596D7A00E1B75F /* URLQRCodePrinter Extension (macOS) */,
+				93B9153130596DFD00F341F9 /* URLQRCodePrinter (iOS) */,
+				93B9154330596DFD00F341F9 /* URLQRCodePrinter (macOS) */,
+				93B9154F30596DFD00F341F9 /* URLQRCodePrinter Extension (iOS) */,
+				93B9155930596DFD00F341F9 /* URLQRCodePrinter Extension (macOS) */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
-		9384BD7430596D7A00E1B75F /* Resources */ = {
+		93B9153030596DFD00F341F9 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				9384BDA630596D7A00E1B75F /* Icon.png in Resources */,
-				9384BD7F30596D7A00E1B75F /* LaunchScreen.storyboard in Resources */,
-				9384BDA430596D7A00E1B75F /* Main.html in Resources */,
-				9384BDAA30596D7A00E1B75F /* Script.js in Resources */,
-				9384BDAE30596D7A00E1B75F /* Assets.xcassets in Resources */,
-				9384BD8230596D7A00E1B75F /* Main.storyboard in Resources */,
-				9384BDA830596D7A00E1B75F /* Style.css in Resources */,
+				93B9156230596DFD00F341F9 /* Icon.png in Resources */,
+				93B9153B30596DFD00F341F9 /* LaunchScreen.storyboard in Resources */,
+				93B9156030596DFD00F341F9 /* Main.html in Resources */,
+				93B9156630596DFD00F341F9 /* Script.js in Resources */,
+				93B9156A30596DFD00F341F9 /* Assets.xcassets in Resources */,
+				93B9153E30596DFD00F341F9 /* Main.storyboard in Resources */,
+				93B9156430596DFD00F341F9 /* Style.css in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		9384BD8630596D7A00E1B75F /* Resources */ = {
+		93B9154230596DFD00F341F9 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				9384BDA730596D7A00E1B75F /* Icon.png in Resources */,
-				9384BDA930596D7A00E1B75F /* Style.css in Resources */,
-				9384BD8E30596D7A00E1B75F /* Main.storyboard in Resources */,
-				9384BDAB30596D7A00E1B75F /* Script.js in Resources */,
-				9384BDAF30596D7A00E1B75F /* Assets.xcassets in Resources */,
-				9384BDA530596D7A00E1B75F /* Main.html in Resources */,
+				93B9156330596DFD00F341F9 /* Icon.png in Resources */,
+				93B9156530596DFD00F341F9 /* Style.css in Resources */,
+				93B9154A30596DFD00F341F9 /* Main.storyboard in Resources */,
+				93B9156730596DFD00F341F9 /* Script.js in Resources */,
+				93B9156B30596DFD00F341F9 /* Assets.xcassets in Resources */,
+				93B9156130596DFD00F341F9 /* Main.html in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		9384BD9230596D7A00E1B75F /* Resources */ = {
+		93B9154E30596DFD00F341F9 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				9384BDD330596D7B00E1B75F /* popup.js in Resources */,
-				9384BDD930596D7B00E1B75F /* popup.css in Resources */,
-				9384BDD630596D7B00E1B75F /* popup.html in Resources */,
-				9384BDDA30596D7B00E1B75F /* api.js in Resources */,
-				9384BDD530596D7B00E1B75F /* background.js in Resources */,
-				9384BDD730596D7B00E1B75F /* icons in Resources */,
-				9384BDD830596D7B00E1B75F /* manifest.json in Resources */,
-				9384BDD430596D7B00E1B75F /* core in Resources */,
+				93B9158F30596DFE00F341F9 /* popup.js in Resources */,
+				93B9159530596DFE00F341F9 /* popup.css in Resources */,
+				93B9159230596DFE00F341F9 /* popup.html in Resources */,
+				93B9159630596DFE00F341F9 /* api.js in Resources */,
+				93B9159130596DFE00F341F9 /* background.js in Resources */,
+				93B9159330596DFE00F341F9 /* icons in Resources */,
+				93B9159430596DFE00F341F9 /* manifest.json in Resources */,
+				93B9159030596DFE00F341F9 /* core in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		9384BD9C30596D7A00E1B75F /* Resources */ = {
+		93B9155830596DFD00F341F9 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				9384BDCB30596D7B00E1B75F /* popup.js in Resources */,
-				9384BDD130596D7B00E1B75F /* popup.css in Resources */,
-				9384BDCE30596D7B00E1B75F /* popup.html in Resources */,
-				9384BDD230596D7B00E1B75F /* api.js in Resources */,
-				9384BDCD30596D7B00E1B75F /* background.js in Resources */,
-				9384BDCF30596D7B00E1B75F /* icons in Resources */,
-				9384BDD030596D7B00E1B75F /* manifest.json in Resources */,
-				9384BDCC30596D7B00E1B75F /* core in Resources */,
+				93B9158730596DFE00F341F9 /* popup.js in Resources */,
+				93B9158D30596DFE00F341F9 /* popup.css in Resources */,
+				93B9158A30596DFE00F341F9 /* popup.html in Resources */,
+				93B9158E30596DFE00F341F9 /* api.js in Resources */,
+				93B9158930596DFE00F341F9 /* background.js in Resources */,
+				93B9158B30596DFE00F341F9 /* icons in Resources */,
+				93B9158C30596DFE00F341F9 /* manifest.json in Resources */,
+				93B9158830596DFE00F341F9 /* core in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
-		9384BD7230596D7A00E1B75F /* Sources */ = {
+		93B9152E30596DFD00F341F9 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				9384BDAC30596D7A00E1B75F /* ViewController.swift in Sources */,
-				9384BD7A30596D7A00E1B75F /* AppDelegate.swift in Sources */,
-				9384BD7C30596D7A00E1B75F /* SceneDelegate.swift in Sources */,
+				93B9156830596DFD00F341F9 /* ViewController.swift in Sources */,
+				93B9153630596DFD00F341F9 /* AppDelegate.swift in Sources */,
+				93B9153830596DFD00F341F9 /* SceneDelegate.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		9384BD8430596D7A00E1B75F /* Sources */ = {
+		93B9154030596DFD00F341F9 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				9384BDAD30596D7A00E1B75F /* ViewController.swift in Sources */,
-				9384BD8B30596D7A00E1B75F /* AppDelegate.swift in Sources */,
+				93B9156930596DFD00F341F9 /* ViewController.swift in Sources */,
+				93B9154730596DFD00F341F9 /* AppDelegate.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		9384BD9030596D7A00E1B75F /* Sources */ = {
+		93B9154C30596DFD00F341F9 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				9384BDB030596D7A00E1B75F /* SafariWebExtensionHandler.swift in Sources */,
+				93B9156C30596DFD00F341F9 /* SafariWebExtensionHandler.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		9384BD9A30596D7A00E1B75F /* Sources */ = {
+		93B9155630596DFD00F341F9 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				9384BDB130596D7A00E1B75F /* SafariWebExtensionHandler.swift in Sources */,
+				93B9156D30596DFD00F341F9 /* SafariWebExtensionHandler.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
-		9384BD9730596D7A00E1B75F /* PBXTargetDependency */ = {
+		93B9155330596DFD00F341F9 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			target = 9384BD9330596D7A00E1B75F /* URLQRCodePrinter Extension (iOS) */;
-			targetProxy = 9384BD9630596D7A00E1B75F /* PBXContainerItemProxy */;
+			target = 93B9154F30596DFD00F341F9 /* URLQRCodePrinter Extension (iOS) */;
+			targetProxy = 93B9155230596DFD00F341F9 /* PBXContainerItemProxy */;
 		};
-		9384BDA130596D7A00E1B75F /* PBXTargetDependency */ = {
+		93B9155D30596DFD00F341F9 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			target = 9384BD9D30596D7A00E1B75F /* URLQRCodePrinter Extension (macOS) */;
-			targetProxy = 9384BDA030596D7A00E1B75F /* PBXContainerItemProxy */;
+			target = 93B9155930596DFD00F341F9 /* URLQRCodePrinter Extension (macOS) */;
+			targetProxy = 93B9155C30596DFD00F341F9 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
 /* Begin PBXVariantGroup section */
-		9384BD6930596D7600E1B75F /* Main.html */ = {
+		93B9152530596DFB00F341F9 /* Main.html */ = {
 			isa = PBXVariantGroup;
 			children = (
-				9384BD6A30596D7600E1B75F /* Base */,
+				93B9152630596DFB00F341F9 /* Base */,
 			);
 			name = Main.html;
 			sourceTree = "<group>";
 		};
-		9384BD7D30596D7A00E1B75F /* LaunchScreen.storyboard */ = {
+		93B9153930596DFD00F341F9 /* LaunchScreen.storyboard */ = {
 			isa = PBXVariantGroup;
 			children = (
-				9384BD7E30596D7A00E1B75F /* Base */,
+				93B9153A30596DFD00F341F9 /* Base */,
 			);
 			name = LaunchScreen.storyboard;
 			sourceTree = "<group>";
 		};
-		9384BD8030596D7A00E1B75F /* Main.storyboard */ = {
+		93B9153C30596DFD00F341F9 /* Main.storyboard */ = {
 			isa = PBXVariantGroup;
 			children = (
-				9384BD8130596D7A00E1B75F /* Base */,
+				93B9153D30596DFD00F341F9 /* Base */,
 			);
 			name = Main.storyboard;
 			sourceTree = "<group>";
 		};
-		9384BD8C30596D7A00E1B75F /* Main.storyboard */ = {
+		93B9154830596DFD00F341F9 /* Main.storyboard */ = {
 			isa = PBXVariantGroup;
 			children = (
-				9384BD8D30596D7A00E1B75F /* Base */,
+				93B9154930596DFD00F341F9 /* Base */,
 			);
 			name = Main.storyboard;
 			sourceTree = "<group>";
@@ -537,7 +537,7 @@
 /* End PBXVariantGroup section */
 
 /* Begin XCBuildConfiguration section */
-		9384BDB230596D7A00E1B75F /* Debug */ = {
+		93B9156E30596DFD00F341F9 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
@@ -598,7 +598,7 @@
 			};
 			name = Debug;
 		};
-		9384BDB330596D7A00E1B75F /* Release */ = {
+		93B9156F30596DFD00F341F9 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
@@ -651,7 +651,7 @@
 			};
 			name = Release;
 		};
-		9384BDB530596D7A00E1B75F /* Debug */ = {
+		93B9157130596DFD00F341F9 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
@@ -684,7 +684,7 @@
 			};
 			name = Debug;
 		};
-		9384BDB630596D7A00E1B75F /* Release */ = {
+		93B9157230596DFD00F341F9 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
@@ -718,7 +718,7 @@
 			};
 			name = Release;
 		};
-		9384BDB930596D7A00E1B75F /* Debug */ = {
+		93B9157530596DFD00F341F9 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
@@ -758,7 +758,7 @@
 			};
 			name = Debug;
 		};
-		9384BDBA30596D7A00E1B75F /* Release */ = {
+		93B9157630596DFD00F341F9 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
@@ -799,7 +799,7 @@
 			};
 			name = Release;
 		};
-		9384BDBC30596D7A00E1B75F /* Debug */ = {
+		93B9157830596DFD00F341F9 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
@@ -834,7 +834,7 @@
 			};
 			name = Debug;
 		};
-		9384BDBD30596D7A00E1B75F /* Release */ = {
+		93B9157930596DFD00F341F9 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
@@ -869,7 +869,7 @@
 			};
 			name = Release;
 		};
-		9384BDC030596D7A00E1B75F /* Debug */ = {
+		93B9157C30596DFD00F341F9 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
@@ -910,7 +910,7 @@
 			};
 			name = Debug;
 		};
-		9384BDC130596D7A00E1B75F /* Release */ = {
+		93B9157D30596DFD00F341F9 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
@@ -954,52 +954,52 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		9384BD6630596D7600E1B75F /* Build configuration list for PBXProject "URLQRCodePrinter" */ = {
+		93B9152230596DFA00F341F9 /* Build configuration list for PBXProject "URLQRCodePrinter" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				9384BDB230596D7A00E1B75F /* Debug */,
-				9384BDB330596D7A00E1B75F /* Release */,
+				93B9156E30596DFD00F341F9 /* Debug */,
+				93B9156F30596DFD00F341F9 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		9384BDB430596D7A00E1B75F /* Build configuration list for PBXNativeTarget "URLQRCodePrinter Extension (iOS)" */ = {
+		93B9157030596DFD00F341F9 /* Build configuration list for PBXNativeTarget "URLQRCodePrinter Extension (iOS)" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				9384BDB530596D7A00E1B75F /* Debug */,
-				9384BDB630596D7A00E1B75F /* Release */,
+				93B9157130596DFD00F341F9 /* Debug */,
+				93B9157230596DFD00F341F9 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		9384BDB830596D7A00E1B75F /* Build configuration list for PBXNativeTarget "URLQRCodePrinter (iOS)" */ = {
+		93B9157430596DFD00F341F9 /* Build configuration list for PBXNativeTarget "URLQRCodePrinter (iOS)" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				9384BDB930596D7A00E1B75F /* Debug */,
-				9384BDBA30596D7A00E1B75F /* Release */,
+				93B9157530596DFD00F341F9 /* Debug */,
+				93B9157630596DFD00F341F9 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		9384BDBB30596D7A00E1B75F /* Build configuration list for PBXNativeTarget "URLQRCodePrinter Extension (macOS)" */ = {
+		93B9157730596DFD00F341F9 /* Build configuration list for PBXNativeTarget "URLQRCodePrinter Extension (macOS)" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				9384BDBC30596D7A00E1B75F /* Debug */,
-				9384BDBD30596D7A00E1B75F /* Release */,
+				93B9157830596DFD00F341F9 /* Debug */,
+				93B9157930596DFD00F341F9 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		9384BDBF30596D7A00E1B75F /* Build configuration list for PBXNativeTarget "URLQRCodePrinter (macOS)" */ = {
+		93B9157B30596DFD00F341F9 /* Build configuration list for PBXNativeTarget "URLQRCodePrinter (macOS)" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				9384BDC030596D7A00E1B75F /* Debug */,
-				9384BDC130596D7A00E1B75F /* Release */,
+				93B9157C30596DFD00F341F9 /* Debug */,
+				93B9157D30596DFD00F341F9 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
 	};
-	rootObject = 9384BD6330596D7600E1B75F /* Project object */;
+	rootObject = 93B9151F30596DFA00F341F9 /* Project object */;
 }

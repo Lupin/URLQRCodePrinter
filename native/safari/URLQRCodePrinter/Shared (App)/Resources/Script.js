@@ -1,24 +1,38 @@
-function show(platform, enabled, useSettingsInsteadOfPreferences) {
-    document.body.classList.add(`platform-${platform}`);
+// Fenêtre de l'application conteneur.
+//
+// Deux impasses du modèle d'Apple sont évitées ici : un bouton dont l'action
+// échoue sans rien dire, et un état d'extension qui reste indéterminé. Dans les
+// deux cas, l'utilisateur reçoit une explication plutôt qu'un silence.
 
-    if (useSettingsInsteadOfPreferences) {
-        document.getElementsByClassName('platform-mac state-on')[0].innerText = "URLQRCodePrinter’s extension is currently on. You can turn it off in the Extensions section of Safari Settings.";
-        document.getElementsByClassName('platform-mac state-off')[0].innerText = "URLQRCodePrinter’s extension is currently off. You can turn it on in the Extensions section of Safari Settings.";
-        document.getElementsByClassName('platform-mac state-unknown')[0].innerText = "You can turn on URLQRCodePrinter’s extension in the Extensions section of Safari Settings.";
-        document.getElementsByClassName('platform-mac open-preferences')[0].innerText = "Quit and Open Safari Settings…";
-    }
+function post(name) {
+    webkit.messageHandlers.controller.postMessage(name);
+}
 
-    if (typeof enabled === "boolean") {
-        document.body.classList.toggle(`state-on`, enabled);
-        document.body.classList.toggle(`state-off`, !enabled);
+function show(platform, enabled) {
+    document.body.classList.add('platform-' + platform);
+
+    if (typeof enabled === 'boolean') {
+        document.body.classList.toggle('state-on', enabled);
+        document.body.classList.toggle('state-off', !enabled);
+        document.getElementById('instructions').hidden = enabled;
     } else {
-        document.body.classList.remove(`state-on`);
-        document.body.classList.remove(`state-off`);
+        document.body.classList.remove('state-on');
+        document.body.classList.remove('state-off');
     }
 }
 
-function openPreferences() {
-    webkit.messageHandlers.controller.postMessage("open-preferences");
+// Appelée quand Safari refuse d'ouvrir ses réglages — ce qui arrive sur une
+// compilation non signée. Sans cela, le bouton paraîtrait simplement mort.
+function showFallback(reason) {
+    const instructions = document.getElementById('instructions');
+    instructions.hidden = false;
+    instructions.textContent =
+        "Safari n'a pas pu ouvrir ses réglages automatiquement"
+        + (reason ? ' (' + reason + ')' : '')
+        + ". Ouvrez-les à la main : Safari → Réglages → Extensions.";
 }
 
-document.querySelector("button.open-preferences").addEventListener("click", openPreferences);
+document.querySelector('button.open-preferences')
+    .addEventListener('click', () => post('open-preferences'));
+document.querySelector('button.quit')
+    .addEventListener('click', () => post('quit'));
