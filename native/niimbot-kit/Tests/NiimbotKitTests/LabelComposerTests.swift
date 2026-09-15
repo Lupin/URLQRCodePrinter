@@ -183,17 +183,74 @@ final class LabelComposerTests: XCTestCase {
         XCTAssertLessThan(inked, pixels * 3 / 4, "l'étiquette est presque entièrement noire")
     }
 
-    func testTopRowsContainTheQrCode() throws {
-        let bitmap = try LabelComposer.compose(
-            link: link("https://a.co"),
-            profile: d110Profile
+    /// Le QR commence exactement après la marge haute et sa zone de silence.
+    ///
+    /// L'assertion précédente cherchait de l'encre dans les dix premières
+    /// lignes, ce qui était faux par construction : les deux modules de blanc
+    /// qui entourent le code — sans lesquels un lecteur n'accroche rien —
+    /// occupent précisément cette bande. On vérifie donc la position, pas la
+    /// simple présence d'encre.
+    func testQrCodeStartsUnderTheTopMargin() throws {
+        let url = "https://a.co"
+        let bitmap = try LabelComposer.compose(link: link(url), profile: d110Profile)
+        let matrix = try qrMatrix(for: url, correctionLevel: .medium, border: 2)
+        let geometry = LabelComposer.computeGeometry(
+            text: url,
+            widthPx: d110Profile.printheadPixels,
+            qrModules: matrix.size
         )
-        // Les premières lignes de l'étiquette portent le QR : elles doivent
-        // contenir de l'encre.
-        let topInked = bitmap.rows.prefix(10).reduce(0) { total, row in
-            total + row.reduce(0) { $0 + $1.nonzeroBitCount }
-        }
-        XCTAssertGreaterThan(topInked, 0)
+
+        let firstInked = bitmap.rows.firstIndex { row in row.contains { $0 != 0 } }
+        XCTAssertEqual(firstInked, geometry.padding + 2 * geometry.qrScale)
+    }
+
+    /// Régression : le titre était dessiné par-dessus la première ligne d'URL,
+    /// et la dernière ligne d'URL sortait du bas de l'image.
+    func testTitleGetsItsOwnLineAndNothingIsClipped() throws {
+        let url = "https://example.com/a"
+        let matrix = try qrMatrix(for: url, correctionLevel: .medium, border: 2)
+        let withoutTitle = try LabelComposer.compose(link: link(url), profile: d110Profile)
+        let withTitle = try LabelComposer.compose(
+            link: link(url, title: "Un titre"),
+            profile: d110Profile,
+            showTitle: true
+        )
+        let geometry = LabelComposer.computeGeometry(
+            text: url,
+            widthPx: d110Profile.printheadPixels,
+            qrModules: matrix.size,
+            reservedLines: 1
+        )
+
+        // Une ligne de plus, exactement.
+        XCTAssertEqual(withTitle.height, withoutTitle.height + geometry.lineHeight)
+        XCTAssertEqual(geometry.reservedLines, 1)
+
+        // Et le texte reste entièrement dans l'image.
+        let textBottom = geometry.textTop
+            + (geometry.lines.count + geometry.reservedLines) * geometry.lineHeight
+        XCTAssertLessThanOrEqual(textBottom, withTitle.height)
+    }
+
+    /// Le titre ne doit pas chasser l'URL : le plafond de lignes porte sur le total.
+    func testTitleCountsTowardsTheLineBudget() throws {
+        let url = "https://example.com/" + String(repeating: "segment/", count: 12)
+        let matrix = try qrMatrix(for: url, correctionLevel: .medium, border: 2)
+        let withoutTitle = LabelComposer.computeGeometry(
+            text: url, widthPx: d110Profile.printheadPixels, qrModules: matrix.size, maxLines: 4
+        )
+        let withTitle = LabelComposer.computeGeometry(
+            text: url, widthPx: d110Profile.printheadPixels, qrModules: matrix.size,
+            maxLines: 4, reservedLines: 1
+        )
+
+        XCTAssertEqual(withoutTitle.lines.count, 4)
+        XCTAssertEqual(withTitle.lines.count, 3)
+        XCTAssertEqual(
+            withTitle.lines.count + withTitle.reservedLines,
+            withoutTitle.lines.count,
+            "le nombre total de lignes ne doit pas augmenter"
+        )
     }
 
     func testCompositionIsDeterministic() throws {

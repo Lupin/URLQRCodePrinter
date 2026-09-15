@@ -18,8 +18,7 @@ Markdown, ou envoi direct à une imprimante Niimbot.
 | Socle natif Swift (protocole, session, CoreBluetooth) | fait, testé |
 | Application iOS qui utilise ce socle | à faire |
 
-**496 tests** — 394 en JavaScript, **tous verts**, et 102 en Swift, dont 2 en
-échec (voir « Incertitudes assumées ») — dont :
+**498 tests, tous verts** — 394 en JavaScript et 104 en Swift — dont :
 
 - la validation **octet à octet** des trames Niimbot contre les relevés
   documentés, **dans les deux langages** : deux implémentations indépendantes
@@ -311,18 +310,25 @@ construit échoue avec un message explicite.
 
 ## Incertitudes assumées
 
-### Deux tests Swift en échec
+### Un défaut corrigé dans le composeur natif
 
-`LabelComposerTests` — le composeur d'étiquettes natif, utilisé par le socle
-Swift et non par l'application web :
+Deux tests de `LabelComposerTests` échouaient, et l'analyse a montré qu'ils ne
+relevaient pas de la même cause :
 
-- `testTopRowsContainTheQrCode` : les premières lignes du rendu CoreGraphics ne
-  contiennent pas d'encre, alors que le QR code devrait y commencer ;
-- `testShowTitleChangesTheRenderedLabel` : activer le titre ne change pas la
-  hauteur du rendu.
+- **Un vrai défaut, corrigé.** Activer le titre ne changeait pas la hauteur du
+  rendu : le titre était dessiné *par-dessus* la première ligne d'URL, et la
+  dernière ligne d'URL sortait du bas de l'image — rognée en silence. La
+  géométrie réserve désormais la ligne du titre (`reservedLines`), et le plafond
+  de lignes porte sur le total, titre compris.
+- **Un test faux.** `testTopRowsContainTheQrCode` cherchait de l'encre dans les
+  dix premières lignes. C'était impossible par construction : les deux modules
+  de blanc qui entourent le QR — sa zone de silence, sans laquelle aucun lecteur
+  n'accroche — occupent exactement cette bande. Le test vérifie maintenant la
+  position du premier pixel encré, `marge + 2 × échelle`, ce qui est plus précis
+  que ce qu'il vérifiait avant.
 
-Ce sont de vrais défauts de rendu, pas des tests à ajuster. Ils n'ont aucun
-effet sur le chemin Brave / web, qui compose ses étiquettes en JavaScript.
+Ce composeur sert le socle Swift, pas le chemin Brave / web, qui compose ses
+étiquettes en JavaScript.
 
 ### Ce qui ne peut pas être vérifié ici
 

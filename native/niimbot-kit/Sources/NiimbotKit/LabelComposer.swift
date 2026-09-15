@@ -29,6 +29,9 @@ public struct LabelGeometry: Sendable, Equatable {
     public let fontSize: Int
     public let lineHeight: Int
     public let textTop: Int
+    /// Lignes réservées au-dessus de `lines` — le titre, quand il est demandé.
+    /// Sans cette réservation, la dernière ligne d'URL sortait de l'image.
+    public let reservedLines: Int
 }
 
 /// Échelle minimale : sous 2 px par module, la tête thermique fusionne les points.
@@ -53,11 +56,15 @@ public enum LabelComposer {
         maxLines: Int = 4
     ) throws -> MonoBitmap {
         let matrix = try qrMatrix(for: link.url, correctionLevel: correctionLevel, border: 2)
+        // Le titre est dessiné sur sa propre ligne, en gras : elle doit être
+        // réservée dans la hauteur, sinon la dernière ligne d'URL est rognée.
+        let hasTitle = showTitle && !link.title.isEmpty
         let geometry = computeGeometry(
             text: link.url,
             widthPx: profile.printheadPixels,
             qrModules: matrix.size,
-            maxLines: maxLines
+            maxLines: maxLines,
+            reservedLines: hasTitle ? 1 : 0
         )
         return try render(
             link: link,
@@ -81,7 +88,8 @@ public enum LabelComposer {
         qrRatio: Double = 0.95,
         minScale: Int = minimumQrScale,
         lineSpacing: Double = 1.15,
-        maxLines: Int = 4
+        maxLines: Int = 4,
+        reservedLines: Int = 0
     ) -> LabelGeometry {
         let width = max(1, widthPx)
         let resolvedPadding = max(0, padding ?? Int((Double(width) * 0.06).rounded()))
@@ -92,11 +100,14 @@ public enum LabelComposer {
         let innerWidth = max(1, width - resolvedPadding * 2)
         let qrTarget = Int(Double(innerWidth) * ratio)
 
+        let reserved = max(0, reservedLines)
         let lines = wrap(
             text: text,
             maxWidth: innerWidth,
             fontSize: resolvedFontSize,
-            maxLines: maxLines
+            // Le plafond porte sur le total : réserver une ligne de titre doit
+            // réduire d'autant le nombre de lignes d'URL.
+            maxLines: max(0, maxLines - reserved)
         )
 
         // Le QR a une taille entière en modules : on arrondit au multiple
@@ -106,8 +117,10 @@ public enum LabelComposer {
         let qrSize = qrModules * scale
         let fits = qrSize <= innerWidth
 
-        let textHeight = lines.count * lineHeight
-        let height = qrSize + resolvedPadding * 2 + (lines.isEmpty ? 0 : resolvedPadding + textHeight)
+        let textLineCount = lines.count + reserved
+        let textHeight = textLineCount * lineHeight
+        let height = qrSize + resolvedPadding * 2
+            + (textLineCount == 0 ? 0 : resolvedPadding + textHeight)
 
         return LabelGeometry(
             width: width,
@@ -120,7 +133,8 @@ public enum LabelComposer {
             lines: lines,
             fontSize: resolvedFontSize,
             lineHeight: lineHeight,
-            textTop: resolvedPadding + qrSize + resolvedPadding
+            textTop: resolvedPadding + qrSize + resolvedPadding,
+            reservedLines: reserved
         )
     }
 
@@ -198,24 +212,29 @@ public enum LabelComposer {
             }
         }
 
-        // Texte.
+        // Texte : le titre occupe la première ligne réservée, en gras, puis
+        // l'URL suit. L'ordre de dessin suit celui de la lecture.
         let font = systemFont(size: CGFloat(geometry.fontSize))
-        var lines = geometry.lines
         if showTitle, !link.title.isEmpty {
-            lines.insert(link.title, at: 0)
+            drawCentered(
+                text: link.title,
+                in: context,
+                width: width,
+                top: geometry.textTop,
+                lineHeight: geometry.lineHeight,
+                font: boldFont(size: CGFloat(geometry.fontSize))
+            )
         }
 
-        for (index, line) in lines.enumerated() {
-            let y = geometry.textTop + index * geometry.lineHeight
-            // Une ligne de titre est mise en gras.
-            let isTitle = showTitle && index == 0 && !link.title.isEmpty
+        for (index, line) in geometry.lines.enumerated() {
+            let y = geometry.textTop + (geometry.reservedLines + index) * geometry.lineHeight
             drawCentered(
                 text: line,
                 in: context,
                 width: width,
                 top: y,
                 lineHeight: geometry.lineHeight,
-                font: isTitle ? boldFont(size: CGFloat(geometry.fontSize)) : font
+                font: font
             )
         }
 
