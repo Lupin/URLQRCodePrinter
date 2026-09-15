@@ -330,19 +330,6 @@ intervention :
 - Une étiquette qui échoue n'interrompt pas la série ; le bilan final dit combien
   sont sorties et pourquoi les autres ont raté.
 
-### Consommable lu par RFID — non vérifié sur matériel
-
-Quand le modèle a un lecteur RFID, l'application interroge le rouleau à la
-connexion (commande `0x1A`) et lit un code-barres du type `T15*30`, qui encode
-les dimensions. La longueur lue est reportée dans le champ, que vous pouvez
-corriger.
-
-**Réserve importante** : le lecteur RFID n'existe pas sur tous les modèles —
-plutôt sur les versions « A » et récentes — et cette lecture n'a **jamais été
-confrontée à une imprimante réelle**. L'analyse est testée sur des charges
-utiles documentées, pas sur du matériel. Si rien n'est lu, le message le dit et
-le choix manuel de la longueur reste la voie normale.
-
 ## Exporter sans Niimbot
 
 ### Dossier d'images (onglet « Images à imprimer »)

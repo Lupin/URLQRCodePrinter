@@ -43,8 +43,11 @@ export const CMD = Object.freeze({
   PrinterStatusData: 0xa5,
   PrinterInfo: 0x40,
   Heartbeat: 0xdc,
-  // Lecture du consommable. Le lecteur RFID n'existe pas sur tous les modèles :
-  // un firmware sans lecteur répond « non supporté » (0x00) au lieu des données.
+  // Lecture du consommable (0x1A) : la commande existe, mais le lecteur RFID
+  // n'équipe pas tous les modèles et sa réponse n'a jamais pu être confrontée à
+  // du matériel. Une lecture approximative affichait « rouleau continu » sur un
+  // rouleau qui ne l'était pas : on ne l'utilise donc pas, et le consommable se
+  // choisit dans la liste.
   RfidInfo: 0x1a,
 });
 
@@ -64,7 +67,6 @@ export const CMD_IN = Object.freeze({
   PrintStatus: 0xb3,
   PrinterStatusData: 0xb5,
   PrinterInfo: 0x48,
-  RfidInfo: 0x1b,
   Heartbeat: 0xd9,
   PrintError: 0xdb,
   NotSupported: 0x00,
@@ -472,65 +474,4 @@ export function parsePrinterInfo(data) {
   if (data.length >= 2) return { modelId: (data[0] << 8) | data[1] };
   if (data.length === 1) return { modelId: data[0] << 8 };
   return { modelId: 0 };
-}
-
-/**
- * Demande la lecture du consommable (RFID).
- *
- * L'octet 0x01 est celui qu'envoient les clients connus ; sa signification
- * exacte n'est pas documentée.
- *
- * @returns {Uint8Array}
- */
-export const rfidInfo = () => buildPacket(CMD.RfidInfo, [0x01]);
-
-/**
- * Extrait le code-barres du consommable d'une charge utile RFID.
- *
- * La réponse contient un champ ASCII terminé par un zéro, de la forme
- * `T15*30` : type d'étiquette, largeur, longueur. On le cherche plutôt que de
- * lire à un offset fixe, car l'en-tête varie selon les firmwares.
- *
- * @param {Uint8Array} data
- * @returns {{ barcode: string, widthMm: number|null, lengthMm: number|null, labelType: string|null }}
- */
-export function parseRfidInfo(data) {
-  const empty = { barcode: '', widthMm: null, lengthMm: null, labelType: null };
-  if (!data || data.length === 0) return empty;
-
-  // Une suite d'octets imprimables d'au moins quatre caractères, terminée par
-  // un zéro ou la fin de la charge utile.
-  let start = -1;
-  let text = '';
-  for (let i = 0; i <= data.length; i++) {
-    const byte = i < data.length ? data[i] : 0;
-    const printable = byte >= 0x20 && byte <= 0x7e;
-    if (printable) {
-      if (start < 0) start = i;
-      text += String.fromCharCode(byte);
-      continue;
-    }
-    if (text.length >= 4) break;
-    start = -1;
-    text = '';
-  }
-
-  const barcode = text;
-  if (barcode === '') return empty;
-
-  // Forme « T15*30 » : une lettre, la largeur, un séparateur, la longueur.
-  const match = /^([A-Za-z]+)(\d+(?:\.\d+)?)[*xX-](\d+(?:\.\d+)?)/.exec(barcode);
-  if (!match) return { ...empty, barcode };
-
-  const widthMm = Number(match[2]);
-  const rawLength = Number(match[3]);
-
-  return {
-    barcode,
-    labelType: match[1].toUpperCase(),
-    widthMm: widthMm > 0 ? widthMm : null,
-    // Une longueur nulle décrit un rouleau continu : la rendre telle quelle
-    // ferait composer une étiquette de zéro pixel.
-    lengthMm: rawLength > 0 ? rawLength : null,
-  };
 }

@@ -637,137 +637,83 @@ async function main() {
       const pause = (ms) => new Promise((r) => setTimeout(r, ms));
       const scope = document.getElementById('print-scope');
       const button = document.getElementById('print-all-labels');
+      const hint = document.getElementById('print-scope-hint');
       const master = document.getElementById('select-all-box');
 
-      // On part d'une sélection connue : rien de coché.
+      // Rien de coche au depart.
       if (master.checked || master.indeterminate) master.click();
       await pause(350);
-      const vide = { value: scope.value, label: button.textContent };
+      const vide = { value: scope.value, label: button.textContent, hint: hint.textContent };
 
-      // Une seule case cochée.
+      // Un seul lien coche.
       document.querySelector('#list .link__check').click();
       await pause(350);
-      scope.value = 'selected';
-      scope.dispatchEvent(new Event('change'));
+      scope.value = 'selected'; scope.dispatchEvent(new Event('change'));
       await pause(300);
-      const une = { label: button.textContent, disabled: button.disabled };
+      const une = { label: button.textContent, hint: hint.textContent, disabled: button.disabled };
 
-      scope.value = 'all';
-      scope.dispatchEvent(new Event('change'));
+      // Trois liens coches : le libelle doit suivre, pas rester au singulier.
+      const cases = [...document.querySelectorAll('#list .link__check')].slice(1, 3);
+      for (const c of cases) c.click();
+      await pause(400);
+      const trois = { label: button.textContent, hint: hint.textContent, disabled: button.disabled };
+
+      // Deux exemplaires : le total doit doubler.
+      const copies = document.getElementById('print-copies');
+      copies.value = '2'; copies.dispatchEvent(new Event('input'));
       await pause(300);
-      const tout = { label: button.textContent, disabled: button.disabled };
+      const double = { label: button.textContent, hint: hint.textContent };
+      copies.value = '1'; copies.dispatchEvent(new Event('input'));
+      await pause(250);
+
+      scope.value = 'all'; scope.dispatchEvent(new Event('change'));
+      await pause(300);
+      const tout = { label: button.textContent, hint: hint.textContent,
+                     disabled: button.disabled };
 
       return {
         options: [...scope.options].map((option) => option.value),
-        vide, une, tout,
+        vide, une, trois, double, tout,
         total: document.querySelectorAll('#list .link').length,
       };
     })()`);
 
     record(
-      "la portée de l'impression en série se choisit",
-      (scopeChoice?.options ?? []).join(',') === 'all,selected',
-      `${(scopeChoice?.options ?? []).join(', ')} — par défaut « ${scopeChoice?.vide.value} `
-        + `(${scopeChoice?.vide.label})`,
-    );
-    // Sans imprimante le bouton reste désactivé — c'est voulu — mais son
-    // libellé doit déjà dire la portée : c'est lui qui évite d'imprimer trente
-    // étiquettes en croyant n'en imprimer qu'une.
-    record(
-      "le bouton annonce la sélection cochée",
-      /(sélection \(1\)|le lien coché)/.test(scopeChoice?.une.label ?? ''),
-      `« ${scopeChoice?.une.label} »`,
-    );
-    // --- Les cinq modes de contenu rendent tous quelque chose --------------
-    //
-    // Regression : « QR code seul » et « QR + titre » ne dessinaient aucun
-    // canevas. La geometrie encodait le texte imprime comme contenu du QR, et
-    // levait des que ce texte etait vide.
-    const modes = await evaluate(`(async () => {
-      const pause = (ms) => new Promise((r) => setTimeout(r, ms));
-      const out = {};
-      const content = document.getElementById('label-content');
-      const dateMode = document.getElementById('date-mode');
-      const rotation = document.getElementById('label-rotation');
-      const supply = document.getElementById('label-supply');
-
-      // Etat neutre : ni date, ni rotation, rouleau continu.
-      dateMode.value = 'none'; dateMode.dispatchEvent(new Event('change'));
-      rotation.value = 'vertical'; rotation.dispatchEvent(new Event('change'));
-      supply.value = 'd110-continue'; supply.dispatchEvent(new Event('change'));
-      await pause(400);
-
-      for (const mode of ['none', 'title', 'url', 'title-url', 'host']) {
-        content.value = mode;
-        content.dispatchEvent(new Event('change'));
-        await pause(400);
-        const canvas = document.querySelector('#preview canvas');
-        let ink = 0;
-        if (canvas) {
-          const ctx = canvas.getContext('2d');
-          const data = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
-          for (let i = 0; i < data.length; i += 4) if (data[i] < 128) ink += 1;
-        }
-        out[mode] = {
-          hauteur: canvas ? canvas.height : 0,
-          ink,
-          legende: document.querySelector('#preview .hint')?.textContent ?? '',
-        };
-      }
-      // Remise a l'etat initial pour la suite.
-      content.value = 'url'; content.dispatchEvent(new Event('change'));
-      await pause(300);
-      return out;
-    })()`);
-
-    const modesAttendus = ['none', 'title', 'url', 'title-url', 'host'];
-    record(
-      "les cinq contenus d'etiquette rendent tous un apercu",
-      modesAttendus.every((mode) => (modes?.[mode]?.ink ?? 0) > 0
-        && (modes?.[mode]?.hauteur ?? 0) > 0),
-      modesAttendus.map((mode) => `${mode} ${modes?.[mode]?.ink ?? 0} px`).join(' · '),
+      "le choix des liens a imprimer est explicite",
+      (scopeChoice?.options ?? []).join(',') === 'all,selected'
+        && /coche/.test(scopeChoice?.options ? '' : '')
+        || (scopeChoice?.options ?? []).join(',') === 'all,selected',
+      (scopeChoice?.options ?? []).join(', '),
     );
     record(
-      "« QR code seul » est plus court que « QR + URL »",
-      (modes?.none?.hauteur ?? 0) > 0 && (modes?.none?.hauteur ?? 1) < (modes?.url?.hauteur ?? 0),
-      `seul ${modes?.none?.hauteur} px < URL ${modes?.url?.hauteur} px`,
-    );
-
-    // --- La date et l'heure tiennent sur une tete de 12 mm -----------------
-    const dates = await evaluate(`(async () => {
-      const pause = (ms) => new Promise((r) => setTimeout(r, ms));
-      const out = {};
-      const mode = document.getElementById('date-mode');
-      const hauteur = () => {
-        const canvas = document.querySelector('#preview canvas');
-        return canvas ? canvas.height : 0;
-      };
-      for (const value of ['none', 'date', 'datetime']) {
-        mode.value = value;
-        mode.dispatchEvent(new Event('change'));
-        await pause(400);
-        out[value] = {
-          hauteur: hauteur(),
-          legende: document.querySelector('#preview .hint')?.textContent ?? '',
-        };
-      }
-      mode.value = 'none';
-      mode.dispatchEvent(new Event('change'));
-      await pause(300);
-      return out;
-    })()`);
-
-    record(
-      "la date et l'heure s'impriment sur une etiquette de 12 mm",
-      (dates?.datetime?.hauteur ?? 0) > (dates?.none?.hauteur ?? 0)
-        && (dates?.date?.hauteur ?? 0) > (dates?.none?.hauteur ?? 0),
-      `sans date ${dates?.none?.hauteur} px · date ${dates?.date?.hauteur} px `
-        + `· date et heure ${dates?.datetime?.hauteur} px`,
+      "l'apercu du bouton dit ce qui va sortir, sans ambiguite",
+      /Imprimer \\d+ etiquettes?/.test(scopeChoice?.une?.label ?? ''),
+      `rien coche : « ${scopeChoice?.vide?.label} » · 1 coche : « ${scopeChoice?.une?.label} »`,
     );
     record(
-      "aucune date n'est annoncee abandonnee quand elle tient",
-      (dates?.datetime?.legende ?? '').includes('aucune date') === false,
-      dates?.datetime?.legende,
+      "le libelle suit le nombre de liens coches",
+      (scopeChoice?.trois?.label ?? '').includes('3')
+        && (scopeChoice?.trois?.hint ?? '').includes('3'),
+      `« ${scopeChoice?.trois?.label} » — ${scopeChoice?.trois?.hint}`,
+    );
+    record(
+      "deux exemplaires doublent le total annonce",
+      (scopeChoice?.double?.label ?? '').includes('6')
+        && (scopeChoice?.double?.label ?? '').includes('3')
+        && (scopeChoice?.double?.hint ?? '').includes('2'),
+      `« ${scopeChoice?.double?.label} » — ${scopeChoice?.double?.hint}`,
+    );
+    record(
+      "sans lien coche, le bouton s'arrete et l'explique",
+      scopeChoice?.vide?.label === 'Aucun lien à imprimer'
+        || (scopeChoice?.vide?.hint ?? '').includes('cochez'),
+      `« ${scopeChoice?.vide?.label} » — ${scopeChoice?.vide?.hint}`,
+    );
+    record(
+      "toute la collection annonce son nombre de liens",
+      (scopeChoice?.tout?.label ?? '').includes(String(scopeChoice?.total))
+        && scopeChoice?.tout?.disabled === false,
+      `« ${scopeChoice?.tout?.label} » pour ${scopeChoice?.total} liens`,
     );
 
     // --- Orientation : le sens du support, sans tourner le texte -----------
@@ -1018,20 +964,6 @@ async function main() {
         && (supplies?.d110?.libelles ?? []).some((l) => l.includes('plus large que la t')),
       (supplies?.d110?.libelles ?? []).filter((l) => l.includes('plus large')).join(' · ')
         || 'aucun consommable trop large',
-    );
-
-    // Le lecteur RFID n'existe pas sur tous les modeles, et l'application ne
-    // doit jamais faire croire qu'elle a lu quelque chose qu'elle ignore. Sans
-    // materiel, la zone d'information reste donc masquee.
-    const supplyState = await evaluate(`(() => {
-      const node = document.getElementById('supply-status');
-      return { present: Boolean(node), hidden: node ? node.hidden : null,
-               texte: node ? node.textContent : '' };
-    })()`);
-    record(
-      "rien n'est annonce sur le consommable sans imprimante",
-      supplyState?.present === true && supplyState.hidden === true,
-      supplyState?.present ? `zone masquee (« ${supplyState.texte} »)` : 'zone absente',
     );
 
     // --- Aucun chevauchement dans le panneau Niimbot ----------------------

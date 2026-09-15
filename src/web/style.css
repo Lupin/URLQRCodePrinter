@@ -158,7 +158,23 @@ body {
 
 .input--compact { padding: 6px 9px; }
 
-.field { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 120px; }
+/* `flex-basis` fixe la largeur de reference de chaque champ. Sans elle, un
+   libelle long — « Format d'etiquette » — elargissait sa colonne et faisait
+   deborder les suivantes : les champs se chevauchaient a l'ecran. */
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1 1 160px;
+  min-width: 0;
+}
+
+/* Un libelle ne doit jamais elargir sa colonne ni deborder sur la voisine. */
+.field__label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 
 /* `.field` impose `display: flex`, qui l'emporterait sur le `display: none` de
    l'attribut `hidden` à spécificité égale. Sans cette règle, un champ masqué

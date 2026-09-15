@@ -26,8 +26,9 @@ import {
   computeLabelGeometry,
   drawLabel,
   checkQrLegibility,
-  labelContent,
+  labelContentFromChoices,
   layoutLabelLateral,
+  layoutLabelRotated,
   wrapDate,
   LABEL_ALIGNMENTS,
   DEFAULT_LABEL_ALIGNMENT,
@@ -142,30 +143,28 @@ let linkRanks = new Map();
 const LABEL_ORIENTATIONS = Object.freeze([
   {
     id: 'horizontal',
-    label: 'Horizontal (texte à droite du QR)',
-    // Le support est dans le sens du défilement : rien à tourner.
-    turns: 0,
-    lateral: true,
+    label: 'Horizontal — QR à gauche, texte à droite',
+    // Le support est plus long que large : le QR et son texte se partagent la
+    // longueur. Le texte reste droit, sur une seule ligne si elle tient.
+    layout: 'lateral',
   },
   {
     id: 'vertical',
-    label: 'Vertical (texte sous le QR)',
-    turns: 0,
-    lateral: false,
+    label: 'Vertical — QR en haut, texte à 90° dessous',
+    // Rouleau étroit : un texte droit n'aurait que la largeur de la tête moins
+    // le QR, soit quelques caractères. Tourné, il profite de toute la hauteur.
+    layout: 'rotated',
   },
   {
-    id: 'horizontal-inverse',
-    label: 'Horizontal, code à droite',
-    turns: 0,
-    lateral: true,
-    mirror: true,
+    id: 'vertical-droit',
+    label: 'Vertical — QR en haut, texte droit dessous',
+    layout: 'stacked',
   },
   {
     id: 'vertical-inverse',
-    label: 'Vertical, à l\'envers (180°)',
-    // Rouleau monté à l'envers : l'image sort à l'envers telle quelle.
-    turns: 2,
-    lateral: false,
+    label: 'Vertical, texte au-dessus du QR',
+    layout: 'stacked',
+    textFirst: true,
   },
 ]);
 
@@ -178,7 +177,7 @@ const LABEL_ORIENTATIONS = Object.freeze([
  */
 const PRINT_SCOPES = Object.freeze([
   { id: 'all', label: 'Toute la collection' },
-  { id: 'selected', label: 'La sélection cochée' },
+  { id: 'selected', label: 'Seulement ceux que je coche' },
 ]);
 
 
@@ -333,25 +332,44 @@ function qrSvg(matrix, { scale = 4 } = {}) {
  */
 function updatePrintScope() {
   const scope = el.printScope.value;
-  const count = scope === 'selected'
-    ? links.filter((link) => selected.has(link.id)).length
-    : links.length;
+  const checked = links.filter((link) => selected.has(link.id)).length;
+  const count = scope === 'selected' ? checked : links.length;
   const ready = links.length > 0 && Boolean(printer);
 
   el.printAllLabels.disabled = !ready || (scope === 'selected' && count === 0);
 
-  // Le libellé dit la portée **et** le nombre d'exemplaires : « 10 étiquettes »
-  // alors que la quantité est à 2 en ferait sortir 20.
+  // Le libellé dit toujours le nombre de liens **et** le nombre d'exemplaires :
+  // « Imprimer la collection » alors que la quantité est à 2 ferait sortir deux
+  // fois plus d'étiquettes que ce que la phrase laisse croire.
   const copies = seriesCopies();
   const total = count * copies;
-  const many = copies > 1 ? ` × ${copies} exemplaires` : '';
-  const base = scope === 'selected'
-    ? (count === 1 ? 'Imprimer le lien coché' : `Imprimer la sélection (${count})`)
-    : (links.length === 1 ? 'Imprimer la collection' : `Imprimer toute la collection (${links.length})`);
-  el.printAllLabels.textContent = base + many;
-  el.printAllLabels.title = total > 0
-    ? `${total} étiquette${total > 1 ? 's' : ''} au total`
-    : '';
+  const pluriel = (n, mot) => `${n} ${mot}${n > 1 ? 's' : ''}`;
+
+  el.printAllLabels.textContent = total === 0
+    ? 'Aucun lien à imprimer'
+    : `Imprimer ${pluriel(total, 'étiquette')}`
+      + (copies > 1 ? ` (${pluriel(count, 'lien')} × ${copies})` : '');
+
+  // La phrase dit ce qui est retenu, et pourquoi le bouton est inerte le cas
+  // échéant : « Portée » seul ne disait pas ce qui allait sortir.
+  el.printAllLabels.title = '';
+
+  if (links.length === 0) {
+    el.printScopeHint.textContent = 'Aucun lien dans la collection.';
+    return;
+  }
+  if (scope === 'selected' && checked === 0) {
+    el.printScopeHint.textContent =
+      'Aucun lien coché : cochez les liens à imprimer dans la liste, '
+      + 'ou choisissez « Toute la collection ».';
+    return;
+  }
+  const source = scope === 'selected'
+    ? `${pluriel(checked, 'lien coché')}`
+    : `les ${links.length} liens de la collection`;
+  el.printScopeHint.textContent = copies > 1
+    ? `${source}, ${pluriel(copies, 'exemplaire')} de chacun.`
+    : `${source}.`;
 }
 
 /**
@@ -1768,7 +1786,12 @@ function renderSingleLabel(link) {
  * @returns {{ geometry: object, verdict: object }}
  */
 function composeLabel(link, profile) {
-  const wanted = formatCaptureDate(link.createdAt, dateMode());
+  // Avec l'heure quand la place le permet : sur une étiquette étroite, la date
+  // seule tient là où « date et heure » devrait céder une ligne.
+  const wanted = formatCaptureDate(
+    link.createdAt,
+    el.labelDateMode.value === 'date' ? 'date' : 'datetime',
+  );
   const lengthPx = labelLengthPx(profile);
   const alignment = el.labelAlignment.value || DEFAULT_LABEL_ALIGNMENT;
 
@@ -1791,15 +1814,29 @@ function composeLabel(link, profile) {
   // La date est découpée à la largeur utile, à la taille de police de la sonde.
   // Une date complète sur deux lignes vaut mieux qu'aucune date : c'est ce qui
   // rendait le réglage inopérant sur une tête de 12 mm.
-  const dateLines = wrapDate(
-    cachedTextMeasure(probe.fontSize),
-    wanted,
-    probe.width - probe.padding * 2,
-    DATE_LINES_MAX,
-  );
+  // La date est une option de l'étiquette, pas un réglage global : elle se
+  // coche ici, avec sa précision. La faire dépendre du réglage « Date sous le
+  // QR code » des planches rendait la case sans effet tant qu'on n'y touchait
+  // pas, ce qui se lisait comme un défaut.
+  const wantsDate = el.labelShowDate.checked;
+  const dateLines = wantsDate && wanted !== ''
+    ? wrapDate(
+      cachedTextMeasure(probe.fontSize),
+      wanted,
+      probe.width - probe.padding * 2,
+      DATE_LINES_MAX,
+    )
+    : [];
 
-  // Le contenu choisi décide de ce qui est imprimé : QR seul, + titre, + URL…
-  const content = labelContent(link, el.labelContent.value, dateLines);
+  // Le contenu se compose de choix indépendants, qui se cumulent.
+  const content = labelContentFromChoices(link, {
+    index: linkRanks.get(link.id) ?? null,
+    indexVisible: el.labelShowIndex.checked,
+    title: el.labelShowTitle.checked,
+    url: el.labelShowUrl.checked,
+    host: el.labelShowHost.checked,
+    dateLines,
+  });
 
   let geometry = computeLabelGeometry({
     text: content.text,
@@ -1812,12 +1849,13 @@ function composeLabel(link, profile) {
     alignment,
   });
 
-  // Orientation horizontale : le QR et le texte se partagent la largeur de la
-  // tête, au lieu d'être empilés. Le texte n'est pas tourné — il reste droit et
-  // se découpe dans la colonne qui lui revient.
+  // La disposition suit l'orientation choisie. Le texte n'est jamais tourné
+  // avec l'image : il est soit droit, soit tourné sur lui-même — deux façons
+  // d'obtenir un texte lisible selon la forme du support.
   let lateralRefused = false;
   const orientation = labelOrientation();
-  if (orientation.lateral) {
+
+  if (orientation.layout === 'lateral') {
     const lateral = layoutLabelLateral(geometry, {
       measure: cachedTextMeasure(geometry.fontSize),
       text: content.text,
@@ -1825,10 +1863,16 @@ function composeLabel(link, profile) {
       gap: geometry.padding,
     });
     // Une URL dense occupe tant de modules qu'il ne reste pas de colonne pour
-    // le texte : sur une tête de 12 mm, c'est le cas courant. On empile plutôt
-    // que d'écrire trois caractères par ligne, et on le dit.
+    // le texte : l'empilement reprend alors la main, et on le dit.
     lateralRefused = lateral.lateral !== true;
     geometry = lateralRefused ? geometry : lateral;
+  } else if (orientation.layout === 'rotated') {
+    geometry = layoutLabelRotated(geometry, {
+      measure: cachedTextMeasure(geometry.fontSize),
+      text: content.text,
+      maxLines: 6,
+      gap: geometry.padding,
+    });
   }
 
   return {
@@ -1836,7 +1880,7 @@ function composeLabel(link, profile) {
     content,
     verdict: checkQrLegibility(geometry),
     dateLines,
-    dateOmitted: wanted !== '' && dateLines.length === 0,
+    dateOmitted: wantsDate && wanted !== '' && dateLines.length === 0,
     lateralRefused,
   };
 }
@@ -2238,11 +2282,6 @@ async function connectPrinter() {
     // imprimera. Le sélecteur reste modifiable pour explorer un autre format.
     if (findProfile(profile.id)) el.labelProfile.value = profile.id;
 
-    // Lecture du consommable, quand le modèle a un lecteur RFID. Le résultat
-    // est une **proposition** : le champ de longueur reste modifiable, et c'est
-    // la seule voie sur les modèles sans lecteur.
-    const supply = await readPrinterSupply();
-
     // Le catalogue suit le matériel réellement connecté : la tête rapportée par
     // la heartbeat fait foi, et proposer un rouleau qu'elle ne peut pas
     // imprimer n'aurait aucun sens.
@@ -2257,52 +2296,6 @@ async function connectPrinter() {
   } finally {
     el.connect.disabled = false;
   }
-}
-
-/**
- * Lit le consommable chargé, et remplit la longueur si le rouleau l'annonce.
- *
- * **Non vérifié sur matériel.** Le lecteur RFID n'existe pas sur tous les
- * modèles — plutôt sur les versions « A » et récentes — et aucune imprimante
- * n'était accessible pour confirmer la forme de la réponse. L'analyse est donc
- * présentée pour ce qu'elle est : une proposition, que le champ manuel corrige.
- *
- * @returns {Promise<void>}
- */
-async function readPrinterSupply() {
-  let supply = null;
-  try {
-    supply = await printer?.readSupply?.();
-  } catch {
-    // Une lecture qui échoue ne doit pas empêcher d'imprimer.
-    supply = null;
-  }
-
-  if (!supply || supply.barcode === '') {
-    el.supplyStatus.textContent =
-      'Consommable non lu : le modèle n\'a peut-être pas de lecteur RFID. '
-      + 'Indiquez la longueur à la main si besoin.';
-    el.supplyStatus.hidden = false;
-    return;
-  }
-
-  // Un rouleau qui annonce sa longueur la renseigne : c'est plus fiable qu'une
-  // saisie, et l'utilisateur peut toujours la corriger.
-  if (supply.lengthMm !== null) {
-    el.labelLength.value = String(supply.lengthMm);
-  }
-
-  const parts = [`Consommable lu : ${supply.barcode}`];
-  if (supply.widthMm !== null && supply.lengthMm !== null) {
-    parts.push(`${supply.widthMm} × ${supply.lengthMm} mm`);
-  } else if (supply.lengthMm === null) {
-    parts.push('rouleau continu');
-  }
-  // Le doute est explicite : cette lecture n'a jamais été confrontée à du
-  // matériel réel, et le dire évite de faire passer une supposition pour un fait.
-  parts.push('lecture non vérifiée sur matériel, corrigez si besoin');
-  el.supplyStatus.textContent = parts.join(' — ') + '.';
-  el.supplyStatus.hidden = false;
 }
 
 /** L'imprimante s'éteint en veille : on remet l'interface en cohérence. */
@@ -2321,7 +2314,6 @@ function resetPrinter() {
   el.connect.hidden = false;
   el.disconnect.hidden = true;
   el.printLabel.disabled = true;
-  el.supplyStatus.hidden = true;
   // Sans matériel, le catalogue revient à celui du format choisi : les
   // longueurs proposées ne doivent pas rester celles de l'imprimante partie.
   fillSupplies();
@@ -2641,13 +2633,18 @@ function fillLabelChoices() {
   }
   el.labelRotation.value = 'vertical';
 
-  for (const [id, label] of Object.entries(TEXT_MODES)) {
+  // Le contenu se coche, il ne se choisit plus dans une liste : titre, URL et
+  // numéro se cumulent, une liste déroulante n'en acceptait qu'un.
+
+  // Précision de la date, propre à l'étiquette.
+  for (const [id, label] of [['date', 'Date seule'], ['datetime', 'Date et heure']]) {
     const option = document.createElement('option');
     option.value = id;
-    option.textContent = LABEL_CONTENT_LABELS[id] ?? label;
-    el.labelContent.appendChild(option);
+    option.textContent = label;
+    el.labelDateMode.appendChild(option);
   }
-  el.labelContent.value = 'url';
+  // La date seule par défaut : c'est ce qui tient sur une tête de 12 mm.
+  el.labelDateMode.value = 'date';
 
   for (const scope of PRINT_SCOPES) {
     const option = document.createElement('option');
@@ -2692,13 +2689,21 @@ function fillLabelLinks() {
   updateLabelContentHint();
 }
 
-/** Explique le contenu retenu, et rappelle que la date suit le réglage global. */
+/** Explique ce qui sera imprimé sous le QR, d'après les cases cochées. */
 function updateLabelContentHint() {
-  const mode = el.labelContent.value;
-  const date = dateMode() === 'none' ? '' : ' La date suit le réglage « Date sous le QR code ».';
-  el.labelContentHint.textContent = mode === 'none'
-    ? `Le QR code seul, sans texte.${date}`
-    : `Le texte est découpé à la largeur de la tête.${date}`;
+  const choisis = [];
+  if (el.labelShowIndex.checked) choisis.push('le numéro du lien');
+  if (el.labelShowTitle.checked) choisis.push('le titre');
+  if (el.labelShowUrl.checked) choisis.push('l\'URL');
+  if (el.labelShowHost.checked) choisis.push('le domaine');
+  if (el.labelShowDate.checked) choisis.push('la date de collecte');
+
+  if (choisis.length === 0) {
+    el.labelContentHint.textContent = 'Le QR code seul, sans texte sous lui.';
+    return;
+  }
+  el.labelContentHint.textContent =
+    `Sous le QR : ${choisis.join(', ')}. Le texte est découpé à la largeur de la tête.`;
 }
 
 /**
@@ -2740,9 +2745,14 @@ function labelOrientation() {
     ?? LABEL_ORIENTATIONS[1];
 }
 
+/** Vrai si le bitmap doit être tourné d'un demi-tour avant envoi. */
+function labelTurns() {
+  return labelOrientation().turns ?? 0;
+}
+
 /** L'orientation retenue à l'impression, pour la rotation du bitmap. */
 function labelRotation() {
-  return labelOrientation();
+  return { turns: labelTurns(), label: labelOrientation().label };
 }
 
 /** Le lien choisi pour l'impression d'une étiquette. */
@@ -2949,10 +2959,15 @@ for (const box of [
   box.addEventListener('change', renderPreview);
 }
 el.labelRotation.addEventListener('change', renderPreview);
-el.labelContent.addEventListener('change', () => {
-  updateLabelContentHint();
-  renderPreview();
-});
+for (const box of [
+  el.labelShowIndex, el.labelShowTitle, el.labelShowUrl,
+  el.labelShowHost, el.labelShowDate,
+]) {
+  box.addEventListener('change', () => {
+    updateLabelContentHint();
+    renderPreview();
+  });
+}
 el.labelLength.addEventListener('input', renderPreview);
 
 // Revenir au rouleau continu : le champ vidé, la hauteur redevient celle du

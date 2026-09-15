@@ -283,17 +283,10 @@
             <span class="field__label">Lien à imprimer</span>
             <select id="label-link" class="input"></select>
           </label>
-          <label class="field">
-            <span class="field__label">Contenu de l'étiquette</span>
-            <select id="label-content" class="input"></select>
-          </label>
-          <!-- Le profil ne connaît que la largeur de la tête. Sans la longueur
-               du rouleau, la composition se tassait en haut et l'imprimante
-               avançait jusqu'à la découpe suivante : le reste sortait blanc. -->
-          <!-- Le consommable porte ses deux cotes. Demander la longueur à
-               côté du format était redondant : un rouleau 12 × 30 mm impose
-               30 mm, on ne devrait pas avoir à le ressaisir — ni pouvoir le
-               contredire. Seul le rouleau continu laisse la longueur libre. -->
+          <!-- Le consommable porte ses deux cotes. Demander la longueur à côté
+               du format était redondant : un rouleau 12 × 30 mm impose 30 mm,
+               on ne devrait pas avoir à le ressaisir — ni le contredire. Seul
+               le rouleau continu laisse la longueur libre. -->
           <div class="field">
             <span class="field__label">Consommable</span>
             <select id="label-supply" class="input"></select>
@@ -304,6 +297,38 @@
             <select id="label-alignment" class="input"></select>
           </label>
         </div>
+
+        <!-- Ce qui est imprimé sous le QR, coché comme les colonnes du tableau.
+             Une liste déroulante n'acceptait qu'un choix, alors que titre, URL
+             et numéro se cumulent : le numéro sert à retrouver la ligne quand
+             l'étiquette est petite. -->
+        <fieldset class="columns">
+          <legend class="columns__legend">Contenu de l'étiquette</legend>
+          <label class="columns__item field__label">
+            <input id="label-show-index" type="checkbox">
+            <span>N° du lien</span>
+          </label>
+          <label class="columns__item field__label">
+            <input id="label-show-title" type="checkbox" checked>
+            <span>Titre</span>
+          </label>
+          <label class="columns__item field__label">
+            <input id="label-show-url" type="checkbox" checked>
+            <span>URL</span>
+          </label>
+          <label class="columns__item field__label">
+            <input id="label-show-host" type="checkbox">
+            <span>Domaine seul</span>
+          </label>
+          <label class="columns__item field__label">
+            <input id="label-show-date" type="checkbox">
+            <span>Date de collecte</span>
+          </label>
+          <label class="columns__item field__label">
+            <span>Précision</span>
+            <select id="label-date-mode" class="input input--compact"></select>
+          </label>
+        </fieldset>
         <p id="label-content-hint" class="hint hint--tight"></p>
 
         <!-- Longueur libre : n'apparaît que pour un rouleau continu, où le pas
@@ -334,31 +359,29 @@
         </div>
 
         <p id="profile-hint" class="hint hint--tight"></p>
-        <!-- Ce que le consommable annonce, quand le modèle sait le lire. La
-             mention « non vérifiée » est volontaire : cette lecture n'a jamais
-             été confrontée à une imprimante réelle. -->
-        <p id="supply-status" class="hint hint--tight" hidden></p>
         <p id="ble-support" class="hint" hidden></p>
         <button id="print-label" class="btn btn--primary btn--wide" type="button" disabled>
           Imprimer cette étiquette
         </button>
 
-        <!-- L'impression en série : la portée et la quantité forment un seul
-             geste, le bouton qui les applique. -->
+        <!-- L'impression en série. Le libellé du bouton dit exactement ce qui
+             va sortir — nombre de liens et nombre d'exemplaires — pour qu'aucun
+             clic ne surprenne. -->
         <fieldset class="series">
           <legend class="field__label">Imprimer en série</legend>
           <label class="field">
-            <span class="field__label">Portée</span>
+            <span class="field__label">Quels liens</span>
             <select id="print-scope" class="input"></select>
           </label>
           <label class="field">
-            <span class="field__label">Exemplaires par lien</span>
+            <span class="field__label">Exemplaires de chacun</span>
             <input id="print-copies" class="input" type="number" min="1" max="20" value="1">
           </label>
-          <button id="print-all-labels" class="btn btn--ghost" type="button" disabled>
-            Imprimer la collection
-          </button>
         </fieldset>
+        <button id="print-all-labels" class="btn btn--ghost btn--wide" type="button" disabled>
+          Imprimer la collection
+        </button>
+        <p id="print-scope-hint" class="hint hint--tight"></p>
         <p id="print-status" class="hint" aria-live="polite"></p>
       </div>
 

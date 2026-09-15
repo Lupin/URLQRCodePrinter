@@ -103,6 +103,54 @@ function pxToMmFloor(width, dpi) {
   return Math.min(mmToPx(MIN_FONT_MM, dpi), Math.max(6, Math.floor(width * 0.09)));
 }
 
+/**
+ * Compose le contenu d'une étiquette à partir de choix indépendants.
+ *
+ * Remplace l'ancien mode unique — « QR + titre », « QR + URL »… — par des cases
+ * qui se cumulent : le titre, l'URL, le domaine, le numéro et la date ne
+ * s'excluent pas. Le numéro sert à retrouver la ligne de la liste quand
+ * l'étiquette est trop petite pour porter l'URL entière.
+ *
+ * @param {{ url: string, title?: string }} link
+ * @param {{
+ *   index?: number|null,
+ *   title?: boolean,
+ *   url?: boolean,
+ *   host?: boolean,
+ *   indexVisible?: boolean,
+ *   dateLines?: string[],
+ * }} options
+ * @returns {{ text: string, showTitle: boolean, extraLines: number, extraText: string[] }}
+ */
+export function labelContentFromChoices(link, options = {}) {
+  const title = typeof link.title === 'string' ? link.title.trim() : '';
+  // Le titre n'est repris que s'il existe : cocher « Titre » sur un lien sans
+  // titre ne doit pas laisser une ligne vide sous le QR.
+  const showTitle = options.title === true && title !== '';
+
+  const parts = [];
+  // Le numéro vient en tête : c'est ce qu'on cherche des yeux sur une petite
+  // étiquette, avant même le titre.
+  if (options.indexVisible === true && Number.isFinite(options.index)) {
+    parts.push(`N° ${options.index}`);
+  }
+  if (showTitle) parts.push(title);
+  if (options.url === true) parts.push(link.url);
+  if (options.host === true) parts.push(hostOf(link.url));
+
+  // Le titre est rendu en gras par `drawLabel`, donc à part du texte courant :
+  // le mêler aux autres segments lui ferait perdre sa mise en forme.
+  const text = parts.filter((part) => part !== '' && part !== title).join(' ');
+  const extraText = Array.isArray(options.dateLines) ? options.dateLines.filter(Boolean) : [];
+
+  return {
+    text,
+    showTitle,
+    extraLines: (showTitle ? 1 : 0) + extraText.length,
+    extraText,
+  };
+}
+
 /** Échelle minimale : sous 2 px par module, la tête thermique fusionne les points. */
 export const MIN_QR_SCALE = 2;
 
@@ -536,6 +584,60 @@ export function layoutLabelLateral(geometry, options) {
 }
 
 /**
+ * Dispose le QR en haut et son texte tourné d'un quart de tour en dessous.
+ *
+ * C'est la disposition qui rend le texte lisible sur un rouleau étroit : droit,
+ * il ne dispose que de la largeur de la tête moins le QR — 18 px sur 12 mm, soit
+ * trois caractères par ligne. Tourné, il profite de toute la hauteur restante.
+ *
+ * @param {LabelGeometry} geometry Géométrie empilée déjà calculée.
+ * @param {{
+ *   measure: (text: string) => number,
+ *   text?: string,
+ *   maxLines?: number,
+ *   gap?: number,
+ * }} options
+ * @returns {LabelGeometry}
+ */
+export function layoutLabelRotated(geometry, options) {
+  const gap = Math.max(1, Math.floor(options.gap ?? geometry.padding));
+  const maxLines = Math.max(1, Math.trunc(options.maxLines ?? 4));
+  const padding = geometry.padding;
+  const lineHeight = geometry.lineHeight;
+
+  // La bande de texte commence sous le QR. Sa longueur ne peut pas dépasser ce
+  // qui reste jusqu'à la marge basse : c'est cette borne qui l'empêche de
+  // remonter sur le code — le texte monte depuis le bas de sa bande.
+  // Le texte monte depuis le bas de sa bande : sa longueur est donc bornée par
+  // la hauteur qui reste sous le QR, marge basse déduite.
+  const afterQr = padding + geometry.qrSize + gap;
+  const fixed = geometry.targetHeight > 0;
+  const available = fixed
+    ? Math.max(geometry.width, geometry.targetHeight - afterQr - padding)
+    // Sans longueur imposée, on part de la longueur du contenu : l'étiquette
+    // s'ajuste au texte au lieu de réserver une bande vide.
+    : Math.max(geometry.width, Math.ceil(options.measure(options.text ?? '')));
+
+  const lines = wrapText(options.measure, options.text ?? '', available, { maxLines });
+  const thickness = (lines.length + geometry.extraLines) * lineHeight;
+
+  return {
+    ...geometry,
+    height: fixed ? geometry.targetHeight : afterQr + available + padding,
+    qrLeft: Math.floor((geometry.width - geometry.qrSize) / 2),
+    qrTop: padding,
+    textRotated: true,
+    textTop: afterQr,
+    // La bande tournée fait `thickness` de large : on la centre.
+    textLeft: Math.max(0, Math.floor((geometry.width - thickness) / 2)),
+    textWidth: available,
+    lines,
+    rotatedTextLength: available,
+    rotatedTextThickness: thickness,
+  };
+}
+
+/**
  * Mesure par défaut. En navigateur on crée un canvas hors écran ; ailleurs on
  * approxime, ce qui suffit à découper des URL en police monospace.
  *
@@ -596,6 +698,43 @@ export function drawLabel(ctx, geometry, options = {}) {
   const lateral = geometry.lateral === true;
   const textX = lateral ? geometry.textLeft : geometry.width / 2;
   const maxWidth = lateral ? geometry.textWidth : undefined;
+
+  // Texte tourné d'un quart de tour, dans sa bande sous le QR.
+  //
+  // Le repère : on se place au coin **bas-gauche** de la bande, puis on tourne
+  // de -90°. Un point écrit vers +x part alors vers le haut, et les lignes
+  // s'empilent vers la droite. Se tromper d'angle envoie le texte hors de
+  // l'étiquette ; se tromper d'ancrage le fait remonter sur le QR.
+  if (geometry.textRotated === true) {
+    const blockBottom = geometry.textTop + geometry.textWidth;
+    const blockLeft = geometry.textLeft ?? geometry.padding;
+
+    ctx.save();
+    ctx.translate(blockLeft, blockBottom);
+    ctx.rotate(-Math.PI / 2);
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'top';
+
+    // Chaque ligne occupe sa propre rangée : dans le repère tourné, `x` avance
+    // le long de la bande et `y` empile les lignes. Les écrire bout à bout sur
+    // un même `x` cumulait leurs longueurs et faisait dépasser le texte, qui
+    // remontait alors par-dessus le QR.
+    let rangee = 0;
+    const ecrire = (contenu, gras) => {
+      if (!contenu) return;
+      ctx.font = `${gras ? 'bold ' : ''}${geometry.fontSize}px ${fontFamily}`;
+      ctx.fillText(contenu, 0, rangee * geometry.lineHeight, geometry.textWidth);
+      rangee += 1;
+    };
+
+    if (showTitle && title) ecrire(title, true);
+    for (const contenu of geometry.lines) ecrire(contenu, false);
+    for (const contenu of extraText) ecrire(contenu, false);
+
+    ctx.restore();
+    return geometry;
+  }
+
   ctx.textAlign = lateral ? 'left' : 'center';
 
   let y = geometry.textTop;
