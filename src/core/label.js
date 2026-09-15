@@ -699,8 +699,12 @@ export function layoutLabelRotated(geometry, options) {
   // la hauteur qui reste sous le QR, marge basse déduite.
   const afterQr = padding + geometry.qrSize + gap;
   const fixed = geometry.targetHeight > 0;
+  // La bande part du bas du QR et s'arrête à la marge basse. Le texte monte
+  // depuis son extrémité basse : si la bande descendait jusque dans la marge,
+  // le texte s'y écrivait et touchait le bord de l'étiquette.
+  const bottom = Math.max(afterQr, geometry.targetHeight - padding);
   const available = fixed
-    ? Math.max(geometry.width, geometry.targetHeight - afterQr - padding)
+    ? Math.max(geometry.width, bottom - afterQr)
     // Sans longueur imposée, on part de la longueur du contenu : l'étiquette
     // s'ajuste au texte au lieu de réserver une bande vide.
     : Math.max(geometry.width, Math.ceil(options.measure(options.text ?? '')));
@@ -734,13 +738,20 @@ export function layoutLabelRotated(geometry, options) {
   const lines = placed.lines;
   const thickness = placed.thickness;
 
+  // Le texte est dessiné depuis le **bas** de sa bande, en remontant : c'est
+  // donc `textTop + textWidth` qui doit tomber sur la marge basse. Placer la
+  // bande juste après le QR la faisait descendre dans la marge.
+  const bandTop = fixed
+    ? geometry.targetHeight - padding - available
+    : afterQr;
+
   return {
     ...geometry,
-    height: fixed ? geometry.targetHeight : afterQr + available + padding,
+    height: fixed ? geometry.targetHeight : afterQr + available + padding * 2,
     qrLeft: Math.floor((geometry.width - geometry.qrSize) / 2),
     qrTop: padding,
     textRotated: true,
-    textTop: afterQr,
+    textTop: bandTop,
     // La bande tournée fait `thickness` de large : on la centre.
     textLeft: Math.max(0, Math.floor((geometry.width - thickness) / 2)),
     textWidth: available,

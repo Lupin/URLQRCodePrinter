@@ -30,6 +30,7 @@ import {
   layoutLabelLateral,
   layoutLabelRotated,
   wrapDate,
+  fontSizeForDate,
   pxToMm,
   LABEL_ALIGNMENTS,
   DEFAULT_LABEL_ALIGNMENT,
@@ -1742,7 +1743,8 @@ function renderSingleLabel(link) {
   // Le profil vient de l'imprimante quand il y en a une, sinon du format
   // choisi : on doit pouvoir juger un rendu avant d'acheter le matériel.
   const profile = previewProfile();
-  const { geometry, content, verdict, dateOmitted, lateralRefused } = composeLabel(link, profile);
+  const { geometry, content, verdict, dateOmitted, dateTropPetite, lateralRefused } =
+    composeLabel(link, profile);
 
   const frame = document.createElement('div');
   frame.className = 'preview__page';
@@ -1788,7 +1790,9 @@ function renderSingleLabel(link) {
   caption.className = 'hint';
   // `composeLabel` sait si la date a été écartée : on le dit, plutôt que de
   // laisser croire que l'option n'a pas d'effet.
-  const dateNote = dateOmitted ? composeDateNote() : '';
+  const dateNote = dateTropPetite
+    ? ' — date non imprimée : elle exigerait un texte trop petit pour être lu.'
+    : (dateOmitted ? composeDateNote() : '');
   // La taille réellement retenue peut différer de celle demandée : la géométrie
   // réduit plutôt que de tronquer. On le dit, sinon le réglage semble sans effet.
   const tailleObtenue = pxToMm(geometry.fontSize, profile.dpi).toFixed(1);
@@ -1863,14 +1867,27 @@ function composeLabel(link, profile) {
   // QR code » des planches rendait la case sans effet tant qu'on n'y touchait
   // pas, ce qui se lisait comme un défaut.
   const wantsDate = el.labelShowDate.checked;
-  const dateLines = wantsDate && wanted !== ''
-    ? wrapDate(
-      cachedTextMeasure(probe.fontSize),
-      wanted,
-      probe.width - probe.padding * 2,
-      DATE_LINES_MAX,
-    )
+  const largeurDate = probe.width - probe.padding * 2;
+
+  // La date est écrite d'un bloc ou pas du tout : à la taille de police par
+  // défaut, elle ne tenait pas sur une tête de 12 mm et disparaissait sans
+  // explication. On réduit donc la police du texte juste assez pour qu'elle
+  // entre — la date est une information courte, mieux vaut un texte un peu
+  // plus petit que pas de date du tout.
+  const plancherDate = Math.max(
+    MIN_FONT_PX,
+    Math.round((MIN_TEXT_MM / 25.4) * profile.dpi),
+  );
+  const tailleDate = wantsDate && wanted !== ''
+    ? fontSizeForDate(cachedTextMeasure, wanted, largeurDate, plancherDate)
+    : 0;
+  const dateLines = tailleDate > 0
+    ? wrapDate(cachedTextMeasure(tailleDate), wanted, largeurDate, DATE_LINES_MAX)
     : [];
+  // Une date qui exige une police sous le plancher de lisibilité n'est pas
+  // imprimée : « 15/09/2026 21:07 » demandait 1,1 mm sur une tête de 12 mm.
+  // Mieux vaut pas de date qu'une date illisible, et on le dit.
+  const dateTropPetite = wantsDate && wanted !== '' && tailleDate === 0;
 
   // Le titre se découpe à la largeur utile, comme l'URL : réservé sur une seule
   // ligne puis écrit sans découpe, un titre long débordait de l'étiquette.
@@ -1903,7 +1920,10 @@ function composeLabel(link, profile) {
     extraLines: content.extraLines,
     maxHeightPx: lengthPx,
     alignment,
-    fontSize,
+    // La date impose sa taille : elle est écrite d'un bloc, sans découpage.
+    fontSize: tailleDate > 0 && fontSize !== undefined
+      ? Math.min(fontSize, tailleDate)
+      : (tailleDate > 0 ? tailleDate : fontSize),
     measureFactory: cachedTextMeasure,
     // « Texte au-dessus » se décide à la composition : le texte précède le QR.
     textFirst: labelLayout().textFirst === true,
@@ -1940,6 +1960,7 @@ function composeLabel(link, profile) {
     verdict: checkQrLegibility(geometry),
     dateLines,
     dateOmitted: wantsDate && wanted !== '' && dateLines.length === 0,
+    dateTropPetite,
     lateralRefused,
   };
 }
@@ -2462,6 +2483,12 @@ async function printOneLabel() {
  * bilan final dit combien sont sorties. Sur trente étiquettes, s'arrêter à la
  * troisième parce que la quatrième a raté serait pénible.
  */
+/** Hauteur de texte minimale, en millimètres : c'est la lisibilité. */
+const MIN_TEXT_MM = 1.6;
+
+/** Plancher de lisibilité du texte, en pixels : 1,6 mm à 203 dpi. */
+const MIN_FONT_PX = 6;
+
 /** Nombre de lignes qu'une date peut occuper sous le QR, une fois découpée. */
 const DATE_LINES_MAX = 2;
 

@@ -477,8 +477,7 @@ async function main() {
       const pause = (ms) => new Promise((r) => setTimeout(r, ms));
       const profile = document.getElementById('label-profile');
       const supply = document.getElementById('label-supply');
-      const length = document.getElementById('label-length');
-      const freeFields = document.getElementById('label-length-fields');
+      const hint = document.getElementById('supply-hint');
       const canvas = () => document.querySelector('#preview canvas');
       const size = () => {
         const node = canvas();
@@ -490,13 +489,14 @@ async function main() {
       await pause(400);
 
       const consommables = [...supply.options].map((option) => option.value);
+      // Le champ de longueur libre n'existe plus : c'est le consommable qui
+      // porte les deux cotes du rouleau.
+      const champLibre = document.getElementById('label-length');
 
-      // Un rouleau a longueur fixe impose la sienne : le champ libre disparait.
       supply.value = 'd110-12x30';
       supply.dispatchEvent(new Event('change'));
       await pause(400);
-      const fixe = { taille: size(), champLibre: freeFields.hidden === false,
-                     longueur: length.value };
+      const fixe = { taille: size(), phrase: hint.textContent };
 
       // 203 dpi : 30 mm valent 240 px de geometrie. L'apercu ecran est agrandi
       // d'un facteur entier (la tete ne fait que 96 px).
@@ -504,41 +504,21 @@ async function main() {
       const zoom = Math.max(1, Math.floor(280 / 96));
       const attendu = geometrie * zoom;
 
-      // Un autre rouleau fixe : la hauteur suit le consommable choisi.
       supply.value = 'd110-12x40';
       supply.dispatchEvent(new Event('change'));
       await pause(400);
       const quarante = size();
 
-      // Le rouleau continu, lui, laisse la longueur libre.
       supply.value = 'd110-continue';
       supply.dispatchEvent(new Event('change'));
       await pause(400);
-      const continu = { taille: size(), champLibre: freeFields.hidden === false };
+      const continu = { taille: size(), phrase: hint.textContent };
 
-      // Sans longueur saisie, la hauteur reste celle du contenu.
-      const sansLongueur = length.value;
-      const libre = size();
-
-      length.value = '30';
-      length.dispatchEvent(new Event('input'));
-      await pause(400);
-      const trente = size();
-
-      length.value = '22';
-      length.dispatchEvent(new Event('input'));
-      await pause(400);
-      const vingtdeux = size();
-
-      // Remise en etat : rouleau fixe le plus courant.
       supply.value = 'd110-12x22';
       supply.dispatchEvent(new Event('change'));
       await pause(300);
 
-      return {
-        consommables, fixe, quarante, continu, libre, trente, vingtdeux,
-        attendu, sansLongueur,
-      };
+      return { consommables, fixe, quarante, continu, attendu, champLibre: Boolean(champLibre) };
     })()`);
 
     record(
@@ -548,11 +528,12 @@ async function main() {
       (lengthField?.consommables ?? []).join(', '),
     );
     record(
-      "un rouleau a longueur fixe impose sa longueur, sans champ libre",
-      lengthField?.fixe?.champLibre === false
-        && lengthField.fixe.taille.height === lengthField.attendu,
+      "le consommable impose la longueur, sans champ a saisir",
+      lengthField?.champLibre === false
+        && lengthField?.fixe?.taille?.height === lengthField?.attendu
+        && /30 mm/.test(lengthField?.fixe?.phrase ?? ''),
       `12 × 30 mm → ${lengthField?.fixe?.taille?.height} px `
-        + `(attendu ${lengthField?.attendu}), champ libre ${lengthField?.fixe?.champLibre ? 'visible' : 'masque'}`,
+        + `(attendu ${lengthField?.attendu}) — « ${lengthField?.fixe?.phrase} »`,
     );
     record(
       'changer de consommable change la longueur rendue',
@@ -560,19 +541,10 @@ async function main() {
       `30 mm ${lengthField?.fixe?.taille?.height} px < 40 mm ${lengthField?.quarante?.height} px`,
     );
     record(
-      'le rouleau continu laisse la longueur libre',
-      lengthField?.continu?.champLibre === true
-        && lengthField?.continu?.taille?.height === lengthField?.libre?.height,
-      `champ libre ${lengthField?.continu?.champLibre ? 'visible' : 'masque'}, `
-        + `hauteur du contenu ${lengthField?.libre?.height} px`,
-    );
-    record(
-      'sur rouleau continu, la longueur saisie remplit l\'etiquette',
-      lengthField?.trente.height === lengthField?.attendu
-        && lengthField.trente.height > lengthField.libre.height
-        && lengthField.vingtdeux.height < lengthField.trente.height,
-      `libre ${lengthField?.libre?.height} px → 30 mm ${lengthField?.trente?.height} px `
-        + `→ 22 mm ${lengthField?.vingtdeux?.height} px`,
+      'le rouleau continu annonce une longueur libre',
+      /continu/.test(lengthField?.continu?.phrase ?? '')
+        && (lengthField?.continu?.taille?.height ?? 0) > 0,
+      `« ${lengthField?.continu?.phrase} » — ${lengthField?.continu?.taille?.height} px`,
     );
 
     // Le texte doit être lisible : sur une tête de 96 px, l'ancien calcul
@@ -1716,7 +1688,9 @@ async function main() {
     // apparaître dans les quatre mises en forme, et faire céder le QR.
     const dated = await evaluate(`(async () => {
       const pause = (ms) => new Promise((r) => setTimeout(r, ms));
-      const select = document.getElementById('date-mode');
+      const caseDate = document.getElementById('sheet-date');
+      const caseHeure = document.getElementById('sheet-date-time');
+      const cocher = (box, value) => { box.checked = value; box.dispatchEvent(new Event('change')); };
       const slider = document.getElementById('sheet-qr');
       const hint = document.getElementById('date-hint');
       const preset = document.getElementById('preset');
@@ -1736,19 +1710,22 @@ async function main() {
 
       preset.value = 'avery-l7160';
       preset.dispatchEvent(new Event('change'));
-      select.value = 'none';
-      select.dispatchEvent(new Event('change'));
+      cocher(caseDate, false);
+      cocher(caseHeure, false);
       await pause(350);
       const none = await inspectSheet();
       const hintNone = hint.textContent;
 
-      select.value = 'datetime';
-      select.dispatchEvent(new Event('change'));
+      cocher(caseDate, true);
+      cocher(caseHeure, true);
       await pause(350);
       const withDate = await inspectSheet();
 
-      // Le tableau : une colonne « Date » doit apparaître.
+      // Le tableau a sa propre colonne Date : on la coche dans son onglet.
       [...document.querySelectorAll('.tab')].find((t) => t.dataset.mode === 'table').click();
+      await pause(300);
+      cocher(document.getElementById('table-col-date'), true);
+      cocher(document.getElementById('table-col-date-time'), true);
       await pause(400);
       const tableHeaders = [...document.querySelectorAll('#preview .print-table th')]
         .map((th) => th.textContent);
@@ -1859,9 +1836,10 @@ async function main() {
     // Remise en état : les contrôles suivants partent d'une planche complète,
     // sans date et sans sélection résiduelle.
     await evaluate(`(() => {
-      const select = document.getElementById('date-mode');
-      select.value = 'none';
-      select.dispatchEvent(new Event('change'));
+      const caseDate = document.getElementById('sheet-date');
+      const caseHeure = document.getElementById('sheet-date-time');
+      caseDate.checked = false; caseDate.dispatchEvent(new Event('change'));
+      caseHeure.checked = false; caseHeure.dispatchEvent(new Event('change'));
       const format = document.getElementById('label-format');
       format.value = 'niimbot-d110';
       format.dispatchEvent(new Event('change'));
@@ -1887,11 +1865,12 @@ async function main() {
       const marginY = document.getElementById('sheet-margin-y');
       const gapX = document.getElementById('sheet-gap-x');
       const gapY = document.getElementById('sheet-gap-y');
-      const select = document.getElementById('date-mode');
       const info = document.getElementById('sheet-info');
 
-      select.value = 'datetime';
-      select.dispatchEvent(new Event('change'));
+      const caseDate = document.getElementById('sheet-date');
+      const caseHeure = document.getElementById('sheet-date-time');
+      caseDate.checked = true; caseDate.dispatchEvent(new Event('change'));
+      caseHeure.checked = true; caseHeure.dispatchEvent(new Event('change'));
       columns.value = '12'; columns.dispatchEvent(new Event('input'));
       rows.value = '6'; rows.dispatchEvent(new Event('input'));
       marginX.value = '2'; marginX.dispatchEvent(new Event('input'));
