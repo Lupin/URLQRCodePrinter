@@ -27,9 +27,14 @@ execFileSync(
   { cwd: ROOT, stdio: 'pipe' },
 );
 
-/** Lit et analyse le manifeste. */
+/**
+ * Lit le gabarit de manifeste.
+ *
+ * Le dossier source n'en contient pas : il est produit à la construction, ce
+ * qui empêche de charger `src/extension` en croyant charger l'extension.
+ */
 function readManifest() {
-  return JSON.parse(readFileSync(join(EXT, 'manifest.json'), 'utf8'));
+  return JSON.parse(readFileSync(join(EXT, 'manifest.template.json'), 'utf8'));
 }
 
 /**
@@ -301,15 +306,29 @@ test('la variante Safari conserve la version minimale requise', () => {
 });
 
 test('les deux variantes sont complètes et autonomes', () => {
-  // Charger `src/extension` au lieu de `dist/extension` est l'erreur la plus
-  // facile à commettre : le dossier source importe `./core/…`, qui n'y existe
-  // pas, et le service worker échoue au chargement.
   for (const name of ['extension', 'extension-safari']) {
     const dir = join(ROOT, 'dist', name);
     for (const file of ['manifest.json', 'background.js', 'popup.js', 'popup.html']) {
       assert.ok(existsSync(join(dir, file)), `${name} : ${file} manquant`);
     }
-    // L'assemblage a bien eu lieu : le dossier de modules a disparu.
+    // L'assemblage a bien eu lieu : le dossier de modules a disparu, et le
+    // gabarit de manifeste ne doit pas être livré.
     assert.equal(existsSync(join(dir, 'core')), false, `${name} : core/ subsiste`);
+    assert.equal(
+      existsSync(join(dir, 'manifest.template.json')),
+      false,
+      `${name} : le gabarit ne doit pas être livré`,
+    );
   }
+});
+
+test('le dossier source n\'est pas chargeable comme extension', () => {
+  // Il importe `./core/…`, recopié seulement à la construction : son service
+  // worker ne peut pas démarrer. Sans manifeste, le navigateur répond
+  // « manifeste absent » — message clair — au lieu d'une erreur d'import
+  // obscure. C'est ce qui a fait croire à une extension cassée alors que le
+  // mauvais dossier était chargé.
+  assert.equal(existsSync(join(EXT, 'manifest.json')), false);
+  assert.ok(existsSync(join(EXT, 'manifest.template.json')));
+  assert.equal(existsSync(join(EXT, 'core')), false);
 });

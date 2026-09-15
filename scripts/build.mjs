@@ -57,17 +57,24 @@ const EXTENSION_ENTRIES = ['background.js', 'popup.js'];
 const EXTENSION_DEBRIS = ['core', 'api.js'];
 
 /**
- * Adapte le manifeste copié au navigateur visé.
+ * Produit le manifeste de la cible à partir du gabarit.
+ *
+ * Le dossier source ne contient volontairement **pas** de `manifest.json` :
+ * un dossier qui ressemble à une extension mais n'en est pas une invite à
+ * charger le mauvais. `src/extension` importe `./core/…`, recopié seulement à
+ * la construction, et son service worker ne peut donc pas démarrer. Sans
+ * manifeste, le navigateur répond « fichier de manifeste absent » — message
+ * clair, là où un manifeste valide produirait une erreur d'import obscure.
  *
  * @param {string} outDir
  * @param {'chromium'|'safari'|undefined} variant
  * @returns {Promise<string[]>} clés retirées
  */
-async function adaptManifest(outDir, variant) {
-  const path = join(outDir, 'manifest.json');
-  if (!existsSync(path)) return [];
+async function materialiseManifest(outDir, variant) {
+  const templatePath = join(outDir, 'manifest.template.json');
+  if (!existsSync(templatePath)) return [];
 
-  const manifest = JSON.parse(await readFile(path, 'utf8'));
+  const manifest = JSON.parse(await readFile(templatePath, 'utf8'));
   const removed = [];
 
   // Le service worker et la fenêtre sont assemblés en fichiers uniques, sans
@@ -87,9 +94,9 @@ async function adaptManifest(outDir, variant) {
     }
   }
 
-  if (removed.length > 0) {
-    await writeFile(path, JSON.stringify(manifest, null, 2) + '\n', 'utf8');
-  }
+  await writeFile(join(outDir, 'manifest.json'), JSON.stringify(manifest, null, 2) + '\n', 'utf8');
+  await rm(templatePath, { force: true });
+
   return removed;
 }
 
@@ -172,7 +179,7 @@ async function buildTarget(name) {
     await cp(sharedDir, join(outDir, sharedName), { recursive: true });
   }
 
-  const removed = await adaptManifest(outDir, target.manifest);
+  const removed = await materialiseManifest(outDir, target.manifest);
   if (removed.length > 0) {
     console.log(`  ${name} : clés retirées du manifeste (${removed.join(', ')})`);
   }

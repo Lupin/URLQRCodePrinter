@@ -32,12 +32,27 @@ if (!existsSync(join(DIST, 'manifest.json'))) {
   process.exit(1);
 }
 
-// Ouvre le dossier dans le Finder, à côté de la page des extensions.
-spawnSync('open', [DIST], { stdio: 'inherit' });
+// Le manifeste est produit à la construction : le dossier source n'en contient
+// pas, et ne peut donc pas être chargé par erreur. On le vérifie, car un
+// manifeste présent dans les sources signalerait une régression.
+if (existsSync(join(ROOT, 'src', 'extension', 'manifest.json'))) {
+  console.error(
+    '✗ src/extension contient un manifest.json : ce dossier n\'est pas\n' +
+    '  l\'extension construite, il ne doit pas pouvoir être chargé.',
+  );
+  process.exit(1);
+}
+
+// On révèle le dossier dans le Finder — ce qui le sélectionne — et on copie son
+// chemin : la boîte de dialogue « Charger l'extension non empaquetée » accepte
+// un chemin collé, ce qui évite de se tromper de dossier.
+spawnSync('open', ['-R', DIST], { stdio: 'inherit' });
+spawnSync('pbcopy', { input: DIST, stdio: ['pipe', 'inherit', 'inherit'] });
 
 console.log(`
 ──────────────────────────────────────────────────────────────────────
-Le dossier de l'extension vient de s'ouvrir dans le Finder :
+Le dossier de l'extension est sélectionné dans le Finder, et son chemin
+complet est dans le presse-papiers :
 
     ${DIST.replace(ROOT + '/', '')}
 
@@ -50,8 +65,13 @@ Pour l'installer — une seule fois :
 
   2. Activez « Mode développeur » (en haut à droite)
 
-  3. Glissez le dossier « extension » depuis le Finder sur cette page,
-     ou cliquez « Charger l'extension non empaquetée » et choisissez-le.
+  3. Cliquez « Charger l'extension non empaquetée », puis dans la boîte de
+     dialogue faites ⌘⇧G et collez le chemin (⌘V) — il est déjà copié.
+     Ou glissez simplement le dossier sélectionné sur la page.
+
+⚠  Chargez « dist/extension », jamais « src/extension ».
+   Le dossier source ne contient pas le manifeste : il est produit à la
+   construction, avec le cœur recopié et les fichiers assemblés.
 
 L'icône apparaît alors dans la barre d'outils.
 

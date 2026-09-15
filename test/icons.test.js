@@ -211,8 +211,10 @@ test('chaque fichier d\'icône est un PNG aux bonnes dimensions', () => {
 });
 
 test('les icônes déclarées dans le manifeste existent et sont valides', () => {
+  // Le manifeste vit sous forme de gabarit dans les sources : il est
+  // spécialisé par navigateur à la construction.
   const manifest = JSON.parse(
-    readFileSync(join(ROOT, 'src', 'extension', 'manifest.json'), 'utf8'),
+    readFileSync(join(ROOT, 'src', 'extension', 'manifest.template.json'), 'utf8'),
   );
 
   const declared = { ...manifest.icons, ...(manifest.action?.default_icon ?? {}) };
@@ -234,7 +236,7 @@ test('les icônes déclarées dans le manifeste existent et sont valides', () =>
 test('le manifeste déclare une icône assez grande pour l\'App Store', () => {
   // Le convertisseur Safari refuse l'empaquetage sans grande icône.
   const manifest = JSON.parse(
-    readFileSync(join(ROOT, 'src', 'extension', 'manifest.json'), 'utf8'),
+    readFileSync(join(ROOT, 'src', 'extension', 'manifest.template.json'), 'utf8'),
   );
   const sizes = Object.keys(manifest.icons).map(Number);
   assert.ok(Math.max(...sizes) >= 512, `plus grande icône : ${Math.max(...sizes)} px`);
