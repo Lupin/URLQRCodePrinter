@@ -276,7 +276,7 @@ test('tout nom importé existe bien dans le module visé', () => {
 test('l\'interface annonce ce que l\'import accepte', () => {
   // L'import était la fonction la moins compréhensible : le bouton ne disait
   // ni ce qu'il attendait, ni ce qu'il faisait des doublons.
-  const hint = html.match(/« Importer » relit[\s\S]*?<\/p>/);
+  const hint = html.match(/Importer relit[\s\S]*?<\/p>/);
   assert.ok(hint, 'l\'aide de l\'import doit être présente');
   assert.match(hint[0], /Archive/);
   assert.match(hint[0], /\.zip/);

@@ -213,6 +213,27 @@ body {
 
 .banner[hidden] { display: none; }
 
+/* --- Groupes d'actions du panneau --- */
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Le second groupe s'aligne à droite : « effacer » n'est pas la suite
+   naturelle d'« exporter », et l'espace le dit sans un trait. */
+.actions--end { margin-left: auto; }
+
+.actions__label {
+  margin-right: 2px;
+  color: var(--text-dim);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
 /* --- Boutons --- */
 
 .btn {
