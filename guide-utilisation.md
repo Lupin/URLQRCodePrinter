@@ -316,8 +316,13 @@ bouton **Libre** revient au rouleau continu, où la hauteur découle du contenu.
 - **Densité** : 1 à 3 sur D110, 1 à 5 sur M2. 2 est un bon point de départ ; une
   impression pâle se corrige en montant d'un cran.
 - **Copies** : 1 à 20, pour l'impression d'une seule étiquette.
-- **Contenu de l'étiquette** : QR seul, + titre, + URL, + domaine. Le QR encode
-  toujours l'URL ; le texte affiché suit ce choix.
+- **Contenu de l'étiquette** : des cases qui se cumulent — numéro du lien,
+  titre, URL, domaine, date de collecte, et l'heure avec la date. Le QR encode
+  toujours l'URL ; le texte affiché suit ces choix. Le numéro sert à retrouver
+  la ligne de la liste quand l'étiquette est trop petite pour porter l'URL.
+- **Date et heure** : sur une tête de 12 mm, « 15/09/2026 21:07 » se coupe
+  proprement sur deux lignes ; la taille du texte est réduite juste assez pour
+  qu'elle entre, jamais sous 1,6 mm — en dessous, elle ne serait plus lisible.
 - **Orientation** : Normale, 90°, 180°, 270°. L'aperçu montre la rotation, donc
   ce qui sortira.
 - **Disposition** : voir plus haut.

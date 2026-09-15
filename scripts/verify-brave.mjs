@@ -667,6 +667,85 @@ async function main() {
       (contenu?.avecDate?.encre ?? 0) > (contenu?.url?.encre ?? 0),
       `sans date ${contenu?.url?.encre} px d'encre → avec date ${contenu?.avecDate?.encre}`,
     );
+    // La date et l'heure : cocher « Avec l'heure » ajoute du texte, dans les
+    // deux dispositions. Regression : la recherche de taille exigeait une seule
+    // ligne, rejetait la date en bloc, et l'heure ne s'imprimait jamais.
+    const dateHeure = await evaluate(`(async () => {
+      const pause = (ms) => new Promise((r) => setTimeout(r, ms));
+      const el = (id) => document.getElementById(id);
+      const cocher = (box, v) => { box.checked = v; box.dispatchEvent(new Event('change')); };
+
+      cocher(el('label-show-title'), false);
+      cocher(el('label-show-url'), true);
+      cocher(el('label-show-date'), false);
+      cocher(el('label-date-time'), false);
+      el('label-supply').value = 'd110-12x22';
+      el('label-supply').dispatchEvent(new Event('change'));
+      await pause(400);
+
+      const encre = () => {
+        const c = document.querySelector('#preview canvas');
+        if (!c) return 0;
+        const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data;
+        let n = 0;
+        for (let i = 0; i < d.length; i += 4) if (d[i] < 128) n += 1;
+        return n;
+      };
+      const legende = () => document.querySelector('#preview .hint')?.textContent ?? '';
+      const indice = () => document.getElementById('label-font-hint').textContent;
+
+      const out = {};
+      for (const dispo of ['dessous', 'tourne']) {
+        el('label-rotation').value = dispo;
+        el('label-rotation').dispatchEvent(new Event('change'));
+        await pause(350);
+
+        cocher(el('label-show-date'), false);
+        cocher(el('label-date-time'), false);
+        await pause(420);
+        const sans = encre();
+
+        cocher(el('label-show-date'), true);
+        await pause(420);
+        const date = encre();
+
+        cocher(el('label-date-time'), true);
+        await pause(420);
+        out[dispo] = { sans, date, dateHeure: encre(),
+                       legende: legende(), indice: indice() };
+      }
+
+      // Remise en etat.
+      cocher(el('label-date-time'), false);
+      cocher(el('label-show-date'), false);
+      el('label-rotation').value = 'dessous';
+      el('label-rotation').dispatchEvent(new Event('change'));
+      await pause(300);
+      return out;
+    })()`);
+
+    // L'encre totale n'est pas un bon temoin : ajouter la date reduit la police
+    // du texte, donc l'encre baisse malgre la ligne en plus. On verifie ce qui
+    // compte — l'heure ajoute du texte, et la police reste lisible.
+    record(
+      "cocher l'heure ajoute du texte, dans les deux dispositions",
+      ['dessous', 'tourne'].every((dispo) => {
+        const cas = dateHeure?.[dispo];
+        return cas && cas.dateHeure > cas.date
+          && /1\.[6-9]|2\./.test(cas.indice ?? '');
+      }),
+      `empile ${dateHeure?.dessous?.date}→${dateHeure?.dessous?.dateHeure} px `
+        + `(${dateHeure?.dessous?.indice}) · `
+        + `tourne ${dateHeure?.tourne?.date}→${dateHeure?.tourne?.dateHeure} px `
+        + `(${dateHeure?.tourne?.indice})`,
+    );
+    record(
+      "aucune date n'est annoncee abandonnee quand l'heure est demandee",
+      (dateHeure?.dessous?.legende ?? '').includes('aucune date') === false
+        && (dateHeure?.tourne?.legende ?? '').includes('aucune date') === false,
+      dateHeure?.dessous?.legende,
+    );
+
     record(
       "l'indice enumere ce qui sera imprime",
       /le numéro du lien/.test(contenu?.numeroTitreUrl?.hint ?? '')

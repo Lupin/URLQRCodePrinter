@@ -14,6 +14,8 @@ import {
   pxToMm,
   checkQrLegibility,
   MAX_FONT_WIDTH_RATIO,
+  wrapDate,
+  fontSizeForDate,
 } from '../src/core/label.js';
 
 /** Mesure factice : chaque caractère vaut 10 px. */
@@ -365,4 +367,36 @@ test('la police ne descend jamais sous la lisibilite, meme sur une cible courte'
     maxHeightPx: 60, measure: mesure,
   });
   assert.ok(g.fontSize >= 6, `police ${g.fontSize} px, illisible`);
+});
+
+// --------------------------------------------------------------------------
+// Date et heure
+// --------------------------------------------------------------------------
+//
+// Regression : cocher « Avec l'heure » ne donnait aucune date. La recherche de
+// taille exigeait que « 15/09/2026 21:07 » tienne sur une seule ligne, alors
+// que le decoupage sait la couper en deux — la date etait donc rejetee en bloc.
+
+test('la date et l heure tiennent en se coupant sur deux lignes', () => {
+  const measureFactory = (size) => (texte) => texte.length * size * 0.55;
+  const largeur = 84;
+  const plancher = 13;
+
+  const seule = fontSizeForDate(measureFactory, '15/09/2026', largeur, plancher);
+  const avecHeure = fontSizeForDate(measureFactory, '15/09/2026 21:07', largeur, plancher);
+
+  assert.ok(seule >= plancher, `date seule : ${seule} px`);
+  assert.ok(avecHeure >= plancher, `date et heure : ${avecHeure} px`);
+
+  // Et le decoupage produit bien deux lignes entieres, pas une date amputee.
+  assert.deepEqual(
+    wrapDate(measureFactory(avecHeure), '15/09/2026 21:07', largeur, 2),
+    ['15/09/2026', '21:07'],
+  );
+});
+
+test('une date qui ne tient sur aucune ligne est abandonnee', () => {
+  const measureFactory = (size) => (texte) => texte.length * size * 0.55;
+  // 12 px de large : meme « 21:07 » n'y entre pas.
+  assert.equal(fontSizeForDate(measureFactory, '15/09/2026 21:07', 12, 13), 0);
 });

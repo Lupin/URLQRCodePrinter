@@ -1939,7 +1939,7 @@ function composeLabel(link, profile) {
     Math.round((MIN_TEXT_MM / 25.4) * profile.dpi),
   );
   const tailleDate = wantsDate && wanted !== ''
-    ? fontSizeForDate(cachedTextMeasure, wanted, largeurDate, plancherDate)
+    ? fontSizeForDate(cachedTextMeasure, wanted, largeurDate, plancherDate, DATE_LINES_MAX)
     : 0;
   const dateLines = tailleDate > 0
     ? wrapDate(cachedTextMeasure(tailleDate), wanted, largeurDate, DATE_LINES_MAX)
@@ -2009,7 +2009,13 @@ function composeLabel(link, profile) {
   } else if (disposition.mode === 'rotated') {
     geometry = layoutLabelRotated(geometry, {
       measure: cachedTextMeasure(geometry.fontSize),
+      measureFactory: cachedTextMeasure,
+      // Le plancher de lisibilité se convertit en pixels avec la résolution.
+      dpi: profile.dpi,
       text: content.text,
+      // Le titre fait partie de la bande : sans lui, il n'était pas réservé et
+      // ne s'imprimait pas du tout dans cette disposition.
+      titleLines: content.titleLines,
       gap: geometry.padding,
     });
   }

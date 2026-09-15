@@ -108,9 +108,14 @@ export function wrapDate(measure, dateText, maxWidth, maxLines) {
  * @param {number} floor Taille minimale acceptable, en pixels.
  * @returns {number} Taille retenue, ou 0.
  */
-export function fontSizeForDate(measureFactory, dateText, maxWidth, floor) {
+export function fontSizeForDate(measureFactory, dateText, maxWidth, floor, maxLines = 2) {
+  // On juge sur le découpage réel, pas sur la ligne entière. Exiger que
+  // « 15/09/2026 21:07 » tienne d'un seul tenant rejetait la date en bloc,
+  // alors que `wrapDate` la coupe proprement en « 15/09/2026 » et « 21:07 » :
+  // cocher « Avec l'heure » ne donnait donc aucune date du tout.
   for (let size = 40; size >= floor; size--) {
-    if (measureFactory(size)(dateText) <= maxWidth) return size;
+    const lignes = wrapDate(measureFactory(size), dateText, maxWidth, maxLines);
+    if (lignes.length > 0) return size;
   }
   return 0;
 }
@@ -127,7 +132,12 @@ export function fontSizeForDate(measureFactory, dateText, maxWidth, floor) {
  * @returns {number}
  */
 function pxToMmFloor(width, dpi) {
-  return Math.min(mmToPx(MIN_FONT_MM, dpi), Math.max(6, Math.floor(width * 0.09)));
+  // C'est la lisibilité qui fixe le plancher, pas la largeur. Prendre le
+  // minimum des deux faisait toujours gagner la valeur dérivée de la largeur
+  // (8 px sur une tête de 96, soit 1 mm) : le texte descendait sous le seuil
+  // de lisibilité dès qu'on cochait titre et URL. Une police plus étroite que
+  // la tête se découpe en lignes ; elle n'a pas besoin d'être rapetissée.
+  return Math.max(6, mmToPx(MIN_FONT_MM, dpi));
 }
 
 /**
@@ -683,6 +693,10 @@ export function layoutLabelRotated(geometry, options) {
   const padding = geometry.padding;
   const lineHeight = geometry.lineHeight;
 
+  // Les lignes du titre font partie de la bande : les oublier laissait le titre
+  // sans place réservée, et il ne s'imprimait pas du tout en mode tourné.
+  const titleLines = Array.isArray(options.titleLines) ? options.titleLines.filter(Boolean) : [];
+
   // Le nombre de lignes n'est pas un réglage : c'est la largeur de la bande qui
   // le décide, et le texte est découpé à nouveau ici. Réutiliser les lignes de
   // la disposition empilée les bornait à quatre — l'URL était coupée après
@@ -716,15 +730,27 @@ export function layoutLabelRotated(geometry, options) {
   // tout entre, sans descendre sous le plancher de lisibilité.
   const bandWidth = Math.max(1, geometry.width - padding * 2);
   const floor = Math.max(6, Math.floor(width_floor(geometry, options)));
+  // La boucle doit toujours s'exécuter au moins une fois : si la police de la
+  // composition empilée est déjà sous le plancher, `placed` restait nul et le
+  // rendu levait « Cannot read properties of null ». On part donc du plus grand
+  // des deux.
+  const depart = Math.max(floor, Math.floor(geometry.fontSize));
   let chosen = null;
   let last = null;
-  for (let size = geometry.fontSize; size >= floor; size--) {
+  for (let size = depart; size >= floor; size--) {
     const mesure = options.measureFactory ? options.measureFactory(size) : options.measure;
     const height = Math.ceil(size * (options.lineSpacing ?? 1.15));
+    // Les lignes du titre et de la date sont réservées d'abord : le corps du
+    // texte prend ce qui reste. Sans cette réservation, le corps occupait toute
+    // la bande et la date — écrite en dernier — débordait et se faisait rogner.
+    const rangees = Math.max(1, Math.floor(bandWidth / height));
+    const reservees = titleLines.length + geometry.extraLines;
     const essai = wrapText(mesure, options.text ?? '', available, {
-      maxLines: Math.max(1, Math.floor(bandWidth / height)),
+      maxLines: Math.max(1, rangees - reservees),
     });
-    const epaisseur = (essai.length + geometry.extraLines) * height;
+    // L'épaisseur compte les lignes du titre et de la date, pas seulement le
+    // corps : ce sont elles qui décident si la bande déborde.
+    const epaisseur = (essai.length + titleLines.length + geometry.extraLines) * height;
     const complet = essai.join('').replace(/\s/g, '') === (options.text ?? '').replace(/\s/g, '');
     last = { lines: essai, lineHeight: height, fontSize: size, thickness: epaisseur };
     if (epaisseur <= bandWidth && (complet || options.text === '')) {
@@ -733,8 +759,19 @@ export function layoutLabelRotated(geometry, options) {
     }
   }
   // Aucune taille ne contient tout le texte : on garde la plus petite essayée,
-  // qui en montre le plus, plutôt que d'abandonner.
-  const placed = chosen ?? last;
+  // qui en montre le plus, plutôt que d'abandonner. Et si rien n'a pu être
+  // essayé, on compose au plancher plutôt que de lever.
+  const placed = chosen ?? last ?? {
+    lines: wrapText(
+      options.measureFactory ? options.measureFactory(floor) : options.measure,
+      options.text ?? '',
+      available,
+      { maxLines: 1 },
+    ),
+    lineHeight: Math.ceil(floor * (options.lineSpacing ?? 1.15)),
+    fontSize: floor,
+    thickness: Math.ceil(floor * (options.lineSpacing ?? 1.15)),
+  };
   const lines = placed.lines;
   const thickness = placed.thickness;
 
@@ -756,6 +793,9 @@ export function layoutLabelRotated(geometry, options) {
     textLeft: Math.max(0, Math.floor((geometry.width - thickness) / 2)),
     textWidth: available,
     lines,
+    // Les lignes du titre voyagent avec la géométrie : `drawLabel` les écrit
+    // dans le même repère tourné que le corps du texte.
+    titleLines,
     // La police retenue peut être plus petite que celle de la composition
     // empilée : c'est elle qui est dessinée.
     fontSize: placed.fontSize,
@@ -765,13 +805,18 @@ export function layoutLabelRotated(geometry, options) {
   };
 }
 
-/** Plancher de police pour la disposition tournée. */
+/**
+ * Plancher de police pour la disposition tournée.
+ *
+ * C'est la lisibilité qui le fixe, pas la largeur : `width * 0.07` laissait
+ * descendre à 6 px sur une tête de 96 px, soit 0,75 mm — une trame grise. Le
+ * texte doit rester lisible même s'il faut alors renoncer à une partie du
+ * contenu, et l'aperçu le dit.
+ */
 function width_floor(geometry, options) {
   const cible = options.minFont ?? 0;
   if (cible > 0) return cible;
-  // Un dixième de la largeur reste lisible ; en dessous, le texte n'est plus
-  // qu'une trame grise.
-  return Math.max(6, Math.floor(geometry.width * 0.07));
+  return Math.max(6, Math.round((MIN_FONT_MM / 25.4) * (options.dpi ?? 203)));
 }
 
 /**
@@ -864,7 +909,12 @@ export function drawLabel(ctx, geometry, options = {}) {
       rangee += 1;
     };
 
-    if (showTitle && title) ecrire(title, true);
+    // Le titre peut occuper plusieurs lignes : ce sont celles-ci qu'il faut
+    // écrire. Utiliser `title` (la chaîne entière) faisait disparaître le titre
+    // dès qu'il était découpé — le mode tourné n'imprimait alors plus rien.
+    for (const ligne of geometry.titleLines ?? (showTitle && title ? [title] : [])) {
+      ecrire(ligne, true);
+    }
     for (const contenu of geometry.lines) ecrire(contenu, false);
     for (const contenu of extraText) ecrire(contenu, false);
 
