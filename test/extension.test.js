@@ -63,9 +63,25 @@ test('le manifeste est un MV3 complet', () => {
 
 test('les permissions déclarées sont exactement celles utilisées', () => {
   const permissions = new Set(readManifest().permissions);
-  // Un permission excédentaire déclenche un avertissement à l'installation et
-  // une revue App Store plus stricte.
-  assert.deepEqual([...permissions].sort(), ['activeTab', 'contextMenus', 'storage']);
+  // Une permission excédentaire déclenche un avertissement à l'installation et
+  // une revue App Store plus stricte. `scripting` sert au repli d'injection qui
+  // lit l'URL sur Safari iOS, où `tab.url` n'est pas fourni.
+  assert.deepEqual(
+    [...permissions].sort(),
+    ['activeTab', 'contextMenus', 'scripting', 'storage'],
+  );
+});
+
+test('le manifeste ne demande aucun accès étendu aux sites', () => {
+  // `activeTab` n'accorde l'accès qu'au moment de l'invocation ; une permission
+  // d'hôte générale serait à la fois inutile et alarmante pour l'utilisateur.
+  const manifest = readManifest();
+  assert.equal(manifest.host_permissions, undefined);
+  assert.equal(manifest.content_scripts, undefined);
+  for (const permission of manifest.permissions) {
+    assert.equal(permission.includes('<all_urls>'), false);
+    assert.equal(permission.includes('://'), false);
+  }
 });
 
 test('le service worker est déclaré en module', () => {
@@ -140,20 +156,31 @@ test('les imports relatifs résolvent dans l\'extension assemblée', () => {
   }
 });
 
-test('tous les imports visent le cœur partagé, jamais l\'extérieur', () => {
+test('tous les imports visent le cœur partagé ou un module local', () => {
+  // `./core/…` est recopié à la construction ; `./api.js` vit dans le dossier
+  // de l'extension lui-même.
+  const LOCAL_MODULES = ['./api.js'];
+
   for (const file of ['background.js', 'popup.js']) {
     const source = readFileSync(join(EXT, file), 'utf8');
     for (const specifier of relativeImports(source)) {
       // Un import remontant (« ../ ») sortirait du dossier de l'extension, que
       // le navigateur ne peut pas lire une fois l'extension chargée.
-      assert.ok(specifier.startsWith('./core/'), `chemin inattendu : ${specifier}`);
       assert.equal(specifier.includes('..'), false, `remontée interdite : ${specifier}`);
+
+      const isShared = specifier.startsWith('./core/');
+      const isLocal = LOCAL_MODULES.includes(specifier);
+      assert.ok(isShared || isLocal, `chemin inattendu : ${specifier}`);
+
+      if (isLocal) {
+        assert.ok(existsSync(join(EXT, specifier)), `module local manquant : ${specifier}`);
+      }
     }
   }
 });
 
 test('chaque fichier de l\'extension est syntaxiquement valide', () => {
-  for (const file of ['background.js', 'popup.js']) {
+  for (const file of ['background.js', 'popup.js', 'api.js']) {
     // `node --check` respecte le champ "type": "module" du package.json et
     // analyse donc ces fichiers comme des modules ES.
     execFileSync(process.execPath, ['--check', join(EXT, file)], { stdio: 'pipe' });
@@ -182,6 +209,13 @@ test('la construction produit une extension autonome', () => {
   assert.ok(existsSync(join(dist, 'background.js')));
   assert.ok(existsSync(join(dist, 'popup.html')));
   assert.ok(existsSync(join(dist, 'popup.css')));
+  assert.ok(existsSync(join(dist, 'api.js')));
+
+  // Les icônes doivent voyager avec l'extension : sans elles, le navigateur
+  // affiche un carré gris et le convertisseur Safari refuse l'empaquetage.
+  for (const path of Object.values(manifest.icons)) {
+    assert.ok(existsSync(join(dist, path)), `icône absente du build : ${path}`);
+  }
 });
 
 test('le build n\'inclut aucun fichier de développement', () => {

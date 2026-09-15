@@ -13,16 +13,23 @@ Markdown, ou envoi direct à une imprimante Niimbot.
 | Transport Web Bluetooth + session d'impression D110 | fait, testé |
 | Extension Brave / Chrome (clic droit, popup) | fait, testé structurellement |
 | Application web autonome (liste, exports, mises en page) | fait, démarrage vérifié |
-| Extension Safari macOS + iOS | à faire (Xcode 26.6 disponible) |
-| Impression Niimbot sur iOS (CoreBluetooth natif) | à faire (Xcode disponible) |
+| Extension Safari — projet Xcode multiplateforme | généré, **compile pour macOS** |
+| Extension Safari — exécution dans Safari | à éprouver sur ta machine |
+| Impression Niimbot sur iOS (CoreBluetooth natif) | à faire |
 
-**225 tests**, dont la validation octet à octet des trames Niimbot contre les
-relevés documentés, et un test qui exécute réellement le démarrage de
-l'application web.
+**260 tests**, dont la validation octet à octet des trames Niimbot contre les
+relevés documentés, un test qui exécute réellement le démarrage de
+l'application web, et une vérification des icônes PNG par décompression.
 
 Ce qui reste à éprouver : l'application dans un vrai navigateur (Chrome sans
-interface ne démarre pas dans l'environnement de développement utilisé), et
-l'impression sur une imprimante physique.
+interface ne démarre pas dans l'environnement de développement utilisé),
+l'extension chargée dans Safari, et l'impression sur une imprimante physique.
+
+**La cible iOS ne se compile pas dans un environnement restreint.** Xcode a
+besoin d'écrire dans `~/Library/Developer/CoreSimulator` pour lancer
+`IBAgent-iOS`, et clang dans un cache de modules système. Les deux échouent hors
+d'un accès complet au système. Le projet généré est correct : la cible macOS,
+qui n'a besoin d'aucun simulateur, compile.
 
 Le dossier `qr-niimbot-printer/` est un prototype antérieur. **Son code
 Bluetooth ne peut pas fonctionner** : les UUID sont des valeurs d'exemple et
@@ -51,10 +58,13 @@ src/core/
     transport.js       Web Bluetooth : filtrage, groupage, notifications
     printer.js         session d'impression, séquence et acquittements
 
-src/extension/         extension MV3 (Brave, Chrome, Edge)
+src/extension/         extension MV3 (Brave, Chrome, Edge, Safari)
 src/web/               application autonome
 scripts/build.mjs      assemble dist/extension et dist/web
 scripts/serve.mjs      serveur statique de développement
+scripts/make-icons.mjs génère les icônes PNG (encodeur maison, sans dépendance)
+scripts/package-safari.mjs  produit le projet Xcode Safari
+native/safari/         projet Xcode généré (macOS + iOS)
 ```
 
 Le cœur ne dépend que de `uqr` (ESM pur, sans dépendance). Aucun bundler : tout
@@ -77,6 +87,28 @@ désignez `dist/extension`.
 **Pour imprimer depuis Brave**, Web Bluetooth doit être activé :
 `brave://flags#brave-web-bluetooth-api`. Chrome et Edge n'ont pas cette
 contrainte. Safari ne l'implémente pas du tout.
+
+### Safari
+
+```bash
+npm run package:safari        # assemble, génère les icônes, convertit, aligne
+```
+
+Le projet apparaît dans `native/safari/`. Ouvrez-le dans Xcode et lancez le
+schéma **URLQRCodePrinter (macOS)**.
+
+Le script fait aussi une chose non évidente : il **relève les cibles de
+déploiement** du projet généré. Le convertisseur d'Apple produit des cibles
+iOS 15.0 / macOS 10.14, alors que le manifeste déclare
+`browser_specific_settings.safari.strict_min_version: "16.4"`. Or
+`background.type: "module"` — dont dépend notre service worker — n'est reconnu
+par Safari que depuis la 16.4 ([MDN BCD](https://github.com/mdn/browser-compat-data)).
+Avec une cible plus basse, l'avertissement du convertisseur devient un vrai
+risque de panne au chargement.
+
+Safari n'expose pas `chrome` mais `browser`, et **ne fournit pas `contextMenus`
+sur iOS**. L'extension détecte les deux : le menu contextuel n'est branché que
+s'il existe, et l'URL de l'onglet est lue par injection quand `tab.url` manque.
 
 ## Deux chiffres à ne pas confondre
 
@@ -129,4 +161,11 @@ Ces points ne peuvent pas être tranchés sans matériel ni appareil :
   constructeur, ni les bibliothèques. Le `modelId` réel est lu à la connexion et
   journalisé.
 - **`contextMenus` sur Safari iOS.** MDN l'annonce non supporté, le code source
-  de WebKit suggère le contraire. Testable sur le simulateur iOS.
+  de WebKit suggère le contraire. L'extension ne dépend plus de la réponse : le
+  menu n'est branché que s'il existe, et tout reste accessible depuis la fenêtre
+  de la barre d'outils. La question n'est donc plus bloquante, seulement
+  informative.
+- **Compilation iOS.** `IBAgent-iOS` doit écrire dans
+  `~/Library/Developer/CoreSimulator` et clang dans un cache de modules système.
+  Les deux échouent hors d'un accès complet. À relancer sur une machine sans
+  restriction : `xcodebuild -scheme "URLQRCodePrinter (iOS)"`.

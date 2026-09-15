@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>URLQRCodePrinter</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <header class="header">
+    <h1 class="header__title">URLQRCodePrinter</h1>
+    <span id="count" class="badge" aria-live="polite">0</span>
+  </header>
+
+  <section class="add">
+    <p id="current-tab" class="current-tab" title="">Chargement…</p>
+    <button id="add-current" class="btn btn--primary" disabled>
+      Ajouter cette page
+    </button>
+  </section>
+
+  <section class="list-section">
+    <h2 class="section-title">Liens enregistrés</h2>
+    <ul id="list" class="list"></ul>
+    <p id="empty" class="empty">Aucun lien pour l'instant.<br>Utilisez le clic droit sur une page ou un lien.</p>
+  </section>
+
+  <footer class="footer">
+    <button id="export-csv" class="btn btn--ghost" disabled>CSV</button>
+    <button id="export-md" class="btn btn--ghost" disabled>Markdown</button>
+    <button id="clear" class="btn btn--ghost btn--danger" disabled>Tout effacer</button>
+  </footer>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <script type="module" src="popup.js"></script>
+</body>
+</html>
