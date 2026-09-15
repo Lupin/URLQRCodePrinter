@@ -186,11 +186,16 @@ suivre une ligne des yeux.
 
 **Choisir le nombre de colonnes, ou remplir la feuille.** Le sélecteur
 **Régler la taille du texte de la planche.** Le champ **Taille du texte (pt)**
-donne la hauteur de la police imprimée sous chaque QR. Elle était figée à 7 pt :
-sur une A4, la place restante n'était pas utilisée et le texte sortait petit.
-Montez-la — la borne haute du curseur **Largeur du QR** descend d'elle-même pour
-laisser la place au texte, et rien n'est tronqué. La ligne sous le curseur dit
-combien de lignes de texte la disposition retenue permet encore.
+donne la hauteur de la police imprimée sous chaque QR. Il est prérempli d'après
+la hauteur de l'étiquette — 7 pt sur une étiquette de 25 mm, 9,5 pt sur une A4
+3 × 8, 14 pt sur une 60 mm — car 7 pt partout laissait la place d'une A4
+inutilisée, sous un QR qui occupait tout. Changer de disposition le réécrit,
+comme les six valeurs de la grille.
+
+Montez-le à la main si vous voulez plus grand : la borne haute du curseur
+**Largeur du QR** descend d'elle-même pour laisser la place au texte, et rien
+n'est tronqué. La ligne sous le curseur dit combien de lignes de texte la
+disposition retenue permet encore.
 
 **Une seule présentation, six valeurs.** Le sélecteur **Disposition** ne fait
 que *préremplir* les six champs qui suivent ; vous pouvez ensuite les ajuster

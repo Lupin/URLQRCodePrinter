@@ -1226,6 +1226,33 @@ function prefillGridFields() {
   el.sheetMarginY.value = String(grid.marginYMm);
   el.sheetGapX.value = String(grid.gapXMm);
   el.sheetGapY.value = String(grid.gapYMm);
+
+  // La taille du texte suit la hauteur de l'étiquette : 7 pt convenait à une
+  // petite étiquette, pas à une A4 où la place restait inutilisée — le texte
+  // sortait minuscule sous un QR qui occupait tout. Le champ reste modifiable.
+  el.sheetFont.value = String(defaultSheetFontPt(preset, grid));
+}
+
+/**
+ * Taille de texte par défaut pour une disposition, en points.
+ *
+ * Proportionnelle à la hauteur de l'étiquette : une étiquette deux fois plus
+ * haute porte un texte deux fois plus grand. Bornée pour rester lisible et
+ * laisser de la place au QR.
+ *
+ * @param {object} preset
+ * @param {{ rows: number, marginYMm: number, gapYMm: number }} grid
+ * @returns {number}
+ */
+function defaultSheetFontPt(preset, grid) {
+  const page = PAGE_SIZES[preset.page];
+  const rows = Math.max(1, grid.rows);
+  const usable = page.heightMm - grid.marginYMm * 2 - grid.gapYMm * (rows - 1);
+  const hauteur = usable / rows;
+  const brut = hauteur * 0.28;
+  const borne = Math.min(14, Math.max(7, brut));
+  // Arrondi au demi-point : le pas du champ.
+  return Math.round(borne * 2) / 2;
 }
 
 /**

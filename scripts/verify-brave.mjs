@@ -2276,6 +2276,47 @@ async function main() {
         && (sheetFont?.pt7?.px ?? 0) > 0,
       `7 pt → ${sheetFont?.pt7?.px} px · 12 pt → ${sheetFont?.pt12?.px} px`,
     );
+    // Le defaut suit la hauteur de l'etiquette : 7 pt convenait a une petite
+    // etiquette, pas a une A4 ou la place restait inutilisee.
+    const defauts = await evaluate(`(async () => {
+      const pause = (ms) => new Promise((r) => setTimeout(r, ms));
+      const el = (id) => document.getElementById(id);
+      [...document.querySelectorAll('.tab')].find((t) => t.dataset.mode === 'sheet').click();
+      await pause(500);
+      const out = {};
+      for (const preset of ['avery-5160', 'a4-3x8', 'a4-qr-3x4']) {
+        el('preset').value = preset;
+        el('preset').dispatchEvent(new Event('change'));
+        await pause(550);
+        const texte = document.querySelector('#preview .print-cell__text');
+        out[preset] = {
+          pt: Number(el('sheet-font').value),
+          px: texte ? Math.round(parseFloat(getComputedStyle(texte).fontSize) * 10) / 10 : 0,
+          tronque: [...(texte?.querySelectorAll('span') ?? [])]
+            .some((s) => s.textContent.endsWith('…')),
+        };
+      }
+      el('preset').value = 'a4-3x8';
+      el('preset').dispatchEvent(new Event('change'));
+      await pause(500);
+      return out;
+    })()`);
+
+    record(
+      "la taille du texte suit la hauteur de l'etiquette",
+      (defauts?.['a4-qr-3x4']?.pt ?? 0) > (defauts?.['a4-3x8']?.pt ?? 0)
+        && (defauts?.['a4-3x8']?.pt ?? 0) >= (defauts?.['avery-5160']?.pt ?? 99),
+      `5160 (25 mm) ${defauts?.['avery-5160']?.pt} pt · `
+        + `A4 3×8 (34 mm) ${defauts?.['a4-3x8']?.pt} pt · `
+        + `carré 3×4 (60 mm) ${defauts?.['a4-qr-3x4']?.pt} pt`,
+    );
+    record(
+      "aucun defaut ne tronque le texte",
+      ['avery-5160', 'a4-3x8', 'a4-qr-3x4'].every((p) => defauts?.[p]?.tronque === false),
+      ['avery-5160', 'a4-3x8', 'a4-qr-3x4']
+        .map((p) => `${defauts?.[p]?.px} px`).join(' · '),
+    );
+
     record(
       "grossir le texte laisse moins de place au QR, sans le tronquer",
       (sheetFont?.pt12?.qrMax ?? 100) < (sheetFont?.pt7?.qrMax ?? 0)
