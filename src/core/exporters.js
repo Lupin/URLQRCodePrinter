@@ -10,6 +10,44 @@
 import { hostOf, hasShortUrl } from './link.js';
 
 /**
+ * Modes d'affichage de la date sous un QR code.
+ *
+ * `none` par défaut : un QR code doit rester lisible, et chaque ligne de texte
+ * supplémentaire réduit la place disponible. Le mode `datetime` sert aux cas où
+ * l'heure compte — recherche, essais, prototypes — où l'on doit pouvoir dater
+ * une capture à la minute près.
+ */
+export const DATE_MODES = Object.freeze(['none', 'date', 'datetime']);
+
+/**
+ * Formate la date de collecte d'un lien, sans l'heure.
+ * @param {number} epochMs
+ * @returns {string} `JJ/MM/AAAA`, ou chaîne vide si la date est inutilisable.
+ */
+export function formatDate(epochMs) {
+  if (!Number.isFinite(epochMs)) return '';
+  const d = new Date(epochMs);
+  const pad = (n) => String(n).padStart(2, '0');
+  return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()}`;
+}
+
+/**
+ * Texte de date à imprimer sous un QR code, selon le mode retenu.
+ *
+ * Une date illisible ne doit pas produire une ligne vide dans une étiquette :
+ * on renvoie une chaîne vide, que les appelants n'impriment pas.
+ *
+ * @param {number} epochMs
+ * @param {string} [mode] `none`, `date` ou `datetime`.
+ * @returns {string}
+ */
+export function formatCaptureDate(epochMs, mode = 'none') {
+  if (mode === 'date') return formatDate(epochMs);
+  if (mode === 'datetime') return formatDateTime(epochMs);
+  return '';
+}
+
+/**
  * Colonnes de l'export tabulaire, dans l'ordre d'affichage.
  * `get` extrait la valeur brute ; `header` est le libellé de la colonne.
  */

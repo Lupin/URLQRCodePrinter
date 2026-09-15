@@ -121,6 +121,9 @@ export function wrapText(measure, text, maxWidth, options = {}) {
  * @param {number} [options.maxLines]     Nombre maximal de lignes de texte.
  * @param {number} [options.maxHeightPx]  Hauteur maximale imposée (0 = illimitée).
  * @param {number} [options.minHeightPx]  Hauteur minimale de l'étiquette.
+ * @param {number} [options.extraLines]   Lignes de texte supplémentaires à
+ *   réserver sous celles du texte principal — la date, quand elle est demandée.
+ *   Les ignorer rognerait la dernière ligne en silence.
  * @param {(text: string) => number} [options.measure] Mesure de texte injectée
  *   (obligatoire hors navigateur ; en navigateur, un canvas est créé au besoin).
  * @returns {LabelGeometry}
@@ -138,8 +141,11 @@ export function computeLabelGeometry(options) {
   const innerWidth = Math.max(1, width - padding * 2);
   const qrTarget = Math.floor(innerWidth * qrRatio);
 
+  const extraLines = Math.max(0, Math.trunc(options.extraLines ?? 0));
   const measure = options.measure ?? defaultMeasure(fontSize);
-  const lines = wrapText(measure, options.text ?? '', innerWidth, { maxLines });
+  const lines = wrapText(measure, options.text ?? '', innerWidth, {
+    maxLines: Math.max(0, maxLines - extraLines),
+  });
 
   // Le QR a une taille entière en modules : on arrondit au multiple inférieur.
   // On impose une échelle minimale, sans quoi une URL longue produirait un code
@@ -150,8 +156,8 @@ export function computeLabelGeometry(options) {
   const qrSize = matrix.size * scale;
   const fits = qrSize <= innerWidth;
 
-  const textHeight = lines.length * lineHeight;
-  const contentHeight = qrSize + (lines.length ? padding + textHeight : 0);
+  const textHeight = (lines.length + extraLines) * lineHeight;
+  const contentHeight = qrSize + (lines.length + extraLines > 0 ? padding + textHeight : 0);
   const naturalHeight = contentHeight + padding * 2;
 
   const minHeight = options.minHeightPx ?? 0;
@@ -171,6 +177,7 @@ export function computeLabelGeometry(options) {
     textTop: padding + qrSize + padding,
     lineHeight,
     lines,
+    extraLines,
     fontSize,
   };
 }
@@ -215,6 +222,9 @@ export function drawLabel(ctx, geometry, options = {}) {
     showTitle = false,
     title = '',
     showHost = false,
+    // Lignes à imprimer sous le texte principal — la date, le plus souvent.
+    // Leur place a été réservée par `extraLines` dans la géométrie.
+    extraText = [],
   } = options;
 
   ctx.fillStyle = '#ffffff';
@@ -243,6 +253,15 @@ export function drawLabel(ctx, geometry, options = {}) {
   if (showHost) {
     ctx.font = `${Math.round(geometry.fontSize * 0.9)}px ${fontFamily}`;
     ctx.fillText(hostOf(options.url ?? ''), geometry.width / 2, y);
+    y += geometry.lineHeight;
+  }
+
+  // Les lignes supplémentaires viennent en dernier : la date se lit comme une
+  // mention, sous l'information principale.
+  for (const line of extraText) {
+    if (!line) continue;
+    ctx.fillText(line, geometry.width / 2, y);
+    y += geometry.lineHeight;
   }
 
   return geometry;

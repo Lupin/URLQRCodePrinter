@@ -29,6 +29,8 @@ import {
   escapeCsvField,
   exportFilename,
   columnsFor,
+  formatDate,
+  formatCaptureDate,
 } from '../src/core/exporters.js';
 
 import { encodeQr, pickScale, toMonoBitmap, toSvg } from '../src/core/qr.js';
@@ -419,4 +421,33 @@ test('le titre du Markdown est celui qu\'on donne', () => {
   assert.ok(md.includes('# Veille du vendredi'));
   assert.ok(md.includes('title: "Veille du vendredi"'));
   assert.ok(md.includes('_1 lien — exporté le'));
+});
+
+// --------------------------------------------------------------------------
+// Date imprimée sous le QR code
+// --------------------------------------------------------------------------
+
+test('formatCaptureDate respecte les trois modes', () => {
+  // 15/09/2026 à 10:30 en heure locale.
+  const stamp = new Date(2026, 8, 15, 10, 30).getTime();
+
+  assert.equal(formatCaptureDate(stamp, 'none'), '');
+  assert.equal(formatCaptureDate(stamp), '', 'aucune date par défaut');
+  assert.equal(formatCaptureDate(stamp, 'date'), '15/09/2026');
+  assert.equal(formatCaptureDate(stamp, 'datetime'), '15/09/2026 10:30');
+  assert.equal(formatCaptureDate(stamp, 'inconnu'), '');
+});
+
+test('une date inutilisable ne produit pas de ligne vide', () => {
+  // Une étiquette ne doit pas gaspiller une ligne sur une date absente.
+  for (const bad of [NaN, undefined, null, Infinity, 'hier']) {
+    assert.equal(formatCaptureDate(bad, 'date'), '', String(bad));
+    assert.equal(formatCaptureDate(bad, 'datetime'), '', String(bad));
+  }
+});
+
+test('le format de date sans heure ne dépend pas de la locale', () => {
+  const stamp = new Date(2026, 0, 2, 3, 4).getTime();
+  assert.equal(formatDate(stamp), '02/01/2026', 'zéros de tête conservés');
+  assert.equal(formatDate(NaN), '');
 });

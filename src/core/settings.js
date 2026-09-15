@@ -15,6 +15,7 @@
  */
 
 import { TARGET_MODES } from './link.js';
+import { DATE_MODES } from './exporters.js';
 import { DEFAULT_SHORTENER, findShortener } from './shorten.js';
 
 /** Clé de stockage, préfixée pour ne pas entrer en collision avec un autre outil. */
@@ -28,6 +29,7 @@ export const DEFAULT_SETTINGS = Object.freeze({
   shortener: DEFAULT_SHORTENER,
   targetMode: 'original',
   collectionName: 'Mes liens',
+  dateMode: 'none',
 });
 
 /**
@@ -37,7 +39,7 @@ export const DEFAULT_SETTINGS = Object.freeze({
  * refusée : un réglage corrompu ne doit pas bloquer l'application.
  *
  * @param {unknown} value
- * @returns {{ shortener: string, targetMode: 'original'|'short', collectionName: string }}
+ * @returns {{ shortener: string, targetMode: 'original'|'short', collectionName: string, dateMode: string }}
  */
 export function sanitizeSettings(value) {
   const source = value && typeof value === 'object' ? value : {};
@@ -55,7 +57,11 @@ export function sanitizeSettings(value) {
     ? DEFAULT_SETTINGS.collectionName
     : rawName.slice(0, COLLECTION_NAME_MAX);
 
-  return { shortener, targetMode, collectionName };
+  const dateMode = DATE_MODES.includes(source.dateMode)
+    ? source.dateMode
+    : DEFAULT_SETTINGS.dateMode;
+
+  return { shortener, targetMode, collectionName, dateMode };
 }
 
 /**
@@ -110,7 +116,7 @@ export function createSettingsStore(options = {}) {
   const detected = options.storage ? { ...options.storage, persistent: true } : detectStorage();
   const storage = detected;
 
-  /** @type {{ shortener: string, targetMode: 'original'|'short', collectionName: string }} */
+  /** @type {{ shortener: string, targetMode: 'original'|'short', collectionName: string, dateMode: string }} */
   let current = { ...DEFAULT_SETTINGS };
   let loaded = false;
 

@@ -20,7 +20,7 @@ import { encodeQr } from './qr.js';
 import { wrapText, mmToPx } from './label.js';
 import { sourceHost, sourceUrl, hasShortUrl } from './link.js';
 import { createZip } from './zip.js';
-import { exportFilename } from './exporters.js';
+import { exportFilename, formatCaptureDate } from './exporters.js';
 
 /**
  * Formats d'étiquettes courants.
@@ -87,6 +87,15 @@ export const LABEL_FORMATS = Object.freeze([
   },
 ]);
 
+/**
+ * Nombre de lignes qu'une date peut occuper sous le QR code.
+ *
+ * Au-delà, elle est abandonnée plutôt qu'imprimée partiellement : sur une
+ * étiquette de 12 mm, « 15/09/2026 18:01 » demande trois lignes et viderait le
+ * texte de son sens. Réduire la taille de police est la façon de la faire tenir.
+ */
+export const DATE_MAX_LINES = 2;
+
 /** Contenu textuel imprimé sous le QR code. */
 export const TEXT_MODES = Object.freeze({
   'title-url': 'Titre puis URL',
@@ -100,6 +109,9 @@ export const TEXT_MODES = Object.freeze({
 export const DEFAULT_EXPORT_OPTIONS = Object.freeze({
   formatId: 'niimbot-d110',
   textMode: 'url',
+  // Aucune date par défaut : chaque ligne de texte prend la place du QR, et une
+  // étiquette de 12 mm n'en a pas de reste.
+  dateMode: 'none',
   marginMm: 1.5,
   qrRatio: 0.9,
   fontSizePt: 7,
@@ -203,6 +215,7 @@ export function labelFileName(link, index, total) {
 export function planLabel(options) {
   const { link, format, measure } = options;
   const textMode = options.textMode ?? DEFAULT_EXPORT_OPTIONS.textMode;
+  const dateMode = options.dateMode ?? DEFAULT_EXPORT_OPTIONS.dateMode;
   const marginMm = options.marginMm ?? DEFAULT_EXPORT_OPTIONS.marginMm;
   const qrRatio = options.qrRatio ?? DEFAULT_EXPORT_OPTIONS.qrRatio;
   const fontSizePt = options.fontSizePt ?? DEFAULT_EXPORT_OPTIONS.fontSizePt;
@@ -215,7 +228,30 @@ export function planLabel(options) {
   const innerWidth = Math.max(1, widthPx - marginPx * 2);
 
   const matrix = encodeQr(link.url, { ecc: 'M', border: 2 });
-  const lines = wrapText(measure, labelText(link, textMode).join(' '), innerWidth, { maxLines });
+
+  // La date est un segment à part : elle ne se mélange pas à l'URL, sinon elle
+  // se retrouverait collée au bout d'une ligne coupée.
+  const dateText = formatCaptureDate(link.createdAt, dateMode);
+
+  // **Une date ne se coupe pas.** Sur une étiquette de 12 mm, « 15/09/2026
+  // 18:01 » occupe plusieurs lignes ; laisser le plafond de lignes l'amputer
+  // donnerait « 15/09/ » — une date fausse, ce qui est pire que pas de date.
+  // On réserve donc ses lignes avant celles du texte principal, et on
+  // l'abandonne entièrement si elle ne tient pas.
+  const rawDateLines = dateText
+    ? wrapText(measure, dateText, innerWidth, { maxLines: DATE_MAX_LINES + 1 })
+    : [];
+  const dateLines = rawDateLines.length <= Math.min(DATE_MAX_LINES, maxLines)
+    ? rawDateLines
+    : [];
+  const dateOmitted = dateText !== '' && dateLines.length === 0;
+
+  const body = labelText(link, textMode).join(' ');
+  const bodyLines = body
+    ? wrapText(measure, body, innerWidth, { maxLines: Math.max(0, maxLines - dateLines.length) })
+    : [];
+
+  const lines = [...bodyLines, ...dateLines];
   const textHeight = lines.length * lineHeightPx;
 
   // Hauteur fixe (planche) ou déduite du contenu (rouleau continu).
@@ -252,6 +288,7 @@ export function planLabel(options) {
     // peut alors prévenir plutôt que de rogner en silence.
     fits: qrSizePx <= innerWidth,
     url: link.url,
+    dateOmitted,
   };
 }
 
@@ -413,11 +450,15 @@ export function buildLabelArchive(options) {
           heightMm: format.heightMm,
           dpi: format.dpi,
           textMode: options.settings?.textMode ?? DEFAULT_EXPORT_OPTIONS.textMode,
+          dateMode: options.settings?.dateMode ?? DEFAULT_EXPORT_OPTIONS.dateMode,
           marginMm: options.settings?.marginMm ?? DEFAULT_EXPORT_OPTIONS.marginMm,
           fontSizePt: options.settings?.fontSizePt ?? DEFAULT_EXPORT_OPTIONS.fontSizePt,
           cutMarks: options.settings?.cutMarks ?? DEFAULT_EXPORT_OPTIONS.cutMarks,
         },
         count: planned.length,
+        // Signale tout de suite les dates abandonnées : un réglage demandé et
+        // non appliqué doit se voir, pas se deviner sur l'image.
+        datesOmitted: planned.filter(({ plan }) => plan.dateOmitted).length,
         labels: planned.map(({ link, fileName, plan }) => ({
           file: `etiquettes/${fileName}`,
           url: link.url,

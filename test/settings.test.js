@@ -46,8 +46,17 @@ test('sanitizeSettings écarte une préférence inconnue', () => {
   assert.deepEqual(sanitizeSettings({ targetMode: 'raccourci' }), DEFAULT_SETTINGS);
   assert.deepEqual(
     sanitizeSettings({ shortener: 'isgd', targetMode: 'short', collectionName: 'Veille' }),
-    { shortener: 'isgd', targetMode: 'short', collectionName: 'Veille' },
+    { ...DEFAULT_SETTINGS, shortener: 'isgd', targetMode: 'short', collectionName: 'Veille' },
   );
+});
+
+test('le mode de date est validé comme les autres préférences', () => {
+  assert.equal(sanitizeSettings({ dateMode: 'datetime' }).dateMode, 'datetime');
+  assert.equal(sanitizeSettings({ dateMode: 'date' }).dateMode, 'date');
+  assert.equal(sanitizeSettings({ dateMode: 'heure' }).dateMode, DEFAULT_SETTINGS.dateMode);
+  assert.equal(sanitizeSettings({ dateMode: 42 }).dateMode, DEFAULT_SETTINGS.dateMode);
+  // Aucune date par défaut : chaque ligne prend la place du QR code.
+  assert.equal(DEFAULT_SETTINGS.dateMode, 'none');
 });
 
 test('le nom de collection est nettoyé', () => {
@@ -65,13 +74,15 @@ test('le nom de collection est nettoyé', () => {
 test('les réglages survivent à un redémarrage', () => {
   const storage = fakeStorage();
   const first = createSettingsStore({ storage });
-  first.save({ shortener: 'isgd', targetMode: 'short', collectionName: 'Veille' });
+  first.save({ shortener: 'isgd', targetMode: 'short', collectionName: 'Veille', dateMode: 'datetime' });
 
   const second = createSettingsStore({ storage });
   assert.deepEqual(second.load(), {
+    ...DEFAULT_SETTINGS,
     shortener: 'isgd',
     targetMode: 'short',
     collectionName: 'Veille',
+    dateMode: 'datetime',
   });
 });
 
@@ -79,11 +90,7 @@ test('une écriture partielle ne réinitialise pas le reste', () => {
   const store = createSettingsStore({ storage: fakeStorage() });
   store.save({ shortener: 'spoome' });
   store.save({ targetMode: 'short' });
-  assert.deepEqual(store.load(), {
-    shortener: 'spoome',
-    targetMode: 'short',
-    collectionName: DEFAULT_SETTINGS.collectionName,
-  });
+  assert.deepEqual(store.load(), { ...DEFAULT_SETTINGS, shortener: 'spoome', targetMode: 'short' });
 });
 
 test('reset revient aux valeurs par défaut', () => {
@@ -103,11 +110,10 @@ test('un réglage hors catalogue est ignoré à la relecture', () => {
   const storage = fakeStorage({
     [SETTINGS_KEY]: JSON.stringify({ shortener: 'service-disparu', targetMode: 'short' }),
   });
-  assert.deepEqual(createSettingsStore({ storage }).load(), {
-    shortener: DEFAULT_SETTINGS.shortener,
-    targetMode: 'short',
-    collectionName: DEFAULT_SETTINGS.collectionName,
-  });
+  assert.deepEqual(
+    createSettingsStore({ storage }).load(),
+    { ...DEFAULT_SETTINGS, targetMode: 'short' },
+  );
 });
 
 test('un stockage qui refuse d\'écrire ne fait pas échouer l\'enregistrement', () => {
@@ -122,11 +128,7 @@ test('un stockage qui refuse d\'écrire ne fait pas échouer l\'enregistrement',
   const store = createSettingsStore({ storage: hostile });
   assert.deepEqual(store.load(), DEFAULT_SETTINGS);
   // L'enregistrement reste effectif pour la session en cours.
-  assert.deepEqual(store.save({ targetMode: 'short' }), {
-    shortener: DEFAULT_SETTINGS.shortener,
-    targetMode: 'short',
-    collectionName: DEFAULT_SETTINGS.collectionName,
-  });
+  assert.deepEqual(store.save({ targetMode: 'short' }), { ...DEFAULT_SETTINGS, targetMode: 'short' });
 });
 
 test('sans stockage injecté, le repli mémoire reste cohérent', () => {

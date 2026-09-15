@@ -21,7 +21,7 @@ Markdown, ou envoi direct à une imprimante Niimbot.
 | Socle natif Swift (protocole, session, CoreBluetooth) | fait, testé |
 | Application iOS qui utilise ce socle | à faire |
 
-**558 tests, tous verts** — 454 en JavaScript et 104 en Swift — dont :
+**567 tests, tous verts** — 463 en JavaScript et 104 en Swift — dont :
 
 - la validation **octet à octet** des trames Niimbot contre les relevés
   documentés, **dans les deux langages** : deux implémentations indépendantes
@@ -44,7 +44,7 @@ Markdown, ou envoi direct à une imprimante Niimbot.
 **L'application est vérifiée dans un vrai navigateur** : `npm run verify:brave`
 lance Brave sur un profil isolé, collecte un lien, le raccourcit, exporte le CSV
 et l'archive d'étiquettes, puis contrôle les fichiers réellement écrits sur le
-disque (signature ZIP, `unzip -t`, contenu du CSV). 67 vérifications, dont le
+disque (signature ZIP, `unzip -t`, contenu du CSV). 75 vérifications, dont le
 rendu des liens cliquables dans l'application *et* dans la fenêtre de
 l'extension, la grille réellement calculée pour quatre références Avery, et
 l'aperçu d'étiquette composé sans aucune imprimante connectée.
@@ -280,6 +280,35 @@ sont posées en ligne à partir du même calcul que la découpe, donc la hauteur
 occupée est exactement la hauteur réservée — un test dans Brave compare les deux.
 Auparavant, le texte était laissé au retour à la ligne du navigateur et pouvait
 déborder de l'étiquette sans que rien ne le signale.
+
+## Dater une étiquette : une option, jamais un fragment
+
+La date de collecte peut être imprimée sous le QR code — `Aucune`, `Date de
+collecte`, `Date et heure de collecte`. Aucune par défaut : chaque ligne sous le
+QR se paie en place disponible, et une étiquette de 12 mm n'en a pas de reste.
+Le choix vaut pour les quatre mises en forme : planche, tableau (une colonne
+« Date »), étiquette Niimbot, et archive d'images.
+
+**Une date est complète ou absente.** C'est la règle, et elle vient d'un défaut
+constaté en vérifiant : sur une étiquette de 12 mm, le plafond de lignes amputait
+la date à « 15/09/ » — le millésime perdu, donc une date **fausse**, ce qui est
+pire que pas de date. Désormais :
+
+- les lignes de la date sont réservées **avant** celles du texte principal, et
+  jamais coupées par le plafond ;
+- au-delà de deux lignes (`DATE_MAX_LINES`), la date est abandonnée entièrement
+  plutôt qu'imprimée en partie ;
+- sur la planche, où la date tient sur une seule ligne, elle est écartée si la
+  colonne est trop étroite, et le message le dit ;
+- sur l'étiquette Niimbot, `drawLabel` ne découpe pas cette ligne : elle n'est
+  demandée à la géométrie (`extraLines`) que si elle tient, ce qui évite un
+  dépassement horizontal ;
+- l'archive consigne `datesOmitted`, et les aperçus affichent la raison — sans
+  quoi l'option semblerait sans effet.
+
+Le calcul des bornes du QR compte la date comme une ligne de plus : activer la
+date fait baisser la borne haute du curseur (86 % → 79 % sur une L7160), parce
+que le QR doit laisser la place de deux lignes au lieu d'une.
 
 ## Un export ne doit rien contenir d'insaisissable
 

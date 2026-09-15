@@ -23,6 +23,8 @@ export const ELEMENT_IDS = Object.freeze([
   'shorten-status',
   'qr-target',
   'target-hint',
+  'date-mode',
+  'date-hint',
   'list',
   'empty',
   'export-xlsx',

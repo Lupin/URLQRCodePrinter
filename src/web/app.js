@@ -41,7 +41,15 @@ import {
   MIN_MODULE_MM_PAPER,
 } from './core/sheet.js';
 import { PROFILES, DEFAULT_PROFILE, findProfile } from './core/printer/profiles.js';
-import { toCsv, toMarkdown, toJson, parseJsonExport, exportFilename } from './core/exporters.js';
+import {
+  toCsv,
+  toMarkdown,
+  toJson,
+  parseJsonExport,
+  exportFilename,
+  DATE_MODES,
+  formatCaptureDate,
+} from './core/exporters.js';
 import { downloadText, downloadBytes } from './core/download.js';
 import { buildLinkSpreadsheet } from './core/spreadsheet.js';
 import {
@@ -89,6 +97,13 @@ const settings = createSettingsStore();
 let shortenJob = null;
 /** Options du choix de cible, gardées pour pouvoir les désactiver. */
 const targetOptions = new Map();
+
+/** Libellés des modes de date, dans l'ordre d'affichage. */
+const DATE_MODE_LABELS = Object.freeze({
+  none: 'Aucune',
+  date: 'Date de collecte',
+  datetime: 'Date et heure de collecte',
+});
 
 // ---------------------------------------------------------------------------
 // Références DOM
@@ -726,6 +741,45 @@ async function shortenSelection() {
  * un lien raccourci dépend d'un tiers, ce n'est pas un choix à faire par
  * inadvertance.
  */
+/** Remplit le choix de la date imprimée sous le QR code. */
+function fillDateModes() {
+  for (const mode of DATE_MODES) {
+    const option = document.createElement('option');
+    option.value = mode;
+    option.textContent = DATE_MODE_LABELS[mode] ?? mode;
+    el.dateMode.appendChild(option);
+  }
+  el.dateMode.value = 'none';
+}
+
+/** Le mode de date retenu, et le texte à imprimer pour un lien. */
+function dateMode() {
+  return DATE_MODES.includes(el.dateMode.value) ? el.dateMode.value : 'none';
+}
+
+/**
+ * Explique ce que coûte la date demandée.
+ *
+ * Chaque ligne sous le QR se paie en place disponible : le dire évite de
+ * croire que la date est gratuite.
+ */
+function updateDateHint() {
+  const mode = dateMode();
+  if (mode === 'none') {
+    el.dateHint.textContent = 'Aucune date imprimée.';
+    return;
+  }
+  const date = new Date();
+  const pad = (n) => String(n).padStart(2, '0');
+  const sample = mode === 'date'
+    ? `${pad(date.getDate())}/${pad(date.getMonth() + 1)}/${date.getFullYear()}`
+    : `${pad(date.getDate())}/${pad(date.getMonth() + 1)}/${date.getFullYear()} `
+      + `${pad(date.getHours())}:${pad(date.getMinutes())}`;
+  el.dateHint.textContent =
+    `Date de collecte du lien, sur sa propre ligne — ${sample}. `
+    + 'Une ligne de plus réduit la place du QR code.';
+}
+
 function fillTargets() {
   const choices = [
     { value: 'original', label: "L'URL collectée" },
@@ -917,11 +971,15 @@ function buildSheetPages(items) {
 
   // Bornes calculées avant le rendu : en dessous, un module imprimé n'est plus
   // lisible ; au-dessus, le QR chasse le texte hors de l'étiquette.
+  // La date occupe une ligne à part entière : elle doit être comptée dans la
+  // place que le QR doit laisser, sinon le curseur autoriserait un réglage qui
+  // la rogne.
+  const wantsDate = dateMode() !== 'none';
   const bounds = qrRatioBounds({
     labelWidthMm: layout.labelWidthMm,
     labelHeightMm: layout.labelHeightMm,
     qrModules: modules,
-    textLines: 1,
+    textLines: wantsDate ? 2 : 1,
     marginMm: SHEET_CELL_MARGIN_MM,
     gapMm: SHEET_QR_GAP_MM,
     minModuleMm: MIN_MODULE_MM_PAPER,
@@ -940,6 +998,9 @@ function buildSheetPages(items) {
     - side - SHEET_QR_GAP_MM;
   const maxLines = Math.max(1, Math.floor(textSpaceMm / metrics.lineHeightMm));
   const measure = cachedTextMeasure(metrics.fontSizePx);
+  const innerWidthPx = (innerWidthMm * 96) / 25.4;
+  /** Liens dont la date n'a pas pu être imprimée, faute de largeur. */
+  const omittedDates = new Set();
 
   // Une planche Letter ne doit pas partir sur du A4 : la taille du papier est
   // posée ici, une fois pour toutes les sorties (aperçu, impression, Ctrl+P).
@@ -956,16 +1017,13 @@ function buildSheetPages(items) {
   }
   if (config.problem) warnings.unshift(config.problem);
 
-  el.sheetInfo.textContent = layout.perPage > 0
-    ? `${layout.columns} × ${layout.rows} = ${layout.perPage} étiquettes par page ` +
-      `de ${round1(layout.labelWidthMm)} × ${round1(layout.labelHeightMm)} mm, ` +
-      `${layout.pages} page${layout.pages > 1 ? 's' : ''}` +
-      (warnings.length ? ` — ${warnings.join(' ')}` : '')
-    : layout.warnings.join(' ');
-
   updateQrInfo({ bounds, side, modules, ratio, maxLines, metrics, densest });
 
-  return pages.map((page) => {
+  // Les pages sont construites **avant** de composer le message : c'est la
+  // construction qui découvre les dates écartées faute de largeur. Composer le
+  // message plus tôt — ce qui était le cas — rendait cet avertissement
+  // impossible à afficher.
+  const built = pages.map((page) => {
     const pageEl = document.createElement('div');
     pageEl.className = 'print-page';
     pageEl.style.width = `${layout.pageWidthMm}mm`;
@@ -990,11 +1048,20 @@ function buildSheetPages(items) {
 
       // Les lignes sont découpées et bornées ici : le texte occupe donc
       // exactement la hauteur réservée, au lieu de déborder en silence.
+      // Une date se coupe mal : sur une ligne trop étroite, on ne l'imprime pas
+      // plutôt que d'en perdre le millésime.
+      const wanted = formatCaptureDate(item.createdAt, dateMode());
+      const dateText = wanted !== '' && measure(wanted) <= innerWidthPx ? wanted : '';
+      const dropped = wanted !== '' && dateText === '';
+
       const lines = sheetCellLines(item.title || item.url, {
         measure,
-        innerWidthPx: (innerWidthMm * 96) / 25.4,
-        maxLines,
+        innerWidthPx,
+        // La date prend sa ligne : le texte se contente de ce qui reste.
+        maxLines: dateText ? Math.max(1, maxLines - 1) : maxLines,
       });
+      if (dateText) lines.push(dateText);
+      if (dropped) omittedDates.add(item.id);
 
       if (lines.length > 0) {
         const text = document.createElement('div');
@@ -1006,6 +1073,7 @@ function buildSheetPages(items) {
         for (const line of lines) {
           const span = document.createElement('span');
           span.textContent = line;
+          if (dateText && line === dateText) span.className = 'print-cell__date';
           text.appendChild(span);
         }
         cellEl.appendChild(text);
@@ -1016,6 +1084,23 @@ function buildSheetPages(items) {
 
     return pageEl;
   });
+
+  if (omittedDates.size > 0) {
+    warnings.push(
+      `Date non imprimée sur ${omittedDates.size} étiquette`
+      + `${omittedDates.size > 1 ? 's' : ''} : elle ne tient pas sur une ligne à `
+      + 'cette largeur.',
+    );
+  }
+
+  el.sheetInfo.textContent = layout.perPage > 0
+    ? `${layout.columns} × ${layout.rows} = ${layout.perPage} étiquettes par page ` +
+      `de ${round1(layout.labelWidthMm)} × ${round1(layout.labelHeightMm)} mm, ` +
+      `${layout.pages} page${layout.pages > 1 ? 's' : ''}` +
+      (warnings.length ? ` — ${warnings.join(' ')}` : '')
+    : layout.warnings.join(' ');
+
+  return built;
 }
 
 /**
@@ -1070,13 +1155,19 @@ function updateQrInfo(state) {
 function buildTable(items) {
   const size = Number(el.tableQr.value);
   const withNote = el.tableNote.checked;
+  const withDate = dateMode() !== 'none';
 
   const table = document.createElement('table');
   table.className = 'print-table';
 
   const head = document.createElement('thead');
   const headRow = document.createElement('tr');
-  for (const label of ['N°', 'QR', 'URL', 'Titre', ...(withNote ? ['Note'] : [])]) {
+  const headers = [
+    'N°', 'QR', 'URL', 'Titre',
+    ...(withDate ? ['Date'] : []),
+    ...(withNote ? ['Note'] : []),
+  ];
+  for (const label of headers) {
     const th = document.createElement('th');
     th.textContent = label;
     headRow.appendChild(th);
@@ -1105,6 +1196,12 @@ function buildTable(items) {
     titleCell.textContent = link.title;
 
     row.append(num, qrCell, urlCell, titleCell);
+
+    if (withDate) {
+      const dateCell = document.createElement('td');
+      dateCell.textContent = formatCaptureDate(link.createdAt, dateMode());
+      row.appendChild(dateCell);
+    }
 
     if (withNote) {
       const noteCell = document.createElement('td');
@@ -1231,7 +1328,7 @@ function renderSingleLabel(link) {
   // Le profil vient de l'imprimante quand il y en a une, sinon du format
   // choisi : on doit pouvoir juger un rendu avant d'acheter le matériel.
   const profile = previewProfile();
-  const { geometry, verdict } = composeLabel(link, profile);
+  const { geometry, verdict, dateText, dateOmitted } = composeLabel(link, profile);
 
   const frame = document.createElement('div');
   frame.className = 'preview__page';
@@ -1251,16 +1348,20 @@ function renderSingleLabel(link) {
     title: link.title,
     showTitle: el.showTitle.checked,
     url: link.url,
+    extraText: dateText ? [dateText] : [],
   });
 
   frame.appendChild(canvas);
 
   const caption = document.createElement('p');
   caption.className = 'hint';
-  caption.textContent = verdict.ok
+  // `composeLabel` sait si la date a été écartée : on le dit, plutôt que de
+  // laisser croire que l'option n'a pas d'effet.
+  const dateNote = dateOmitted ? composeDateNote() : '';
+  caption.textContent = (verdict.ok
     ? `${profile.id} — ${geometry.width} × ${geometry.height} px, `
       + `${verdict.pxPerModule.toFixed(1)} px par module`
-    : `${profile.id} — ${verdict.reason}`;
+    : `${profile.id} — ${verdict.reason}`) + dateNote;
   if (!verdict.ok) caption.style.color = 'var(--danger)';
   frame.appendChild(caption);
 
@@ -1280,13 +1381,32 @@ function renderSingleLabel(link) {
  * @returns {{ geometry: object, verdict: object }}
  */
 function composeLabel(link, profile) {
-  const geometry = computeLabelGeometry({
+  const options = {
     text: link.url,
     widthPx: profile.printheadPixels,
     dpi: profile.dpi,
     ecc: 'M',
-  });
-  return { geometry, verdict: checkQrLegibility(geometry) };
+  };
+
+  // `drawLabel` écrit la date sur une seule ligne, sans la découper : on vérifie
+  // donc d'abord qu'elle tient, en se servant de la taille de police que la
+  // géométrie va retenir. Un premier calcul sans ligne réservée donne cette
+  // taille ; il est refait si la date est finalement imprimée.
+  const probe = computeLabelGeometry(options);
+  const dateText = formatCaptureDate(link.createdAt, dateMode());
+  const fits = dateText !== ''
+    && cachedTextMeasure(probe.fontSize)(dateText) <= probe.width - probe.padding * 2;
+
+  const geometry = fits
+    ? computeLabelGeometry({ ...options, extraLines: 1 })
+    : probe;
+
+  return {
+    geometry,
+    verdict: checkQrLegibility(geometry),
+    dateText: fits ? dateText : '',
+    dateOmitted: dateText !== '' && !fits,
+  };
 }
 
 /**
@@ -1296,7 +1416,7 @@ function composeLabel(link, profile) {
  * @returns {{ bitmap: object, verdict: object }}
  */
 function labelToBitmap(link, profile) {
-  const { geometry, verdict } = composeLabel(link, profile);
+  const { geometry, verdict, dateText } = composeLabel(link, profile);
 
   const canvas = document.createElement('canvas');
   canvas.width = geometry.width;
@@ -1307,6 +1427,7 @@ function labelToBitmap(link, profile) {
     title: link.title,
     showTitle: el.showTitle.checked,
     url: link.url,
+    extraText: dateText ? [dateText] : [],
   });
 
   const imageData = ctx.getImageData(0, 0, geometry.width, geometry.height);
@@ -1361,6 +1482,7 @@ function readLabelOptions() {
   return {
     format: findFormat(el.labelFormat.value),
     textMode: el.labelText.value,
+    dateMode: dateMode(),
     marginMm: Math.max(0, Number(el.labelMargin.value) || 0),
     fontSizePt: Math.max(4, Number(el.labelFont.value) || 7),
     cutMarks: el.labelCut.checked,
@@ -1434,6 +1556,10 @@ async function renderLabelPng(link, options) {
     format: options.format,
     measure: createTextMeasure(fontSizePx),
     textMode: options.textMode,
+    // Sans cette ligne, la date choisie dans l'interface était silencieusement
+    // ignorée : les réglages consignés la mentionnaient, mais ni l'aperçu ni
+    // les images ne la portaient.
+    dateMode: options.dateMode,
     marginMm: options.marginMm,
     fontSizePt: options.fontSizePt,
   });
@@ -1468,6 +1594,10 @@ function renderImagePreview(link) {
     format: options.format,
     measure: createTextMeasure(fontSizePx),
     textMode: options.textMode,
+    // Sans cette ligne, la date choisie dans l'interface était silencieusement
+    // ignorée : les réglages consignés la mentionnaient, mais ni l'aperçu ni
+    // les images ne la portaient.
+    dateMode: options.dateMode,
     marginMm: options.marginMm,
     fontSizePt: options.fontSizePt,
   });
@@ -1495,9 +1625,12 @@ function renderImagePreview(link) {
 
   const caption = document.createElement('p');
   caption.className = 'hint';
-  caption.textContent = plan.fits
+  caption.textContent = (plan.fits
     ? `${options.format.widthMm} mm × ${plan.heightPx} px — ${plan.widthPx} × ${plan.heightPx} px à ${options.format.dpi} dpi`
-    : `URL trop longue pour ce format : le QR fait ${plan.qrSizePx} px pour ${plan.widthPx} px de large.`;
+    : `URL trop longue pour ce format : le QR fait ${plan.qrSizePx} px pour ${plan.widthPx} px de large.`)
+    + (plan.dateOmitted
+      ? ' — date non imprimée : elle ne tient pas sur ce format, réduisez la taille du texte.'
+      : '');
   if (!plan.fits) caption.style.color = 'var(--danger)';
   frame.appendChild(caption);
 
@@ -1517,6 +1650,7 @@ async function exportLabelImages() {
     const planned = planLabels(items, {
       format: options.format,
       textMode: options.textMode,
+      dateMode: options.dateMode,
       marginMm: options.marginMm,
       fontSizePt: options.fontSizePt,
       measure: createTextMeasure(
@@ -1782,6 +1916,20 @@ function fillProfiles() {
   el.labelProfile.value = DEFAULT_PROFILE.id;
 }
 
+/**
+ * Rappelle qu'une date a été écartée faute de place.
+ *
+ * Sans ce message, l'option semblerait sans effet : l'utilisateur croirait à un
+ * défaut plutôt qu'à une contrainte de largeur, alors que réduire la taille du
+ * texte suffit à la faire tenir.
+ *
+ * @returns {string} phrase à ajouter à la légende, ou chaîne vide.
+ */
+function composeDateNote() {
+  if (dateMode() === 'none') return '';
+  return ' — aucune date : elle ne tient pas sur une ligne à cette taille de texte.';
+}
+
 /** Le profil retenu pour l'aperçu : celui du matériel, ou celui choisi. */
 function previewProfile() {
   const fallback = printer?.profile ?? findProfile(el.labelProfile.value) ?? DEFAULT_PROFILE;
@@ -1927,6 +2075,12 @@ el.shortener.addEventListener('change', () => {
 });
 el.shorten.addEventListener('click', shortenSelection);
 el.shortenClear.addEventListener('click', clearShortUrls);
+el.dateMode.addEventListener('change', () => {
+  settings.save({ dateMode: dateMode() });
+  updateDateHint();
+  renderPreview();
+});
+
 el.qrTarget.addEventListener('change', () => {
   settings.save({ targetMode: el.qrTarget.value });
   updateTargetAvailability();
@@ -1989,6 +2143,7 @@ fillLabelForm();
 fillProfiles();
 fillShorteners();
 fillTargets();
+fillDateModes();
 
 // Préférences retenues : avant le premier rendu, pour éviter un aller-retour
 // visuel entre la valeur par défaut et celle de l'utilisateur.
@@ -1997,6 +2152,8 @@ el.shortener.value = preferences.shortener;
 el.qrTarget.value = preferences.targetMode;
 el.collectionName.value = preferences.collectionName;
 applyCollectionName();
+el.dateMode.value = preferences.dateMode;
+updateDateHint();
 
 reportBluetoothSupport();
 switchMode('sheet');

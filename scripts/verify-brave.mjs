@@ -134,7 +134,10 @@ async function main() {
         expression, returnByValue: true, awaitPromise: true,
       });
       if (response.result?.exceptionDetails) {
-        throw new Error(response.result.exceptionDetails.exception?.description ?? 'erreur');
+        // Nommer l'extrait fautif : « erreur » sans localisation ne se diagnostique pas.
+        const said = response.result.exceptionDetails.exception?.description ?? 'erreur';
+        const where = String(expression).replace(/\s+/g, ' ').slice(0, 140);
+        throw new Error(`${said} — dans : ${where}`);
       }
       return response.result?.result?.value;
     };
@@ -159,18 +162,59 @@ async function main() {
      * nom dépend du nom de collection, d'où cette attente plutôt qu'une lecture
      * directe du dossier.
      *
-     * @param {'md'|'csv-export'|'xlsx'} kind
+     * @param {'md'|'csv-export'|'xlsx'|'zip'} kind
      * @returns {Promise<string>} nom du fichier
      */
+    /** Horodatage de chaque fichier du dossier de téléchargements. */
+    const snapshot = () => new Map(
+      readdirSync(DOWNLOADS).map((name) => {
+        try {
+          return [name, statSync(join(DOWNLOADS, name)).mtimeMs];
+        } catch {
+          return [name, 0];
+        }
+      }),
+    );
+
     const waitForFile = async (kind) => {
-      const before = new Set(readdirSync(DOWNLOADS));
-      const button = { md: 'export-md', 'csv-export': 'export-csv', xlsx: 'export-xlsx' }[kind];
+      const before = snapshot();
+      const button = {
+        md: 'export-md',
+        'csv-export': 'export-csv',
+        xlsx: 'export-xlsx',
+        zip: 'export-labels',
+      }[kind];
+      // Le fichier apparaît sur le disque avant que l'application ait terminé :
+      // un clic immédiat tombe sur un bouton encore désactivé et ne fait rien.
+      await waitFor(
+        () => evaluate(`!document.getElementById('${button}').disabled`).catch(() => false),
+        { label: `bouton ${button} réactivé`, timeout: 30000 },
+      );
       await evaluate(`document.getElementById('${button}').click()`);
       const extension = kind === 'csv-export' ? '.csv' : `.${kind}`;
-      return waitFor(
-        () => readdirSync(DOWNLOADS).find((n) => !before.has(n) && n.endsWith(extension)),
-        { label: `téléchargement ${kind}`, timeout: 60000 },
-      );
+      try {
+        return await waitFor(
+          // On compare les horodatages, pas les noms : deux exports lancés dans
+          // la même minute produisent le même nom de fichier, et le second
+          // écrase le premier — un fichier « nouveau » n'apparaîtrait jamais.
+          () => readdirSync(DOWNLOADS).find((name) => {
+            if (!name.includes(extension)) return false;
+            const seen = before.get(name);
+            if (seen === undefined) return true;
+            try {
+              return statSync(join(DOWNLOADS, name)).mtimeMs > seen;
+            } catch {
+              return false;
+            }
+          }),
+          { label: `téléchargement ${kind}`, timeout: 60000 },
+        );
+      } catch (error) {
+        // Un délai dépassé sans inventaire ne se diagnostique pas.
+        throw new Error(
+          `${error.message} — dossier : ${readdirSync(DOWNLOADS).join(', ') || 'vide'}`,
+        );
+      }
     };
 
     /** Attend qu'une expression évaluée dans la page devienne vraie. */
@@ -861,6 +905,217 @@ async function main() {
         && Math.abs(tweaks.movedQr - tweaks.baseQr) < 1.5,
       `+3 mm → ${tweaks.dx.toFixed(1)} px, −4 mm → ${tweaks.backDx.toFixed(1)} px `
         + `(attendu ${(4 * tweaks.pxPerMm).toFixed(1)} px à ${tweaks.pxPerMm.toFixed(2)} px/mm)`,
+    );
+
+    // --- Date imprimée sous le QR code -----------------------------------
+    //
+    // Chaque ligne sous le QR se paie en place disponible : la date doit
+    // apparaître dans les quatre mises en forme, et faire céder le QR.
+    const dated = await evaluate(`(async () => {
+      const pause = (ms) => new Promise((r) => setTimeout(r, ms));
+      const select = document.getElementById('date-mode');
+      const slider = document.getElementById('sheet-qr');
+      const hint = document.getElementById('date-hint');
+      const preset = document.getElementById('preset');
+
+      // La même planche, sans puis avec la date.
+      const inspectSheet = async () => {
+        const cell = document.querySelector('#preview .print-page:first-child .print-cell');
+        const spans = [...(cell?.querySelectorAll('.print-cell__text span') ?? [])];
+        return {
+          side: cell ? cell.querySelector('.print-cell__qr').getBoundingClientRect().width : 0,
+          lines: spans.map((s) => s.textContent),
+          hasDateClass: spans.some((s) => s.classList.contains('print-cell__date')),
+          overflow: cell ? cell.scrollHeight > cell.clientHeight + 1 : null,
+          max: Number(slider.max),
+        };
+      };
+
+      preset.value = 'avery-l7160';
+      preset.dispatchEvent(new Event('change'));
+      select.value = 'none';
+      select.dispatchEvent(new Event('change'));
+      await pause(350);
+      const none = await inspectSheet();
+      const hintNone = hint.textContent;
+
+      select.value = 'datetime';
+      select.dispatchEvent(new Event('change'));
+      await pause(350);
+      const withDate = await inspectSheet();
+
+      // Le tableau : une colonne « Date » doit apparaître.
+      [...document.querySelectorAll('.tab')].find((t) => t.dataset.mode === 'table').click();
+      await pause(400);
+      const tableHeaders = [...document.querySelectorAll('#preview .print-table th')]
+        .map((th) => th.textContent);
+      // Forme « JJ/MM/AAAA HH:MM » testée sans expression régulière : dans un
+      // littéral de gabarit, « \d » deviendrait « d » et casserait la syntaxe
+      // envoyée à la page.
+      const looksLikeDateTime = (text) => typeof text === 'string'
+        && text.length === 16 && text[2] === '/' && text[5] === '/'
+        && text[10] === ' ' && text[13] === ':';
+      const tableDates = [...document.querySelectorAll('#preview .print-table td')]
+        .map((td) => td.textContent)
+        .filter(looksLikeDateTime);
+
+      // L'étiquette Niimbot : l'aperçu doit être plus haut d'une ligne.
+      [...document.querySelectorAll('.tab')].find((t) => t.dataset.mode === 'single').click();
+      await pause(500);
+      const single = (() => {
+        const canvas = document.querySelector('#preview canvas');
+        return canvas ? canvas.height : 0;
+      })();
+
+      [...document.querySelectorAll('.tab')].find((t) => t.dataset.mode === 'sheet').click();
+      await pause(300);
+
+      // L'export d'images est déclenché après coup, pour attendre un fichier
+      // réellement nouveau dans le dossier de téléchargements. Le mode de date
+      // doit donc rester actif jusqu'à cet export : on ne le remet à zéro
+      // qu'une fois l'archive vérifiée, plus bas.
+      [...document.querySelectorAll('.tab')].find((t) => t.dataset.mode === 'images').click();
+      await pause(300);
+
+      return { none, withDate, hintNone, tableHeaders, tableDates, single };
+    })()`);
+
+    record(
+      'la date se glisse sous le QR, sur sa propre ligne',
+      dated.withDate.lines.length === dated.none.lines.length + 1
+        && /^\d{2}\/\d{2}\/\d{4} \d{2}:\d{2}$/.test(dated.withDate.lines.at(-1) ?? '')
+        && dated.withDate.hasDateClass === true,
+      dated.withDate.lines.join(' | '),
+    );
+    record(
+      'la date fait céder le QR au lieu de le rogner',
+      dated.withDate.max < dated.none.max && dated.withDate.overflow === false,
+      `borne haute du curseur ${dated.none.max} % → ${dated.withDate.max} % `
+        + '(la date prend une ligne, le QR doit en laisser deux)',
+    );
+    record(
+      'sans date, rien n\'est imprimé',
+      dated.none.lines.length >= 1 && /Aucune date/.test(dated.hintNone),
+      dated.none.lines.join(' | '),
+    );
+    record(
+      'le tableau imprimé gagne une colonne de date',
+      dated.tableHeaders.includes('Date') && dated.tableDates.length >= 1,
+      `${dated.tableHeaders.join(' / ')} — ${dated.tableDates[0] ?? 'aucune date'}`,
+    );
+    record(
+      'l\'étiquette Niimbot réserve la ligne de date',
+      dated.single > 0,
+      `aperçu de ${dated.single} px de haut`,
+    );
+
+    // La planche est d'abord produite au format par défaut (12 mm), où la date
+    // ne tient pas : elle doit alors être **absente**, jamais amputée.
+    const datedZip = await waitForFile('zip');
+    const readEntry = (zip, entry) =>
+      spawnSync('/usr/bin/unzip', ['-p', join(DOWNLOADS, zip), entry], { encoding: 'utf8' }).stdout ?? '';
+
+    const narrowSheet = readEntry(datedZip, 'planche.html');
+    const narrowManifest = JSON.parse(readEntry(datedZip, 'export.json'));
+    const narrowCaptions = narrowSheet.match(/<figcaption>[\s\S]*?<\/figcaption>/g) ?? [];
+    /** Une date partielle : « 15/09/ » ou « 15/09/2026 » sans l'heure demandée. */
+    const partialDate = /\d{2}\/\d{2}\/?\s*(<|$)/.test(
+      narrowCaptions.map((c) => c.replace(/<[^>]+>/g, '')).join(' '),
+    );
+
+    record(
+      'sur une étiquette de 12 mm, la date est abandonnée plutôt qu\'amputée',
+      narrowManifest.datesOmitted >= 1 && partialDate === false,
+      `${datedZip} — ${narrowManifest.datesOmitted} date(s) abandonnée(s), `
+        + `mode « ${narrowManifest.settings.dateMode} »`,
+    );
+
+    // Puis sur une étiquette large, où elle doit apparaître complète. On ne
+    // coche qu'un lien : une étiquette de 70 × 40 mm à 300 dpi fait 827 × 472
+    // pixels, et en rendre trente prendrait des minutes pour rien.
+    await evaluate(`(async () => {
+      const format = document.getElementById('label-format');
+      format.value = 'generic-70x40';
+      format.dispatchEvent(new Event('change'));
+      document.querySelector('#list .link__check').click();
+      await new Promise((r) => setTimeout(r, 500));
+    })()`);
+    const wideZip = await waitForFile('zip');
+    const wideSheet = readEntry(wideZip, 'planche.html');
+    const wideCaptions = (wideSheet.match(/<figcaption>[\s\S]*?<\/figcaption>/g) ?? [])
+      .map((c) => c.replace(/<[^>]+>/g, ' '))
+      .join(' ');
+    const completeDate = (wideCaptions.match(/\d{2}\/\d{2}\/\d{4} \d{2}:\d{2}/) ?? [''])[0];
+
+    record(
+      'sur une étiquette large, la date est imprimée complète',
+      completeDate !== '',
+      `${wideZip} — « ${completeDate} »`,
+    );
+
+    // Remise en état : les contrôles suivants partent d'une planche complète,
+    // sans date et sans sélection résiduelle.
+    await evaluate(`(() => {
+      const select = document.getElementById('date-mode');
+      select.value = 'none';
+      select.dispatchEvent(new Event('change'));
+      const format = document.getElementById('label-format');
+      format.value = 'niimbot-d110';
+      format.dispatchEvent(new Event('change'));
+      document.getElementById('select-none').click();
+      const preset = document.getElementById('preset');
+      preset.value = 'a4-3x8';
+      preset.dispatchEvent(new Event('change'));
+      [...document.querySelectorAll('.tab')].find((t) => t.dataset.mode === 'sheet').click();
+    })()`);
+    await new Promise((r) => setTimeout(r, 400));
+
+    // --- Sur des colonnes étroites, la date est écartée proprement ---------
+    const narrow = await evaluate(`(async () => {
+      const pause = (ms) => new Promise((r) => setTimeout(r, ms));
+      const mode = document.getElementById('sheet-fit-mode');
+      const columns = document.getElementById('sheet-columns');
+      const rows = document.getElementById('sheet-rows');
+      const margin = document.getElementById('sheet-margin');
+      const gap = document.getElementById('sheet-gap');
+      const select = document.getElementById('date-mode');
+      const info = document.getElementById('sheet-info');
+
+      select.value = 'datetime';
+      select.dispatchEvent(new Event('change'));
+      mode.value = 'fill';
+      mode.dispatchEvent(new Event('change'));
+      columns.value = '12'; columns.dispatchEvent(new Event('input'));
+      rows.value = '6'; rows.dispatchEvent(new Event('input'));
+      margin.value = '2'; margin.dispatchEvent(new Event('input'));
+      gap.value = '0'; gap.dispatchEvent(new Event('input'));
+      await pause(500);
+
+      const cell = document.querySelector('#preview .print-page:first-child .print-cell');
+      const lines = [...(cell?.querySelectorAll('.print-cell__text span') ?? [])]
+        .map((span) => span.textContent);
+
+      const state = {
+        info: info.textContent,
+        lines,
+        widthMm: cell ? cell.getBoundingClientRect().width : 0,
+      };
+
+      mode.value = 'preset';
+      mode.dispatchEvent(new Event('change'));
+      select.value = 'none';
+      select.dispatchEvent(new Event('change'));
+      await pause(250);
+      return state;
+    })()`);
+
+    // « Complète ou absente » : un fragment de date ne doit jamais s'imprimer.
+    const narrowText = narrow.lines.join(' ');
+    const partial = /(^|\s)\d{2}\/\d{2}\/?(\s|$)/.test(narrowText);
+    record(
+      'sur des colonnes étroites, la date est écartée et annoncée',
+      /Date non imprimée/.test(narrow.info) && partial === false,
+      `colonnes de ${Math.round(narrow.widthMm)} px — ${narrow.info.split('—').at(-1)?.trim()}`,
     );
 
     // --- Le curseur du QR est borné par ce qui est imprimable -------------

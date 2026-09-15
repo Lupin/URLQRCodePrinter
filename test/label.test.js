@@ -176,3 +176,32 @@ test('checkQrLegibility signale une densité insuffisante si minScale est forcé
   assert.equal(verdict.ok, false);
   assert.match(verdict.reason, /px par module/);
 });
+
+test('une ligne supplémentaire est réservée dans la hauteur', () => {
+  // C'est ce qui empêche la date de sortir du bas de l'étiquette : la
+  // géométrie doit réserver sa ligne, pas la découvrir au moment du rendu.
+  const measure = (text) => text.length * 6;
+  const base = { text: 'https://exemple.fr/page', widthPx: 96, dpi: 203, measure };
+
+  const without = computeLabelGeometry(base);
+  const withLine = computeLabelGeometry({ ...base, extraLines: 1 });
+
+  assert.equal(without.extraLines, 0);
+  assert.equal(withLine.extraLines, 1);
+  assert.equal(withLine.height, without.height + without.lineHeight);
+  // Le texte principal cède une ligne à la date au lieu de la dépasser.
+  assert.equal(withLine.lines.length, without.lines.length);
+});
+
+test('les lignes réservées comptent dans le plafond de lignes', () => {
+  const measure = (text) => text.length * 6;
+  const long = 'https://exemple.fr/' + 'segment/'.repeat(12);
+
+  const without = computeLabelGeometry({ text: long, widthPx: 96, dpi: 203, measure, maxLines: 4 });
+  const reserved = computeLabelGeometry({
+    text: long, widthPx: 96, dpi: 203, measure, maxLines: 4, extraLines: 1,
+  });
+
+  assert.equal(without.lines.length, 4);
+  assert.equal(reserved.lines.length, 3, 'le total ne doit pas dépasser le plafond');
+});

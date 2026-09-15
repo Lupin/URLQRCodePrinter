@@ -557,6 +557,11 @@ body {
    hauteur réelle. */
 .print-cell__text span { display: block; }
 
+/* La date reste noire : sur une tête thermique, un gris se transforme en
+   trame, et le texte devient sale. Elle se distingue par sa position, pas par
+   sa couleur. */
+.print-cell__text .print-cell__date { display: block; }
+
 .print-table {
   width: 100%;
   border-collapse: collapse;

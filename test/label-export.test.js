@@ -421,3 +421,112 @@ test('sans raccourci, l\'archive ne change pas de forme', () => {
   const manifest = JSON.parse(readZip(archive).get('export.json'));
   assert.equal(manifest.labels[0].originalUrl, undefined);
 });
+
+test('la date demandée prend sa propre ligne', () => {
+  const measure = (text) => text.length * 6;
+  const stamp = new Date(2026, 8, 15, 10, 30).getTime();
+  const item = createLink(
+    { url: 'https://exemple.fr/article', title: 'Un article', createdAt: stamp },
+    { now: stamp },
+  );
+  const base = { link: item, format: findFormat('generic-70x40'), measure };
+
+  const withoutDate = planLabel({ ...base, textMode: 'url' });
+  const withDate = planLabel({ ...base, textMode: 'url', dateMode: 'date' });
+  const withTime = planLabel({ ...base, textMode: 'url', dateMode: 'datetime' });
+
+  assert.deepEqual(withoutDate.lines, ['https://exemple.fr/article']);
+  assert.deepEqual(withDate.lines, ['https://exemple.fr/article', '15/09/2026']);
+  assert.deepEqual(withTime.lines, ['https://exemple.fr/article', '15/09/2026 10:30']);
+
+  // La date se paie en place : le QR rétrécit plutôt que de la chasser.
+  assert.ok(withDate.qrSizePx < withoutDate.qrSizePx, 'le QR doit céder de la place');
+  assert.equal(withDate.heightPx, withoutDate.heightPx, 'hauteur fixe : rien ne débordé');
+
+  // Le paramètre de date est consigné dans le manifeste, pour reproduire.
+  const planned = planLabels([item], { ...base, textMode: 'url', dateMode: 'datetime' });
+  const archive = buildLabelArchive({
+    planned,
+    images: new Map(),
+    settings: { dateMode: 'datetime', format: findFormat('generic-70x40') },
+    now: 1,
+  });
+  const manifest = JSON.parse(readZip(archive).get('export.json'));
+  assert.equal(manifest.settings.dateMode, 'datetime');
+});
+
+test('sans date demandée, rien ne change dans les étiquettes', () => {
+  const measure = (text) => text.length * 6;
+  const item = createLink({ url: 'https://exemple.fr/a', title: 'Un' }, { now: 1 });
+  const base = { link: item, format: findFormat('generic-70x40'), measure };
+
+  const implicit = planLabel(base);
+  const explicit = planLabel({ ...base, dateMode: 'none' });
+  assert.deepEqual(explicit.lines, implicit.lines);
+  assert.equal(explicit.heightPx, implicit.heightPx);
+  assert.equal(explicit.qrSizePx, implicit.qrSizePx);
+});
+
+test('une date trop longue est abandonnée, jamais tronquée', () => {
+  // Défaut trouvé en vérifiant dans le navigateur : sur une étiquette de 12 mm,
+  // la date était amputée à « 15/09/ » — le millésime perdu. Une date fausse est
+  // pire que pas de date.
+  const narrow = (text) => text.length * 11;
+  const stamp = new Date(2026, 8, 15, 18, 1).getTime();
+  const item = createLink(
+    { url: 'https://exemple.fr/article', title: 'Un article', createdAt: stamp },
+    { now: stamp },
+  );
+
+  const plan = planLabel({
+    link: item,
+    format: findFormat('niimbot-d110'),
+    measure: narrow,
+    textMode: 'url',
+    dateMode: 'datetime',
+  });
+
+  assert.equal(plan.dateOmitted, true, 'trois lignes de date : elle doit céder');
+  assert.equal(
+    plan.lines.some((line) => /^\d{2}\/\d{2}\/?$/.test(line)),
+    false,
+    `aucun fragment de date ne doit rester : ${JSON.stringify(plan.lines)}`,
+  );
+
+  // La date seule tient en deux lignes : elle est conservée et complète.
+  const partial = planLabel({
+    link: item,
+    format: findFormat('niimbot-d110'),
+    measure: narrow,
+    textMode: 'url',
+    dateMode: 'date',
+  });
+  assert.equal(partial.dateOmitted, false);
+  // Les lignes peuvent être coupées par le retour à la ligne ; ce qui compte est
+  // que la date s'y retrouve entière.
+  assert.ok(
+    partial.lines.join('').includes('15/09/2026'),
+    `date incomplète : ${JSON.stringify(partial.lines)}`,
+  );
+
+  // Sur une étiquette large, aucun compromis à faire.
+  const wide = planLabel({
+    link: item,
+    format: findFormat('generic-70x40'),
+    measure: (text) => text.length * 6,
+    textMode: 'url',
+    dateMode: 'datetime',
+  });
+  assert.equal(wide.dateOmitted, false);
+  assert.equal(wide.lines.at(-1), '15/09/2026 18:01');
+
+  // Et l'archive dit combien de dates ont été abandonnées.
+  const archive = buildLabelArchive({
+    planned: [{ link: item, fileName: '1-un.png', plan }],
+    images: new Map(),
+    settings: { format: findFormat('niimbot-d110'), dateMode: 'datetime' },
+    now: 1,
+  });
+  const manifest = JSON.parse(readZip(archive).get('export.json'));
+  assert.equal(manifest.datesOmitted, 1);
+});

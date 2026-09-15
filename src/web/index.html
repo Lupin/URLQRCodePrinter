@@ -96,6 +96,14 @@
       </label>
       <p id="target-hint" class="hint hint--tight"></p>
 
+      <!-- Une ligne de plus sous le QR : chaque ligne prend la place du code,
+           d'où une option et non un réglage par défaut. -->
+      <label class="field field--compact">
+        <span class="field__label">Date sous le QR code</span>
+        <select id="date-mode" class="input input--compact"></select>
+      </label>
+      <p id="date-hint" class="hint hint--tight"></p>
+
       <div class="tabs" role="tablist">
         <button class="tab tab--active" role="tab" data-mode="sheet" aria-selected="true">Planche d'étiquettes</button>
         <button class="tab" role="tab" data-mode="table" aria-selected="false">Tableau</button>
