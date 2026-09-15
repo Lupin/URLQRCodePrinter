@@ -255,19 +255,12 @@
 
       <!-- Étiquette Niimbot -->
       <div class="mode" data-mode-panel="single" hidden>
+        <!-- Quatre champs par ligne au maximum : au-delà, les colonnes se
+             chevauchent — chaque champ réclame 120 px de large au minimum. -->
         <div class="fields">
           <label class="field">
             <span class="field__label">Format d'étiquette</span>
             <select id="label-profile" class="input"></select>
-          </label>
-          <!-- Le profil ne connaît que la largeur de la tête. Sans la longueur
-               du rouleau, la composition se tassait en haut et l'imprimante
-               avançait jusqu'à la découpe suivante : le reste sortait blanc. -->
-          <label class="field">
-            <span class="field__label">Longueur d'étiquette (mm)</span>
-            <input id="label-length" class="input" type="number" min="0" max="300" step="1"
-                   list="label-length-suggestions" placeholder="Longueur libre">
-            <datalist id="label-length-suggestions"></datalist>
           </label>
           <label class="field">
             <span class="field__label">Densité</span>
@@ -294,6 +287,23 @@
             <span class="field__label">Contenu de l'étiquette</span>
             <select id="label-content" class="input"></select>
           </label>
+          <!-- Le profil ne connaît que la largeur de la tête. Sans la longueur
+               du rouleau, la composition se tassait en haut et l'imprimante
+               avançait jusqu'à la découpe suivante : le reste sortait blanc. -->
+          <div class="field">
+            <label class="field__label" for="label-length">Longueur d'étiquette (mm)</label>
+            <div class="field__row">
+              <input id="label-length" class="input" type="number" min="0" max="300" step="1"
+                     list="label-length-suggestions" placeholder="Longueur libre">
+              <!-- Une liste déroulante ne se « désélectionne » pas : sans ce
+                   bouton, choisir 30 mm était définitif et on ne pouvait plus
+                   revenir au rouleau continu. -->
+              <button id="label-length-clear" class="btn btn--ghost btn--compact" type="button">
+                Libre
+              </button>
+            </div>
+            <datalist id="label-length-suggestions"></datalist>
+          </div>
           <!-- Où va la place restante quand la longueur du rouleau est connue. -->
           <label class="field">
             <span class="field__label">Disposition</span>
@@ -318,15 +328,23 @@
         <button id="print-label" class="btn btn--primary btn--wide" type="button" disabled>
           Imprimer cette étiquette
         </button>
-        <!-- La portée de la série se choisit : « toute la collection » était la
-             seule option, alors que la sélection cochée existe déjà. -->
-        <label class="field field--inline">
-          <span class="field__label">Impression en série</span>
-          <select id="print-scope" class="input"></select>
-        </label>
-        <button id="print-all-labels" class="btn btn--ghost btn--wide" type="button" disabled>
-          Imprimer toute la collection
-        </button>
+
+        <!-- L'impression en série : la portée et la quantité forment un seul
+             geste, le bouton qui les applique. -->
+        <fieldset class="series">
+          <legend class="field__label">Imprimer en série</legend>
+          <label class="field">
+            <span class="field__label">Portée</span>
+            <select id="print-scope" class="input"></select>
+          </label>
+          <label class="field">
+            <span class="field__label">Exemplaires par lien</span>
+            <input id="print-copies" class="input" type="number" min="1" max="20" value="1">
+          </label>
+          <button id="print-all-labels" class="btn btn--ghost" type="button" disabled>
+            Imprimer la collection
+          </button>
+        </fieldset>
         <p id="print-status" class="hint" aria-live="polite"></p>
       </div>
 

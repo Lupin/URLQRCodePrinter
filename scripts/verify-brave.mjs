@@ -653,6 +653,86 @@ async function main() {
       /(sélection \(1\)|le lien coché)/.test(scopeChoice?.une.label ?? ''),
       `« ${scopeChoice?.une.label} »`,
     );
+    // --- Aucun chevauchement dans le panneau Niimbot ----------------------
+    //
+    // Constaté à l'écran : cinq champs sur une ligne se recouvraient, chaque
+    // champ réclamant 120 px de large au minimum. On mesure les rectangles
+    // réellement calculés par le navigateur.
+    const overlap = await evaluate(`(async () => {
+      const pause = (ms) => new Promise((r) => setTimeout(r, ms));
+      const panel = document.querySelector('[data-mode-panel="single"]');
+      [...document.querySelectorAll('.tab')].find((t) => t.dataset.mode === 'single').click();
+      await pause(500);
+
+      const rects = [...panel.querySelectorAll('.field')].map((field) => {
+        const box = field.getBoundingClientRect();
+        const input = field.querySelector('.input');
+        const inputBox = input ? input.getBoundingClientRect() : null;
+        return {
+          label: field.querySelector('.field__label')?.textContent ?? '',
+          x: box.x, y: box.y, width: box.width, height: box.height,
+          inputWidth: inputBox ? inputBox.width : 0,
+          // Un champ trop étroit tronque son libellé : signe de superposition.
+          labelClipped: (() => {
+            const span = field.querySelector('.field__label');
+            return span ? span.scrollWidth > span.clientWidth + 1 : false;
+          })(),
+        };
+      });
+
+      // Deux champs se chevauchent si leurs rectangles se recouvrent.
+      const clashes = [];
+      for (let i = 0; i < rects.length; i++) {
+        for (let j = i + 1; j < rects.length; j++) {
+          const a = rects[i];
+          const b = rects[j];
+          const horizontal = a.x < b.x + b.width && b.x < a.x + a.width;
+          const vertical = a.y < b.y + b.height && b.y < a.y + a.height;
+          if (horizontal && vertical) clashes.push(a.label + ' / ' + b.label);
+        }
+      }
+
+      return {
+        count: rects.length,
+        clashes,
+        tooNarrow: rects.filter((rect) => rect.inputWidth < 60).map((rect) => rect.label),
+        clipped: rects.filter((rect) => rect.labelClipped).map((rect) => rect.label),
+      };
+    })()`);
+
+    // Une capture du panneau, pour juger la mise en page à l'œil et pas
+    // seulement au rectangle : une mesure peut être juste et le rendu laid.
+    // On amène le panneau dans la vue : une capture du haut de page ne
+    // montrerait pas ce qu'on veut juger.
+    await evaluate("document.querySelector('[data-mode-panel=\"single\"]').scrollIntoView({ block: 'start' })");
+    await new Promise((r) => setTimeout(r, 400));
+    const shot = await app.send('Page.captureScreenshot', { format: 'png' });
+    if (shot?.result?.data) {
+      // Hors du bac à sable, qui est effacé en sortie : la capture sert à
+      // relire la mise en page après coup.
+      mkdirSync(join(ROOT, '.verify-brave-captures'), { recursive: true });
+      writeFileSync(
+        join(ROOT, '.verify-brave-captures', 'panneau-niimbot.png'),
+        Buffer.from(shot.result.data, 'base64'),
+      );
+    }
+
+    record(
+      "aucun champ du panneau Niimbot n'en recouvre un autre",
+      (overlap?.clashes ?? ['inconnu']).length === 0,
+      overlap?.clashes?.length
+        ? overlap.clashes.join(' · ')
+        : `${overlap?.count} champs mesurés, aucun recouvrement`,
+    );
+    record(
+      "les libellés du panneau Niimbot ne sont pas tronqués",
+      (overlap?.clipped ?? ['inconnu']).length === 0
+        && (overlap?.tooNarrow ?? ['inconnu']).length === 0,
+      (overlap?.clipped ?? []).length
+        ? `tronqués : ${overlap.clipped.join(', ')}`
+        : 'tous lisibles en entier',
+    );
+
     record(
       "le bouton annonce toute la collection",
       // Une collection d'un seul lien se dit au singulier : le nombre n'y

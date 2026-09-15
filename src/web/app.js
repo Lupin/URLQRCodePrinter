@@ -27,6 +27,7 @@ import {
   drawLabel,
   checkQrLegibility,
   labelContent,
+  wrapDate,
   LABEL_ALIGNMENTS,
   DEFAULT_LABEL_ALIGNMENT,
 } from './core/label.js';
@@ -314,9 +315,33 @@ function updatePrintScope() {
   const ready = links.length > 0 && Boolean(printer);
 
   el.printAllLabels.disabled = !ready || (scope === 'selected' && count === 0);
-  el.printAllLabels.textContent = scope === 'selected'
+
+  // Le libellé dit la portée **et** le nombre d'exemplaires : « 10 étiquettes »
+  // alors que la quantité est à 2 en ferait sortir 20.
+  const copies = seriesCopies();
+  const total = count * copies;
+  const many = copies > 1 ? ` × ${copies} exemplaires` : '';
+  const base = scope === 'selected'
     ? (count === 1 ? 'Imprimer le lien coché' : `Imprimer la sélection (${count})`)
     : (links.length === 1 ? 'Imprimer la collection' : `Imprimer toute la collection (${links.length})`);
+  el.printAllLabels.textContent = base + many;
+  el.printAllLabels.title = total > 0
+    ? `${total} étiquette${total > 1 ? 's' : ''} au total`
+    : '';
+}
+
+/**
+ * Nombre d'exemplaires de chaque lien pour l'impression en série.
+ *
+ * Une valeur absente ou aberrante retombe sur 1 : mieux vaut sortir une
+ * étiquette que d'en sortir zéro à cause d'un champ vidé.
+ *
+ * @returns {number}
+ */
+function seriesCopies() {
+  const typed = Math.trunc(Number(el.printCopies.value));
+  if (!Number.isFinite(typed) || typed < 1) return 1;
+  return Math.min(typed, 20);
 }
 
 /** Recharge la collection depuis le stockage et redessine. */
@@ -1652,22 +1677,39 @@ function renderSingleLabel(link) {
   frame.className = 'preview__page';
   frame.style.padding = '10px';
 
-  const canvas = document.createElement('canvas');
-  // Le rendu écran est agrandi : la tête ne fait que 96 px de large.
-  const zoom = Math.max(1, Math.floor(280 / geometry.width));
-  canvas.width = geometry.width * zoom;
-  canvas.height = geometry.height * zoom;
-  canvas.style.width = `${geometry.width * zoom}px`;
-  canvas.style.imageRendering = 'pixelated';
+  // On compose à la taille réelle, puis on met à l'échelle pour l'écran : un
+  // rendu agrandi par le navigateur interpolerait le QR et le rendrait flou.
+  const source = document.createElement('canvas');
+  source.width = geometry.width;
+  source.height = geometry.height;
 
-  const ctx = canvas.getContext('2d');
-  ctx.imageSmoothingEnabled = false;
-  drawLabel(ctx, geometry, {
+  const sourceCtx = source.getContext('2d');
+  sourceCtx.imageSmoothingEnabled = false;
+  drawLabel(sourceCtx, geometry, {
     title: link.title,
     showTitle: content.showTitle,
     url: link.url,
     extraText: content.extraText,
   });
+
+  // L'orientation est un réglage d'impression, mais rien ne la montrerait sans
+  // imprimante connectée : on l'applique aussi à l'aperçu, avec exactement la
+  // même fonction que l'envoi. L'aperçu montre donc ce qui sortira.
+  const { turns } = labelRotation();
+  const rotated = turns === 0 ? null : rotateCanvas(source, turns);
+  const shown = rotated ?? source;
+
+  const canvas = document.createElement('canvas');
+  // Le rendu écran est agrandi : la tête ne fait que 96 px de large.
+  const zoom = Math.max(1, Math.floor(280 / shown.width));
+  canvas.width = shown.width * zoom;
+  canvas.height = shown.height * zoom;
+  canvas.style.width = `${shown.width * zoom}px`;
+  canvas.style.imageRendering = 'pixelated';
+
+  const ctx = canvas.getContext('2d');
+  ctx.imageSmoothingEnabled = false;
+  ctx.drawImage(shown, 0, 0, canvas.width, canvas.height);
 
   frame.appendChild(canvas);
 
@@ -1676,10 +1718,11 @@ function renderSingleLabel(link) {
   // `composeLabel` sait si la date a été écartée : on le dit, plutôt que de
   // laisser croire que l'option n'a pas d'effet.
   const dateNote = dateOmitted ? composeDateNote() : '';
+  const turnNote = turns === 0 ? '' : ` — orientation : ${labelRotation().label}`;
   caption.textContent = (verdict.ok
     ? `${profile.id} — ${geometry.width} × ${geometry.height} px, `
       + `${decimal(verdict.pxPerModule)} px par module`
-    : `${profile.id} — ${verdict.reason}`) + dateNote;
+    : `${profile.id} — ${verdict.reason}`) + turnNote + dateNote;
   if (!verdict.ok) caption.style.color = 'var(--danger)';
   frame.appendChild(caption);
 
@@ -1706,23 +1749,35 @@ function composeLabel(link, profile) {
   // `drawLabel` écrit la date sur une seule ligne, sans la découper : on vérifie
   // d'abord qu'elle tient, à la taille de police que la géométrie va retenir.
   // Un premier calcul sans ligne réservée donne cette taille.
+  // Le QR encode toujours l'URL du lien ; le texte imprimé, lui, suit le mode
+  // choisi. Le mode « QR seul » n'a donc aucun texte à mesurer, d'où la sonde
+  // sur l'URL : c'est la matrice la plus large qui décide de l'échelle.
   const probe = computeLabelGeometry({
     text: link.url,
+    qrText: link.url,
     widthPx: profile.printheadPixels,
     dpi: profile.dpi,
     ecc: 'M',
     maxHeightPx: lengthPx,
     alignment,
   });
-  const fits = wanted !== ''
-    && cachedTextMeasure(probe.fontSize)(wanted) <= probe.width - probe.padding * 2;
-  const dateText = fits ? wanted : '';
+
+  // La date est découpée à la largeur utile, à la taille de police de la sonde.
+  // Une date complète sur deux lignes vaut mieux qu'aucune date : c'est ce qui
+  // rendait le réglage inopérant sur une tête de 12 mm.
+  const dateLines = wrapDate(
+    cachedTextMeasure(probe.fontSize),
+    wanted,
+    probe.width - probe.padding * 2,
+    DATE_LINES_MAX,
+  );
 
   // Le contenu choisi décide de ce qui est imprimé : QR seul, + titre, + URL…
-  const content = labelContent(link, el.labelContent.value, dateText);
+  const content = labelContent(link, el.labelContent.value, dateLines);
 
   const geometry = computeLabelGeometry({
     text: content.text,
+    qrText: link.url,
     widthPx: profile.printheadPixels,
     dpi: profile.dpi,
     ecc: 'M',
@@ -1735,8 +1790,8 @@ function composeLabel(link, profile) {
     geometry,
     content,
     verdict: checkQrLegibility(geometry),
-    dateText,
-    dateOmitted: wanted !== '' && !fits,
+    dateLines,
+    dateOmitted: wanted !== '' && dateLines.length === 0,
   };
 }
 
@@ -2245,6 +2300,12 @@ async function printOneLabel() {
  * bilan final dit combien sont sorties. Sur trente étiquettes, s'arrêter à la
  * troisième parce que la quatrième a raté serait pénible.
  */
+/** Nombre de lignes qu'une date peut occuper sous le QR, une fois découpée. */
+const DATE_LINES_MAX = 2;
+
+/** Vrai pendant une série : le bouton sert alors à l'interrompre. */
+let seriesRunning = false;
+
 async function printAllLabels() {
   if (!printer) {
     toast('Aucune imprimante connectée', 'error');
@@ -2269,32 +2330,46 @@ async function printAllLabels() {
     return;
   }
 
+  const copies = seriesCopies();
   el.printLabel.disabled = true;
   el.printAllLabels.disabled = true;
+  // Le bouton devient l'arrêt de la série : trente étiquettes lancées par
+  // erreur ne doivent pas obliger à couper l'imprimante.
+  el.printAllLabels.textContent = 'Arrêter la série';
+  seriesRunning = true;
 
   let printed = 0;
   const failures = [];
 
   try {
     for (const [index, link] of items.entries()) {
+      if (!seriesRunning) break;
       el.printStatus.textContent =
         `Étiquette ${index + 1}/${items.length} — ${link.title || link.url}`;
       try {
-        // Une copie par lien : la quantité se règle dans la liste, pas ici.
-        await sendLabel(link, { copies: 1 });
-        printed += 1;
+        // La quantité est un réglage de la série : sans elle, impossible de
+        // sortir deux exemplaires de chaque étiquette d'un seul geste.
+        await sendLabel(link, { copies });
+        printed += copies;
       } catch (error) {
         failures.push(error.message ?? 'impression impossible');
       }
     }
 
+    // Le compte porte sur les étiquettes réellement sorties, pas sur les liens
+    // parcourus : avec deux exemplaires, dix liens font vingt étiquettes.
     const parts = [`${printed} étiquette${printed > 1 ? 's' : ''} imprimée${printed > 1 ? 's' : ''}`];
+    if (!seriesRunning) parts.push('série arrêtée');
     if (failures.length > 0) parts.push(`${failures.length} en échec — ${failures[0]}`);
     el.printStatus.textContent = parts.join(', ') + '.';
     toast(parts.join(', '), failures.length > 0 ? 'error' : 'info');
   } finally {
+    seriesRunning = false;
     el.printLabel.disabled = false;
     el.printAllLabels.disabled = false;
+    // Le libellé revient à la portée courante : le remettre à la main pourrait
+    // annoncer autre chose que ce que le clic suivant fera.
+    updatePrintScope();
   }
 }
 
@@ -2488,6 +2563,31 @@ function updateLabelContentHint() {
   el.labelContentHint.textContent = mode === 'none'
     ? `Le QR code seul, sans texte.${date}`
     : `Le texte est découpé à la largeur de la tête.${date}`;
+}
+
+/**
+ * Tourne un canevas d'un nombre de quarts de tour.
+ *
+ * L'aperçu et l'impression doivent tourner de la même façon : deux implémentations
+ * divergeraient, et l'aperçu ne montrerait plus ce qui sort.
+ *
+ * @param {HTMLCanvasElement} source
+ * @param {number} turns Quarts de tour dans le sens horaire.
+ * @returns {HTMLCanvasElement}
+ */
+function rotateCanvas(source, turns) {
+  const quarters = ((turns % 4) + 4) % 4;
+  const swap = quarters % 2 === 1;
+  const canvas = document.createElement('canvas');
+  canvas.width = swap ? source.height : source.width;
+  canvas.height = swap ? source.width : source.height;
+
+  const ctx = canvas.getContext('2d');
+  ctx.imageSmoothingEnabled = false;
+  ctx.translate(canvas.width / 2, canvas.height / 2);
+  ctx.rotate((quarters * Math.PI) / 2);
+  ctx.drawImage(source, -source.width / 2, -source.height / 2);
+  return canvas;
 }
 
 /** L'orientation retenue à l'impression. */
@@ -2698,8 +2798,16 @@ el.labelContent.addEventListener('change', () => {
   renderPreview();
 });
 el.labelLength.addEventListener('input', renderPreview);
+
+// Revenir au rouleau continu : le champ vidé, la hauteur redevient celle du
+// contenu. On efface aussi la sélection résiduelle de la liste déroulante.
+el.labelLengthClear.addEventListener('click', () => {
+  el.labelLength.value = '';
+  renderPreview();
+});
 el.labelAlignment.addEventListener('change', renderPreview);
 el.printScope.addEventListener('change', updatePrintScope);
+el.printCopies.addEventListener('input', updatePrintScope);
 el.labelLink.addEventListener('change', renderPreview);
 el.labelFormat.addEventListener('change', renderPreview);
 el.labelText.addEventListener('change', renderPreview);
@@ -2711,7 +2819,20 @@ el.print.addEventListener('click', printSelection);
 el.connect.addEventListener('click', connectPrinter);
 el.disconnect.addEventListener('click', disconnectPrinter);
 el.printLabel.addEventListener('click', printOneLabel);
-el.printAllLabels.addEventListener('click', printAllLabels);
+el.printAllLabels.addEventListener('click', () => {
+  // Pendant une série, le même bouton arrête : on ne peut pas en lancer une
+  // seconde par-dessus la première.
+  if (seriesRunning) {
+    seriesRunning = false;
+    el.printStatus.textContent = 'Arrêt demandé : la série s\'arrête après l\'étiquette en cours.';
+    return;
+  }
+  // `printAllLabels` attrape ses propres erreurs ; on protège malgré tout
+  // l'appel, sans quoi un rejet deviendrait une promesse non traitée.
+  printAllLabels().catch((error) => {
+    toast(error.message ?? 'Impression impossible', 'error');
+  });
+});
 
 window.addEventListener('beforeprint', () => {
   // Le rendu papier est préparé au clic ; un Ctrl+P direct n'aurait rien à

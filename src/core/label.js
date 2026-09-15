@@ -38,10 +38,11 @@ import { hostOf } from './link.js';
  *
  * @param {{ url: string, title?: string }} link
  * @param {string} mode `none`, `title`, `url`, `title-url` ou `host`.
- * @param {string} [dateText] Ligne de date à imprimer sous le texte, ou chaîne vide.
+ * @param {string[]} [dateLines] Lignes de date à imprimer sous le texte, déjà
+ *   découpées à la largeur utile. Un tableau vide n'imprime rien.
  * @returns {{ text: string, showTitle: boolean, extraLines: number, extraText: string[] }}
  */
-export function labelContent(link, mode, dateText = '') {
+export function labelContent(link, mode, dateLines = []) {
   // Un titre absent ne doit pas réserver une ligne vide.
   const title = typeof link.title === 'string' ? link.title : '';
   const wantsTitle = (mode === 'title' || mode === 'title-url') && title !== '';
@@ -51,7 +52,9 @@ export function labelContent(link, mode, dateText = '') {
   else if (mode === 'host') text = hostOf(link.url);
   else if (mode === 'title' && !wantsTitle) text = link.url; // titre vide : l'URL
 
-  const extraText = dateText === '' ? [] : [dateText];
+  // La date arrive déjà découpée : « 15/09/2026 21:28 » demande 114 px là où un
+  // D110 n'en offre que 84, et `drawLabel` écrit ses lignes telles quelles.
+  const extraText = Array.isArray(dateLines) ? dateLines.filter(Boolean) : [];
 
   return {
     text,
@@ -59,6 +62,30 @@ export function labelContent(link, mode, dateText = '') {
     extraLines: (wantsTitle ? 1 : 0) + extraText.length,
     extraText,
   };
+}
+
+/**
+ * Prépare la date à imprimer sous le QR, en la découpant si elle ne tient pas.
+ *
+ * `drawLabel` écrit chaque ligne supplémentaire telle quelle, sans la découper :
+ * une date trop large déborderait. On lui fournit donc des lignes déjà prêtes.
+ * La date est rendue **entière** ou pas du tout.
+ *
+ * @param {(text: string) => number} measure Mesure du texte, à la taille de police retenue.
+ * @param {string} dateText Date déjà mise en forme.
+ * @param {number} maxWidth Largeur utile, en pixels.
+ * @param {number} maxLines Nombre de lignes que la date peut occuper.
+ * @returns {string[]} Lignes de la date, ou un tableau vide si elle ne tient pas.
+ */
+export function wrapDate(measure, dateText, maxWidth, maxLines) {
+  if (dateText === '' || maxLines <= 0) return [];
+  // On ne coupe un date qu'après l'espace qui sépare la date de l'heure : les
+  // deux morceaux restent lisibles, « 15/09/2026 » puis « 21:28 ».
+  const lines = wrapText(measure, dateText, maxWidth, { maxLines });
+  // Un découpage qui perdrait des caractères signale une date trop longue.
+  const rejoined = lines.join('').replace(/\s/g, '');
+  if (rejoined !== dateText.replace(/\s/g, '')) return [];
+  return lines;
 }
 
 /** Échelle minimale : sous 2 px par module, la tête thermique fusionne les points. */
@@ -191,6 +218,11 @@ export function wrapText(measure, text, maxWidth, options = {}) {
  *
  * @param {object} options
  * @param {string} options.text           Texte à imprimer sous le QR (généralement l'URL).
+ * @param {string} [options.qrText]       Contenu réellement encodé dans le QR.
+ *   Distinct de `text` : les deux ne coïncident que par hasard. Un QR code
+ *   peut n'avoir aucun texte sous lui (mode « QR seul »), et un titre imprimé
+ *   n'est pas ce qu'on encode. Les confondre faisait lever l'encodage dès que
+ *   le texte était vide — « QR code seul » et « QR + titre » ne rendaient rien.
  * @param {number} options.widthPx        Largeur utile de la tête, en pixels.
  * @param {number} [options.dpi]          Résolution, pour les conversions mm <-> px.
  * @param {number} [options.fontSize]     Taille de police en pixels.
@@ -238,7 +270,10 @@ export function computeLabelGeometry(options) {
   if (maxHeight > 0) target = target > 0 ? Math.min(target, maxHeight) : maxHeight;
 
   // Le QR a une taille entière en modules : on arrondit au multiple inférieur.
-  const matrix = encodeQr(options.text ?? ' ', { ecc: options.ecc ?? 'M', border: 2 });
+  // Ce qui est encodé n'est pas ce qui est imprimé : `qrText` prime, et à
+  // défaut on retombe sur le texte affiché, comportement d'origine.
+  const qrText = options.qrText ?? options.text ?? '';
+  const matrix = encodeQr(qrText === '' ? ' ' : qrText, { ecc: options.ecc ?? 'M', border: 2 });
   const measure = options.measure ?? defaultMeasure(fontSize);
 
   /** Découpe le texte pour une taille de police, dans les limites de la cible. */
