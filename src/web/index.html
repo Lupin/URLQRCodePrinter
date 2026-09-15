@@ -112,9 +112,13 @@
           </label>
           <label class="field">
             <span class="field__label">Largeur du QR</span>
+            <!-- Les bornes sont recalculées à chaque rendu : un QR plus petit
+                 ne serait plus lisible une fois imprimé, un QR plus grand
+                 chasserait le texte hors de l'étiquette. -->
             <input id="sheet-qr" class="input" type="range" min="30" max="100" value="70">
           </label>
         </div>
+        <p id="sheet-qr-info" class="hint hint--tight"></p>
         <div class="fields">
           <label class="field">
             <span class="field__label">Réglage</span>

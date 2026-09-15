@@ -214,6 +214,15 @@ Le chemin le plus court vers n'importe quelle étiqueteuse. Choisissez :
 - **Texte imprimé** — titre + URL, URL seule, titre seul, domaine seul, ou rien ;
 - **Marge**, **taille du texte**, **traits de coupe**.
 
+Le curseur **Largeur du QR** n'est pas libre : ses bornes sont calculées pour la
+disposition choisie. En dessous, un module imprimé ne serait plus lisible (0,4 mm
+sur papier, 2 pixels sur une tête thermique) ; au-dessus, le QR chasserait le
+texte hors de l'étiquette. La ligne sous le curseur indique la taille obtenue, la
+taille réelle d'un module, l'intervalle permis et le nombre de lignes de texte
+disponibles. Si une URL est trop dense pour le format — un lien long sur une
+étiquette de 12 mm — le message nomme le lien fautif : raccourcissez-le, ou prenez
+une étiquette plus grande.
+
 L'aperçu se met à jour à chaque changement. « Exporter les images (ZIP) »
 produit une archive autonome :
 
@@ -255,9 +264,11 @@ bandeau n'apparaît que dans ce cas précis.
 décalage qui augmente de rangée en rangée signale un mauvais pas, pas une
 mauvaise marge : choisissez la référence exacte plutôt que de compenser.
 
-**Le QR est illisible.** La légende sous l'aperçu donne les pixels par module.
-Sous 2, raccourcissez l'URL (le raccourcisseur est fait pour ça), réduisez le
-texte imprimé, ou prenez une étiquette plus large.
+**Le QR est illisible.** La ligne sous le curseur donne les millimètres par
+module et le minimum du support. Si l'URL est trop dense pour l'étiquette, le
+curseur ne peut pas la rendre imprimable : raccourcissez l'URL (le raccourcisseur
+est fait pour ça), réduisez le texte imprimé, ou prenez une étiquette plus large.
+Rappel : 0,4 mm par module sur papier, 2 pixels par module sur une tête thermique.
 
 **L'imprimante n'apparaît pas.** Sur Brave, le drapeau Web Bluetooth est la
 première chose à vérifier. Éloignez l'imprimante des autres appareils Bluetooth,

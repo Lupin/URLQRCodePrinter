@@ -771,7 +771,7 @@ async function main() {
       const slider = document.getElementById('sheet-qr');
       const offsetX = document.getElementById('sheet-offset-x');
       const offsetY = document.getElementById('sheet-offset-y');
-      const info = document.getElementById('sheet-info');
+      const info = document.getElementById('sheet-qr-info');
       const pause = () => new Promise((r) => setTimeout(r, 220));
 
       const qrWidth = () => {
@@ -790,12 +790,14 @@ async function main() {
       offsetY.value = '0'; offsetY.dispatchEvent(new Event('input'));
       await pause();
 
-      slider.value = '30'; slider.dispatchEvent(new Event('input'));
+      // Les bornes du curseur sont calculées : on les interroge plutôt que de
+      // supposer 30 et 100 %.
+      slider.value = slider.min; slider.dispatchEvent(new Event('input'));
       await pause();
       const small = qrWidth();
       const smallInfo = info.textContent;
 
-      slider.value = '100'; slider.dispatchEvent(new Event('input'));
+      slider.value = slider.max; slider.dispatchEvent(new Event('input'));
       await pause();
       const big = qrWidth();
       const bigInfo = info.textContent;
@@ -838,12 +840,15 @@ async function main() {
     record(
       'le curseur de largeur du QR agit sur le rendu',
       tweaks.big > tweaks.small * 2,
-      `${Math.round(tweaks.small)} px à 30 % → ${Math.round(tweaks.big)} px à 100 %`,
+      `${Math.round(tweaks.small)} px au minimum → ${Math.round(tweaks.big)} px au maximum`,
     );
+    // Le rognage était auparavant *signalé* au-delà de la place disponible.
+    // Le curseur étant désormais borné, cette situation n'est plus atteignable :
+    // le contrôle vérifie donc que la demande extrême ne rogne rien.
     record(
-      'le rognage du texte est annoncé quand le QR est trop grand',
-      /rogné/.test(tweaks.bigInfo ?? '') && !/rogné/.test(tweaks.smallInfo ?? ''),
-      tweaks.bigInfo?.slice(-70),
+      'le maximum du curseur ne provoque aucun rognage',
+      !/rogné/.test(tweaks.bigInfo ?? '') && /mm par module/.test(tweaks.bigInfo ?? ''),
+      tweaks.bigInfo?.slice(-90),
     );
     record(
       'le décalage déplace la grille, sans la déformer',
@@ -856,6 +861,126 @@ async function main() {
         && Math.abs(tweaks.movedQr - tweaks.baseQr) < 1.5,
       `+3 mm → ${tweaks.dx.toFixed(1)} px, −4 mm → ${tweaks.backDx.toFixed(1)} px `
         + `(attendu ${(4 * tweaks.pxPerMm).toFixed(1)} px à ${tweaks.pxPerMm.toFixed(2)} px/mm)`,
+    );
+
+    // --- Le curseur du QR est borné par ce qui est imprimable -------------
+    const bounded = await evaluate(`(async () => {
+      const pause = (ms) => new Promise((r) => setTimeout(r, ms));
+      const slider = document.getElementById('sheet-qr');
+      const info = document.getElementById('sheet-qr-info');
+      const preset = document.getElementById('preset');
+      const mode = document.getElementById('sheet-fit-mode');
+      if (mode.value !== 'preset') {
+        mode.value = 'preset';
+        mode.dispatchEvent(new Event('change'));
+        await pause(200);
+      }
+
+      /** Mesure une planche : bornes du curseur et contenu des cellules. */
+      const inspect = async (key) => {
+        preset.value = key;
+        preset.dispatchEvent(new Event('change'));
+        await pause(300);
+
+        const cells = [...document.querySelectorAll('#preview .print-page:first-child .print-cell')];
+        const cell = cells[0];
+        const measured = cell ? cell.getBoundingClientRect() : null;
+        const qr = cell?.querySelector('.print-cell__qr')?.getBoundingClientRect();
+        const text = cell?.querySelector('.print-cell__text');
+        const textRect = text?.getBoundingClientRect();
+        const lines = text ? [...text.querySelectorAll('span')].map((s) => s.textContent) : [];
+
+        return {
+          min: Number(slider.min),
+          max: Number(slider.max),
+          value: Number(slider.value),
+          info: info.textContent,
+          cellHeight: measured ? measured.height : 0,
+          qrHeight: qr ? qr.height : 0,
+          textHeight: textRect ? textRect.height : 0,
+          // Le contenu tient-il dans l'étiquette, d'après le navigateur ?
+          contentOverflows: cell ? cell.scrollHeight > cell.clientHeight + 1
+            || cell.scrollWidth > cell.clientWidth + 1 : null,
+          textOverflows: text ? text.scrollHeight > text.clientHeight + 1 : null,
+          lineCount: lines.length,
+          truncated: lines.some((line) => line.endsWith('…')),
+        };
+      };
+
+      const avery = await inspect('avery-l7160');
+      const small = await inspect('avery-5160');
+      const square = await inspect('a4-qr-3x4');
+
+      // Le curseur poussé au maximum ne doit rien rogner.
+      preset.value = 'avery-l7160';
+      preset.dispatchEvent(new Event('change'));
+      await pause(250);
+      slider.value = slider.max;
+      slider.dispatchEvent(new Event('input'));
+      await pause(300);
+
+      const atMax = [...document.querySelectorAll('#preview .print-page:first-child .print-cell')][0];
+      const maxState = {
+        value: Number(slider.value),
+        info: info.textContent,
+        contentOverflows: atMax.scrollHeight > atMax.clientHeight + 1
+          || atMax.scrollWidth > atMax.clientWidth + 1,
+        lines: [...(atMax.querySelector('.print-cell__text')?.querySelectorAll('span') ?? [])].length,
+      };
+
+      // Et au minimum : le QR ne doit pas descendre sous la lisibilité.
+      slider.value = slider.min;
+      slider.dispatchEvent(new Event('input'));
+      await pause(300);
+      const atMin = [...document.querySelectorAll('#preview .print-page:first-child .print-cell')][0];
+      const minState = {
+        value: Number(slider.value),
+        info: info.textContent,
+        contentOverflows: atMin.scrollHeight > atMin.clientHeight + 1
+          || atMin.scrollWidth > atMin.clientWidth + 1,
+      };
+
+      slider.value = '70';
+      slider.dispatchEvent(new Event('input'));
+      preset.value = 'a4-3x8';
+      preset.dispatchEvent(new Event('change'));
+      await pause(200);
+
+      return { avery, small, square, maxState, minState };
+    })()`);
+
+    record(
+      'le curseur du QR est borné par la lisibilité et par le texte',
+      bounded.avery.min >= 30 && bounded.avery.max < 100 && bounded.avery.min < bounded.avery.max,
+      `L7160 : ${bounded.avery.min}–${bounded.avery.max} %, réglé à ${bounded.avery.value} %`,
+    );
+    record(
+      'la borne dépend du format d\'étiquette',
+      bounded.small.max !== bounded.avery.max || bounded.small.min !== bounded.avery.min,
+      `L7160 ${bounded.avery.min}–${bounded.avery.max} % / 5160 ${bounded.small.min}–${bounded.small.max} % `
+        + `/ carré ${bounded.square.min}–${bounded.square.max} %`,
+    );
+    record(
+      'le texte est découpé en lignes, jamais rogné',
+      bounded.avery.contentOverflows === false
+        && bounded.avery.textOverflows === false
+        && bounded.avery.lineCount >= 1,
+      `${bounded.avery.lineCount} ligne(s), ${Math.round(bounded.avery.textHeight)} px de texte`,
+    );
+    record(
+      'au maximum du curseur, rien ne déborde de l\'étiquette',
+      bounded.maxState.contentOverflows === false && bounded.maxState.lines >= 1,
+      `${bounded.maxState.value} % → ${bounded.maxState.lines} ligne(s)`,
+    );
+    record(
+      'au minimum du curseur, rien ne déborde non plus',
+      bounded.minState.contentOverflows === false,
+      `${bounded.minState.value} %`,
+    );
+    record(
+      'l\'information annonce les bornes et les modules',
+      /mm par module/.test(bounded.avery.info) && /réglable de \d+ à \d+ %/.test(bounded.avery.info),
+      bounded.avery.info,
     );
 
     // --- « Remplir la feuille » : la grille choisie est celle imprimée -----

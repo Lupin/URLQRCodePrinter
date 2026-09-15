@@ -21,7 +21,7 @@ Markdown, ou envoi direct à une imprimante Niimbot.
 | Socle natif Swift (protocole, session, CoreBluetooth) | fait, testé |
 | Application iOS qui utilise ce socle | à faire |
 
-**555 tests, tous verts** — 451 en JavaScript et 104 en Swift — dont :
+**558 tests, tous verts** — 454 en JavaScript et 104 en Swift — dont :
 
 - la validation **octet à octet** des trames Niimbot contre les relevés
   documentés, **dans les deux langages** : deux implémentations indépendantes
@@ -36,12 +36,15 @@ Markdown, ou envoi direct à une imprimante Niimbot.
   de dérive cumulée — doublée d'une mesure du rendu réel dans Brave ;
 - le **calcul inverse** « remplir la feuille » : la grille demandée est
   exactement celle qui sort, sur plus de 400 combinaisons de colonnes, rangées,
-  marges et écarts, pour le A4 comme pour le Letter.
+  marges et écarts, pour le A4 comme pour le Letter ;
+- les **bornes du QR** par type d'impression : la taille du curseur est calculée
+  avant le rendu, et la découpe du texte qui en découle est vérifiée ligne à
+  ligne.
 
 **L'application est vérifiée dans un vrai navigateur** : `npm run verify:brave`
 lance Brave sur un profil isolé, collecte un lien, le raccourcit, exporte le CSV
 et l'archive d'étiquettes, puis contrôle les fichiers réellement écrits sur le
-disque (signature ZIP, `unzip -t`, contenu du CSV). 61 vérifications, dont le
+disque (signature ZIP, `unzip -t`, contenu du CSV). 67 vérifications, dont le
 rendu des liens cliquables dans l'application *et* dans la fenêtre de
 l'extension, la grille réellement calculée pour quatre références Avery, et
 l'aperçu d'étiquette composé sans aucune imprimante connectée.
@@ -244,6 +247,39 @@ s'il existe, et l'URL de l'onglet est lue par injection quand `tab.url` manque.
 - **Le dialogue d'impression dépend du modèle.** Un D110 attend un `SetPageSize`
   de 4 octets ; le format « v4 » (13 octets) le fait répondre une erreur
   `DataError` au lieu d'imprimer.
+
+## Ce qui est imprimable est calculé avant, pas signalé après
+
+Un QR code a deux limites physiques, et elles dépendent du **type d'impression** :
+
+| Support | Contrainte | Sur une D110 (203 dpi) | Sur papier |
+|---|---|---|---|
+| Tête thermique | 2 px par module, sinon la tête fusionne les points | 0,25 mm par module | — |
+| Papier (laser, jet d'encre) | 0,4 mm par module, sinon le module n'est plus résolu et l'appareil photo ne fait pas la mise au point | — | 0,4 mm |
+
+`qrRatioBounds` (dans `core/sheet.js`) croise ces contraintes avec la géométrie
+de l'étiquette pour produire l'intervalle **autorisé** de la largeur du QR :
+
+- **borne basse** : `qrModules × minModuleMm` — un QR plus petit serait illisible
+  une fois imprimé, et la densité de la matrice dépend de la longueur de l'URL :
+  sur une L7160, une URL courte laisse régler de 30 à 86 %, une URL de 49 modules
+  impose au moins 58 % ;
+- **borne haute** : le QR est carré, il doit tenir dans la largeur **et** laisser
+  au moins une ligne de texte sous lui.
+
+Le curseur reçoit ces bornes : **il ne peut plus demander un QR impossible**, au
+lieu d'afficher un avertissement une fois le réglage fautif choisi. Quand les deux
+bornes se croisent — 57 modules sur une tête de 12 mm demandent 14,3 mm — le
+message le dit, nomme le lien le plus dense, et propose la seule vraie sortie :
+raccourcir l'URL, ce que fait le raccourcisseur.
+
+Le texte suit la même logique : il est découpé en lignes par le script
+(`sheetCellLines`), borné au nombre de lignes qui tiennent réellement, et tronqué
+avec des points de suspension s'il est trop long. Taille de police et interligne
+sont posées en ligne à partir du même calcul que la découpe, donc la hauteur
+occupée est exactement la hauteur réservée — un test dans Brave compare les deux.
+Auparavant, le texte était laissé au retour à la ligne du navigateur et pouvait
+déborder de l'étiquette sans que rien ne le signale.
 
 ## Un export ne doit rien contenir d'insaisissable
 

@@ -7,6 +7,8 @@
  * cumulatif, contrairement à une grille CSS dont les arrondis dérivent.
  */
 
+import { wrapText } from './label.js';
+
 /** Dimensions des formats papier courants, en millimètres. */
 export const PAGE_SIZES = Object.freeze({
   a4: { widthMm: 210, heightMm: 297, label: 'A4 (210 × 297 mm)' },
@@ -499,10 +501,201 @@ function nonNegative(value) {
 export const MIN_QR_RATIO = 0.3;
 /** Proportion maximale : au-delà, le QR chasse le texte hors de l'étiquette. */
 export const MAX_QR_RATIO = 1;
-/** Hauteur d'une ligne de texte à 7 pt avec une interligne de 1,15. */
-export const SHEET_TEXT_LINE_MM = 2.84;
 /** Écart entre le QR et le texte, identique à celui de la feuille de style. */
 export const SHEET_QR_GAP_MM = 1.5;
+/** Marge intérieure d'une étiquette de planche, pour ne pas toucher les bords. */
+export const SHEET_CELL_MARGIN_MM = 0.5;
+
+/** Taille de police du texte des étiquettes de planche, en points. */
+export const SHEET_FONT_PT = 7;
+/** Interligne, en multiple de la taille de police. */
+export const SHEET_LINE_SPACING = 1.15;
+
+/**
+ * Taille minimale d'un module de QR **sur papier**, en millimètres.
+ *
+ * C'est la contrainte qui manquait : un module plus petit n'est plus résolu
+ * proprement par une imprimante laser ou jet d'encre, et un téléphone a du mal
+ * à faire la mise au point dessus. 0,4 mm correspond à la recommandation
+ * courante pour un QR code imprimé lu à bout portant.
+ */
+export const MIN_MODULE_MM_PAPER = 0.4;
+
+/**
+ * Taille minimale d'un module sur une **tête thermique**, en millimètres.
+ *
+ * Une tête Niimbot fusionne les points sous 2 pixels par module. La contrainte
+ * dépend donc de la résolution, contrairement à celle du papier.
+ *
+ * @param {number} dpi
+ * @returns {number} millimètres par module
+ */
+export function minModuleMmThermal(dpi) {
+  const resolution = Number.isFinite(dpi) && dpi > 0 ? dpi : 203;
+  return (2 / resolution) * 25.4;
+}
+
+/**
+ * Hauteur d'une ligne de texte d'étiquette, en millimètres.
+ *
+ * Dérivée de la taille de police plutôt que codée en dur : la feuille de style
+ * et le calcul de mise en page doivent partir du même chiffre, sinon le texte
+ * calculé ne tient plus dans la place réservée.
+ *
+ * @param {{ fontSizePt?: number, lineSpacing?: number }} [options]
+ * @returns {{ fontSizePt: number, fontSizePx: number, lineHeightMm: number }}
+ */
+export function sheetTextMetrics(options = {}) {
+  const fontSizePt = Number.isFinite(options.fontSizePt)
+    ? options.fontSizePt
+    : SHEET_FONT_PT;
+  const lineSpacing = Number.isFinite(options.lineSpacing)
+    ? options.lineSpacing
+    : SHEET_LINE_SPACING;
+  const fontSizePx = (fontSizePt * 96) / 72;
+  return {
+    fontSizePt,
+    fontSizePx,
+    lineHeightMm: (fontSizePx * lineSpacing * 25.4) / 96,
+  };
+}
+
+/**
+ * Bornes de la proportion du QR dans une étiquette de planche.
+ *
+ * Le calcul est fait **avant** le rendu, pour que le curseur ne puisse pas
+ * demander un QR impossible à imprimer :
+ *
+ * - **borne basse** : un module doit rester lisible une fois imprimé, donc le QR
+ *   ne peut pas descendre sous `qrModules × minModuleMm`. Sur une planche papier
+ *   la contrainte est physique (0,4 mm) ; sur une tête thermique elle vient de
+ *   la résolution (2 px par module).
+ * - **borne haute** : le QR est carré, il doit tenir dans la largeur **et**
+ *   laisser au moins une ligne de texte sous lui.
+ *
+ * Quand les deux bornes se croisent, aucune valeur ne convient : l'URL est trop
+ * longue pour ce format, et c'est `reason` qui le dit.
+ *
+ * @param {{
+ *   labelWidthMm: number,
+ *   labelHeightMm: number,
+ *   qrModules: number,
+ *   textLines?: number,
+ *   marginMm?: number,
+ *   gapMm?: number,
+ *   fontSizePt?: number,
+ *   minModuleMm?: number,
+ *   minRatio?: number,
+ *   maxRatio?: number,
+ * }} options
+ * @returns {{
+ *   min: number, max: number,
+ *   minSideMm: number, maxSideMm: number,
+ *   minModuleMm: number,
+ *   moduleMmAtMax: number,
+ *   textLinesAtMin: number,
+ *   fits: boolean,
+ *   reason: string,
+ * }}
+ */
+export function qrRatioBounds(options) {
+  const labelWidthMm = positive(options.labelWidthMm, 'labelWidthMm');
+  const labelHeightMm = positive(options.labelHeightMm, 'labelHeightMm');
+  const qrModules = Math.max(1, Math.trunc(options.qrModules ?? 21));
+  const textLines = Math.max(0, Math.trunc(options.textLines ?? 1));
+  const marginMm = nonNegative(options.marginMm ?? 0);
+  const gapMm = Number.isFinite(options.gapMm) ? options.gapMm : SHEET_QR_GAP_MM;
+  const floorRatio = Number.isFinite(options.minRatio) ? options.minRatio : MIN_QR_RATIO;
+  const ceilingRatio = Number.isFinite(options.maxRatio) ? options.maxRatio : MAX_QR_RATIO;
+  const minModuleMm = Number.isFinite(options.minModuleMm) && options.minModuleMm > 0
+    ? options.minModuleMm
+    : MIN_MODULE_MM_PAPER;
+  const { lineHeightMm } = sheetTextMetrics({ fontSizePt: options.fontSizePt });
+
+  const short = Math.min(labelWidthMm, labelHeightMm);
+  const innerWidth = labelWidthMm - marginMm * 2;
+  const innerHeight = labelHeightMm - marginMm * 2;
+
+  const textHeight = textLines > 0 ? gapMm + textLines * lineHeightMm : 0;
+  // Le QR est carré : la hauteur disponible est la contrainte la plus serrée
+  // sur une étiquette large et basse, la largeur sur une étiquette étroite.
+  const rawMaxSide = Math.min(innerWidth, innerHeight - textHeight);
+  const minSideMm = qrModules * minModuleMm;
+
+  const clampRatio = (value) => Math.round(
+    Math.min(ceilingRatio, Math.max(floorRatio, value / short)) * 1000,
+  ) / 1000;
+
+  const min = clampRatio(minSideMm);
+  const max = clampRatio(Math.max(0, rawMaxSide));
+  const fits = rawMaxSide > 0 && minSideMm <= rawMaxSide + 1e-9;
+
+  // Combien de lignes de texte tiennent encore si le QR est au minimum lisible ?
+  const textLinesAtMin = lineHeightMm > 0
+    ? Math.max(0, Math.floor((innerHeight - minSideMm - gapMm) / lineHeightMm))
+    : 0;
+
+  let reason = '';
+  if (rawMaxSide <= 0) {
+    reason =
+      `Une étiquette de ${round1(labelWidthMm)} × ${round1(labelHeightMm)} mm ne ` +
+      'laisse aucune place à un QR code et à une ligne de texte.';
+  } else if (!fits) {
+    reason =
+      `URL trop longue pour cette étiquette : ${qrModules} modules à ` +
+      `${round2(minModuleMm)} mm minimum demandent ${round1(minSideMm)} mm, alors que ` +
+      `${round1(rawMaxSide)} mm restent disponibles. Raccourcissez l'URL, ou prenez ` +
+      'une étiquette plus grande.';
+  }
+
+  return {
+    min,
+    max,
+    minSideMm: round2(minSideMm),
+    maxSideMm: round2(Math.max(0, rawMaxSide)),
+    minModuleMm: round2(minModuleMm),
+    moduleMmAtMax: round2(Math.max(0, rawMaxSide) / qrModules),
+    textLinesAtMin,
+    fits,
+    reason,
+  };
+}
+
+/**
+ * Découpe le texte d'une étiquette et le limite aux lignes disponibles.
+ *
+ * Les lignes sont renvoyées explicitement plutôt que laissées au retour à la
+ * ligne du navigateur : c'est ce qui garantit que le texte occupe exactement la
+ * hauteur réservée par le calcul. Un texte trop long est coupé, avec des points
+ * de suspension — une troncature visible vaut mieux qu'un débordement masqué.
+ *
+ * @param {string} text
+ * @param {{
+ *   measure: (text: string) => number,
+ *   innerWidthPx: number,
+ *   maxLines: number,
+ * }} options
+ * @returns {string[]}
+ */
+export function sheetCellLines(text, options) {
+  const { measure, innerWidthPx } = options;
+  const maxLines = Math.max(0, Math.trunc(options.maxLines ?? 1));
+  if (maxLines === 0 || !text) return [];
+  if (typeof measure !== 'function') throw new TypeError('measure est requis');
+
+  const all = wrapText(measure, text, innerWidthPx);
+  if (all.length <= maxLines) return all;
+
+  const kept = all.slice(0, maxLines);
+  const last = kept[kept.length - 1];
+  let trimmed = last;
+  // On retire des caractères jusqu'à ce que les points de suspension tiennent.
+  while (trimmed.length > 1 && measure(`${trimmed}…`) > innerWidthPx) {
+    trimmed = trimmed.slice(0, -1);
+  }
+  kept[kept.length - 1] = `${trimmed.trimEnd()}…`;
+  return kept;
+}
 
 /**
  * Côté du QR code d'une étiquette de planche, en millimètres.
@@ -526,56 +719,6 @@ export function qrSideMm(labelWidthMm, labelHeightMm, ratio) {
   const wanted = Number.isFinite(ratio) ? ratio : MAX_QR_RATIO;
   const clamped = Math.min(MAX_QR_RATIO, Math.max(MIN_QR_RATIO, wanted));
   return round2(base * clamped);
-}
-
-/**
- * Vérifie que le QR et au moins une ligne de texte tiennent dans l'étiquette.
- *
- * C'est la garantie contre le défaut le plus visible d'une planche : du texte
- * rogné en silence parce que le QR a été agrandi au-delà du raisonnable.
- *
- * @param {{
- *   labelWidthMm: number,
- *   labelHeightMm: number,
- *   qrSideMm: number,
- *   textLines?: number,
- *   lineHeightMm?: number,
- *   gapMm?: number,
- * }} options
- * @returns {{ ok: boolean, neededMm: number, availableMm: number, reason: string }}
- */
-export function cellContentFits(options) {
-  const labelWidthMm = positive(options.labelWidthMm, 'labelWidthMm');
-  const labelHeightMm = positive(options.labelHeightMm, 'labelHeightMm');
-  const side = positive(options.qrSideMm, 'qrSideMm');
-  const lines = Number.isFinite(options.textLines) ? Math.max(0, options.textLines) : 1;
-  const lineHeightMm = Number.isFinite(options.lineHeightMm)
-    ? options.lineHeightMm
-    : SHEET_TEXT_LINE_MM;
-  const gapMm = Number.isFinite(options.gapMm) ? options.gapMm : SHEET_QR_GAP_MM;
-
-  const neededMm = side + (lines > 0 ? gapMm + lines * lineHeightMm : 0);
-  const tooWide = side > labelWidthMm + 1e-9;
-  const tooTall = neededMm > labelHeightMm + 1e-9;
-
-  let reason = '';
-  if (tooWide) {
-    reason =
-      `Le QR fait ${round2(side)} mm de large pour une étiquette de ` +
-      `${round2(labelWidthMm)} mm.`;
-  } else if (tooTall) {
-    reason =
-      `Le QR (${round2(side)} mm) et ${lines} ligne${lines > 1 ? 's' : ''} de texte ` +
-      `demandent ${round2(neededMm)} mm pour ${round2(labelHeightMm)} mm de haut : ` +
-      'le texte sera rogné. Réduisez la largeur du QR.';
-  }
-
-  return {
-    ok: !tooWide && !tooTall,
-    neededMm: round2(neededMm),
-    availableMm: round2(labelHeightMm),
-    reason,
-  };
 }
 
 // ---------------------------------------------------------------------------

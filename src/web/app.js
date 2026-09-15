@@ -21,6 +21,7 @@ import {
   describeShortenReport,
 } from './core/shorten.js';
 import { encodeQr, toSvg } from './core/qr.js';
+import { wrapText } from './core/label.js';
 import { computeLabelGeometry, drawLabel, checkQrLegibility } from './core/label.js';
 import { imageDataToMono, validateBitmap } from './core/raster.js';
 import {
@@ -30,9 +31,14 @@ import {
   computeSheet,
   paginate,
   qrSideMm,
-  cellContentFits,
   fitGrid,
   round1,
+  qrRatioBounds,
+  sheetTextMetrics,
+  sheetCellLines,
+  SHEET_CELL_MARGIN_MM,
+  SHEET_QR_GAP_MM,
+  MIN_MODULE_MM_PAPER,
 } from './core/sheet.js';
 import { PROFILES, DEFAULT_PROFILE, findProfile } from './core/printer/profiles.js';
 import { toCsv, toMarkdown, toJson, parseJsonExport, exportFilename } from './core/exporters.js';
@@ -194,9 +200,23 @@ function button(label, className, onClick) {
  * @returns {SVGElement}
  */
 function qrElement(url, { ecc = 'M', border = 1, scale = 4 } = {}) {
-  const svg = toSvg(encodeQr(url, { ecc, border }), { scale });
+  return qrSvg(encodeQr(url, { ecc, border }), { scale });
+}
+
+/**
+ * Rend une matrice déjà encodée.
+ *
+ * La planche encode chaque URL une fois : la taille de la matrice lui sert à
+ * calculer les bornes du curseur, puis la même matrice est rendue. Encoder deux
+ * fois le même lien doublerait le travail à chaque déplacement du curseur.
+ *
+ * @param {import('./core/qr.js').QrMatrix} matrix
+ * @param {{ scale?: number }} [options]
+ * @returns {SVGElement}
+ */
+function qrSvg(matrix, { scale = 4 } = {}) {
   const wrapper = document.createElement('div');
-  wrapper.innerHTML = svg;
+  wrapper.innerHTML = toSvg(matrix, { scale });
   return wrapper.firstElementChild;
 }
 
@@ -874,23 +894,66 @@ function buildSheetPages(items) {
     adviseDenser: el.sheetFitMode.value !== 'fill',
   });
   const pages = paginate(items, layout);
+  const metrics = sheetTextMetrics();
 
-  const side = qrSideMm(layout.labelWidthMm, layout.labelHeightMm, config.qrSizeRatio);
-  // Le QR ne doit pas chasser le texte hors de l'étiquette : à 100 % sur une
-  // étiquette basse, il ne reste plus une seule ligne de place.
-  const content = cellContentFits({
+  // Chaque URL est encodée une seule fois : sa taille de matrice sert au calcul
+  // des bornes, puis la même matrice est rendue dans la cellule.
+  const encoded = pages.map((page) => page.items.map(({ item, cell }) => ({
+    item,
+    cell,
+    matrix: encodeQr(item.url, { ecc: 'M', border: 1 }),
+  })));
+
+  // Le curseur doit être valable pour toute la planche : on prend donc la
+  // matrice la plus grande, c'est-à-dire l'URL la plus dense à imprimer. On
+  // retient aussi laquelle, pour pouvoir la nommer si rien ne convient.
+  const densest = encoded
+    .flat()
+    .reduce(
+      (worst, entry) => (entry.matrix.size > worst.matrix.size ? entry : worst),
+      { matrix: { size: 21 }, item: null },
+    );
+  const modules = densest.matrix.size;
+
+  // Bornes calculées avant le rendu : en dessous, un module imprimé n'est plus
+  // lisible ; au-dessus, le QR chasse le texte hors de l'étiquette.
+  const bounds = qrRatioBounds({
     labelWidthMm: layout.labelWidthMm,
     labelHeightMm: layout.labelHeightMm,
-    qrSideMm: side,
+    qrModules: modules,
+    textLines: 1,
+    marginMm: SHEET_CELL_MARGIN_MM,
+    gapMm: SHEET_QR_GAP_MM,
+    minModuleMm: MIN_MODULE_MM_PAPER,
   });
+
+  // Le curseur est borné par ce que l'impression permet réellement.
+  applyQrSliderBounds(bounds);
+
+  const ratio = Number(el.sheetQr.value) / 100;
+  const side = qrSideMm(layout.labelWidthMm, layout.labelHeightMm, ratio);
+
+  // Marge intérieure, écart et hauteur de ligne sont posés en ligne pour que le
+  // rendu obéisse exactement au calcul — ici comme à l'impression.
+  const innerWidthMm = layout.labelWidthMm - SHEET_CELL_MARGIN_MM * 2;
+  const textSpaceMm = layout.labelHeightMm - SHEET_CELL_MARGIN_MM * 2
+    - side - SHEET_QR_GAP_MM;
+  const maxLines = Math.max(1, Math.floor(textSpaceMm / metrics.lineHeightMm));
+  const measure = cachedTextMeasure(metrics.fontSizePx);
 
   // Une planche Letter ne doit pas partir sur du A4 : la taille du papier est
   // posée ici, une fois pour toutes les sorties (aperçu, impression, Ctrl+P).
   applyPrintPageSize(layout.pageWidthMm, layout.pageHeightMm);
 
   const warnings = [...layout.warnings];
-  if (!content.ok) warnings.push(content.reason);
-
+  if (!bounds.fits) {
+    // Nommer le lien fautif évite de chercher lequel, sur une planche de trente
+    // étiquettes, demande trop de place.
+    const culprit = densest.item
+      ? ` Le lien le plus dense est « ${densest.item.title || densest.item.url} ».`
+      : '';
+    warnings.push(bounds.reason + culprit);
+  }
   if (config.problem) warnings.unshift(config.problem);
 
   el.sheetInfo.textContent = layout.perPage > 0
@@ -900,35 +963,103 @@ function buildSheetPages(items) {
       (warnings.length ? ` — ${warnings.join(' ')}` : '')
     : layout.warnings.join(' ');
 
+  updateQrInfo({ bounds, side, modules, ratio, maxLines, metrics, densest });
+
   return pages.map((page) => {
     const pageEl = document.createElement('div');
     pageEl.className = 'print-page';
     pageEl.style.width = `${layout.pageWidthMm}mm`;
     pageEl.style.height = `${layout.pageHeightMm}mm`;
 
-    for (const { item, cell } of page.items) {
+    for (const { item, cell, matrix } of encoded[page.page]) {
       const cellEl = document.createElement('div');
       cellEl.className = 'print-cell';
       cellEl.style.left = `${cell.xMm}mm`;
       cellEl.style.top = `${cell.yMm}mm`;
       cellEl.style.width = `${layout.labelWidthMm}mm`;
       cellEl.style.height = `${layout.labelHeightMm}mm`;
+      cellEl.style.padding = `${SHEET_CELL_MARGIN_MM}mm`;
+      cellEl.style.gap = `${SHEET_QR_GAP_MM}mm`;
 
       const qrBox = document.createElement('div');
       qrBox.className = 'print-cell__qr';
       qrBox.style.width = `${side}mm`;
-      qrBox.appendChild(qrElement(item.url));
+      qrBox.appendChild(qrSvg(matrix));
 
-      const text = document.createElement('div');
-      text.className = 'print-cell__text';
-      text.textContent = item.title || item.url;
+      cellEl.appendChild(qrBox);
 
-      cellEl.append(qrBox, text);
+      // Les lignes sont découpées et bornées ici : le texte occupe donc
+      // exactement la hauteur réservée, au lieu de déborder en silence.
+      const lines = sheetCellLines(item.title || item.url, {
+        measure,
+        innerWidthPx: (innerWidthMm * 96) / 25.4,
+        maxLines,
+      });
+
+      if (lines.length > 0) {
+        const text = document.createElement('div');
+        text.className = 'print-cell__text';
+        // Taille et interligne viennent du même calcul que la découpe : c'est ce
+        // qui garantit que la hauteur réelle est celle qui a été réservée.
+        text.style.fontSize = `${metrics.fontSizePt}pt`;
+        text.style.lineHeight = `${metrics.lineHeightMm}mm`;
+        for (const line of lines) {
+          const span = document.createElement('span');
+          span.textContent = line;
+          text.appendChild(span);
+        }
+        cellEl.appendChild(text);
+      }
+
       pageEl.appendChild(cellEl);
     }
 
     return pageEl;
   });
+}
+
+/**
+ * Applique au curseur les bornes calculées pour la planche courante.
+ *
+ * C'est le détrompeur demandé : le curseur ne peut plus demander un QR qui ne
+ * serait pas imprimable. La valeur courante est ramenée dans l'intervalle si
+ * elle en sortait — par exemple après un changement de disposition.
+ *
+ * @param {{ min: number, max: number }} bounds
+ */
+function applyQrSliderBounds(bounds) {
+  const min = Math.round(bounds.min * 100);
+  const max = Math.max(min, Math.round(bounds.max * 100));
+
+  if (el.sheetQr.min !== String(min)) el.sheetQr.min = String(min);
+  if (el.sheetQr.max !== String(max)) el.sheetQr.max = String(max);
+
+  const current = Number(el.sheetQr.value);
+  if (current < min) el.sheetQr.value = String(min);
+  else if (current > max) el.sheetQr.value = String(max);
+}
+
+/**
+ * Décrit la taille du QR retenue et ce qu'elle implique.
+ *
+ * @param {{ bounds: object, side: number, modules: number, ratio: number, maxLines: number, metrics: object }} state
+ */
+function updateQrInfo(state) {
+  const { bounds, side, modules, maxLines } = state;
+  const moduleMm = side / modules;
+  const marker = bounds.fits ? 'info' : 'error';
+
+  if (marker === 'error') {
+    el.sheetQrInfo.textContent = bounds.reason;
+    el.sheetQrInfo.style.color = 'var(--danger)';
+    return;
+  }
+
+  const range = `${Math.round(bounds.min * 100)} à ${Math.round(bounds.max * 100)} %`;
+  el.sheetQrInfo.textContent =
+    `QR de ${side} mm (${moduleMm.toFixed(2)} mm par module, minimum ${bounds.minModuleMm} mm) — ` +
+    `réglable de ${range} — ${maxLines} ligne${maxLines > 1 ? 's' : ''} de texte.`;
+  el.sheetQrInfo.style.color = moduleMm < bounds.minModuleMm ? 'var(--danger)' : '';
 }
 
 /**
@@ -1202,6 +1333,24 @@ function createTextMeasure(fontSizePx) {
   const fontFamily = '-apple-system, system-ui, "Helvetica Neue", Arial, sans-serif';
   ctx.font = `${fontSizePx}px ${fontFamily}`;
   return (text) => ctx.measureText(text).width;
+}
+
+/** Mesures de texte réutilisées d'un rendu à l'autre, par taille de police. */
+const textMeasureCache = new Map();
+
+/**
+ * Mesure de texte pour une taille de police donnée, mémoïsée.
+ *
+ * `buildSheetPages` est rappelé à chaque déplacement du curseur : recréer un
+ * canvas à chaque fois serait du gaspillage pur.
+ *
+ * @param {number} fontSizePx
+ * @returns {(text: string) => number}
+ */
+function cachedTextMeasure(fontSizePx) {
+  const key = String(fontSizePx);
+  if (!textMeasureCache.has(key)) textMeasureCache.set(key, createTextMeasure(fontSizePx));
+  return textMeasureCache.get(key);
 }
 
 /**

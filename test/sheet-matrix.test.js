@@ -29,8 +29,13 @@ import {
   computeSheet,
   paginate,
   qrSideMm,
-  cellContentFits,
   fitGrid,
+  qrRatioBounds,
+  sheetTextMetrics,
+  sheetCellLines,
+  MIN_MODULE_MM_PAPER,
+  SHEET_QR_GAP_MM,
+  minModuleMmThermal,
 } from '../src/core/sheet.js';
 
 const EPSILON = 1e-6;
@@ -287,66 +292,123 @@ test('le calcul refuse une étiquette de dimension nulle', () => {
 // Contenu de l'étiquette : QR + texte
 // ---------------------------------------------------------------------------
 
-test('le rognage du texte est détecté avant l\'impression', () => {
-  for (const key of PRESET_KEYS) {
-    const preset = SHEET_PRESETS[key];
+test('le rognage du texte est empêché, pas seulement signalé', () => {
+  for (const [key, preset] of Object.entries(SHEET_PRESETS)) {
+    const short = Math.min(preset.labelWidthMm, preset.labelHeightMm);
 
-    // Au maximum, le QR occupe tout le petit côté : il ne reste aucune place
-    // pour une ligne de texte, et le conteneur rognerait en silence.
-    const maxSide = qrSideMm(preset.labelWidthMm, preset.labelHeightMm, MAX_QR_RATIO);
-    const tight = cellContentFits({
+    // Sans contrainte de lisibilité, la borne haute est celle qui laisse une
+    // ligne de texte : le QR ne peut donc jamais manger tout le petit côté.
+    const roomy = qrRatioBounds({
       labelWidthMm: preset.labelWidthMm,
       labelHeightMm: preset.labelHeightMm,
-      qrSideMm: maxSide,
+      qrModules: 25,
+      textLines: 1,
+      minModuleMm: 0.01,
     });
-    assert.equal(tight.ok, false, `${key} : le rognage à 100 % doit être signalé`);
-    assert.match(tight.reason, /rogné|large/, `${key} : le message doit expliquer`);
-    assert.ok(tight.neededMm > tight.availableMm, `${key} : la place demandée doit dépasser`);
+    assert.equal(roomy.fits, true, `${key} : un QR de 25 modules doit tenir`);
+    assert.ok(
+      roomy.maxSideMm < short,
+      `${key} : la borne haute (${roomy.maxSideMm} mm) doit laisser la place du texte`,
+    );
+    assert.ok(roomy.max < MAX_QR_RATIO, `${key} : la borne haute doit être sous 100 %`);
 
-    // À 50 %, le QR et une ligne de texte tiennent toujours.
-    const halfSide = qrSideMm(preset.labelWidthMm, preset.labelHeightMm, 0.5);
-    const roomy = cellContentFits({
-      labelWidthMm: preset.labelWidthMm,
-      labelHeightMm: preset.labelHeightMm,
-      qrSideMm: halfSide,
-    });
-    assert.equal(roomy.ok, true, `${key} : à 50 %, le contenu doit tenir (${roomy.reason})`);
-    assert.equal(roomy.reason, '');
+    // Et la place laissée doit suffire à une ligne, par construction.
+    const metrics = sheetTextMetrics();
+    assert.ok(
+      roomy.maxSideMm + SHEET_QR_GAP_MM + metrics.lineHeightMm <= short + 1e-9,
+      `${key} : QR + une ligne doit tenir dans le petit côté`,
+    );
   }
 });
 
-test('le texte peut être omis sans fausser le verdict', () => {
-  const preset = SHEET_PRESETS['avery-l7159'];
-  const side = qrSideMm(preset.labelWidthMm, preset.labelHeightMm, MAX_QR_RATIO);
-  // QR seul : il tient, puisqu'il fait exactement le petit côté.
-  const alone = cellContentFits({
-    labelWidthMm: preset.labelWidthMm,
-    labelHeightMm: preset.labelHeightMm,
-    qrSideMm: side,
-    textLines: 0,
-  });
-  assert.equal(alone.ok, true, alone.reason);
+test('la borne basse protège la lisibilité à l\'impression', () => {
+  const preset = SHEET_PRESETS['avery-l7160'];
+  const short = Math.min(preset.labelWidthMm, preset.labelHeightMm);
 
-  // Une seule ligne suffit à ne plus tenir.
-  const withLine = cellContentFits({
-    labelWidthMm: preset.labelWidthMm,
-    labelHeightMm: preset.labelHeightMm,
-    qrSideMm: side,
-    textLines: 1,
-  });
-  assert.equal(withLine.ok, false);
+  // Une matrice plus dense demande une borne basse plus haute : c'est le
+  // détriment que l'utilisateur doit connaître avant d'imprimer.
+  let previous = 0;
+  for (const modules of [21, 25, 33, 41, 49, 57]) {
+    const bounds = qrRatioBounds({
+      labelWidthMm: preset.labelWidthMm,
+      labelHeightMm: preset.labelHeightMm,
+      qrModules: modules,
+      textLines: 1,
+    });
+    assert.ok(bounds.min >= previous - 1e-9, `${modules} modules : la borne baisse`);
+    previous = bounds.min;
+    assert.ok(bounds.minSideMm >= modules * MIN_MODULE_MM_PAPER - 1e-9);
+    if (bounds.fits) {
+      assert.ok(bounds.min <= bounds.max, `${modules} modules : intervalle vide`);
+      assert.ok(bounds.minSideMm <= short, `${modules} modules : borne basse hors étiquette`);
+    }
+  }
 });
 
-test('une étiquette large accepte plusieurs lignes de texte', () => {
-  const preset = SHEET_PRESETS['avery-5163'];
-  const side = qrSideMm(preset.labelWidthMm, preset.labelHeightMm, 0.5);
-  const many = cellContentFits({
-    labelWidthMm: preset.labelWidthMm,
-    labelHeightMm: preset.labelHeightMm,
-    qrSideMm: side,
-    textLines: 5,
+test('une URL trop dense pour l\'étiquette est refusée avec une explication', () => {
+  // Tête thermique D110 : 12 mm utiles, 2 px par module à 203 dpi.
+  const bounds = qrRatioBounds({
+    labelWidthMm: 12,
+    labelHeightMm: 25,
+    qrModules: 57,
+    textLines: 1,
+    minModuleMm: minModuleMmThermal(203),
   });
-  assert.equal(many.ok, true, many.reason);
+  assert.equal(bounds.fits, false);
+  assert.match(bounds.reason, /trop longue/);
+  assert.match(bounds.reason, /Raccourcissez l'URL/);
+  // Le calcul ne propose pas de cote : il n'y en a pas de valable.
+  assert.ok(bounds.minSideMm > bounds.maxSideMm);
+
+  // La même URL courte passe : c'est bien la densité qui décide.
+  const ok = qrRatioBounds({
+    labelWidthMm: 12,
+    labelHeightMm: 25,
+    qrModules: 25,
+    textLines: 1,
+    minModuleMm: minModuleMmThermal(203),
+  });
+  assert.equal(ok.fits, true, ok.reason);
+});
+
+test('le type d\'impression change la contrainte de lisibilité', () => {
+  // 33 modules sur une étiquette de 12 mm : impossible sur papier (0,4 mm par
+  // module), possible sur une tête thermique (2 px à 203 dpi = 0,25 mm).
+  const common = { labelWidthMm: 12, labelHeightMm: 25, qrModules: 33, textLines: 1 };
+
+  const paper = qrRatioBounds({ ...common, minModuleMm: MIN_MODULE_MM_PAPER });
+  const thermal = qrRatioBounds({ ...common, minModuleMm: minModuleMmThermal(203) });
+
+  assert.equal(paper.fits, false, 'sur papier, 33 modules ne tiennent pas en 12 mm');
+  assert.equal(thermal.fits, true, thermal.reason);
+  assert.ok(
+    thermal.min < paper.min,
+    `la tête thermique autorise un QR plus petit (${thermal.min} < ${paper.min})`,
+  );
+});
+
+test('la découpe du texte tient dans la place réservée', () => {
+  // Mesure factice : chaque caractère fait 1 px, la largeur utile 10 px.
+  const measure = (text) => text.length;
+  const lines = sheetCellLines('un texte beaucoup trop long pour deux lignes', {
+    measure,
+    innerWidthPx: 10,
+    maxLines: 2,
+  });
+
+  assert.equal(lines.length, 2);
+  assert.ok(lines[1].endsWith('…'), `dernière ligne : « ${lines[1]} »`);
+  for (const line of lines) {
+    assert.ok(measure(line) <= 10, `ligne trop large : « ${line} » (${measure(line)} px)`);
+  }
+});
+
+test('la découpe laisse le texte court intact', () => {
+  const measure = (text) => text.length;
+  const lines = sheetCellLines('court', { measure, innerWidthPx: 10, maxLines: 3 });
+  assert.deepEqual(lines, ['court']);
+  assert.equal(sheetCellLines('', { measure, innerWidthPx: 10, maxLines: 3 }).length, 0);
+  assert.equal(sheetCellLines('texte', { measure, innerWidthPx: 10, maxLines: 0 }).length, 0);
 });
 
 // ---------------------------------------------------------------------------

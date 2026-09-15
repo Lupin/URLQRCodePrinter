@@ -542,11 +542,20 @@ body {
 
 .print-cell__text {
   max-width: 100%;
+  /* Taille et interligne sont posés en ligne par le script, à partir des mêmes
+     chiffres que la découpe du texte (`sheetTextMetrics`). Ces valeurs ne
+     servent que de repli : les changer ici sans changer le calcul ferait
+     déborder le texte de la hauteur réservée. */
   font-size: 7pt;
   line-height: 1.15;
   text-align: center;
   word-break: break-all;
 }
+
+/* Les lignes sont calculées et fournies une par une : elles ne doivent pas être
+   recoupées par le navigateur, sinon la hauteur réservée ne serait plus la
+   hauteur réelle. */
+.print-cell__text span { display: block; }
 
 .print-table {
   width: 100%;
