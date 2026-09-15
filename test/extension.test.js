@@ -142,19 +142,34 @@ test('chaque identifiant utilisé par popup.js existe dans le HTML', () => {
 // Imports
 // ---------------------------------------------------------------------------
 
-test('les imports relatifs résolvent dans l\'extension assemblée', () => {
-  // Les sources de `src/extension/` importent « ./core/… », qui n'existe
-  // qu'après copie du cœur partagé : c'est l'artefact assemblé qui doit être
-  // résoluble, pas l'arbre source.
+test('l\'extension assemblée ne contient plus un seul import', () => {
+  // Safari ne résout pas les imports situés dans un sous-dossier d'une
+  // extension : il répond « invalid path » alors que les fichiers sont bien
+  // dans le paquet. Les points d'entrée sont donc assemblés en fichiers
+  // uniques, et le dossier `core/` disparaît de l'artefact.
   for (const file of ['background.js', 'popup.js']) {
     const source = readFileSync(join(DIST_EXT, file), 'utf8');
     const specifiers = relativeImports(source);
-    assert.ok(specifiers.length > 0, `${file} ne devrait pas être sans import`);
-    for (const specifier of specifiers) {
-      const target = resolve(dirname(join(DIST_EXT, file)), specifier);
-      assert.ok(existsSync(target), `import cassé dans ${file} : ${specifier}`);
-    }
+
+    assert.deepEqual(specifiers, [], `${file} contient encore des imports`);
+
+    const residual = source
+      .split('\n')
+      .map((line, index) => ({ line, index: index + 1 }))
+      .filter(({ line }) => /^\s*(import|export)\s/.test(line));
+    assert.deepEqual(
+      residual.map((entry) => `${file}:${entry.index}`),
+      [],
+      'syntaxe de module résiduelle',
+    );
   }
+});
+
+test('le dossier core/ ne subsiste pas dans l\'artefact', () => {
+  // Rien ne l'importe plus : le laisser induirait en erreur et alourdirait le
+  // paquet de l'extension.
+  assert.equal(existsSync(join(DIST_EXT, 'core')), false);
+  assert.equal(existsSync(join(DIST_EXT, 'api.js')), false);
 });
 
 test('tous les imports visent le cœur partagé ou un module local', () => {
@@ -230,20 +245,30 @@ test('la construction produit une extension autonome', () => {
   const manifest = JSON.parse(readFileSync(join(dist, 'manifest.json'), 'utf8'));
   assert.equal(manifest.manifest_version, 3);
 
-  // Le cœur doit être présent DANS le dossier de l'extension : un chargement
-  // « non empaqueté » ne peut pas lire hors de ce dossier.
-  for (const module of ['store.js', 'capture.js', 'exporters.js', 'download.js']) {
-    assert.ok(existsSync(join(dist, 'core', module)), `core/${module} absent du build`);
-  }
+  // Tout doit tenir dans le dossier de l'extension : un chargement « non
+  // empaqueté » ne peut rien lire en dehors.
   assert.ok(existsSync(join(dist, 'background.js')));
   assert.ok(existsSync(join(dist, 'popup.html')));
   assert.ok(existsSync(join(dist, 'popup.css')));
-  assert.ok(existsSync(join(dist, 'api.js')));
+  assert.ok(existsSync(join(dist, 'popup.js')));
 
   // Les icônes doivent voyager avec l'extension : sans elles, le navigateur
   // affiche un carré gris et le convertisseur Safari refuse l'empaquetage.
   for (const path of Object.values(manifest.icons)) {
     assert.ok(existsSync(join(dist, path)), `icône absente du build : ${path}`);
+  }
+});
+
+test('le service worker n\'est plus déclaré comme module', () => {
+  // Le point d'entrée est assemblé en un fichier sans imports : le charger
+  // comme module n'apporte rien, et `background.type` est justement la clé que
+  // le convertisseur Apple signale comme non prise en charge.
+  for (const name of ['extension', 'extension-safari']) {
+    const manifest = JSON.parse(
+      readFileSync(join(ROOT, 'dist', name, 'manifest.json'), 'utf8'),
+    );
+    assert.equal(manifest.background.type, undefined);
+    assert.equal(manifest.background.service_worker, 'background.js');
   }
 });
 
@@ -275,14 +300,16 @@ test('la variante Safari conserve la version minimale requise', () => {
   assert.equal(manifest.browser_specific_settings?.safari?.strict_min_version, '16.4');
 });
 
-test('les deux variantes embarquent le cœur partagé', () => {
+test('les deux variantes sont complètes et autonomes', () => {
   // Charger `src/extension` au lieu de `dist/extension` est l'erreur la plus
-  // facile à commettre : le dossier source ne contient pas `core/`, et le
-  // service worker échoue au chargement.
+  // facile à commettre : le dossier source importe `./core/…`, qui n'y existe
+  // pas, et le service worker échoue au chargement.
   for (const name of ['extension', 'extension-safari']) {
     const dir = join(ROOT, 'dist', name);
-    for (const file of ['core/store.js', 'core/capture.js', 'api.js', 'background.js']) {
+    for (const file of ['manifest.json', 'background.js', 'popup.js', 'popup.html']) {
       assert.ok(existsSync(join(dir, file)), `${name} : ${file} manquant`);
     }
+    // L'assemblage a bien eu lieu : le dossier de modules a disparu.
+    assert.equal(existsSync(join(dir, 'core')), false, `${name} : core/ subsiste`);
   }
 });

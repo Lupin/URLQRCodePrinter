@@ -6,13 +6,18 @@
  * aux fichiers situés hors de son dossier, et un serveur web ne doit pas
  * exposer tout le dépôt.
  *
- * Aucun bundler n'est nécessaire : tout est en modules ES natifs.
+ * L'application web reste en modules ES natifs. L'extension, elle, est
+ * **assemblée en fichiers uniques** : Safari ne résout pas les imports situés
+ * dans un sous-dossier d'une extension, et répond « invalid path » alors que
+ * les fichiers sont bien dans le paquet. Voir `scripts/bundle.mjs`.
  */
 
 import { cp, mkdir, rm, stat, readdir, readFile, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+
+import { bundle, findResidualModuleSyntax } from './bundle.mjs';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const SRC = join(ROOT, 'src');
@@ -45,6 +50,12 @@ const TARGETS = {
 /** Clés comprises par Safari mais inconnues de Chromium. */
 const SAFARI_ONLY_KEYS = ['browser_specific_settings'];
 
+/** Points d'entrée de l'extension, assemblés en fichiers uniques. */
+const EXTENSION_ENTRIES = ['background.js', 'popup.js'];
+
+/** Dossiers et fichiers devenus inutiles une fois l'extension assemblée. */
+const EXTENSION_DEBRIS = ['core', 'api.js'];
+
 /**
  * Adapte le manifeste copié au navigateur visé.
  *
@@ -53,18 +64,26 @@ const SAFARI_ONLY_KEYS = ['browser_specific_settings'];
  * @returns {Promise<string[]>} clés retirées
  */
 async function adaptManifest(outDir, variant) {
-  if (variant !== 'chromium') return [];
-
   const path = join(outDir, 'manifest.json');
   if (!existsSync(path)) return [];
 
   const manifest = JSON.parse(await readFile(path, 'utf8'));
   const removed = [];
 
-  for (const key of SAFARI_ONLY_KEYS) {
-    if (key in manifest) {
-      delete manifest[key];
-      removed.push(key);
+  // Le service worker et la fenêtre sont assemblés en fichiers uniques, sans
+  // imports : ils n'ont plus besoin d'être chargés comme modules. Cela supprime
+  // au passage l'avertissement du convertisseur Apple sur `background.type`.
+  if (manifest.background?.type) {
+    delete manifest.background.type;
+    removed.push('background.type');
+  }
+
+  if (variant === 'chromium') {
+    for (const key of SAFARI_ONLY_KEYS) {
+      if (key in manifest) {
+        delete manifest[key];
+        removed.push(key);
+      }
     }
   }
 
@@ -72,6 +91,48 @@ async function adaptManifest(outDir, variant) {
     await writeFile(path, JSON.stringify(manifest, null, 2) + '\n', 'utf8');
   }
   return removed;
+}
+
+/**
+ * Assemble les points d'entrée de l'extension et supprime les modules sources.
+ *
+ * Safari ne résout pas les imports situés dans un sous-dossier d'une extension,
+ * alors que les fichiers y sont bel et bien présents. Plutôt que d'aplatir
+ * l'arborescence pour contourner le symptôme, on supprime la cause : après cet
+ * appel, l'extension ne contient plus un seul `import`.
+ *
+ * @param {string} outDir
+ * @returns {Promise<{ entries: string[], modules: number }>}
+ */
+async function bundleExtension(outDir) {
+  const entries = [];
+  const seen = new Set();
+
+  for (const entry of EXTENSION_ENTRIES) {
+    const path = join(outDir, entry);
+    if (!existsSync(path)) continue;
+
+    const { code, modules } = bundle(path, {
+      header:
+        `// ${entry} — fichier assemblé par scripts/build.mjs.\n` +
+        '// Ne pas modifier ici : éditez les modules de src/ et reconstruisez.',
+    });
+
+    const residual = findResidualModuleSyntax(code);
+    if (residual.length > 0) {
+      throw new Error(`${entry} : syntaxe de module résiduelle — ${residual.join(' ; ')}`);
+    }
+
+    await writeFile(path, code, 'utf8');
+    entries.push(entry);
+    for (const module of modules) seen.add(module);
+  }
+
+  for (const debris of EXTENSION_DEBRIS) {
+    await rm(join(outDir, debris), { recursive: true, force: true });
+  }
+
+  return { entries, modules: seen.size };
 }
 
 /** Vérifie l'existence d'un chemin. */
@@ -113,7 +174,15 @@ async function buildTarget(name) {
 
   const removed = await adaptManifest(outDir, target.manifest);
   if (removed.length > 0) {
-    console.log(`  ${name} : clés réservées à Safari retirées (${removed.join(', ')})`);
+    console.log(`  ${name} : clés retirées du manifeste (${removed.join(', ')})`);
+  }
+
+  if (target.manifest) {
+    const bundled = await bundleExtension(outDir);
+    console.log(
+      `  ${name} : ${bundled.entries.join(' et ')} assemblés ` +
+      `(${bundled.modules} modules, plus aucun import)`,
+    );
   }
 
   return { name, outDir, files: await countFiles(outDir) };

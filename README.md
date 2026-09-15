@@ -134,18 +134,56 @@ npm run package:safari        # assemble, génère les icônes, convertit, align
 Le projet apparaît dans `native/safari/`. Ouvrez-le dans Xcode et lancez le
 schéma **URLQRCodePrinter (macOS)**.
 
-Le script fait aussi une chose non évidente : il **relève les cibles de
-déploiement** du projet généré. Le convertisseur d'Apple produit des cibles
-iOS 15.0 / macOS 10.14, alors que le manifeste déclare
-`browser_specific_settings.safari.strict_min_version: "16.4"`. Or
-`background.type: "module"` — dont dépend notre service worker — n'est reconnu
-par Safari que depuis la 16.4 ([MDN BCD](https://github.com/mdn/browser-compat-data)).
-Avec une cible plus basse, l'avertissement du convertisseur devient un vrai
-risque de panne au chargement.
+Le script fait aussi deux choses non évidentes.
 
-## Deux variantes de l'extension
+**Il relève les cibles de déploiement** du projet généré : le convertisseur
+d'Apple produit des cibles iOS 15.0 / macOS 10.14, alors que notre manifeste
+déclare `strict_min_version: "16.4"`.
 
-`npm run build` produit deux dossiers, et ce n'est pas un luxe :
+**Il corrige la fenêtre de l'application conteneur.** Le modèle d'Apple contient
+deux impasses silencieuses : quand Safari refuse d'ouvrir ses réglages — ce qui
+arrive sur une compilation non signée — le bouton « Quit and Open Safari
+Extensions Preferences… » sort de sa closure **sans rien faire**. Ni réglages,
+ni fermeture, ni message. `scripts/safari-container-app.mjs` remplace ces
+méthodes par des versions qui expliquent la marche à suivre, et ajoute un
+bouton « Quitter » pour ne jamais rester bloqué.
+
+## L'extension est assemblée en fichiers uniques
+
+`npm run build` produit deux points d'entrée sans **aucun** `import` :
+
+```
+dist/extension/
+  background.js    ← service worker assemblé
+  popup.js         ← fenêtre assemblée
+  popup.html  popup.css  manifest.json  icons/
+```
+
+Ce n'est pas une optimisation, c'est une nécessité. **Safari ne résout pas les
+imports de modules situés dans un sous-dossier d'une extension** : il répond
+
+```
+Unable to find "core/store.js" in the extension's resources. It is an invalid path.
+```
+
+alors que le fichier est bel et bien dans le paquet — vérifié. Deux fils de
+discussion Apple documentent ce défaut des modules ES dans les extensions
+Safari, et plusieurs rapports de portage depuis Chrome le confirment.
+
+Plutôt que d'aplatir l'arborescence pour contourner le symptôme, on supprime la
+cause : `scripts/bundle.mjs` concatène les modules dans l'ordre des dépendances.
+Le résultat fonctionne à l'identique sur Chrome, Brave et Safari, et l'on peut
+retirer `"type": "module"` du manifeste — ce qui fait disparaître au passage
+l'avertissement du convertisseur Apple.
+
+L'assembleur **refuse de produire** si deux modules déclarent le même nom au
+premier niveau : une collision se masquerait silencieusement, et le fichier
+produit ne se comporterait pas comme les sources. Il n'est pas minifié, chaque
+module garde son en-tête, et l'extension reste donc lisible dans l'inspecteur.
+
+## Deux variantes du manifeste
+
+`npm run build` produit deux dossiers :
 
 | Dossier | Pour | Particularité |
 |---|---|---|

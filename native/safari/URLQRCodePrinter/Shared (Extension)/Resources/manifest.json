@@ -3,10 +3,14 @@
   "name": "URLQRCodePrinter",
   "version": "0.1.0",
   "description": "Collecte les URL de vos onglets et imprime-les en étiquettes QR (Niimbot D110 / M2).",
-  "permissions": ["contextMenus", "storage", "activeTab", "scripting"],
+  "permissions": [
+    "contextMenus",
+    "storage",
+    "activeTab",
+    "scripting"
+  ],
   "background": {
-    "service_worker": "background.js",
-    "type": "module"
+    "service_worker": "background.js"
   },
   "action": {
     "default_popup": "popup.html",
