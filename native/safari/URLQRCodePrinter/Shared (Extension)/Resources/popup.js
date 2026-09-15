@@ -1223,6 +1223,7 @@ const el = {
   addCurrent: document.getElementById('add-current'),
   list: document.getElementById('list'),
   empty: document.getElementById('empty'),
+  openApp: document.getElementById('open-app'),
   exportCsv: document.getElementById('export-csv'),
   exportMd: document.getElementById('export-md'),
   clear: document.getElementById('clear'),
@@ -1301,6 +1302,7 @@ async function render() {
 
   const hasLinks = links.length > 0;
   el.empty.hidden = hasLinks;
+  el.openApp.disabled = !hasLinks;
   el.exportCsv.disabled = !hasLinks;
   el.exportMd.disabled = !hasLinks;
   el.clear.disabled = !hasLinks;
@@ -1403,6 +1405,23 @@ el.clear.addEventListener('click', async () => {
   await render();
   toast('Liste vidée');
 });
+
+/**
+ * Ouvre l'application dans un onglet.
+ *
+ * C'est là que se trouvent les QR codes, les mises en page et l'impression.
+ * L'application est embarquée dans l'extension, donc elle lit **le même
+ * stockage** que cette fenêtre : les liens collectés y sont déjà.
+ */
+function openApp() {
+  const url = api.runtime.getURL('app.html');
+  // `tabs.create` est préférable à `window.open`, qui serait bloqué comme
+  // fenêtre surgissante depuis une page d'extension.
+  api.tabs.create({ url });
+  window.close();
+}
+
+el.openApp.addEventListener('click', openApp);
 
 /**
  * Affiche une erreur de démarrage dans la fenêtre.

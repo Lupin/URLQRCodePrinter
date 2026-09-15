@@ -38,23 +38,33 @@ const TARGETS = {
     from: join(SRC, 'extension-src'),
     shared: [join(SRC, 'core')],
     manifest: 'chromium',
+    // L'application est embarquée dans l'extension : c'est ce qui lui donne
+    // accès au même stockage que la fenêtre, donc aux liens collectés.
+    webApp: true,
   },
   'extension-safari': {
     from: join(SRC, 'extension-src'),
     shared: [join(SRC, 'core')],
     manifest: 'safari',
+    webApp: true,
   },
   web: { from: join(SRC, 'web'), shared: [join(SRC, 'core')] },
 };
+
+/** Fichiers de l'application web recopiés dans l'extension. */
+const WEB_APP_FILES = ['app.js', 'element-ids.js', 'style.css'];
+
+/** Nom de la page de l'application dans l'extension. */
+const WEB_APP_PAGE = 'app.html';
 
 /** Clés comprises par Safari mais inconnues de Chromium. */
 const SAFARI_ONLY_KEYS = ['browser_specific_settings'];
 
 /** Points d'entrée de l'extension, assemblés en fichiers uniques. */
-const EXTENSION_ENTRIES = ['background.js', 'popup.js'];
+const EXTENSION_ENTRIES = ['background.js', 'popup.js', 'app.js'];
 
 /** Dossiers et fichiers devenus inutiles une fois l'extension assemblée. */
-const EXTENSION_DEBRIS = ['core', 'api.js'];
+const EXTENSION_DEBRIS = ['core', 'api.js', 'element-ids.js'];
 
 /**
  * Produit le manifeste de la cible à partir du gabarit.
@@ -98,6 +108,31 @@ async function materialiseManifest(outDir, variant) {
   await rm(templatePath, { force: true });
 
   return removed;
+}
+
+/**
+ * Recopie l'application web dans l'extension.
+ *
+ * Sans cela, les liens collectés par l'extension seraient invisibles : la
+ * fenêtre écrit dans `chrome.storage.local`, alors que l'application servie sur
+ * `localhost` utilise IndexedDB. Embarquée comme page de l'extension, elle
+ * détecte `chrome.storage` et partage donc la même collection — c'est
+ * `resolveDefaultStore` qui fait ce choix.
+ *
+ * @param {string} outDir
+ * @returns {Promise<boolean>}
+ */
+async function copyWebApp(outDir) {
+  const source = join(SRC, 'web');
+  const index = join(source, 'index.html');
+
+  if (!existsSync(index)) return false;
+
+  await cp(index, join(outDir, WEB_APP_PAGE));
+  for (const file of WEB_APP_FILES) {
+    if (existsSync(join(source, file))) await cp(join(source, file), join(outDir, file));
+  }
+  return true;
 }
 
 /**
@@ -182,6 +217,11 @@ async function buildTarget(name) {
   const removed = await materialiseManifest(outDir, target.manifest);
   if (removed.length > 0) {
     console.log(`  ${name} : clés retirées du manifeste (${removed.join(', ')})`);
+  }
+
+  if (target.webApp) {
+    const copied = await copyWebApp(outDir);
+    if (copied) console.log(`  ${name} : application embarquée dans ${WEB_APP_PAGE}`);
   }
 
   if (target.manifest) {

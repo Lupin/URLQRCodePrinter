@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>URLQRCodePrinter</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="topbar">
+    <h1 class="topbar__title">URLQRCodePrinter</h1>
+    <p class="topbar__subtitle">Collectez vos liens, imprimez-les en QR codes.</p>
+    <span id="count" class="pill" aria-live="polite">0 lien</span>
+  </header>
+
+  <main class="layout">
+    <!-- ---------------------------------------------------------------- -->
+    <!-- Colonne de gauche : la collection                                 -->
+    <!-- ---------------------------------------------------------------- -->
+    <section class="panel" aria-labelledby="collection-title">
+      <h2 id="collection-title" class="panel__title">Ma collection</h2>
+
+      <form id="add-form" class="add-form">
+        <label class="sr-only" for="url-input">URL à ajouter</label>
+        <input id="url-input" class="input" type="text" name="url"
+               placeholder="https://exemple.com/page" autocomplete="off" spellcheck="false">
+        <button class="btn btn--primary" type="submit">Ajouter</button>
+      </form>
+      <p id="add-error" class="field-error" role="alert" hidden></p>
+
+      <div class="toolbar">
+        <label class="sr-only" for="search">Rechercher</label>
+        <input id="search" class="input input--compact" type="search" placeholder="Rechercher…">
+        <button id="select-all" class="btn btn--ghost" type="button">Tout</button>
+        <button id="select-none" class="btn btn--ghost" type="button">Rien</button>
+      </div>
+
+      <ul id="list" class="links"></ul>
+      <p id="empty" class="empty">
+        Aucun lien.<br>
+        Ajoutez-en un ci-dessus, importez une archive, ou utilisez l'extension
+        navigateur pour les collecter au clic droit.
+      </p>
+
+      <div class="panel__footer">
+        <button id="export-csv" class="btn btn--ghost" type="button" disabled>CSV</button>
+        <button id="export-md" class="btn btn--ghost" type="button" disabled>Markdown</button>
+        <button id="export-json" class="btn btn--ghost" type="button" disabled>Archive</button>
+        <button id="import" class="btn btn--ghost" type="button">Importer</button>
+        <button id="clear" class="btn btn--ghost btn--danger" type="button" disabled>Tout effacer</button>
+        <input id="import-file" class="sr-only" type="file" accept="application/json,.json">
+      </div>
+    </section>
+
+    <!-- ---------------------------------------------------------------- -->
+    <!-- Colonne de droite : la mise en forme et l'impression              -->
+    <!-- ---------------------------------------------------------------- -->
+    <section class="panel" aria-labelledby="layout-title">
+      <h2 id="layout-title" class="panel__title">Mise en forme</h2>
+
+      <div class="tabs" role="tablist">
+        <button class="tab tab--active" role="tab" data-mode="sheet" aria-selected="true">Planche d'étiquettes</button>
+        <button class="tab" role="tab" data-mode="table" aria-selected="false">Tableau</button>
+        <button class="tab" role="tab" data-mode="single" aria-selected="false">Étiquette Niimbot</button>
+      </div>
+
+      <!-- Planche -->
+      <div class="mode" data-mode-panel="sheet">
+        <div class="fields">
+          <label class="field">
+            <span class="field__label">Disposition</span>
+            <select id="preset" class="input"></select>
+          </label>
+          <label class="field">
+            <span class="field__label">Largeur du QR</span>
+            <input id="sheet-qr" class="input" type="range" min="30" max="100" value="70">
+          </label>
+        </div>
+        <p id="sheet-info" class="hint"></p>
+      </div>
+
+      <!-- Tableau -->
+      <div class="mode" data-mode-panel="table" hidden>
+        <div class="fields">
+          <label class="field">
+            <span class="field__label">Taille du QR</span>
+            <input id="table-qr" class="input" type="range" min="20" max="80" value="38">
+          </label>
+          <label class="field field--inline">
+            <input id="table-note" type="checkbox">
+            <span class="field__label">Afficher les notes</span>
+          </label>
+        </div>
+        <p class="hint">Un tableau dense, adapté à une relecture ou à un archivage papier.</p>
+      </div>
+
+      <!-- Étiquette Niimbot -->
+      <div class="mode" data-mode-panel="single" hidden>
+        <div class="fields">
+          <label class="field">
+            <span class="field__label">Densité</span>
+            <input id="density" class="input" type="number" min="1" max="3" value="2">
+          </label>
+          <label class="field">
+            <span class="field__label">Copies</span>
+            <input id="copies" class="input" type="number" min="1" max="20" value="1">
+          </label>
+          <label class="field field--inline">
+            <input id="show-title" type="checkbox">
+            <span class="field__label">Inclure le titre</span>
+          </label>
+        </div>
+
+        <div class="printer">
+          <div class="printer__status">
+            <span id="printer-dot" class="dot dot--off"></span>
+            <span id="printer-name">Aucune imprimante connectée</span>
+          </div>
+          <div class="printer__actions">
+            <button id="connect" class="btn btn--ghost" type="button">Connecter</button>
+            <button id="disconnect" class="btn btn--ghost" type="button" hidden>Déconnecter</button>
+          </div>
+        </div>
+
+        <p id="ble-support" class="hint" hidden></p>
+        <button id="print-label" class="btn btn--primary btn--wide" type="button" disabled>
+          Imprimer sur l'étiquette
+        </button>
+        <p id="print-status" class="hint" aria-live="polite"></p>
+      </div>
+
+      <!-- Aperçu commun -->
+      <div class="preview">
+        <div id="preview" class="preview__surface"></div>
+      </div>
+
+      <div class="panel__footer">
+        <button id="print" class="btn btn--primary" type="button" disabled>
+          Imprimer la sélection
+        </button>
+      </div>
+    </section>
+  </main>
+
+  <!-- Racine d'impression : masquée à l'écran, seule visible sur papier. -->
+  <div id="print-root" class="print-root" aria-hidden="true"></div>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>

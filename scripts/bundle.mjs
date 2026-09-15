@@ -53,39 +53,106 @@ export function findDeclarations(source) {
 }
 
 /**
+ * Trouve le point d'entrée ESM d'un paquet de `node_modules`.
+ *
+ * On préfère `exports['.'].import`, puis `module`, puis `main` : l'ordre qui
+ * donne du code ESM plutôt que CommonJS, seul embarquable tel quel.
+ *
+ * @param {string} packageDir
+ * @param {string} subpath
+ * @returns {string}
+ */
+function packageEntry(packageDir, subpath) {
+  if (subpath) {
+    const direct = join(packageDir, subpath);
+    if (existsSync(direct)) return direct;
+    throw new BundleError(`Sous-chemin introuvable : ${subpath} dans ${packageDir}`);
+  }
+
+  const manifestPath = join(packageDir, 'package.json');
+  if (!existsSync(manifestPath)) {
+    throw new BundleError(`Paquet sans package.json : ${packageDir}`);
+  }
+
+  const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'));
+  const exported = manifest.exports?.['.'];
+  const candidate =
+    (typeof exported === 'string' ? exported : exported?.import) ??
+    manifest.module ??
+    manifest.main;
+
+  if (!candidate) {
+    throw new BundleError(`Point d'entrée introuvable pour ${manifest.name ?? packageDir}`);
+  }
+
+  const target = join(packageDir, candidate);
+  if (!existsSync(target)) {
+    throw new BundleError(`Point d'entrée déclaré mais absent : ${target}`);
+  }
+  return target;
+}
+
+/**
  * Résout un spécificateur d'import vers un chemin de fichier.
  *
- * Seuls les chemins relatifs sont acceptés : la version actuelle n'embarque pas
- * les dépendances de `node_modules`. Une dépendance externe doit être signalée
- * clairement plutôt que produite en silence dans un fichier incomplet.
+ * Les chemins relatifs sont résolus directement. Un nom de paquet est cherché
+ * dans les `node_modules` en remontant depuis le fichier importateur : la
+ * dépendance est ensuite embarquée comme les autres, ce qui évite d'exiger
+ * qu'elle soit ESM et sans dépendance propre.
  *
  * @param {string} fromFile
  * @param {string} specifier
  * @returns {string}
  */
 export function resolveSpecifier(fromFile, specifier) {
-  if (!specifier.startsWith('.')) {
-    throw new BundleError(
-      `Import externe « ${specifier} » rencontré dans ${fromFile}.\n` +
-      'Cet assembleur ne prend en charge que les chemins relatifs. ' +
-      'Emballez la dépendance au préalable, ou n\'assemblez pas ce module.',
-    );
+  if (specifier.startsWith('.')) {
+    const target = resolve(dirname(fromFile), specifier);
+    if (!existsSync(target)) {
+      throw new BundleError(`Import introuvable : ${specifier} depuis ${fromFile}`);
+    }
+    return target;
   }
-  const target = resolve(dirname(fromFile), specifier);
-  if (!existsSync(target)) {
-    throw new BundleError(`Import introuvable : ${specifier} depuis ${fromFile}`);
+
+  const parts = specifier.split('/');
+  const name = specifier.startsWith('@') ? parts.slice(0, 2).join('/') : parts[0];
+  const subpath = specifier.slice(name.length).replace(/^\//, '');
+
+  let directory = dirname(resolve(fromFile));
+  for (;;) {
+    const candidate = join(directory, 'node_modules', name);
+    if (existsSync(candidate)) return packageEntry(candidate, subpath);
+
+    const parent = dirname(directory);
+    if (parent === directory) {
+      throw new BundleError(`Paquet introuvable : « ${specifier} » depuis ${fromFile}`);
+    }
+    directory = parent;
   }
-  return target;
 }
 
 /**
- * Nettoie un module : retire ses imports et ses préfixes d'export.
+ * Nettoie un module : retire ses imports et ses exports.
+ *
+ * Trois formes sont traitées, dans cet ordre :
+ *   1. les réexports (`export * from '…'`, `export { … } from '…'`), qui
+ *      laisseraient un `from` orphelin ;
+ *   2. les listes d'export (`export { a, b };`), que `uqr` utilise en fin de
+ *      fichier ;
+ *   3. le préfixe `export` devant une déclaration.
+ *
+ * Le motif de réexport est volontairement restreint à `*` ou à une liste entre
+ * accolades. Une première version employait `[^'"]*?`, qui traverse les retours
+ * à la ligne : partant d'un `export function` ordinaire, elle courait jusqu'au
+ * premier `from '…'` du fichier et **supprimait tout le code intermédiaire**.
+ *
  * @param {string} source
  * @returns {string}
  */
 export function stripModuleSyntax(source) {
   return source
     .replace(IMPORT_PATTERN, '')
+    .replace(/^export\s+(?:\*|\{[^}]*\})\s*from\s*['"][^'"]+['"];?/gm, '')
+    .replace(/^export\s*\{[^}]*\}\s*;?/gm, '')
     .replace(/^export\s+(?=(?:async\s+)?(?:function|class|const|let|var)\b)/gm, '')
     .trim();
 }

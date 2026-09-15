@@ -308,17 +308,50 @@ test('la variante Safari conserve la version minimale requise', () => {
 test('les deux variantes sont complètes et autonomes', () => {
   for (const name of ['extension', 'extension-safari']) {
     const dir = join(ROOT, 'dist', name);
-    for (const file of ['manifest.json', 'background.js', 'popup.js', 'popup.html']) {
+    for (const file of [
+      'manifest.json',
+      'background.js',
+      'popup.js',
+      'popup.html',
+      'popup.css',
+      // L'application est embarquée : c'est elle qui affiche les QR codes, et
+      // elle partage le stockage de l'extension.
+      'app.html',
+      'app.js',
+      'style.css',
+    ]) {
       assert.ok(existsSync(join(dir, file)), `${name} : ${file} manquant`);
     }
-    // L'assemblage a bien eu lieu : le dossier de modules a disparu, et le
-    // gabarit de manifeste ne doit pas être livré.
-    assert.equal(existsSync(join(dir, 'core')), false, `${name} : core/ subsiste`);
-    assert.equal(
-      existsSync(join(dir, 'manifest.template.json')),
-      false,
-      `${name} : le gabarit ne doit pas être livré`,
-    );
+
+    // L'assemblage a bien eu lieu : plus aucun module, et le gabarit de
+    // manifeste ne doit pas être livré.
+    for (const leftover of ['core', 'api.js', 'element-ids.js', 'manifest.template.json']) {
+      assert.equal(existsSync(join(dir, leftover)), false, `${name} : ${leftover} subsiste`);
+    }
+
+    // Aucun fichier livré ne doit contenir de syntaxe de module.
+    for (const file of ['background.js', 'popup.js', 'app.js']) {
+      const source = readFileSync(join(dir, file), 'utf8');
+      const residual = source
+        .split('\n')
+        .map((line, index) => ({ line, index: index + 1 }))
+        .filter(({ line }) => /^\s*(import|export)\s/.test(line));
+      assert.deepEqual(
+        residual.map((entry) => `${name}/${file}:${entry.index}`),
+        [],
+        'syntaxe de module résiduelle',
+      );
+    }
+  }
+});
+
+test('la fenêtre propose d\'ouvrir l\'application, où sont les QR codes', () => {
+  for (const dir of [EXT, join(ROOT, 'dist', 'extension')]) {
+    const html = readFileSync(join(dir, 'popup.html'), 'utf8');
+    const script = readFileSync(join(dir, 'popup.js'), 'utf8');
+
+    assert.match(html, /id="open-app"/, `${dir} : bouton absent`);
+    assert.match(script, /getURL\('app\.html'\)/, `${dir} : ouverture non branchée`);
   }
 });
 
