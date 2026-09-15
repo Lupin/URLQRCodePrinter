@@ -467,10 +467,11 @@ test('sans date demandée, rien ne change dans les étiquettes', () => {
   assert.equal(explicit.qrSizePx, implicit.qrSizePx);
 });
 
-test('une date trop longue est abandonnée, jamais tronquée', () => {
-  // Défaut trouvé en vérifiant dans le navigateur : sur une étiquette de 12 mm,
-  // la date était amputée à « 15/09/ » — le millésime perdu. Une date fausse est
-  // pire que pas de date.
+test('une date trop longue est découpée, jamais tronquée', () => {
+  // Sur une étiquette de 12 mm, la date n'a pas la place de tenir sur une ligne.
+  // Elle était alors abandonnée en bloc ; elle est désormais découpée au plus
+  // près, du moment qu'elle reste **entière** : une date fausse est pire que
+  // pas de date, mais une date coupée proprement vaut mieux que rien.
   const narrow = (text) => text.length * 11;
   const stamp = new Date(2026, 8, 15, 18, 1).getTime();
   const item = createLink(
@@ -486,30 +487,16 @@ test('une date trop longue est abandonnée, jamais tronquée', () => {
     dateMode: 'datetime',
   });
 
-  assert.equal(plan.dateOmitted, true, 'trois lignes de date : elle doit céder');
-  assert.equal(
-    plan.lines.some((line) => /^\d{2}\/\d{2}\/?$/.test(line)),
-    false,
-    `aucun fragment de date ne doit rester : ${JSON.stringify(plan.lines)}`,
-  );
+  assert.equal(plan.dateOmitted, false, 'la date doit être conservée');
+  // Ce qui compte : rien n'est perdu. « 15/09/ » suivi de « 2026 » se lit mal
+  // mais reste exact, et c'est le seul découpage possible à cette largeur.
+  const texte = plan.lines.join(' ').replace(/\s+/g, ' ');
+  assert.ok(texte.includes('15/09/ 2026'), `date incomplète : ${JSON.stringify(plan.lines)}`);
+  assert.ok(texte.includes('18:01'), `heure absente : ${JSON.stringify(plan.lines)}`);
+  // Et le texte principal n'a pas perdu ses lignes au profit de la date.
+  assert.ok(plan.lines.some((l) => l.includes('https')), 'URL absente');
 
-  // La date seule tient en deux lignes : elle est conservée et complète.
-  const partial = planLabel({
-    link: item,
-    format: findFormat('niimbot-d110'),
-    measure: narrow,
-    textMode: 'url',
-    dateMode: 'date',
-  });
-  assert.equal(partial.dateOmitted, false);
-  // Les lignes peuvent être coupées par le retour à la ligne ; ce qui compte est
-  // que la date s'y retrouve entière.
-  assert.ok(
-    partial.lines.join('').includes('15/09/2026'),
-    `date incomplète : ${JSON.stringify(partial.lines)}`,
-  );
-
-  // Sur une étiquette large, aucun compromis à faire.
+  // Sur une étiquette large, aucun compromis : la date tient sur une ligne.
   const wide = planLabel({
     link: item,
     format: findFormat('generic-70x40'),
@@ -520,9 +507,19 @@ test('une date trop longue est abandonnée, jamais tronquée', () => {
   assert.equal(wide.dateOmitted, false);
   assert.equal(wide.lines.at(-1), '15/09/2026 18:01');
 
-  // Et l'archive dit combien de dates ont été abandonnées.
+  // Une largeur où même un fragment ne tient pas : là, la date est abandonnée,
+  // et le manifeste le compte.
+  const etroit = planLabel({
+    link: item,
+    format: findFormat('niimbot-d110'),
+    measure: (text) => text.length * 30,
+    textMode: 'url',
+    dateMode: 'datetime',
+  });
+  assert.equal(etroit.dateOmitted, true, 'aucun découpage entier possible');
+
   const archive = buildLabelArchive({
-    planned: [{ link: item, fileName: '1-un.png', plan }],
+    planned: [{ link: item, fileName: '1-un.png', plan: etroit }],
     images: new Map(),
     settings: { format: findFormat('niimbot-d110'), dateMode: 'datetime' },
     now: 1,

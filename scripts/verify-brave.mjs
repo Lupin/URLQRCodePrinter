@@ -1032,13 +1032,14 @@ async function main() {
         + `· M2 : ${(supplies?.m2?.valeurs ?? []).join(', ')}`,
     );
     record(
-      "un consommable plus large que la tete est signale, pas masque",
-      // Sur un D110 dont la tete fait 12 mm, un rouleau de 15 mm depasse :
-      // il reste visible pour qu'on comprenne pourquoi il est refuse.
-      (supplies?.d110?.desactivees ?? []).includes('d110-15x30')
-        && (supplies?.d110?.libelles ?? []).some((l) => l.includes('plus large que la t')),
-      (supplies?.d110?.libelles ?? []).filter((l) => l.includes('plus large')).join(' · ')
-        || 'aucun consommable trop large',
+      "un consommable plus large que la tete reste imprimable",
+      // Sur un D110 dont la tete fait 12 mm, un rouleau de 14 ou 15 mm imprime
+      // sur 12 mm et laisse une marge : il reste selectionnable, et le dit.
+      (supplies?.d110?.valeurs ?? []).includes('d110-14x50')
+        && (supplies?.d110?.desactivees ?? []).includes('d110-15x30') === false
+        && (supplies?.d110?.libelles ?? []).some((l) => l.includes('marge non imprim')),
+      (supplies?.d110?.libelles ?? []).filter((l) => l.includes('marge')).join(' · ')
+        || 'aucune marge signalee',
     );
 
     // --- Aucun chevauchement dans le panneau Niimbot ----------------------
@@ -1972,6 +1973,15 @@ async function main() {
       [...document.querySelectorAll('.tab')].find((t) => t.dataset.mode === 'images').click();
       await pause(300);
 
+      // L'archive suit les cases de **cet** onglet : la date cochée pour la
+      // planche ne s'y imprime pas. On les coche donc ici pour l'export qui
+      // suit, puis on les remettra à zéro après vérification.
+      const exportDate = document.getElementById('export-date');
+      const exportHeure = document.getElementById('export-date-time');
+      exportDate.checked = true; exportDate.dispatchEvent(new Event('change'));
+      exportHeure.checked = true; exportHeure.dispatchEvent(new Event('change'));
+      await pause(400);
+
       return { none, withDate, hintNone, tableHeaders, tableDates, single };
     })()`);
 
@@ -2005,7 +2015,11 @@ async function main() {
     );
 
     // La planche est d'abord produite au format par défaut (12 mm), où la date
-    // ne tient pas : elle doit alors être **absente**, jamais amputée.
+    // n'a pas la place de tenir sur une ligne. Elle était alors abandonnée en
+    // bloc ; elle est maintenant découpée, du moment qu'elle reste **entière**.
+    // Ce qui est vérifié, c'est qu'aucune date fausse ne sorte : les blancs sont
+    // retirés avant comparaison, puisque le découpage n'insère que des retours
+    // à la ligne.
     const datedZip = await waitForFile('zip');
     const readEntry = (zip, entry) =>
       spawnSync('/usr/bin/unzip', ['-p', join(DOWNLOADS, zip), entry], { encoding: 'utf8' }).stdout ?? '';
@@ -2013,16 +2027,22 @@ async function main() {
     const narrowSheet = readEntry(datedZip, 'planche.html');
     const narrowManifest = JSON.parse(readEntry(datedZip, 'export.json'));
     const narrowCaptions = narrowSheet.match(/<figcaption>[\s\S]*?<\/figcaption>/g) ?? [];
-    /** Une date partielle : « 15/09/ » ou « 15/09/2026 » sans l'heure demandée. */
-    const partialDate = /\d{2}\/\d{2}\/?\s*(<|$)/.test(
-      narrowCaptions.map((c) => c.replace(/<[^>]+>/g, '')).join(' '),
-    );
+    const captionsCompacts = narrowCaptions
+      .map((c) => c.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ''));
 
     record(
-      'sur une étiquette de 12 mm, la date est abandonnée plutôt qu\'amputée',
-      narrowManifest.datesOmitted >= 1 && partialDate === false,
+      'sur une étiquette de 12 mm, la date sort entière ou pas du tout',
+      // Une date sans son heure, ou l'inverse, serait une information fausse :
+      // on refuse les deux. Peu importe le nombre de lignes.
+      captionsCompacts.every((c) => {
+        const aDate = /\d{2}\/\d{2}\/\d{4}/.test(c);
+        const aHeure = /\d{2}:\d{2}/.test(c);
+        return aDate === aHeure;
+      })
+        && captionsCompacts.some((c) => /\d{2}\/\d{2}\/\d{4}\d{2}:\d{2}/.test(c)),
       `${datedZip} — ${narrowManifest.datesOmitted} date(s) abandonnée(s), `
-        + `mode « ${narrowManifest.settings.dateMode} »`,
+        + `mode « ${narrowManifest.settings.dateMode} », `
+        + `exemple : ${captionsCompacts.find((c) => /\d{2}:\d{2}/.test(c))?.slice(0, 40) ?? 'aucune'}`,
     );
 
     // Puis sur une étiquette large, où elle doit apparaître complète. On ne
@@ -2055,6 +2075,10 @@ async function main() {
       const caseHeure = document.getElementById('sheet-date-time');
       caseDate.checked = false; caseDate.dispatchEvent(new Event('change'));
       caseHeure.checked = false; caseHeure.dispatchEvent(new Event('change'));
+      const exportDate = document.getElementById('export-date');
+      const exportHeure = document.getElementById('export-date-time');
+      exportDate.checked = false; exportDate.dispatchEvent(new Event('change'));
+      exportHeure.checked = false; exportHeure.dispatchEvent(new Event('change'));
       const format = document.getElementById('label-format');
       format.value = 'niimbot-d110';
       format.dispatchEvent(new Event('change'));
@@ -2522,6 +2546,210 @@ async function main() {
         && table.initial.firstRowNumber === table.initial.listRanks[0],
       `liste ${table.initial.listRanks.slice(0, 3).join(',')}… `
         + `première ligne du tableau : n° ${table.initial.firstRowNumber}`,
+    );
+
+    // --- Le catalogue de consommables est celui du fabricant ---------------
+    //
+    // Il était deviné : un « 40 × 30 » pour le M2 qui n'existe pas, et des
+    // formats manquants. Les listes viennent désormais des collections du
+    // fabricant, relevées telles quelles.
+    record(
+      "le catalogue reprend les formats reellement vendus",
+      ['d110-12x109', 'd110-14x50', 'd110-15x30', 'd110-12x75']
+        .every((id) => (supplies?.d110?.valeurs ?? []).includes(id))
+        && ['m2-40x20', 'm2-50x80', 'm2-30x70', 'm2-25x9.5']
+          .every((id) => (supplies?.m2?.valeurs ?? []).includes(id))
+        // Le format que j'avais supposé n'existe pas chez le fabricant.
+        && (supplies?.m2?.valeurs ?? []).includes('m2-40x30') === false,
+      `D110 ${(supplies?.d110?.valeurs ?? []).length} formats · `
+        + `M2 ${(supplies?.m2?.valeurs ?? []).length} formats`,
+    );
+
+    // --- L'export d'images a sa propre date --------------------------------
+    //
+    // Il retombait sur les cases de la planche : une date cochée pour la
+    // planche s'imprimait dans les images, sans qu'on l'ait demandée.
+    const dateExport = await evaluate(`(async () => {
+      const pause = (ms) => new Promise((r) => setTimeout(r, ms));
+      const el = (id) => document.getElementById(id);
+      const cocher = (box, v) => { box.checked = v; box.dispatchEvent(new Event('change')); };
+      const onglet = (nom) => {
+        [...document.querySelectorAll('.tab')].find((x) => x.dataset.mode === nom).click();
+      };
+      const hauteur = () => {
+        const c = document.querySelector('#preview canvas');
+        return c ? c.height : 0;
+      };
+
+      // Date cochée sur la planche, éteinte dans les images.
+      onglet('sheet');
+      await pause(400);
+      cocher(el('sheet-date'), true);
+      cocher(el('sheet-date-time'), true);
+      await pause(400);
+
+      onglet('images');
+      await pause(600);
+      cocher(el('export-date'), false);
+      cocher(el('export-date-time'), false);
+      await pause(500);
+      const sansDate = hauteur();
+
+      cocher(el('export-date'), true);
+      await pause(500);
+      const avecDate = hauteur();
+
+      cocher(el('export-date-time'), true);
+      await pause(500);
+      const avecHeure = hauteur();
+
+      // Remise en etat.
+      cocher(el('export-date-time'), false);
+      cocher(el('export-date'), false);
+      onglet('sheet');
+      await pause(300);
+      cocher(el('sheet-date-time'), false);
+      cocher(el('sheet-date'), false);
+      await pause(300);
+      return { sansDate, avecDate, avecHeure };
+    })()`);
+
+    record(
+      "l'export d'images a sa propre date, sans dependre de la planche",
+      (dateExport?.sansDate ?? 0) > 0
+        && (dateExport?.avecDate ?? 0) > (dateExport?.sansDate ?? 0)
+        && (dateExport?.avecHeure ?? 0) > (dateExport?.avecDate ?? 0),
+      `sans date ${dateExport?.sansDate} px · date ${dateExport?.avecDate} px · `
+        + `date et heure ${dateExport?.avecHeure} px (date cochée sur la planche)`,
+    );
+
+    // --- L'heure implique la date, dans les trois contextes ----------------
+    //
+    // « Avec l'heure » cochée seule ne produisait rien : elle dépendait de
+    // « Date » sans le dire. Le libellé « Date avec l'heure » laissait croire
+    // l'inverse. Les quatre combinaisons sont vérifiées ici, pour les trois
+    // mises en forme — un défaut récurrent sur l'heure mérite un test complet.
+    const heurePartout = await evaluate(`(async () => {
+      const pause = (ms) => new Promise((r) => setTimeout(r, ms));
+      const el = (id) => document.getElementById(id);
+      const cocher = (box, v) => { box.checked = v; box.dispatchEvent(new Event('change')); };
+      // Formes testées sans expression régulière : dans un littéral de gabarit,
+      // « \\d » deviendrait « d » et casserait la syntaxe envoyée à la page.
+      const estHeure = (txt) => {
+        const t = (txt ?? '').trim();
+        return t.length === 16 && t[2] === '/' && t[5] === '/' && t[10] === ' ' && t[13] === ':';
+      };
+      const estDate = (txt) => {
+        const t = (txt ?? '').trim();
+        return t.length === 10 && t[2] === '/' && t[5] === '/';
+      };
+      const onglet = (nom) => {
+        [...document.querySelectorAll('.tab')].find((x) => x.dataset.mode === nom).click();
+      };
+
+      const out = {};
+
+      // Tableau
+      onglet('table');
+      await pause(500);
+      out.tableau = {};
+      for (const [nom, d, h] of [['rien', false, false], ['date', true, false],
+        ['heure', false, true], ['lesDeux', true, true]]) {
+        cocher(el('table-col-date'), d);
+        cocher(el('table-col-date-time'), h);
+        await pause(420);
+        const entetes = [...document.querySelectorAll('#preview .print-table th')]
+          .map((th) => th.textContent);
+        const cellules = [...document.querySelectorAll('#preview .print-table td')]
+          .map((td) => td.textContent.trim());
+        out.tableau[nom] = {
+          colonne: entetes.includes('Date'),
+          avecHeure: cellules.some(estHeure),
+          sansHeure: cellules.some((c) => estDate(c) && !estHeure(c)),
+        };
+      }
+      cocher(el('table-col-date-time'), false);
+      cocher(el('table-col-date'), false);
+      await pause(350);
+
+      // Planche
+      onglet('sheet');
+      await pause(500);
+      out.planche = {};
+      for (const [nom, d, h] of [['rien', false, false], ['date', true, false],
+        ['heure', false, true], ['lesDeux', true, true]]) {
+        cocher(el('sheet-date'), d);
+        cocher(el('sheet-date-time'), h);
+        await pause(450);
+        const spans = [...document.querySelectorAll('#preview .print-cell__text span')]
+          .map((s) => s.textContent.trim());
+        out.planche[nom] = {
+          avecHeure: spans.some(estHeure),
+          sansHeure: spans.some((c) => estDate(c) && !estHeure(c)),
+        };
+      }
+      cocher(el('sheet-date-time'), false);
+      cocher(el('sheet-date'), false);
+      await pause(350);
+
+      // Etiquette Niimbot : la hauteur dit combien de lignes la date occupe.
+      onglet('single');
+      await pause(500);
+      cocher(el('label-show-title'), false);
+      cocher(el('label-show-url'), true);
+      el('label-supply').value = 'd110-continue';
+      el('label-supply').dispatchEvent(new Event('change'));
+      await pause(450);
+      out.etiquette = {};
+      for (const [nom, d, h] of [['rien', false, false], ['date', true, false],
+        ['heure', false, true], ['lesDeux', true, true]]) {
+        cocher(el('label-show-date'), d);
+        cocher(el('label-date-time'), h);
+        await pause(450);
+        const c = document.querySelector('#preview canvas');
+        out.etiquette[nom] = {
+          hauteur: c ? c.height : 0,
+          abandonnee: (document.querySelector('#preview .hint')?.textContent ?? '')
+            .includes('aucune date'),
+        };
+      }
+      cocher(el('label-date-time'), false);
+      cocher(el('label-show-date'), false);
+      cocher(el('label-show-title'), true);
+      await pause(350);
+      return out;
+    })()`);
+
+    record(
+      "cocher « Avec l'heure » seule affiche la date et l'heure, au tableau",
+      heurePartout?.tableau?.heure?.colonne === true
+        && heurePartout?.tableau?.heure?.avecHeure === true
+        && heurePartout?.tableau?.rien?.colonne === false,
+      `rien → colonne ${heurePartout?.tableau?.rien?.colonne} · `
+        + `date seule → heure ${heurePartout?.tableau?.date?.avecHeure}, `
+        + `sans heure ${heurePartout?.tableau?.date?.sansHeure} · `
+        + `heure seule → colonne ${heurePartout?.tableau?.heure?.colonne}, `
+        + `heure ${heurePartout?.tableau?.heure?.avecHeure}`,
+    );
+    record(
+      "cocher « Avec l'heure » seule affiche la date et l'heure, sur la planche",
+      heurePartout?.planche?.heure?.avecHeure === true
+        && heurePartout?.planche?.date?.sansHeure === true
+        && heurePartout?.planche?.rien?.avecHeure === false,
+      `rien ${heurePartout?.planche?.rien?.avecHeure} · `
+        + `date ${heurePartout?.planche?.date?.sansHeure} · `
+        + `heure ${heurePartout?.planche?.heure?.avecHeure}`,
+    );
+    record(
+      "cocher « Avec l'heure » seule affiche la date et l'heure, sur l'étiquette",
+      (heurePartout?.etiquette?.heure?.hauteur ?? 0) > (heurePartout?.etiquette?.date?.hauteur ?? 0)
+        && (heurePartout?.etiquette?.heure?.hauteur ?? 0)
+          === (heurePartout?.etiquette?.lesDeux?.hauteur ?? 0)
+        && heurePartout?.etiquette?.heure?.abandonnee === false,
+      `sans ${heurePartout?.etiquette?.rien?.hauteur} px · `
+        + `date ${heurePartout?.etiquette?.date?.hauteur} px · `
+        + `heure ${heurePartout?.etiquette?.heure?.hauteur} px · `
+        + `les deux ${heurePartout?.etiquette?.lesDeux?.hauteur} px`,
     );
 
     // --- Tableau imprimé : sens de la feuille, marges et en-tête -----------

@@ -36,7 +36,9 @@ export const D110 = Object.freeze({
   dpi: 203,
   printheadPixels: 96,
   maxLabelWidthMm: 15,
-  maxPrintHeightMm: 100,
+  // Le fabricant vend des rouleaux de 109 mm pour ce modèle : borner la fenêtre
+  // à 100 rendait ce format inutilisable, alors qu'il existe.
+  maxPrintHeightMm: 120,
   density: { min: 1, max: 3, default: 2 },
   printTask: 'D110',
   namePrefixes: ['D110', 'D11', 'D101'],
@@ -151,18 +153,49 @@ export function withReportedHead(profile, reportedPixels) {
  * connectée ne peut pas imprimer, ce qui est la seule garantie dont on dispose.
  */
 export const SUPPLIES = Object.freeze({
+  // Catalogue relevé chez le fabricant, collection « label for D11/D110 » :
+  // c'est la source qui fait foi, pas une supposition. Les rouleaux de 25 mm de
+  // large y figurent mais sont écartés par `compatibleSupplies` — la tête de
+  // 12 mm ne peut pas les atteindre.
   D110: Object.freeze([
     { id: 'd110-12x22', label: '12 × 22 mm', widthMm: 12, lengthMm: 22 },
     { id: 'd110-12x30', label: '12 × 30 mm', widthMm: 12, lengthMm: 30 },
     { id: 'd110-12x40', label: '12 × 40 mm', widthMm: 12, lengthMm: 40 },
+    { id: 'd110-12x75', label: '12 × 75 mm', widthMm: 12, lengthMm: 75 },
+    { id: 'd110-12x109', label: '12 × 109 mm', widthMm: 12, lengthMm: 109 },
+    { id: 'd110-14x25', label: '14 × 25 mm', widthMm: 14, lengthMm: 25 },
+    { id: 'd110-14x28', label: '14 × 28 mm', widthMm: 14, lengthMm: 28 },
+    { id: 'd110-14x30', label: '14 × 30 mm', widthMm: 14, lengthMm: 30 },
+    { id: 'd110-14x40', label: '14 × 40 mm', widthMm: 14, lengthMm: 40 },
+    { id: 'd110-14x50', label: '14 × 50 mm', widthMm: 14, lengthMm: 50 },
     { id: 'd110-15x30', label: '15 × 30 mm', widthMm: 15, lengthMm: 30 },
     { id: 'd110-15x50', label: '15 × 50 mm', widthMm: 15, lengthMm: 50 },
+    { id: 'd110-25x60', label: '25 × 60 mm', widthMm: 25, lengthMm: 60 },
+    { id: 'd110-25x76', label: '25 × 76 mm', widthMm: 25, lengthMm: 76 },
     { id: 'd110-continue', label: 'Rouleau continu 12 mm (longueur libre)', widthMm: 12, lengthMm: null },
   ]),
+  // Collection « label tape for M2/M3 ». Le 40 × 30 que je supposais n'existe
+  // pas : c'est un 40 × 20. Les ronds sont notés comme tels, leur cote étant
+  // celle du disque.
   M2: Object.freeze([
-    { id: 'm2-40x30', label: '40 × 30 mm', widthMm: 40, lengthMm: 30 },
+    { id: 'm2-25x9.5', label: '25 × 9,5 mm', widthMm: 25, lengthMm: 9.5 },
+    { id: 'm2-36.5x9.5', label: '36,5 × 9,5 mm', widthMm: 36.5, lengthMm: 9.5 },
+    { id: 'm2-40x20', label: '40 × 20 mm', widthMm: 40, lengthMm: 20 },
+    { id: 'm2-40x40', label: '40 × 40 mm', widthMm: 40, lengthMm: 40 },
     { id: 'm2-50x30', label: '50 × 30 mm', widthMm: 50, lengthMm: 30 },
+    { id: 'm2-50x50', label: '50 × 50 mm', widthMm: 50, lengthMm: 50 },
     { id: 'm2-50x70', label: '50 × 70 mm', widthMm: 50, lengthMm: 70 },
+    { id: 'm2-50x80', label: '50 × 80 mm', widthMm: 50, lengthMm: 80 },
+    { id: 'm2-30x70', label: '30 × 70 mm (bijouterie)', widthMm: 30, lengthMm: 70 },
+    { id: 'm2-25x78', label: '25 × 78 mm (câble)', widthMm: 25, lengthMm: 78 },
+    { id: 'm2-35.25x50', label: '35,25 × 50 mm (auto-pelliculé)', widthMm: 35.25, lengthMm: 50 },
+    { id: 'm2-20x20-rond', label: '20 × 20 mm (rond)', widthMm: 20, lengthMm: 20 },
+    { id: 'm2-24x13-rond', label: '24 × 13 mm (rond)', widthMm: 24, lengthMm: 13 },
+    { id: 'm2-28x14-rond', label: '28 × 14 mm (rond)', widthMm: 28, lengthMm: 14 },
+    { id: 'm2-28x15-rond', label: '28 × 15 mm (rond)', widthMm: 28, lengthMm: 15 },
+    { id: 'm2-31x31-rond', label: '31 × 31 mm (rond)', widthMm: 31, lengthMm: 31 },
+    { id: 'm2-34x17-rond', label: '34 × 17 mm (rond)', widthMm: 34, lengthMm: 17 },
+    { id: 'm2-50x50-rond', label: '50 × 50 mm (rond)', widthMm: 50, lengthMm: 50 },
     { id: 'm2-continue', label: 'Rouleau continu 48 mm (longueur libre)', widthMm: 48, lengthMm: null },
   ]),
 });
@@ -188,19 +221,22 @@ export const COMMON_LENGTHS_MM = Object.freeze([22, 30, 40, 50, 70]);
 export function compatibleSupplies(profile) {
   const list = SUPPLIES[profile.id] ?? [];
   const headMm = (profile.printheadPixels / profile.dpi) * 25.4;
-
-  // Une étiquette de la largeur annoncée par le fabricant dépasse souvent la
-  // largeur de tête calculée : un M2 imprime du 50 mm avec une tête de 48,8 mm,
-  // parce que le profil couvre la marge. Sans cette tolérance, les rouleaux les
-  // plus courants du modèle étaient marqués incompatibles à tort.
-  const toleranceMm = 1.5;
+  // Une étiquette plus large que la tête reste **imprimable** : le contenu fait
+  // la largeur de la tête, et le reste de l'étiquette demeure blanc. L'interdire
+  // rendait inutilisables les rouleaux 14 et 15 mm d'un D110, qui sont courants.
+  // On les signale donc sans les écarter. Au-delà de cette marge, en revanche,
+  // la tête ne peut pas atteindre le bord : le consommable est écarté.
+  const atteignableMm = headMm + 4;
 
   return list.map((supply) => {
-    if (supply.widthMm > headMm + toleranceMm) {
-      return { ...supply, compatible: false, reason: 'plus large que la tête' };
+    if (supply.widthMm > atteignableMm) {
+      return { ...supply, compatible: false, reason: 'trop large pour cette tête' };
     }
     if (supply.lengthMm !== null && supply.lengthMm > profile.maxPrintHeightMm) {
       return { ...supply, compatible: false, reason: 'plus longue que la fenêtre d\'impression' };
+    }
+    if (supply.widthMm > headMm + 0.5) {
+      return { ...supply, compatible: true, reason: 'marge non imprimée sur les côtés' };
     }
     return { ...supply, compatible: true, reason: '' };
   });

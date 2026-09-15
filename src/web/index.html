@@ -300,9 +300,12 @@
             <input id="table-col-date" type="checkbox">
             <span>Date</span>
           </label>
+          <!-- « Avec l'heure » ajoute l'heure à la colonne Date. La cocher
+               seule affichait une colonne vide, parce qu'elle dépendait de
+               « Date » sans le dire : elle suffit désormais à elle seule. -->
           <label class="columns__item field__label">
             <input id="table-col-date-time" type="checkbox">
-            <span>Date avec l'heure</span>
+            <span>Avec l'heure</span>
           </label>
           <!-- Sans bordures, le tableau se lit comme une liste et s'allège à
                l'impression : utile quand on colle les étiquettes au cutter. -->
@@ -471,6 +474,21 @@
             <span class="field__label">Traits de coupe</span>
           </label>
         </div>
+
+        <!-- La date de cet onglet se coche ici. Sans ces cases, il retombait
+             sur celles de la planche : une date cochée pour la planche
+             s'imprimait aussi dans les images, sans qu'on l'ait demandée. -->
+        <fieldset class="columns">
+          <legend class="columns__legend">Sous le QR</legend>
+          <label class="columns__item field__label">
+            <input id="export-date" type="checkbox">
+            <span>Date de collecte</span>
+          </label>
+          <label class="columns__item field__label">
+            <input id="export-date-time" type="checkbox">
+            <span>Avec l'heure</span>
+          </label>
+        </fieldset>
         <p class="hint">
           Un dossier d'images prêtes à imprimer, avec une planche HTML et un CSV.
           Fonctionne avec n'importe quelle étiqueteuse, ou sur papier.

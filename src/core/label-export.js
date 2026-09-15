@@ -17,7 +17,7 @@
  */
 
 import { encodeQr } from './qr.js';
-import { wrapText, mmToPx } from './label.js';
+import { wrapText, wrapDate, mmToPx } from './label.js';
 import { sourceHost, sourceUrl, hasShortUrl } from './link.js';
 import { createZip } from './zip.js';
 import { exportFilename, formatCaptureDate } from './exporters.js';
@@ -94,7 +94,7 @@ export const LABEL_FORMATS = Object.freeze([
  * étiquette de 12 mm, « 15/09/2026 18:01 » demande trois lignes et viderait le
  * texte de son sens. Réduire la taille de police est la façon de la faire tenir.
  */
-export const DATE_MAX_LINES = 2;
+export const DATE_MAX_LINES = 3;
 
 /** Contenu textuel imprimé sous le QR code. */
 export const TEXT_MODES = Object.freeze({
@@ -238,17 +238,24 @@ export function planLabel(options) {
   // donnerait « 15/09/ » — une date fausse, ce qui est pire que pas de date.
   // On réserve donc ses lignes avant celles du texte principal, et on
   // l'abandonne entièrement si elle ne tient pas.
-  const rawDateLines = dateText
-    ? wrapText(measure, dateText, innerWidth, { maxLines: DATE_MAX_LINES + 1 })
-    : [];
-  const dateLines = rawDateLines.length <= Math.min(DATE_MAX_LINES, maxLines)
-    ? rawDateLines
+  // `wrapDate` découpe la date **entière** ou la refuse : « 15/09/ » puis
+  // « 2026 » se lit mal. Il coupe au seul endroit acceptable, l'espace entre la
+  // date et l'heure, ce qui permet à « 16/09/2026 00:28 » de tenir en deux ou
+  // trois lignes au lieu d'être abandonné en bloc.
+  // Ici la taille de police est imposée par l'utilisateur : on ne peut pas la
+  // réduire pour faire tenir la date, comme le fait l'étiquette Niimbot. On
+  // accepte donc un découpage plus franc, du moment que la date reste entière.
+  const dateLines = dateText
+    ? wrapDate(measure, dateText, innerWidth, DATE_MAX_LINES, { strict: false })
     : [];
   const dateOmitted = dateText !== '' && dateLines.length === 0;
 
   const body = labelText(link, textMode).join(' ');
+  // Le texte principal garde son propre plafond : la date s'ajoute à lui au
+  // lieu de lui prendre ses lignes. Elle les lui prenait, et l'URL se trouvait
+  // tronquée à deux lignes dès qu'on demandait la date.
   const bodyLines = body
-    ? wrapText(measure, body, innerWidth, { maxLines: Math.max(0, maxLines - dateLines.length) })
+    ? wrapText(measure, body, innerWidth, { maxLines })
     : [];
 
   const lines = [...bodyLines, ...dateLines];

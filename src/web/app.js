@@ -1026,13 +1026,31 @@ function fillDateModes() {}
 function dateMode() {
   // La date se coche dans chaque onglet : un réglage global pour quatre mises
   // en forme obligeait à le changer en passant de l'une à l'autre.
-  if (el.sheetDate.checked) return el.sheetDateTime.checked ? 'datetime' : 'date';
+  //
+  // Cocher « Avec l'heure » suffit : elle implique la date. Sans cela, cocher
+  // la seule heure ne produisait rien du tout, sans que rien ne l'explique.
+  if (el.sheetDateTime.checked) return 'datetime';
+  if (el.sheetDate.checked) return 'date';
+  return 'none';
+}
+
+/**
+ * Le mode de date de l'export d'images, d'après ses propres cases.
+ *
+ * Avant, cet onglet retombait sur le réglage de la planche : une date cochée
+ * pour la planche s'imprimait aussi dans les images, sans qu'on l'ait demandée.
+ */
+function exportDateMode() {
+  if (el.exportDateTime.checked) return 'datetime';
+  if (el.exportDate.checked) return 'date';
   return 'none';
 }
 
 /** Le mode de date du tableau imprimé, d'après ses propres cases. */
 function tableDateMode() {
-  if (el.tableColDate.checked) return el.tableColDateTime.checked ? 'datetime' : 'date';
+  // Même règle que la planche : « Avec l'heure » implique la date.
+  if (el.tableColDateTime.checked) return 'datetime';
+  if (el.tableColDate.checked) return 'date';
   return 'none';
 }
 
@@ -1694,7 +1712,9 @@ function tableColumns() {
     note: el.tableColNote.checked,
     // La date est une colonne comme les autres : elle se coche ici, et non dans
     // un réglage global qui valait pour les quatre mises en forme à la fois.
-    date: el.tableColDate.checked,
+    // L'heure implique la date : la colonne apparaît dès que l'une des deux
+    // cases est cochée, sinon cocher « Avec l'heure » seule ne montrerait rien.
+    date: el.tableColDate.checked || el.tableColDateTime.checked,
   };
 }
 
@@ -1991,7 +2011,8 @@ function composeLabel(link, profile) {
   // coche ici, avec sa précision. La faire dépendre du réglage « Date sous le
   // QR code » des planches rendait la case sans effet tant qu'on n'y touchait
   // pas, ce qui se lisait comme un défaut.
-  const wantsDate = el.labelShowDate.checked;
+  // « Avec l'heure » implique la date, comme dans les autres onglets.
+  const wantsDate = el.labelShowDate.checked || el.labelDateTime.checked;
   const largeurDate = probe.width - probe.padding * 2;
 
   // La date est écrite d'un bloc ou pas du tout : à la taille de police par
@@ -2199,7 +2220,7 @@ function readLabelOptions() {
   return {
     format: findFormat(el.labelFormat.value),
     textMode: el.labelText.value,
-    dateMode: dateMode(),
+    dateMode: exportDateMode(),
     marginMm: Math.max(0, Number(el.labelMargin.value) || 0),
     fontSizePt: Math.max(4, Number(el.labelFont.value) || 7),
     cutMarks: el.labelCut.checked,
@@ -2772,10 +2793,14 @@ function fillSupplies() {
     const length = supply.lengthMm === null
       ? 'longueur libre'
       : `${supply.lengthMm} mm`;
+    // La raison est affichée dès qu'il y en a une, compatible ou non : un
+    // rouleau plus large que la tête imprime avec une marge, et l'utilisateur
+    // doit le savoir sans que l'option soit écartée.
     option.textContent = `${supply.label} — ${length}`
-      + (supply.compatible ? '' : ` (${supply.reason})`);
-    // Un consommable incompatible avec la tête reste visible, mais ne peut pas
-    // être choisi : le faire disparaître ferait croire à une option manquante.
+      + (supply.reason === '' ? '' : ` (${supply.reason})`);
+    // Un consommable que la tête ne peut pas atteindre reste visible, mais ne
+    // peut pas être choisi : le faire disparaître ferait croire à une option
+    // manquante.
     option.disabled = !supply.compatible;
     el.labelSupply.appendChild(option);
   }
@@ -3154,6 +3179,9 @@ for (const box of [el.sheetDate, el.sheetDateTime, el.sheetDateIndex]) {
     updateDateHint();
     renderPreview();
   });
+}
+for (const box of [el.exportDate, el.exportDateTime]) {
+  box.addEventListener('change', renderPreview);
 }
 for (const box of [el.tableColDate, el.tableColDateTime]) {
   box.addEventListener('change', renderPreview);

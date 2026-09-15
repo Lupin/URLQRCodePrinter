@@ -310,6 +310,24 @@ D110 sans risque d'imprimer à la mauvaise largeur.
 4. Le modèle est lu à la connexion, et la largeur de tête réellement rapportée
    corrige le profil si elle en diffère.
 
+### Choisir son consommable
+
+Le champ **Consommable** propose les formats vendus pour le modèle choisi —
+relevés chez le fabricant, pas devinés :
+
+- **D110** (tête 12 mm) — 12 × 22, 12 × 30, 12 × 40, 12 × 75, 12 × 109,
+  14 × 25, 14 × 28, 14 × 30, 14 × 40, 14 × 50, 15 × 30, 15 × 50 mm, et le
+  rouleau continu ;
+- **M2** (tête 48,8 mm) — 25 × 9,5, 36,5 × 9,5, 40 × 20, 40 × 40, 50 × 30,
+  50 × 50, 50 × 70, 50 × 80, 30 × 70, 25 × 78, 35,25 × 50 mm, plusieurs ronds
+  (20 × 20, 24 × 13, 28 × 14, 28 × 15, 31 × 31, 34 × 17, 50 × 50) et le rouleau
+  continu.
+
+Un rouleau **plus large que la tête** reste sélectionnable : le contenu fait la
+largeur de la tête et le reste de l'étiquette demeure blanc. L'application le
+signale par « marge non imprimée sur les côtés ». Seuls les rouleaux que la tête
+ne peut pas atteindre — les 25 mm sur un D110 — sont écartés.
+
 ### Longueur du rouleau
 
 Le profil ne connaît que la **largeur de tête**. Sans la longueur du rouleau, la
@@ -370,7 +388,10 @@ Le chemin le plus court vers n'importe quelle étiqueteuse. Choisissez :
 - **Format d'étiquette** — Niimbot D110 / M2, Brother QL 62 mm, Dymo LabelWriter
   54 mm, Zebra 2 pouces, génériques 50 × 30 et 70 × 40 mm, planche A4 3 × 8 ;
 - **Texte imprimé** — titre + URL, URL seule, titre seul, domaine seul, ou rien ;
-- **Marge**, **taille du texte**, **traits de coupe**.
+- **Marge**, **taille du texte**, **traits de coupe** ;
+- **Sous le QR** — la date de collecte, avec l'heure si vous la demandez. Ces
+  cases sont propres à cet onglet : une date cochée pour la planche ne
+  s'imprime pas ici, et réciproquement.
 
 Le curseur **Largeur du QR** n'est pas libre : ses bornes sont calculées pour la
 disposition choisie. En dessous, un module imprimé ne serait plus lisible (0,4 mm

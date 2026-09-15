@@ -77,20 +77,35 @@ export function labelContent(link, mode, dateLines = []) {
  * @param {number} maxLines Nombre de lignes que la date peut occuper.
  * @returns {string[]} Lignes de la date, ou un tableau vide si elle ne tient pas.
  */
-export function wrapDate(measure, dateText, maxWidth, maxLines) {
+export function wrapDate(measure, dateText, maxWidth, maxLines, options = {}) {
   if (dateText === '' || maxLines <= 0) return [];
+  // Mode strict : on ne coupe qu'à l'endroit qui se lit bien — l'espace entre la
+  // date et l'heure. C'est ce que veut la recherche de taille de police, qui
+  // préfère réduire la police plutôt que de couper au milieu.
+  const strict = options.strict !== false;
 
-  // Une date ne se coupe pas n'importe où : « 15/09/ » puis « 2026 » se lit mal
-  // et fait hésiter. Le seul point de coupure acceptable est l'espace entre la
-  // date et l'heure, qui donne deux morceaux entiers et lisibles.
+  // Une ligne entière d'abord : couper « 15/09/2026 10:30 » en deux alors qu'il
+  // tient d'un seul tenant gaspille une ligne et allonge l'étiquette pour rien.
+  if (measure(dateText) <= maxWidth) return [dateText];
+
+  // Sinon, la date ne se coupe pas n'importe où : « 15/09/ » puis « 2026 » se
+  // lit mal et fait hésiter. Le seul point de coupure acceptable est l'espace
+  // entre la date et l'heure, qui donne deux morceaux entiers et lisibles.
   const parts = dateText.trim().split(/\s+/);
   if (parts.length > 1) {
     const [jour, heure] = [parts[0], parts.slice(1).join(' ')];
     if (measure(jour) <= maxWidth && measure(heure) <= maxWidth) return [jour, heure];
   }
 
-  // Sinon la date reste d'un seul tenant, ou n'est pas imprimée du tout.
-  return measure(dateText) <= maxWidth ? [dateText] : [];
+  if (strict) return [];
+
+  // Repli : on découpe au plus près, quitte à couper dans la date. C'est ce que
+  // fait un rendu à police imposée — un export où l'utilisateur a réglé la
+  // taille. Mieux vaut une date coupée proprement qu'aucune date, et rien n'est
+  // perdu : le découpage est vérifié avant d'être retenu.
+  const lignes = wrapText(measure, dateText, maxWidth, { maxLines });
+  const entier = lignes.join('').replace(/\s/g, '') === dateText.replace(/\s/g, '');
+  return entier ? lignes : [];
 }
 
 /**
