@@ -11,10 +11,13 @@
  * que deux exécutions produisent exactement le même fichier.
  */
 
-import { deflateSync } from 'node:zlib';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+
+// L'encodeur PNG est partagé avec l'application : un seul codec, donc un seul
+// endroit à corriger, et une seule implémentation à éprouver.
+import { encodePng } from '../src/core/png.js';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -116,87 +119,6 @@ export function renderIcon(size) {
   return { width: side, height: side, data };
 }
 
-// ---------------------------------------------------------------------------
-// Encodage PNG
-// ---------------------------------------------------------------------------
-
-/** Table de contrôle CRC32, calculée une fois. */
-const CRC_TABLE = (() => {
-  const table = new Uint32Array(256);
-  for (let n = 0; n < 256; n++) {
-    let c = n;
-    for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
-    table[n] = c >>> 0;
-  }
-  return table;
-})();
-
-/**
- * Calcule le CRC32 d'un tampon, tel qu'attendu par les chunks PNG.
- * @param {Buffer} buffer
- * @returns {number}
- */
-export function crc32(buffer) {
-  let c = 0xffffffff;
-  for (const byte of buffer) c = CRC_TABLE[(c ^ byte) & 0xff] ^ (c >>> 8);
-  return (c ^ 0xffffffff) >>> 0;
-}
-
-/**
- * Assemble un chunk PNG (longueur, type, données, CRC).
- * @param {string} type
- * @param {Buffer} body
- * @returns {Buffer}
- */
-function chunk(type, body) {
-  const length = Buffer.alloc(4);
-  length.writeUInt32BE(body.length, 0);
-  const typed = Buffer.concat([Buffer.from(type, 'latin1'), body]);
-  const crc = Buffer.alloc(4);
-  crc.writeUInt32BE(crc32(typed), 0);
-  return Buffer.concat([length, typed, crc]);
-}
-
-/**
- * Encode un tampon RGBA en PNG.
- *
- * @param {{ width: number, height: number, data: Buffer }} image
- * @returns {Buffer}
- */
-export function encodePng(image) {
-  const { width, height, data } = image;
-  if (data.length !== width * height * 4) {
-    throw new TypeError(
-      `données incohérentes : ${data.length} octets pour ${width} × ${height} pixels RGBA`,
-    );
-  }
-
-  const signature = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
-
-  const ihdr = Buffer.alloc(13);
-  ihdr.writeUInt32BE(width, 0);
-  ihdr.writeUInt32BE(height, 4);
-  ihdr[8] = 8; // profondeur : 8 bits par composante
-  ihdr[9] = 6; // type de couleur : RVBA
-  ihdr[10] = 0; // compression : deflate
-  ihdr[11] = 0; // filtrage : standard
-  ihdr[12] = 0; // entrelacement : aucun
-
-  // Chaque ligne est précédée d'un octet de filtre, ici « aucun ».
-  const raw = Buffer.alloc((width * 4 + 1) * height);
-  for (let y = 0; y < height; y++) {
-    raw[y * (width * 4 + 1)] = 0;
-    data.copy(raw, y * (width * 4 + 1) + 1, y * width * 4, (y + 1) * width * 4);
-  }
-
-  return Buffer.concat([
-    signature,
-    chunk('IHDR', ihdr),
-    chunk('IDAT', deflateSync(raw, { level: 9 })),
-    chunk('IEND', Buffer.alloc(0)),
-  ]);
-}
-
 /** Tailles produites, en pixels. */
 export const ICON_SIZES = [16, 32, 48, 64, 128, 256, 512, 1024];
 
@@ -211,7 +133,7 @@ export async function writeIcons(outDir) {
   const written = [];
 
   for (const size of ICON_SIZES) {
-    const png = encodePng(renderIcon(size));
+    const png = await encodePng(renderIcon(size));
     const path = join(outDir, `icon-${size}.png`);
     await writeFile(path, png);
     written.push({ size, path, bytes: png.length });

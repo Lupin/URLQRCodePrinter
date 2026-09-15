@@ -9,6 +9,8 @@
 
 import { encode } from 'uqr';
 
+import { encodePng } from './png.js';
+
 /** Niveaux de correction d'erreur acceptés par `uqr`. */
 export const ECC_LEVELS = ['L', 'M', 'Q', 'H'];
 
@@ -173,4 +175,54 @@ export function toMonoBitmap(matrix, scale, options = {}) {
   }
 
   return { width, height, bytesPerRow, rows };
+}
+
+/**
+ * Rend un QR code en image PNG.
+ *
+ * C'est le format attendu par un tableur : un CSV ne peut pas transporter
+ * d'image, un `.xlsx` si. Le rendu se fait par plus proche voisin — un
+ * redimensionnement lissé rendrait le code illisible.
+ *
+ * @param {string} text
+ * @param {{
+ *   ecc?: 'L'|'M'|'Q'|'H',
+ *   border?: number,
+ *   scale?: number,
+ *   dark?: [number, number, number],
+ *   light?: [number, number, number],
+ *   maxSize?: number,
+ * }} [options]
+ * @returns {Promise<Uint8Array>}
+ */
+export async function qrPng(text, options = {}) {
+  const matrix = encodeQr(text, {
+    ecc: options.ecc ?? 'M',
+    border: options.border ?? 2,
+  });
+
+  // L'échelle est entière, et bornée pour qu'une URL longue ne produise pas une
+  // image démesurée dans le classeur.
+  const requested = Math.max(1, Math.floor(options.scale ?? 8));
+  const maxSize = options.maxSize ?? 512;
+  const scale = Math.max(1, Math.min(requested, Math.floor(maxSize / matrix.size)));
+
+  const size = matrix.size * scale;
+  const dark = options.dark ?? [0, 0, 0];
+  const light = options.light ?? [255, 255, 255];
+  const data = new Uint8Array(size * size * 4);
+
+  for (let y = 0; y < size; y++) {
+    const sourceRow = matrix.data[Math.floor(y / scale)];
+    for (let x = 0; x < size; x++) {
+      const color = sourceRow[Math.floor(x / scale)] ? dark : light;
+      const offset = (y * size + x) * 4;
+      data[offset] = color[0];
+      data[offset + 1] = color[1];
+      data[offset + 2] = color[2];
+      data[offset + 3] = 0xff;
+    }
+  }
+
+  return encodePng({ width: size, height: size, data });
 }

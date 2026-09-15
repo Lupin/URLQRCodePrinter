@@ -17,6 +17,7 @@ export const ELEMENT_IDS = Object.freeze([
   'select-none',
   'list',
   'empty',
+  'export-xlsx',
   'export-csv',
   'export-md',
   'export-json',

@@ -17,12 +17,14 @@ import { fileURLToPath } from 'node:url';
 import {
   buildMatrix,
   renderIcon,
-  encodePng,
-  crc32,
   writeIcons,
   ICON_SIZES,
   MODULE_COUNT,
 } from '../scripts/make-icons.mjs';
+
+// L'encodeur vit dans le cœur partagé : le générateur d'icônes et l'export
+// tableur utilisent donc exactement le même code.
+import { encodePng, crc32 } from '../src/core/png.js';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const ICONS_DIR = join(ROOT, 'src', 'extension-src', 'icons');
@@ -35,6 +37,9 @@ const PNG_SIGNATURE = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0
  * @returns {Map<string, Buffer>}
  */
 function parsePng(png) {
+  // L'encodeur renvoie un Uint8Array ; les utilitaires de lecture ci-dessous
+  // sont ceux de Buffer.
+  png = Buffer.from(png);
   assert.ok(png.subarray(0, 8).equals(PNG_SIGNATURE), 'signature PNG absente');
 
   const chunks = new Map();
@@ -61,7 +66,7 @@ function parsePng(png) {
  * @returns {{ width: number, height: number, data: Buffer }}
  */
 function decodePng(png) {
-  const chunks = parsePng(png);
+  const chunks = parsePng(Buffer.from(png));
   assert.ok(chunks.has('IHDR'));
   assert.ok(chunks.has('IEND'));
 
@@ -154,35 +159,35 @@ test('le rendu est déterministe', () => {
 // Encodage PNG
 // ---------------------------------------------------------------------------
 
-test('encodePng produit un PNG structurellement valide', () => {
-  const png = encodePng(renderIcon(16));
+test('encodePng produit un PNG structurellement valide', async () => {
+  const png = await encodePng(renderIcon(16));
   const chunks = parsePng(png);
   assert.deepEqual([...chunks.keys()], ['IHDR', 'IDAT', 'IEND']);
 });
 
-test('les dimensions déclarées correspondent au rendu', () => {
-  const png = encodePng(renderIcon(48));
+test('les dimensions déclarées correspondent au rendu', async () => {
+  const png = await encodePng(renderIcon(48));
   const ihdr = parsePng(png).get('IHDR');
   assert.equal(ihdr.readUInt32BE(0), 48);
   assert.equal(ihdr.readUInt32BE(4), 48);
 });
 
-test('la décompression restitue exactement les pixels d\'origine', () => {
+test('la décompression restitue exactement les pixels d\'origine', async () => {
   // Vérification la plus forte : on ne relit pas l'encodeur avec lui-même, on
   // décompresse le flux avec zlib et on compare pixel à pixel.
   for (const size of [16, 64, 256]) {
     const source = renderIcon(size);
-    const decoded = decodePng(encodePng(source));
+    const decoded = decodePng(await encodePng(source));
     assert.equal(decoded.width, source.width);
     assert.equal(decoded.height, source.height);
     assert.ok(decoded.data.equals(source.data), `pixels altérés à ${size} px`);
   }
 });
 
-test('encodePng refuse des données incohérentes', () => {
-  assert.throws(
-    () => encodePng({ width: 8, height: 8, data: Buffer.alloc(10) }),
-    TypeError,
+test('encodePng refuse des données incohérentes', async () => {
+  await assert.rejects(
+    () => encodePng({ width: 8, height: 8, data: new Uint8Array(10) }),
+    RangeError,
   );
 });
 

@@ -20,13 +20,40 @@
  * @returns {boolean} true si le téléchargement a pu être déclenché.
  */
 export function downloadText(filename, text, options = {}) {
+  return downloadBlob(filename, new Blob([text], { type: options.mime ?? 'text/plain;charset=utf-8' }), options);
+}
+
+/**
+ * Déclenche le téléchargement d'un contenu binaire.
+ *
+ * Utilisé pour les classeurs `.xlsx`, qui ne sont pas du texte.
+ *
+ * @param {string} filename
+ * @param {Uint8Array} bytes
+ * @param {{ mime?: string, document?: Document, url?: typeof URL }} [options]
+ * @returns {boolean}
+ */
+export function downloadBytes(filename, bytes, options = {}) {
+  const type = options.mime ?? 'application/octet-stream';
+  // On copie dans un tableau neuf : un `Uint8Array` peut être une vue sur un
+  // tampon plus grand, que le Blob embarquerait en entier.
+  return downloadBlob(filename, new Blob([bytes.slice().buffer], { type }), options);
+}
+
+/**
+ * Déclenche le téléchargement d'un Blob.
+ *
+ * @param {string} filename
+ * @param {Blob} blob
+ * @param {{ document?: Document, url?: typeof URL }} [options]
+ * @returns {boolean}
+ */
+export function downloadBlob(filename, blob, options = {}) {
   const doc = options.document ?? globalThis.document;
   const urlApi = options.url ?? globalThis.URL;
 
   if (!doc || !urlApi?.createObjectURL) return false;
 
-  const mime = options.mime ?? 'text/plain;charset=utf-8';
-  const blob = new Blob([text], { type: mime });
   const objectUrl = urlApi.createObjectURL(blob);
 
   const anchor = doc.createElement('a');

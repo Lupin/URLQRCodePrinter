@@ -18,7 +18,8 @@ import { computeLabelGeometry, drawLabel, checkQrLegibility } from './core/label
 import { imageDataToMono, validateBitmap } from './core/raster.js';
 import { SHEET_PRESETS, PAGE_SIZES, computeSheet, paginate } from './core/sheet.js';
 import { toCsv, toMarkdown, toJson, parseJsonExport, exportFilename } from './core/exporters.js';
-import { downloadText } from './core/download.js';
+import { downloadText, downloadBytes } from './core/download.js';
+import { buildLinkSpreadsheet } from './core/spreadsheet.js';
 import {
   checkWebBluetoothSupport,
   requestPrinter,
@@ -157,6 +158,7 @@ function renderList() {
   el.count.textContent = `${links.length} lien${links.length > 1 ? 's' : ''}`;
 
   const hasLinks = links.length > 0;
+  el.exportXlsx.disabled = !hasLinks;
   el.exportCsv.disabled = !hasLinks;
   el.exportMd.disabled = !hasLinks;
   el.exportJson.disabled = !hasLinks;
@@ -807,6 +809,39 @@ el.selectNone.addEventListener('click', () => {
   toast('Sélection vidée : l\'impression portera sur toute la collection');
 });
 
+/**
+ * Exporte un classeur `.xlsx` avec les QR codes intégrés.
+ *
+ * Un CSV ne peut pas transporter d'image : c'est tout l'intérêt de cet export.
+ * La génération des QR prend un instant par lien, d'où le retour sur le bouton.
+ */
+async function exportSpreadsheet() {
+  if (links.length === 0) return;
+
+  const label = el.exportXlsx.textContent;
+  el.exportXlsx.disabled = true;
+  el.exportXlsx.textContent = 'Génération…';
+
+  try {
+    const bytes = await buildLinkSpreadsheet(links, {
+      onProgress: (done, total) => {
+        el.exportXlsx.textContent = `QR ${done}/${total}…`;
+      },
+    });
+    const filename = exportFilename('liens-qr', 'xlsx');
+    const ok = downloadBytes(filename, bytes, {
+      mime: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    });
+    toast(ok ? `${filename} enregistré` : 'Téléchargement impossible', ok ? 'info' : 'error');
+  } catch (error) {
+    toast(`Export impossible : ${error.message}`, 'error');
+  } finally {
+    el.exportXlsx.textContent = label;
+    el.exportXlsx.disabled = links.length === 0;
+  }
+}
+
+el.exportXlsx.addEventListener('click', exportSpreadsheet);
 el.exportCsv.addEventListener('click', () => exportAs('csv'));
 el.exportMd.addEventListener('click', () => exportAs('md'));
 el.exportJson.addEventListener('click', () => exportAs('json'));
