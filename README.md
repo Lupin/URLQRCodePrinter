@@ -11,15 +11,23 @@ Markdown, ou envoi direct à une imprimante Niimbot.
 | Cœur métier (liens, QR, étiquettes, stockage, exports) | fait, testé |
 | Protocole Niimbot (trames, profils D110 / M2) | fait, testé |
 | Transport Web Bluetooth + session d'impression D110 | fait, testé |
-| Extension Brave / Chrome (clic droit, popup) | à faire |
-| Application web autonome (liste, exports, mises en page) | à faire |
-| Extension Safari macOS + iOS | à faire (Xcode disponible) |
+| Extension Brave / Chrome (clic droit, popup) | fait, testé structurellement |
+| Application web autonome (liste, exports, mises en page) | fait, démarrage vérifié |
+| Extension Safari macOS + iOS | à faire (Xcode 26.6 disponible) |
 | Impression Niimbot sur iOS (CoreBluetooth natif) | à faire (Xcode disponible) |
+
+**225 tests**, dont la validation octet à octet des trames Niimbot contre les
+relevés documentés, et un test qui exécute réellement le démarrage de
+l'application web.
+
+Ce qui reste à éprouver : l'application dans un vrai navigateur (Chrome sans
+interface ne démarre pas dans l'environnement de développement utilisé), et
+l'impression sur une imprimante physique.
 
 Le dossier `qr-niimbot-printer/` est un prototype antérieur. **Son code
 Bluetooth ne peut pas fonctionner** : les UUID sont des valeurs d'exemple et
 les commandes envoyées sont du protocole ESC/POS, pas du Niimbot. Il sera
-remplacé ; seule sa mise en forme CSS reste une référence.
+remplacé.
 
 ## Architecture
 
@@ -29,18 +37,46 @@ par toutes les surfaces :
 ```
 src/core/
   link.js              modèle de lien, normalisation d'URL, dédoublonnage
+  capture.js           décision de capture depuis un clic contextuel
   qr.js                encodage QR → matrice → bitmap 1 bit/pixel
   label.js             géométrie d'étiquette, découpe de texte, lisibilité
+  raster.js            ImageData → bitmap monochrome pour tête thermique
+  sheet.js             géométrie des planches d'impression, pagination
   store.js             IndexedDB / chrome.storage / mémoire, même interface
   exporters.js         CSV (RFC 4180), Markdown, JSON
+  download.js          enregistrement de fichier et presse-papiers
   printer/
     packet.js          trames Niimbot, checksum, décodeur de flux
     profiles.js        profils d'imprimantes (largeur de tête, task, densité)
     transport.js       Web Bluetooth : filtrage, groupage, notifications
     printer.js         session d'impression, séquence et acquittements
+
+src/extension/         extension MV3 (Brave, Chrome, Edge)
+src/web/               application autonome
+scripts/build.mjs      assemble dist/extension et dist/web
+scripts/serve.mjs      serveur statique de développement
 ```
 
-Le cœur ne dépend que de `uqr` (ESM pur, sans dépendance). Aucun bundler.
+Le cœur ne dépend que de `uqr` (ESM pur, sans dépendance). Aucun bundler : tout
+est en modules ES natifs.
+
+## Utilisation
+
+```bash
+npm run build
+npm run serve      # puis ouvrez http://127.0.0.1:4173/
+```
+
+`localhost` est obligatoire : Web Bluetooth exige un contexte sécurisé, et le
+protocole `file://` refuse de charger des modules ES.
+
+Pour l'extension : ouvrez `brave://extensions` (ou `chrome://extensions`),
+activez le mode développeur, puis « Charger l'extension non empaquetée » et
+désignez `dist/extension`.
+
+**Pour imprimer depuis Brave**, Web Bluetooth doit être activé :
+`brave://flags#brave-web-bluetooth-api`. Chrome et Edge n'ont pas cette
+contrainte. Safari ne l'implémente pas du tout.
 
 ## Deux chiffres à ne pas confondre
 
@@ -57,6 +93,10 @@ Le cœur ne dépend que de `uqr` (ESM pur, sans dépendance). Aucun bundler.
 npm install
 npm test
 ```
+
+`npm test` construit d'abord `dist/` (script `pretest`), car plusieurs tests
+portent sur l'artefact assemblé. Lancer `node --test` directement sans avoir
+construit échoue avec un message explicite.
 
 ### Environnement
 

@@ -9,6 +9,7 @@
     "node": ">=20"
   },
   "scripts": {
+    "pretest": "node scripts/build.mjs",
     "test": "node --test 'test/*.test.js'",
     "build": "node scripts/build.mjs",
     "build:web": "node scripts/build.mjs --only=web",
