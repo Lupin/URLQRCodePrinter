@@ -12,7 +12,7 @@
  *   façon. L'absence est traitée comme un cas normal, pas comme une erreur.
  */
 
-import { createChromeStorageStore } from './core/store.js';
+import { createChromeStorageStore, createMemoryStore } from './core/store.js';
 import { captureFromTab } from './core/capture.js';
 import { toCsv, toMarkdown, exportFilename } from './core/exporters.js';
 import { downloadText } from './core/download.js';
@@ -20,7 +20,45 @@ import { hostOf } from './core/link.js';
 import { resolveApi, readTabContext } from './api.js';
 
 const api = resolveApi();
-const store = createChromeStorageStore({ area: api?.storage?.local });
+
+/**
+ * Résout le stockage sans jamais faire échouer la fenêtre.
+ *
+ * Une API absente ou incomplète ne doit pas emporter toute l'interface : au
+ * pire, la collection vit le temps de la fenêtre.
+ */
+function createStore() {
+  try {
+    const area = api?.storage?.local;
+    if (area) return createChromeStorageStore({ area });
+  } catch {
+    // On retombe en mémoire.
+  }
+  return createMemoryStore();
+}
+
+const store = createStore();
+
+/**
+ * Borne une attente dans le temps.
+ *
+ * Les API d'extension ne promettent pas de rejeter : sur Safari, certaines
+ * restent simplement en suspens. Sans borne, la fenêtre resterait figée sur
+ * « Chargement… » sans le moindre indice sur ce qui bloque.
+ *
+ * @template T
+ * @param {Promise<T>} promise
+ * @param {number} ms
+ * @param {string} label
+ * @returns {Promise<T>}
+ */
+function withTimeout(promise, ms, label) {
+  let timer;
+  const guard = new Promise((_, reject) => {
+    timer = setTimeout(() => reject(new Error(`${label} : aucune réponse après ${ms} ms`)), ms);
+  });
+  return Promise.race([promise, guard]).finally(() => clearTimeout(timer));
+}
 
 const el = {
   count: document.getElementById('count'),
@@ -61,13 +99,25 @@ function toast(message) {
 async function loadActiveTab() {
   let tab = null;
   try {
-    const [found] = await api.tabs.query({ active: true, currentWindow: true });
-    tab = found ?? null;
+    const found = await withTimeout(
+      api.tabs.query({ active: true, currentWindow: true }),
+      3000,
+      'tabs.query',
+    );
+    tab = found?.[0] ?? null;
   } catch {
+    // Interrogation refusée ou restée sans réponse : on continue sans onglet,
+    // la fenêtre reste utilisable.
     tab = null;
   }
 
-  const context = await readTabContext(api, tab);
+  let context = null;
+  try {
+    context = await withTimeout(readTabContext(api, tab), 3000, 'lecture de l\'onglet');
+  } catch {
+    context = null;
+  }
+
   activeTab = context ? { url: context.url, title: context.title } : {};
 
   const capture = captureFromTab(activeTab);
@@ -197,5 +247,43 @@ el.clear.addEventListener('click', async () => {
   toast('Liste vidée');
 });
 
-await loadActiveTab();
-await render();
+/**
+ * Affiche une erreur de démarrage dans la fenêtre.
+ *
+ * Sans cela, une exception au chargement laisse le HTML statique tel quel :
+ * « Chargement… » indéfiniment, sans le moindre indice. C'est exactement le
+ * symptôme observé sur Safari avant que ce message existe.
+ *
+ * @param {unknown} error
+ */
+function reportStartupFailure(error) {
+  const message = error instanceof Error ? error.message : String(error);
+  const detected = api ? (api === globalThis.browser ? 'browser' : 'chrome') : 'aucune';
+
+  el.currentTab.textContent = 'Démarrage impossible';
+  el.currentTab.title = message;
+  el.addCurrent.disabled = true;
+
+  el.empty.hidden = false;
+  el.empty.textContent = `${message} — API détectée : ${detected}`;
+
+  el.count.textContent = '!';
+}
+
+/**
+ * Démarre la fenêtre.
+ *
+ * On évite volontairement l'`await` de premier niveau : une exception y
+ * laisserait une page à moitié initialisée, sans message. Ici, tout échec est
+ * rattrapé et affiché.
+ */
+async function main() {
+  try {
+    await loadActiveTab();
+    await render();
+  } catch (error) {
+    reportStartupFailure(error);
+  }
+}
+
+main();

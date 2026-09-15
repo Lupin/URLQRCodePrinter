@@ -188,6 +188,34 @@ test('chaque fichier de l\'extension est syntaxiquement valide', () => {
   }
 });
 
+test('aucune page d\'extension n\'utilise d\'await de premier niveau', () => {
+  // Régression observée sur Safari : avec un `await` de premier niveau, la
+  // fenêtre n'exécutait **aucun** script et restait figée sur « Chargement… »,
+  // boutons grisés — le HTML statique, sans le moindre message d'erreur.
+  // L'attente doit vivre dans une fonction dont l'échec est rattrapé.
+  for (const file of ['popup.js', 'background.js']) {
+    const source = readFileSync(join(EXT, file), 'utf8');
+    const topLevelAwait = source
+      .split('\n')
+      .map((line, index) => ({ line, index: index + 1 }))
+      .filter(({ line }) => /^await\s/.test(line));
+
+    assert.deepEqual(
+      topLevelAwait.map((entry) => `${file}:${entry.index}`),
+      [],
+      'await de premier niveau détecté',
+    );
+  }
+});
+
+test('la fenêtre rattrape ses erreurs de démarrage', () => {
+  // Sans ce filet, une exception au chargement laisse la fenêtre muette.
+  const source = readFileSync(join(EXT, 'popup.js'), 'utf8');
+  assert.match(source, /function reportStartupFailure/);
+  assert.match(source, /try\s*\{[\s\S]*await loadActiveTab\(\)[\s\S]*catch\s*\(error\)/);
+  assert.match(source, /^main\(\);$/m);
+});
+
 // ---------------------------------------------------------------------------
 // Construction
 // ---------------------------------------------------------------------------
