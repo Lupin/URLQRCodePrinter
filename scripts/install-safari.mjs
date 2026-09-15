@@ -59,11 +59,16 @@ if (!skipBuild) {
     '-scheme', 'URLQRCodePrinter (macOS)',
     '-destination', 'platform=macOS',
     '-derivedDataPath', DERIVED,
-    // Une signature locale suffit pour Safari : il faut que l'application soit
-    // signée pour être lancée, pas pour être distribuée.
-    'CODE_SIGN_IDENTITY=-',
-    'CODE_SIGNING_ALLOWED=YES',
+    // Signature désactivée, et non pas ad-hoc.
+    //
+    // Une extension Safari réclame des droits que la signature ad-hoc ne sait
+    // pas produire : `CodeSign` échoue. Sans signature, Xcode produit un
+    // binaire signé par l'éditeur de liens, que macOS accepte de lancer et que
+    // Safari enregistre — c'est la configuration qui fonctionne, à condition
+    // d'autoriser les extensions non signées dans le menu Développeur.
+    'CODE_SIGNING_ALLOWED=NO',
     'CODE_SIGNING_REQUIRED=NO',
+    'CODE_SIGN_IDENTITY=',
     'build',
   ]);
 }
