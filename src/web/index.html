@@ -122,13 +122,10 @@
       </label>
       <p id="target-hint" class="hint hint--tight"></p>
 
-      <!-- Une ligne de plus sous le QR : chaque ligne prend la place du code,
-           d'où une option et non un réglage par défaut. -->
-      <label class="field field--compact">
-        <span class="field__label">Date sous le QR code</span>
-        <select id="date-mode" class="input input--compact"></select>
-      </label>
-      <p id="date-hint" class="hint hint--tight"></p>
+      <!-- La date se coche désormais dans chaque onglet : un réglage global
+           pour quatre mises en forme obligeait à le changer en passant de l'une
+           à l'autre, et la case de l'étiquette semblait sans effet tant qu'on
+           n'y avait pas touché. -->
 
       <div class="tabs" role="tablist">
         <button class="tab tab--active" role="tab" data-mode="sheet" aria-selected="true">Planche d'étiquettes</button>
@@ -153,6 +150,24 @@
           </label>
         </div>
         <p id="sheet-qr-info" class="hint hint--tight"></p>
+        <!-- Une ligne de plus sous le QR : chaque ligne prend la place du code,
+             d'où une option et non un réglage par défaut. -->
+        <fieldset class="columns">
+          <legend class="columns__legend">Sous chaque QR</legend>
+          <label class="columns__item field__label">
+            <input id="sheet-date" type="checkbox">
+            <span>Date de collecte</span>
+          </label>
+          <label class="columns__item field__label">
+            <input id="sheet-date-time" type="checkbox">
+            <span>Avec l'heure</span>
+          </label>
+          <label class="columns__item field__label">
+            <input id="sheet-date-index" type="checkbox">
+            <span>N° du lien</span>
+          </label>
+        </fieldset>
+        <p id="sheet-date-hint" class="hint hint--tight"></p>
         <!-- Une seule présentation : la grille, les marges et les écarts. La
              taille des étiquettes en découle, et le choix de planche ci-dessus
              ne fait que préremplir ces valeurs. -->
@@ -242,6 +257,14 @@
             <input id="table-col-note" type="checkbox">
             <span>Note</span>
           </label>
+          <label class="columns__item field__label">
+            <input id="table-col-date" type="checkbox">
+            <span>Date</span>
+          </label>
+          <label class="columns__item field__label">
+            <input id="table-col-date-time" type="checkbox">
+            <span>Date avec l'heure</span>
+          </label>
           <!-- Sans bordures, le tableau se lit comme une liste et s'allège à
                l'impression : utile quand on colle les étiquettes au cutter. -->
           <label class="columns__item field__label">
@@ -270,10 +293,11 @@
             <span class="field__label">Copies</span>
             <input id="copies" class="input" type="number" min="1" max="20" value="1">
           </label>
-          <!-- Une étiquette peut sortir pivotée ou à l'envers selon le rouleau
-               et le modèle : on donne le choix plutôt que de le deviner. -->
+          <!-- Ce n'est pas une orientation du support : l'étiquette garde sa
+               taille et son sens. Seule la composition change, pour que le
+               texte reste lisible selon la forme du rouleau. -->
           <label class="field">
-            <span class="field__label">Orientation</span>
+            <span class="field__label">Disposition du texte</span>
             <select id="label-rotation" class="input"></select>
           </label>
         </div>
@@ -296,7 +320,15 @@
             <span class="field__label">Disposition</span>
             <select id="label-alignment" class="input"></select>
           </label>
+          <!-- La taille du texte décide de la lisibilité : 1 mm de haut était
+               illisible. Les bornes sont calculées pour la place réelle. -->
+          <label class="field">
+            <span class="field__label">Taille du texte (mm)</span>
+            <input id="label-font-size" class="input" type="number" min="1" max="5"
+                   step="0.1" value="1.6">
+          </label>
         </div>
+        <p id="label-font-hint" class="hint hint--tight"></p>
 
         <!-- Ce qui est imprimé sous le QR, coché comme les colonnes du tableau.
              Une liste déroulante n'acceptait qu'un choix, alors que titre, URL
@@ -324,28 +356,15 @@
             <input id="label-show-date" type="checkbox">
             <span>Date de collecte</span>
           </label>
+          <!-- La précision se coche comme le reste : une liste déroulante à
+               côté de cases n'avait plus de sens, et son choix restait sans
+               effet tant que la date n'était pas cochée. -->
           <label class="columns__item field__label">
-            <span>Précision</span>
-            <select id="label-date-mode" class="input input--compact"></select>
+            <input id="label-date-time" type="checkbox">
+            <span>Avec l'heure</span>
           </label>
         </fieldset>
         <p id="label-content-hint" class="hint hint--tight"></p>
-
-        <!-- Longueur libre : n'apparaît que pour un rouleau continu, où le pas
-             de découpe n'est pas connu. Un consommable à longueur fixe impose
-             la sienne, et ce champ n'aurait alors aucun sens. -->
-        <div class="fields" id="label-length-fields" hidden>
-          <div class="field">
-            <label class="field__label" for="label-length">Longueur d'impression (mm)</label>
-            <div class="field__row">
-              <input id="label-length" class="input" type="number" min="0" max="300" step="1"
-                     placeholder="Longueur du contenu">
-              <button id="label-length-clear" class="btn btn--ghost btn--compact" type="button">
-                Libre
-              </button>
-            </div>
-          </div>
-        </div>
 
         <div class="printer">
           <div class="printer__status">
@@ -358,6 +377,7 @@
           </div>
         </div>
 
+        <p id="supply-hint" class="hint hint--tight"></p>
         <p id="profile-hint" class="hint hint--tight"></p>
         <p id="ble-support" class="hint" hidden></p>
         <button id="print-label" class="btn btn--primary btn--wide" type="button" disabled>

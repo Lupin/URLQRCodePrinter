@@ -189,8 +189,14 @@ export function compatibleSupplies(profile) {
   const list = SUPPLIES[profile.id] ?? [];
   const headMm = (profile.printheadPixels / profile.dpi) * 25.4;
 
+  // Une étiquette de la largeur annoncée par le fabricant dépasse souvent la
+  // largeur de tête calculée : un M2 imprime du 50 mm avec une tête de 48,8 mm,
+  // parce que le profil couvre la marge. Sans cette tolérance, les rouleaux les
+  // plus courants du modèle étaient marqués incompatibles à tort.
+  const toleranceMm = 1.5;
+
   return list.map((supply) => {
-    if (supply.widthMm > headMm + 0.05) {
+    if (supply.widthMm > headMm + toleranceMm) {
       return { ...supply, compatible: false, reason: 'plus large que la tête' };
     }
     if (supply.lengthMm !== null && supply.lengthMm > profile.maxPrintHeightMm) {

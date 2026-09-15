@@ -79,13 +79,40 @@ export function labelContent(link, mode, dateLines = []) {
  */
 export function wrapDate(measure, dateText, maxWidth, maxLines) {
   if (dateText === '' || maxLines <= 0) return [];
-  // On ne coupe un date qu'après l'espace qui sépare la date de l'heure : les
-  // deux morceaux restent lisibles, « 15/09/2026 » puis « 21:28 ».
-  const lines = wrapText(measure, dateText, maxWidth, { maxLines });
-  // Un découpage qui perdrait des caractères signale une date trop longue.
-  const rejoined = lines.join('').replace(/\s/g, '');
-  if (rejoined !== dateText.replace(/\s/g, '')) return [];
-  return lines;
+
+  // Une date ne se coupe pas n'importe où : « 15/09/ » puis « 2026 » se lit mal
+  // et fait hésiter. Le seul point de coupure acceptable est l'espace entre la
+  // date et l'heure, qui donne deux morceaux entiers et lisibles.
+  const parts = dateText.trim().split(/\s+/);
+  if (parts.length > 1) {
+    const [jour, heure] = [parts[0], parts.slice(1).join(' ')];
+    if (measure(jour) <= maxWidth && measure(heure) <= maxWidth) return [jour, heure];
+  }
+
+  // Sinon la date reste d'un seul tenant, ou n'est pas imprimée du tout.
+  return measure(dateText) <= maxWidth ? [dateText] : [];
+}
+
+/**
+ * Plus grande taille de police à laquelle la date tient sur une ligne entière.
+ *
+ * La date est écrite d'un bloc : si la police retenue la fait déborder, elle
+ * était jusqu'ici coupée en plein milieu (« 15/09/ » puis « 2026 »). On préfère
+ * réduire la police du texte — l'étiquette entière reste cohérente — plutôt que
+ * d'amputer la date. Renvoie `0` si même le plancher de lisibilité ne suffit
+ * pas, auquel cas la date est abandonnée et l'interface le dit.
+ *
+ * @param {(size: number) => ((text: string) => number)} measureFactory
+ * @param {string} dateText
+ * @param {number} maxWidth
+ * @param {number} floor Taille minimale acceptable, en pixels.
+ * @returns {number} Taille retenue, ou 0.
+ */
+export function fontSizeForDate(measureFactory, dateText, maxWidth, floor) {
+  for (let size = 40; size >= floor; size--) {
+    if (measureFactory(size)(dateText) <= maxWidth) return size;
+  }
+  return 0;
 }
 
 /**
@@ -143,10 +170,20 @@ export function labelContentFromChoices(link, options = {}) {
   const text = parts.filter((part) => part !== '' && part !== title).join(' ');
   const extraText = Array.isArray(options.dateLines) ? options.dateLines.filter(Boolean) : [];
 
+  // Le titre est découpé comme le reste du texte. Il était réservé sur **une**
+  // ligne puis écrit sans découpe : un titre long débordait de l'étiquette, ou
+  // se faisait couper au bord. `options.titleLines` porte les lignes déjà
+  // découpées ; `titleLines` vaut 1 par défaut, pour ne rien changer aux
+  // appelants qui n'en fournissent pas.
+  const titleLines = Array.isArray(options.titleLines) && options.titleLines.length > 0
+    ? options.titleLines
+    : (showTitle ? [title] : []);
+
   return {
     text,
     showTitle,
-    extraLines: (showTitle ? 1 : 0) + extraText.length,
+    titleLines,
+    extraLines: titleLines.length + extraText.length,
     extraText,
   };
 }
@@ -347,24 +384,54 @@ export function computeLabelGeometry(options) {
   // défaut on retombe sur le texte affiché, comportement d'origine.
   const qrText = options.qrText ?? options.text ?? '';
   const matrix = encodeQr(qrText === '' ? ' ' : qrText, { ecc: options.ecc ?? 'M', border: 2 });
-  const measure = options.measure ?? defaultMeasure(fontSize);
+  // La mesure doit suivre la taille de police essayée : une mesure fixe servait
+  // à découper pour toutes les tailles candidates, si bien que le texte découpé
+  // pour 13 px était tracé à 17 px et débordait de l'étiquette. `measureFactory`
+  // reçoit la taille et rend la mesure correspondante ; `measure` reste accepté
+  // pour les appelants qui n'ont qu'une taille (tests, exports).
+  const measureFactory = options.measureFactory
+    ?? (options.measure ? () => options.measure : (size) => defaultMeasure(size));
+  const measure = options.measure ?? measureFactory(fontSize);
 
   /** Découpe le texte pour une taille de police, dans les limites de la cible. */
   const layoutText = (size) => {
     const height = Math.ceil(size * lineSpacing);
+    const mesure = measureFactory(size);
     // Le texte ne peut pas manger toute la longueur : au-delà, le QR n'a plus
     // de place et la disposition répartie le pousserait hors de l'étiquette.
     const cap = target > 0
       ? Math.max(extraLines, Math.floor((target * LABEL_TEXT_HEIGHT_RATIO) / height))
       : maxLines;
-    const limits = [maxLines, cap];
+    // Le plafond de lignes protège l'équilibre entre le QR et son texte, mais il
+    // ne doit pas amputer le texte : une URL coupée après « com/ » est fausse,
+    // pas seulement tronquée. On compte donc les lignes qu'il faut réellement,
+    // et on ne retient le plafond que s'il suffit. S'il ne suffit pas, la police
+    // sera réduite par `tryFont`, qui juge sur la hauteur obtenue.
+    const complet = wrapText(mesure, options.text ?? '', innerWidth, { maxLines: Infinity });
+    // Ce que la longueur du rouleau peut réellement contenir : le QR, l'écart,
+    // la marge, et le reste pour le texte. C'est cette borne qui empêche le
+    // texte entier de dépasser l'étiquette — sans elle, garder le texte complet
+    // faisait sortir 292 px sur une cible de 176.
+    const placeTexte = target > 0
+      ? target - padding * 2 - qrSize - (extraLines > 0 || true ? padding : 0)
+      : Infinity;
+    const lignesPossibles = Number.isFinite(placeTexte)
+      ? Math.max(1, Math.floor(placeTexte / height))
+      : Infinity;
+
+    const plafond = Math.min(maxLines, cap, lignesPossibles);
+    const suffisant = plafond >= complet.length;
+    // Le plafond cède pour ne pas amputer le texte, mais jamais au-delà de ce
+    // que la hauteur permet : la réduction de police fait le reste.
+    const limite = suffisant ? plafond : Math.min(Math.max(plafond, complet.length), lignesPossibles);
+    const limits = [Math.max(1, limite)];
     if (target > 0 && extraLines > 0) {
       // La date s'écrit sur une seule ligne, sans découpage : un interligne qui
       // la ferait dépasser ne doit pas être retenu.
       limits.push(Math.floor((target - padding) / height));
     }
     return {
-      lines: wrapText(measure, options.text ?? '', innerWidth, {
+      lines: wrapText(mesure, options.text ?? '', innerWidth, {
         maxLines: Math.max(0, Math.min(...limits)),
       }),
       lineHeight: height,
@@ -483,6 +550,17 @@ export function computeLabelGeometry(options) {
     qrTop = padding;
   }
 
+  // Le texte peut se placer au-dessus du QR : on remonte alors le QR de la
+  // hauteur du texte, pour que les deux ne se chevauchent pas. Sans ce
+  // décalage, « texte au-dessus » dessinait le texte par-dessus le code.
+  const blockHeight = qrSize + (contentLines > 0 ? spreadGap + textHeight : 0);
+  const top = options.textFirst === true
+    ? padding + (contentLines > 0 ? textHeight + spreadGap : 0)
+    : qrTop;
+  const textAtTop = options.textFirst === true
+    ? padding
+    : qrTop + qrSize + spreadGap;
+
   return {
     width,
     height,
@@ -492,10 +570,11 @@ export function computeLabelGeometry(options) {
     pxPerModule: qrSize / matrix.size,
     fits,
     qrMatrix: matrix,
-    qrTop,
+    qrTop: Math.round(top),
     qrLeft: Math.floor((width - qrSize) / 2),
     qrTextGap: spreadGap,
-    textTop: qrTop + qrSize + spreadGap,
+    textTop: Math.round(textAtTop),
+    blockHeight,
     lineHeight,
     lines,
     extraLines,
@@ -601,9 +680,17 @@ export function layoutLabelLateral(geometry, options) {
  */
 export function layoutLabelRotated(geometry, options) {
   const gap = Math.max(1, Math.floor(options.gap ?? geometry.padding));
-  const maxLines = Math.max(1, Math.trunc(options.maxLines ?? 4));
   const padding = geometry.padding;
   const lineHeight = geometry.lineHeight;
+
+  // Le nombre de lignes n'est pas un réglage : c'est la largeur de la bande qui
+  // le décide, et le texte est découpé à nouveau ici. Réutiliser les lignes de
+  // la disposition empilée les bornait à quatre — l'URL était coupée après
+  // « com/ » et sa fin perdue, pas seulement tronquée à l'affichage.
+  const maxLines = Math.max(
+    1,
+    Math.trunc(options.maxLines ?? Math.floor((geometry.width - padding * 2) / lineHeight)),
+  );
 
   // La bande de texte commence sous le QR. Sa longueur ne peut pas dépasser ce
   // qui reste jusqu'à la marge basse : c'est cette borne qui l'empêche de
@@ -618,8 +705,34 @@ export function layoutLabelRotated(geometry, options) {
     // s'ajuste au texte au lieu de réserver une bande vide.
     : Math.max(geometry.width, Math.ceil(options.measure(options.text ?? '')));
 
-  const lines = wrapText(options.measure, options.text ?? '', available, { maxLines });
-  const thickness = (lines.length + geometry.extraLines) * lineHeight;
+  // Le texte doit tenir dans la bande **en largeur comme en longueur** : ses
+  // lignes s'empilent sur la largeur de l'étiquette, et chacune court sur la
+  // longueur disponible. Une URL dense demandait sept lignes là où quatre
+  // tenaient : sa fin était perdue. On réduit donc la police jusqu'à ce que
+  // tout entre, sans descendre sous le plancher de lisibilité.
+  const bandWidth = Math.max(1, geometry.width - padding * 2);
+  const floor = Math.max(6, Math.floor(width_floor(geometry, options)));
+  let chosen = null;
+  let last = null;
+  for (let size = geometry.fontSize; size >= floor; size--) {
+    const mesure = options.measureFactory ? options.measureFactory(size) : options.measure;
+    const height = Math.ceil(size * (options.lineSpacing ?? 1.15));
+    const essai = wrapText(mesure, options.text ?? '', available, {
+      maxLines: Math.max(1, Math.floor(bandWidth / height)),
+    });
+    const epaisseur = (essai.length + geometry.extraLines) * height;
+    const complet = essai.join('').replace(/\s/g, '') === (options.text ?? '').replace(/\s/g, '');
+    last = { lines: essai, lineHeight: height, fontSize: size, thickness: epaisseur };
+    if (epaisseur <= bandWidth && (complet || options.text === '')) {
+      chosen = last;
+      break;
+    }
+  }
+  // Aucune taille ne contient tout le texte : on garde la plus petite essayée,
+  // qui en montre le plus, plutôt que d'abandonner.
+  const placed = chosen ?? last;
+  const lines = placed.lines;
+  const thickness = placed.thickness;
 
   return {
     ...geometry,
@@ -632,9 +745,22 @@ export function layoutLabelRotated(geometry, options) {
     textLeft: Math.max(0, Math.floor((geometry.width - thickness) / 2)),
     textWidth: available,
     lines,
+    // La police retenue peut être plus petite que celle de la composition
+    // empilée : c'est elle qui est dessinée.
+    fontSize: placed.fontSize,
+    lineHeight: placed.lineHeight,
     rotatedTextLength: available,
     rotatedTextThickness: thickness,
   };
+}
+
+/** Plancher de police pour la disposition tournée. */
+function width_floor(geometry, options) {
+  const cible = options.minFont ?? 0;
+  if (cible > 0) return cible;
+  // Un dixième de la largeur reste lisible ; en dessous, le texte n'est plus
+  // qu'une trame grise.
+  return Math.max(6, Math.floor(geometry.width * 0.07));
 }
 
 /**
@@ -739,8 +865,13 @@ export function drawLabel(ctx, geometry, options = {}) {
 
   let y = geometry.textTop;
   ctx.font = `bold ${geometry.fontSize}px ${fontFamily}`;
-  if (showTitle && title) {
-    ctx.fillText(title, textX, y, maxWidth);
+  // Le titre peut occuper plusieurs lignes : il est découpé par l'appelant, qui
+  // seul connaît la largeur utile. `titleLines` prime sur `title`.
+  const titreLignes = Array.isArray(options.titleLines) && options.titleLines.length > 0
+    ? options.titleLines
+    : (showTitle && title ? [title] : []);
+  for (const ligne of titreLignes) {
+    ctx.fillText(ligne, textX, y, maxWidth);
     y += geometry.lineHeight;
   }
 

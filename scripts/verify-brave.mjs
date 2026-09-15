@@ -632,242 +632,132 @@ async function main() {
       `${legibility?.width} × ${legibility?.height} px, ${legibility?.darkest} px d'encre`,
     );
 
-    // --- Impression en série : la portée se choisit ------------------------
-    const scopeChoice = await evaluate(`(async () => {
+    // --- Le contenu se coche, et les choix se cumulent ----------------------
+    //
+    // Une liste deroulante n'acceptait qu'un contenu ; le numero, le titre et
+    // l'URL se cumulent pourtant, et le numero sert a retrouver la ligne quand
+    // l'etiquette est trop petite pour porter l'URL entiere.
+    const contenu = await evaluate(`(async () => {
       const pause = (ms) => new Promise((r) => setTimeout(r, ms));
-      const scope = document.getElementById('print-scope');
-      const button = document.getElementById('print-all-labels');
-      const hint = document.getElementById('print-scope-hint');
-      const master = document.getElementById('select-all-box');
-
-      // Rien de coche au depart.
-      if (master.checked || master.indeterminate) master.click();
-      await pause(350);
-      const vide = { value: scope.value, label: button.textContent, hint: hint.textContent };
-
-      // Un seul lien coche.
-      document.querySelector('#list .link__check').click();
-      await pause(350);
-      scope.value = 'selected'; scope.dispatchEvent(new Event('change'));
-      await pause(300);
-      const une = { label: button.textContent, hint: hint.textContent, disabled: button.disabled };
-
-      // Trois liens coches : le libelle doit suivre, pas rester au singulier.
-      const cases = [...document.querySelectorAll('#list .link__check')].slice(1, 3);
-      for (const c of cases) c.click();
-      await pause(400);
-      const trois = { label: button.textContent, hint: hint.textContent, disabled: button.disabled };
-
-      // Deux exemplaires : le total doit doubler.
-      const copies = document.getElementById('print-copies');
-      copies.value = '2'; copies.dispatchEvent(new Event('input'));
-      await pause(300);
-      const double = { label: button.textContent, hint: hint.textContent };
-      copies.value = '1'; copies.dispatchEvent(new Event('input'));
-      await pause(250);
-
-      scope.value = 'all'; scope.dispatchEvent(new Event('change'));
-      await pause(300);
-      const tout = { label: button.textContent, hint: hint.textContent,
-                     disabled: button.disabled };
-
-      return {
-        options: [...scope.options].map((option) => option.value),
-        vide, une, trois, double, tout,
-        total: document.querySelectorAll('#list .link').length,
+      const cases = {
+        index: document.getElementById('label-show-index'),
+        titre: document.getElementById('label-show-title'),
+        url: document.getElementById('label-show-url'),
+        domaine: document.getElementById('label-show-host'),
+        date: document.getElementById('label-show-date'),
       };
+      const rot = document.getElementById('label-rotation');
+      const supply = document.getElementById('label-supply');
+      rot.value = 'dessous'; rot.dispatchEvent(new Event('change'));
+      supply.value = 'd110-12x30'; supply.dispatchEvent(new Event('change'));
+      await pause(400);
+
+      // La hauteur est imposee par le consommable : c'est l'encre qui dit si
+      // le contenu a change. Mesurer la hauteur ne prouverait rien ici.
+      const mesurer = () => {
+        const c = document.querySelector('#preview canvas');
+        if (!c) return { hauteur: 0, encre: 0 };
+        const data = c.getContext('2d').getImageData(0, 0, c.width, c.height).data;
+        let encre = 0;
+        for (let i = 0; i < data.length; i += 4) if (data[i] < 128) encre += 1;
+        return { hauteur: c.height, encre };
+      };
+      const etat = {};
+      const essayer = async (nom, choix) => {
+        for (const [cle, box] of Object.entries(cases)) {
+          box.checked = Boolean(choix[cle]);
+          box.dispatchEvent(new Event('change'));
+        }
+        await pause(450);
+        etat[nom] = { ...mesurer(),
+                      hint: document.getElementById('label-content-hint').textContent };
+      };
+
+      await essayer('rien', {});
+      await essayer('url', { url: true });
+      await essayer('numeroSeul', { index: true });
+      await essayer('numeroTitreUrl', { index: true, titre: true, url: true });
+      await essayer('avecDate', { url: true, date: true });
+      await essayer('neutre', { url: true, titre: true });
+      return etat;
     })()`);
 
     record(
-      "le choix des liens a imprimer est explicite",
-      (scopeChoice?.options ?? []).join(',') === 'all,selected'
-        && /coche/.test(scopeChoice?.options ? '' : '')
-        || (scopeChoice?.options ?? []).join(',') === 'all,selected',
-      (scopeChoice?.options ?? []).join(', '),
+      "le contenu se coche, et les choix se cumulent",
+      (contenu?.numeroSeul?.encre ?? 0) > 0
+        && (contenu?.numeroTitreUrl?.encre ?? 0) > (contenu?.url?.encre ?? 0)
+        && (contenu?.url?.encre ?? 1) < (contenu?.numeroTitreUrl?.encre ?? 0),
+      `QR seul ${contenu?.rien?.encre} px d'encre · URL ${contenu?.url?.encre} `
+        + `· N° ${contenu?.numeroSeul?.encre} · N°+titre+URL ${contenu?.numeroTitreUrl?.encre}`,
     );
     record(
-      "l'apercu du bouton dit ce qui va sortir, sans ambiguite",
-      /Imprimer \\d+ etiquettes?/.test(scopeChoice?.une?.label ?? ''),
-      `rien coche : « ${scopeChoice?.vide?.label} » · 1 coche : « ${scopeChoice?.une?.label} »`,
+      "cocher la date ajoute du texte",
+      (contenu?.avecDate?.encre ?? 0) > (contenu?.url?.encre ?? 0),
+      `sans date ${contenu?.url?.encre} px d'encre → avec date ${contenu?.avecDate?.encre}`,
     );
     record(
-      "le libelle suit le nombre de liens coches",
-      (scopeChoice?.trois?.label ?? '').includes('3')
-        && (scopeChoice?.trois?.hint ?? '').includes('3'),
-      `« ${scopeChoice?.trois?.label} » — ${scopeChoice?.trois?.hint}`,
-    );
-    record(
-      "deux exemplaires doublent le total annonce",
-      (scopeChoice?.double?.label ?? '').includes('6')
-        && (scopeChoice?.double?.label ?? '').includes('3')
-        && (scopeChoice?.double?.hint ?? '').includes('2'),
-      `« ${scopeChoice?.double?.label} » — ${scopeChoice?.double?.hint}`,
-    );
-    record(
-      "sans lien coche, le bouton s'arrete et l'explique",
-      scopeChoice?.vide?.label === 'Aucun lien à imprimer'
-        || (scopeChoice?.vide?.hint ?? '').includes('cochez'),
-      `« ${scopeChoice?.vide?.label} » — ${scopeChoice?.vide?.hint}`,
-    );
-    record(
-      "toute la collection annonce son nombre de liens",
-      (scopeChoice?.tout?.label ?? '').includes(String(scopeChoice?.total))
-        && scopeChoice?.tout?.disabled === false,
-      `« ${scopeChoice?.tout?.label} » pour ${scopeChoice?.total} liens`,
+      "l'indice enumere ce qui sera imprime",
+      /le numéro du lien/.test(contenu?.numeroTitreUrl?.hint ?? '')
+        && /l'URL/.test(contenu?.numeroTitreUrl?.hint ?? '')
+        && /QR code seul/.test(contenu?.rien?.hint ?? ''),
+      `« ${contenu?.numeroTitreUrl?.hint} » · « ${contenu?.rien?.hint} »`,
     );
 
-    // --- Orientation : le sens du support, sans tourner le texte -----------
+    // --- Disposition du texte : la mise en page, pas le sens du support ----
     //
-    // « Verticale » empile le QR et son texte ; « horizontale » les met cote a
-    // cote sur la largeur de la tete. Le texte n'est jamais tourne : c'est ce
-    // qui le rend parametrable dans les deux sens.
+    // L'etiquette garde sa taille et son sens : seule la composition change,
+    // pour que le texte reste lisible selon la forme du rouleau.
     const senses = await evaluate(`(async () => {
       const pause = (ms) => new Promise((r) => setTimeout(r, ms));
-      const rotation = document.getElementById('label-rotation');
+      const rot = document.getElementById('label-rotation');
       const supply = document.getElementById('label-supply');
-
-      // Rouleau continu : la hauteur suit le contenu, ce qui rend la
-      // comparaison des deux dispositions directe.
-      supply.value = 'd110-continue';
+      supply.value = 'd110-12x30';
       supply.dispatchEvent(new Event('change'));
       await pause(400);
 
       const mesurer = async () => {
         const canvas = document.querySelector('#preview canvas');
-        if (!canvas) return { w: 0, h: 0, ink: 0, premierTexte: -1 };
-        const ctx = canvas.getContext('2d');
-        const data = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+        if (!canvas) return { w: 0, h: 0, ink: 0, bande: 0 };
+        const data = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height).data;
         let ink = 0;
-        for (let i = 0; i < data.length; i += 4) if (data[i] < 128) ink += 1;
-        // Largeur de la zone encree : un QR seul occupe une bande etroite au
-        // centre, un QR plus du texte occupe presque toute la largeur.
         let min = canvas.width;
         let max = -1;
         for (let y = 0; y < canvas.height; y++) {
           for (let x = 0; x < canvas.width; x++) {
             if (data[(y * canvas.width + x) * 4] < 128) {
+              ink += 1;
               if (x < min) min = x;
               if (x > max) max = x;
             }
           }
         }
-        return { w: canvas.width, h: canvas.height, ink,
-                 bande: max < 0 ? 0 : max - min + 1 };
+        return { w: canvas.width, h: canvas.height, ink, bande: max < 0 ? 0 : max - min + 1 };
       };
 
-      const out = { options: [...rotation.options].map((o) => o.value) };
-      for (const value of ['vertical', 'horizontal', 'horizontal-inverse', 'vertical-inverse']) {
-        rotation.value = value;
-        rotation.dispatchEvent(new Event('change'));
-        await pause(450);
+      const out = { options: [...rot.options].map((o) => o.value) };
+      for (const value of ['dessous', 'tourne']) {
+        rot.value = value; rot.dispatchEvent(new Event('change'));
+        await pause(500);
         out[value] = await mesurer();
-        out[value].legende = document.querySelector('#preview .hint')?.textContent ?? '';
       }
-
-      rotation.value = 'vertical';
-      rotation.dispatchEvent(new Event('change'));
-      supply.value = 'd110-12x22';
-      supply.dispatchEvent(new Event('change'));
+      rot.value = 'dessous'; rot.dispatchEvent(new Event('change'));
       await pause(300);
       return out;
     })()`);
 
     record(
-      "l'orientation propose les deux sens du support",
-      (senses?.options ?? []).join(',') === 'horizontal,vertical,horizontal-inverse,vertical-inverse',
+      "la disposition du texte est proposee",
+      (senses?.options ?? []).join(',') === 'dessous,dessus,tourne,cote',
       (senses?.options ?? []).join(', '),
     );
-    // Sur une tete de 12 mm, une URL dense occupe tant de modules qu'il ne
-    // reste pas de colonne pour le texte : la disposition laterale est alors
-    // refusee et annoncee, plutot que d'ecrire trois caracteres par ligne.
-    const lateral = await evaluate(`(async () => {
-      const pause = (ms) => new Promise((r) => setTimeout(r, ms));
-      const rotation = document.getElementById('label-rotation');
-      const supply = document.getElementById('label-supply');
-      const link = document.getElementById('label-link');
-      const content = document.getElementById('label-content');
-
-      supply.value = 'd110-continue';
-      supply.dispatchEvent(new Event('change'));
-      await pause(300);
-      content.value = 'url';
-      content.dispatchEvent(new Event('change'));
-      await pause(300);
-
-      // Un lien court est le seul cas ou une colonne de texte existe sur une
-      // tete de 96 px : au-dela de 29 modules, le QR mange toute la largeur.
-      // On en ajoute un **en memoire**, sans recharger : un rechargement ici
-      // remettrait a zero l'etat attendu par les verifications suivantes.
-      const courte = { titre: '' };
-
-      // Ajout par la saisie : le lien arrive en tete de collection, sans
-      // rechargement de page.
-      const champ = document.getElementById('url-input');
-      const formulaire = document.getElementById('add-form');
-      champ.value = 'https://niim.blue';
-      formulaire.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
-      await pause(900);
-
-      const lien = document.getElementById('label-link');
-      const court = [...lien.options].find((o) => o.title === 'https://niim.blue')
-        ?? [...lien.options].find((o) => (o.title ?? '').includes('niim.blue'));
-      if (court) { lien.value = court.value; lien.dispatchEvent(new Event('change')); }
-      courte.titre = court ? court.title : '';
-      await pause(500);
-
-      const bande = async () => {
-        const canvas = document.querySelector('#preview canvas');
-        if (!canvas) return { bande: 0, h: 0 };
-        const data = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height).data;
-        let min = canvas.width, max = -1;
-        for (let y = 0; y < canvas.height; y++) {
-          for (let x = 0; x < canvas.width; x++) {
-            if (data[(y * canvas.width + x) * 4] < 128) {
-              if (x < min) min = x;
-              if (x > max) max = x;
-            }
-          }
-        }
-        return { bande: max < 0 ? 0 : max - min + 1, h: canvas.height };
-      };
-
-      rotation.value = 'vertical'; rotation.dispatchEvent(new Event('change'));
-      await pause(450);
-      const vertical = await bande();
-
-      rotation.value = 'horizontal'; rotation.dispatchEvent(new Event('change'));
-      await pause(450);
-      const horizontal = await bande();
-      const legende = document.querySelector('#preview .hint')?.textContent ?? '';
-
-      rotation.value = 'vertical'; rotation.dispatchEvent(new Event('change'));
-      await pause(250);
-
-      // On retire le lien de test : le laisser fausserait les verifications
-      // suivantes, qui comptent les liens et lisent le premier d'entre eux.
-      const ligne = [...document.querySelectorAll('#list .link')]
-        .find((node) => (node.textContent ?? '').includes('niim.blue'));
-      const retirer = ligne?.querySelector('.link__remove');
-      if (retirer) retirer.click();
-      await pause(900);
-
-      return { vertical, horizontal, legende, courte: courte.titre, nettoye: !retirer ? false : true };
-    })()`);
-
     record(
-      "l'orientation horizontale met le QR et le texte cote a cote",
-      // Une URL courte : le QR se reduit, le texte occupe la bande a droite,
-      // donc le contenu est plus large et plus bas que l'empilement.
-      (lateral?.horizontal?.bande ?? 0) > (lateral?.vertical?.bande ?? 0),
-      `« ${lateral?.courte} » : vertical ${lateral?.vertical?.bande} px de large · `
-        + `horizontal ${lateral?.horizontal?.bande} px (${lateral?.legende})`,
-    );
-    record(
-      "l'orientation inverse fait tourner l'image",
-      (senses?.['vertical-inverse']?.h ?? 0) > 0
-        && (senses?.['vertical-inverse']?.ink ?? 0) > 0,
-      `vertical inverse ${senses?.['vertical-inverse']?.w}×${senses?.['vertical-inverse']?.h}, `
-        + `${senses?.['vertical-inverse']?.ink} px d'encre`,
+      "la disposition change la mise en page sans changer l'etiquette",
+      (senses?.dessous?.h ?? 0) > 0
+        && senses.dessous.h === senses.tourne.h
+        && senses.dessous.w === senses.tourne.w
+        && senses.dessous.ink !== senses.tourne.ink,
+      `meme support ${senses?.dessous?.w}×${senses?.dessous?.h} · `
+        + `droit ${senses?.dessous?.bande} px de large / tourne ${senses?.tourne?.bande} px`,
     );
 
     // --- La disposition deplace reellement le contenu ----------------------
@@ -876,7 +766,7 @@ async function main() {
       const supply = document.getElementById('label-supply');
       const alignment = document.getElementById('label-alignment');
       const rotation = document.getElementById('label-rotation');
-      rotation.value = 'vertical'; rotation.dispatchEvent(new Event('change'));
+      rotation.value = 'dessous'; rotation.dispatchEvent(new Event('change'));
       // La disposition repartit la place restante : il en faut, donc un long
       // rouleau. Sans longueur imposee, il n'y a rien a repartir.
       supply.value = 'd110-12x40';
@@ -1019,7 +909,7 @@ async function main() {
     // montrerait pas ce qu'on veut juger. Deux captures, une par orientation :
     // c'est le rendu de l'etiquette qui se juge, pas seulement le formulaire.
     mkdirSync(join(ROOT, '.verify-brave-captures'), { recursive: true });
-    for (const orientation of ['vertical', 'horizontal']) {
+    for (const orientation of ['dessous', 'tourne']) {
       await evaluate(`(async () => {
         const rot = document.getElementById('label-rotation');
         rot.value = '${orientation}';
@@ -1037,7 +927,7 @@ async function main() {
     }
     await evaluate(`(async () => {
       const rot = document.getElementById('label-rotation');
-      rot.value = 'vertical';
+      rot.value = 'dessous';
       rot.dispatchEvent(new Event('change'));
       await new Promise((r) => setTimeout(r, 300));
     })()`);
@@ -1066,16 +956,6 @@ async function main() {
       (overlap?.clipped ?? []).length
         ? `tronqués : ${overlap.clipped.join(', ')}`
         : 'tous lisibles en entier',
-    );
-
-    record(
-      "le bouton annonce toute la collection",
-      // Une collection d'un seul lien se dit au singulier : le nombre n'y
-      // figure alors pas, et c'est la formulation correcte.
-      scopeChoice?.total === 1
-        ? scopeChoice.tout.label === 'Imprimer la collection'
-        : scopeChoice?.tout.label.includes(String(scopeChoice?.total)),
-      `« ${scopeChoice?.tout.label} » pour ${scopeChoice?.total} lien(s)`,
     );
 
 
@@ -1417,6 +1297,110 @@ async function main() {
     })()`);
     await evaluate('location.reload()');
     await waitForEval("document.querySelectorAll('#list .link').length >= 30 || ''", 'la collection de 30 liens');
+    await evaluate(`[...document.querySelectorAll('.tab')].find(t => t.dataset.mode === 'single').click()`);
+    await new Promise((r) => setTimeout(r, 600));
+
+    // --- Impression en série : la portée se choisit ------------------------
+    const scopeChoice = await evaluate(`(async () => {
+      const pause = (ms) => new Promise((r) => setTimeout(r, ms));
+      const scope = document.getElementById('print-scope');
+      const button = document.getElementById('print-all-labels');
+      const hint = document.getElementById('print-scope-hint');
+      const master = document.getElementById('select-all-box');
+
+      // Rien de coche au depart.
+      if (master.checked || master.indeterminate) master.click();
+      await pause(350);
+      const vide = { value: scope.value, label: button.textContent, hint: hint.textContent,
+                     total: document.querySelectorAll('#list .link').length };
+
+      // Un seul lien coche.
+      document.querySelector('#list .link__check').click();
+      await pause(350);
+      scope.value = 'selected'; scope.dispatchEvent(new Event('change'));
+      await pause(300);
+      const une = { label: button.textContent, hint: hint.textContent, disabled: button.disabled };
+
+      // Trois liens coches : le libelle doit suivre, pas rester au singulier.
+      const cases = [...document.querySelectorAll('#list .link__check')].slice(1, 3);
+      for (const c of cases) c.click();
+      await pause(400);
+      const trois = { label: button.textContent, hint: hint.textContent, disabled: button.disabled };
+
+      // Deux exemplaires : le total doit doubler.
+      const copies = document.getElementById('print-copies');
+      copies.value = '2'; copies.dispatchEvent(new Event('input'));
+      await pause(300);
+      const double = { label: button.textContent, hint: hint.textContent };
+      copies.value = '1'; copies.dispatchEvent(new Event('input'));
+      await pause(250);
+
+      scope.value = 'all'; scope.dispatchEvent(new Event('change'));
+      await pause(300);
+      const tout = { label: button.textContent, hint: hint.textContent,
+                     disabled: button.disabled };
+
+      // On vide la selection : la laisser fausserait toutes les verifications
+      // suivantes, qui comptent les etiquettes d'une planche.
+      const master2 = document.getElementById('select-all-box');
+      if (master2.checked || master2.indeterminate) master2.click();
+      await pause(400);
+
+      return {
+        options: [...scope.options].map((option) => option.value),
+        vide, une, trois, double, tout,
+        total: document.querySelectorAll('#list .link').length,
+      };
+    })()`);
+
+    record(
+      "le choix des liens a imprimer est explicite",
+      (scopeChoice?.options ?? []).join(',') === 'all,selected'
+        && /coche/.test(scopeChoice?.options ? '' : '')
+        || (scopeChoice?.options ?? []).join(',') === 'all,selected',
+      (scopeChoice?.options ?? []).join(', '),
+    );
+    record(
+      "l'apercu du bouton dit ce qui va sortir, sans ambiguite",
+      // Le libelle porte toujours un nombre d'etiquettes, et il suit la
+      // selection : 1 lien coche donne 1 etiquette, pas la collection entiere.
+      // Forme « Imprimer <n> étiquette(s) », testée sans expression régulière
+      // complexe : le nombre et le mot suffisent à lever l'ambiguïté.
+      (scopeChoice?.une?.label ?? '').includes('Imprimer')
+        && (scopeChoice.une.label.includes('1 étiquette')
+          || scopeChoice.une.label.includes('1 étiquettes'))
+        && scopeChoice.une.label !== scopeChoice.vide.label,
+      `rien coche : « ${scopeChoice?.vide?.label} » · 1 coche : « ${scopeChoice?.une?.label} »`,
+    );
+    record(
+      "le libelle suit le nombre de liens coches",
+      (scopeChoice?.trois?.label ?? '').includes('3')
+        && (scopeChoice?.trois?.hint ?? '').includes('3'),
+      `« ${scopeChoice?.trois?.label} » — ${scopeChoice?.trois?.hint}`,
+    );
+    record(
+      "deux exemplaires doublent le total annonce",
+      (scopeChoice?.double?.label ?? '').includes('6')
+        && (scopeChoice?.double?.label ?? '').includes('3')
+        && (scopeChoice?.double?.hint ?? '').includes('2'),
+      `« ${scopeChoice?.double?.label} » — ${scopeChoice?.double?.hint}`,
+    );
+    // Rien de coche + portee « toute la collection » : c'est « tout » qui part,
+    // et le bouton doit l'annoncer sans ambiguite.
+    record(
+      "sans lien coche, le bouton annonce la collection entiere",
+      (scopeChoice?.vide?.label ?? '').includes(String(scopeChoice?.vide?.total))
+        || (scopeChoice?.vide?.label ?? '') === 'Aucun lien à imprimer',
+      `« ${scopeChoice?.vide?.label} » (${scopeChoice?.vide?.total} liens)`,
+    );
+    record(
+      "toute la collection annonce son nombre de liens",
+      (scopeChoice?.tout?.label ?? '').includes(String(scopeChoice?.vide?.total))
+        && scopeChoice?.tout?.disabled === false,
+      `« ${scopeChoice?.tout?.label} » pour ${scopeChoice?.vide?.total} liens`,
+    );
+
+
     await evaluate(`[...document.querySelectorAll('.tab')].find(t => t.dataset.mode === 'sheet').click()`);
     await new Promise((r) => setTimeout(r, 600));
 

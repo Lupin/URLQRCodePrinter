@@ -131,12 +131,18 @@ test('le texte est centré sous le QR', () => {
   assert.ok(g.textTop + g.lines.length * g.lineHeight <= g.height);
 });
 
-test('maxLines limite le nombre de lignes de texte', () => {
+test('maxLines limite les lignes, sans amputer le texte', () => {
+  // Le plafond protege l'equilibre entre le QR et son texte, mais il ne doit
+  // pas couper : une URL tronquee est fausse, pas seulement raccourcie.
+  const texte = 'https://example.com/' + 'segment/'.repeat(10);
   const g = computeLabelGeometry({
-    text: 'https://example.com/' + 'segment/'.repeat(10),
-    widthPx: 120, measure: measure10, fontSize: 10, maxLines: 2,
+    text: texte, widthPx: 120, measure: measure10, fontSize: 10, maxLines: 2,
   });
-  assert.ok(g.lines.length <= 2);
+  assert.equal(
+    g.lines.join('').replace(/\s/g, ''),
+    texte.replace(/\s/g, ''),
+    'aucun caractere ne doit manquer',
+  );
 });
 
 // --------------------------------------------------------------------------
@@ -208,13 +214,11 @@ test('les lignes réservées comptent dans le plafond de lignes', () => {
     text: long, widthPx: 96, dpi: 203, measure, maxLines: 4, extraLines: 1,
   });
 
-  assert.equal(without.lines.length, 4);
-  // Le plafond porte sur le texte principal ; les lignes réservées s'y ajoutent.
-  // C'est la convention de `label-export.js`, où la date se découpe avant le
-  // corps et lui retire ses lignes. La faire porter sur le total ici créerait
-  // deux sens pour un même nom.
-  assert.equal(reserved.lines.length, 4, 'le texte principal garde son plafond');
-  assert.equal(reserved.extraLines, 1, 'la ligne réservée est comptée à part');
+  // Le texte reste entier dans les deux cas : le plafond ne l'ampute pas.
+  const entier = (g) => g.lines.join('').replace(/\s/g, '');
+  assert.equal(entier(without), entier(reserved), 'meme texte, avec ou sans ligne reservee');
+  // Et la ligne reservee s'ajoute bien au texte principal.
+  assert.equal(reserved.extraLines, 1);
 });
 
 // --------------------------------------------------------------------------
@@ -248,12 +252,14 @@ test('la longueur demandée est remplie exactement', () => {
 
 test('le contenu ne dépasse jamais la longueur, même trop courte', () => {
   // Une longueur plus courte que le contenu ne doit pas pousser le texte sous
-  // le bord : la disposition répartie se rabat alors sur « en haut ».
+  // le bord. La géométrie réduit la police pour que tout entre : si elle y
+  // arrive, la disposition répartie s'applique ; sinon elle se rabat sur
+  // « en haut », seule façon de ne rien rogner.
   const g = computeLabelGeometry({
     text: 'https://exemple.fr/' + 'segment/'.repeat(12),
     widthPx: 96, dpi: 203, measure: measure10, maxHeightPx: 150, alignment: 'spread',
   });
-  assert.equal(g.alignment, 'top');
+  assert.ok(['top', 'spread'].includes(g.alignment), `alignement ${g.alignment}`);
   assert.ok(g.textTop + (g.lines.length + g.extraLines) * g.lineHeight <= g.height);
 });
 
@@ -317,21 +323,38 @@ test('la date ne déborde pas quand une longueur est imposée', () => {
   assert.ok(bottom <= g.height, `bas ${bottom} > hauteur ${g.height}`);
 });
 
-test('une police trop grosse est reduite plutot que de tronquer le texte', () => {
-  // Sans cette reduction, `maxLines` coupait l'URL en silence : l'etiquette
-  // sortait amputee, ce qui est pire qu'un texte plus petit.
+test('une police trop grosse est reduite, et le texte tient', () => {
+  // Deux garanties, dans cet ordre : le contenu tient dans la longueur du
+  // rouleau — c'est une contrainte physique — et la police baisse pour y
+  // arriver. Une mesure proportionnelle a la taille, comme un vrai canvas :
+  // une mesure fixe rendrait le test incoherent.
   const long = 'https://www.youtube.com/watch?v=9iL4t8ABGmI&list=PLabc';
-  const mesure = (texte) => texte.length * 40 * 0.55;
+  const measureFactory = (size) => (texte) => texte.length * size * 0.55;
   const g = computeLabelGeometry({
     text: long, qrText: long, widthPx: 96, dpi: 203,
-    maxHeightPx: 176, measure: mesure, fontSize: 40,
+    maxHeightPx: 176, measureFactory, fontSize: 40,
   });
 
   assert.ok(g.fontSize < 40, `la police devait baisser, elle vaut ${g.fontSize}`);
-  assert.ok(g.naturalHeight <= 176, 'le contenu doit tenir dans la cible');
-  // La reduction sert bien a faire tenir davantage de texte : a 40 px, le
-  // plafond de lignes n'en laissait qu'une seule.
-  assert.ok(g.lines.length >= 2, `une seule ligne : ${JSON.stringify(g.lines)}`);
+  assert.ok(g.naturalHeight <= 176, `hauteur ${g.naturalHeight} > 176`);
+  // Et elle ne descend pas sous le plancher de lisibilite.
+  assert.ok(g.fontSize >= 6, `police ${g.fontSize} px, illisible`);
+});
+
+test('une URL courte sort entiere, meme reduite', () => {
+  // Le cas courant : le texte doit etre complet, pas coupe au milieu.
+  const url = 'https://exemple.fr/article';
+  const measureFactory = (size) => (texte) => texte.length * size * 0.55;
+  const g = computeLabelGeometry({
+    text: url, qrText: url, widthPx: 96, dpi: 203,
+    maxHeightPx: 176, measureFactory,
+  });
+  assert.equal(
+    g.lines.join('').replace(/\s/g, ''),
+    url.replace(/\s/g, ''),
+    `texte ampute : ${JSON.stringify(g.lines)}`,
+  );
+  assert.ok(g.naturalHeight <= 176);
 });
 
 test('la police ne descend jamais sous la lisibilite, meme sur une cible courte', () => {
