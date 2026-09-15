@@ -2236,6 +2236,55 @@ async function main() {
       bounded.avery.info,
     );
 
+    // --- La taille du texte d'une planche se règle -------------------------
+    //
+    // Elle était figée à 7 pt : sur une A4, la place disponible restait
+    // inutilisée et le texte sortait minuscule.
+    const sheetFont = await evaluate(`(async () => {
+      const pause = (ms) => new Promise((r) => setTimeout(r, ms));
+      const el = (id) => document.getElementById(id);
+      [...document.querySelectorAll('.tab')].find((t) => t.dataset.mode === 'sheet').click();
+      await pause(600);
+
+      const lire = () => {
+        const texte = document.querySelector('#preview .print-cell__text');
+        const spans = [...(texte?.querySelectorAll('span') ?? [])];
+        return {
+          px: texte ? parseFloat(getComputedStyle(texte).fontSize) : 0,
+          lignes: spans.length,
+          tronque: spans.some((s) => s.textContent.endsWith('…')),
+          qrMax: Number(el('sheet-qr').max),
+        };
+      };
+
+      const out = {};
+      for (const pt of ['7', '12']) {
+        el('sheet-font').value = pt;
+        el('sheet-font').dispatchEvent(new Event('input'));
+        await pause(600);
+        out['pt' + pt] = lire();
+      }
+      el('sheet-font').value = '7';
+      el('sheet-font').dispatchEvent(new Event('input'));
+      await pause(400);
+      return out;
+    })()`);
+
+    record(
+      "la taille du texte d'une planche se règle",
+      (sheetFont?.pt12?.px ?? 0) > (sheetFont?.pt7?.px ?? 0)
+        && (sheetFont?.pt7?.px ?? 0) > 0,
+      `7 pt → ${sheetFont?.pt7?.px} px · 12 pt → ${sheetFont?.pt12?.px} px`,
+    );
+    record(
+      "grossir le texte laisse moins de place au QR, sans le tronquer",
+      (sheetFont?.pt12?.qrMax ?? 100) < (sheetFont?.pt7?.qrMax ?? 0)
+        && sheetFont?.pt12?.tronque === false
+        && (sheetFont?.pt12?.lignes ?? 0) >= 1,
+      `borne haute du QR ${sheetFont?.pt7?.qrMax} % → ${sheetFont?.pt12?.qrMax} % · `
+        + `${sheetFont?.pt12?.lignes} ligne(s), tronqué : ${sheetFont?.pt12?.tronque}`,
+    );
+
     // --- « Remplir la feuille » : la grille choisie est celle imprimée -----
     const fill = await evaluate(`(async () => {
       const pause = () => new Promise((r) => setTimeout(r, 250));

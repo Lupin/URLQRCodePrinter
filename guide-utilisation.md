@@ -171,7 +171,9 @@ Pour les planches autocollantes A4 et Letter. Deux familles de dispositions :
 
 **Choisir les colonnes du tableau.** Dans l'onglet « Tableau », le groupe
 **Tableau imprimé** permet de cocher une à une les colonnes : N°, QR, URL, Titre,
-Tags, Note. La date suit le réglage global « Date sous le QR code ».
+Tags, Note, Date. La date a sa propre case, avec ou sans l'heure : chaque onglet
+a la sienne, un réglage unique obligerait à le changer en passant de l'un à
+l'autre.
 
 Deux d'entre elles ne sont proposées que si elles ont du contenu : une colonne
 « Tags » ou « Note » vide sur toute une page n'apprend rien. Elles s'activent
@@ -183,6 +185,13 @@ l'impression. Les lignes gardent un peu plus d'air, seul repère qui reste pour
 suivre une ligne des yeux.
 
 **Choisir le nombre de colonnes, ou remplir la feuille.** Le sélecteur
+**Régler la taille du texte de la planche.** Le champ **Taille du texte (pt)**
+donne la hauteur de la police imprimée sous chaque QR. Elle était figée à 7 pt :
+sur une A4, la place restante n'était pas utilisée et le texte sortait petit.
+Montez-la — la borne haute du curseur **Largeur du QR** descend d'elle-même pour
+laisser la place au texte, et rien n'est tronqué. La ligne sous le curseur dit
+combien de lignes de texte la disposition retenue permet encore.
+
 **Une seule présentation, six valeurs.** Le sélecteur **Disposition** ne fait
 que *préremplir* les six champs qui suivent ; vous pouvez ensuite les ajuster
 librement, et la taille des étiquettes est recalculée :

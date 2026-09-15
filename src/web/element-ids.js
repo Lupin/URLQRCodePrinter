@@ -34,6 +34,7 @@ export const ELEMENT_IDS = Object.freeze([
   'clear',
   'preset',
   'sheet-qr',
+  'sheet-font',
   'sheet-qr-info',
   'sheet-date',
   'sheet-date-time',

@@ -53,6 +53,7 @@ import {
   sheetCellLines,
   SHEET_CELL_MARGIN_MM,
   SHEET_QR_GAP_MM,
+  SHEET_FONT_PT,
   MIN_MODULE_MM_PAPER,
 } from './core/sheet.js';
 import {
@@ -1260,6 +1261,21 @@ function updateFitHint(state) {
 }
 
 /**
+ * Taille du texte d'une étiquette de planche, en points.
+ *
+ * Elle était figée à 7 pt : sur une A4, la place disponible restait inutilisée
+ * et le texte sortait minuscule. Une valeur hors bornes retombe sur le défaut
+ * plutôt que de casser la mise en page.
+ *
+ * @returns {number}
+ */
+function sheetFontPt() {
+  const typed = Number(el.sheetFont.value);
+  if (!Number.isFinite(typed) || typed <= 0) return SHEET_FONT_PT;
+  return Math.min(20, Math.max(4, typed));
+}
+
+/**
  * Construit les pages imprimables d'une planche.
  *
  * Les positions viennent de `computeSheet` en millimètres : la même structure
@@ -1276,7 +1292,7 @@ function buildSheetPages(items) {
   // La grille est toujours une consigne : on ne suggère pas de la densifier.
   const layout = computeSheet({ count: items.length, ...config, adviseDenser: false });
   const pages = paginate(items, layout);
-  const metrics = sheetTextMetrics();
+  const metrics = sheetTextMetrics({ fontSizePt: sheetFontPt() });
 
   // Chaque URL est encodée une seule fois : sa taille de matrice sert au calcul
   // des bornes, puis la même matrice est rendue dans la cellule.
@@ -1311,6 +1327,9 @@ function buildSheetPages(items) {
     marginMm: SHEET_CELL_MARGIN_MM,
     gapMm: SHEET_QR_GAP_MM,
     minModuleMm: MIN_MODULE_MM_PAPER,
+    // La hauteur de ligne dépend de la taille du texte : une police plus grande
+    // laisse moins de place au QR, et la borne haute doit en tenir compte.
+    fontSizePt: sheetFontPt(),
   });
 
   // Le curseur est borné par ce que l'impression permet réellement.
@@ -3130,6 +3149,7 @@ for (const field of [
   field.addEventListener('input', renderPreview);
 }
 el.sheetQr.addEventListener('input', renderPreview);
+el.sheetFont.addEventListener('input', renderPreview);
 el.sheetOffsetX.addEventListener('input', renderPreview);
 el.sheetOffsetY.addEventListener('input', renderPreview);
 el.labelProfile.addEventListener('change', () => {
