@@ -138,7 +138,8 @@ moins de modules, donc un QR plus lisible et imprimable plus petit.
 
 Ensuite, le sélecteur **« Le QR code pointe vers »** (colonne de droite) décide
 ce qui part à l'impression : l'URL collectée, ou le raccourci. Il vaut pour
-toutes les sorties imprimées.
+toutes les sorties imprimées — planche, tableau, images **et étiquette
+Niimbot**, dont le QR comme le texte suivent ce choix.
 
 ## Mettre en page
 

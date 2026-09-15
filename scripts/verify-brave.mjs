@@ -604,6 +604,83 @@ async function main() {
       `${legibility?.width} × ${legibility?.height} px, ${legibility?.darkest} px d'encre`,
     );
 
+    // --- L'etiquette encode la cible choisie -------------------------------
+    //
+    // La liste affichait un tinyurl, mais l'etiquette encodait toujours l'URL
+    // longue : elle ignorait le reglage « Le QR code pointe vers ».
+    const cibleQR = await evaluate(`(async () => {
+      const pause = (ms) => new Promise((r) => setTimeout(r, ms));
+      const el = (id) => document.getElementById(id);
+      const cocher = (box, v) => { box.checked = v; box.dispatchEvent(new Event('change')); };
+
+      // Contenu : URL seule, sur un rouleau continu pour que la hauteur suive
+      // la longueur du texte.
+      cocher(el('label-show-index'), false);
+      cocher(el('label-show-title'), false);
+      cocher(el('label-show-url'), true);
+      cocher(el('label-show-host'), false);
+      cocher(el('label-show-date'), false);
+      el('label-supply').value = 'd110-continue';
+      el('label-supply').dispatchEvent(new Event('change'));
+      el('label-rotation').value = 'dessous';
+      el('label-rotation').dispatchEvent(new Event('change'));
+      await pause(450);
+
+      // Le lien raccourci : il porte a la fois l'URL longue et le tinyurl.
+      const cible = el('qr-target');
+      const lien = el('label-link');
+      const avecRaccourci = [...lien.options]
+        .find((o) => (o.title ?? '').length > 30) ?? lien.options[0];
+      lien.value = avecRaccourci.value;
+      lien.dispatchEvent(new Event('change'));
+      await pause(400);
+
+      // La hauteur ne suffit pas a distinguer les deux : une URL courte et une
+      // URL longue tiennent parfois dans le meme nombre de lignes. On compare
+      // donc le rendu lui-meme — si le QR n'encode pas le raccourci, les deux
+      // images sont identiques au pixel pres.
+      const lire = () => {
+        const c = document.querySelector('#preview canvas');
+        return c ? { hauteur: c.height, image: c.toDataURL('image/png') } : null;
+      };
+
+      // On part de l'etat courant, et on le restaure : la suite du scenario en
+      // depend (l'export verifie que le CSV porte le raccourci).
+      const avant = cible.value;
+
+      cible.value = 'original';
+      cible.dispatchEvent(new Event('change'));
+      await pause(500);
+      const original = lire();
+
+      cible.value = 'short';
+      cible.dispatchEvent(new Event('change'));
+      await pause(500);
+      const court = lire();
+      const indice = el('label-font-hint').textContent;
+
+      cible.value = avant;
+      cible.dispatchEvent(new Event('change'));
+      cocher(el('label-show-title'), true);
+      el('label-supply').value = 'd110-12x22';
+      el('label-supply').dispatchEvent(new Event('change'));
+      await pause(400);
+      return {
+        original: { hauteur: original?.hauteur ?? 0 },
+        court: { hauteur: court?.hauteur ?? 0 },
+        identiques: original?.image === court?.image,
+        indice, titre: avecRaccourci.title, avant,
+      };
+    })()`);
+
+    record(
+      "l'etiquette encode le raccourci quand il est choisi",
+      (cibleQR?.court?.hauteur ?? 0) > 0 && cibleQR?.identiques === false,
+      `« ${cibleQR?.titre} » : URL longue ${cibleQR?.original?.hauteur} px `
+        + `→ raccourci ${cibleQR?.court?.hauteur} px, rendus `
+        + `${cibleQR?.identiques ? 'IDENTIQUES (le reglage est ignore)' : 'differents'}`,
+    );
+
     // --- Le contenu se coche, et les choix se cumulent ----------------------
     //
     // Une liste deroulante n'acceptait qu'un contenu ; le numero, le titre et

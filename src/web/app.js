@@ -10,7 +10,9 @@
  * Ce fichier ne fait que du DOM et des appels système.
  */
 
-import { createLink, hostOf, hasShortUrl, safeHref, resolveTargets } from './core/link.js';
+import {
+  createLink, hostOf, hasShortUrl, safeHref, resolveTarget, resolveTargets,
+} from './core/link.js';
 import { resolveDefaultStore } from './core/store.js';
 import { ELEMENT_IDS } from './element-ids.js';
 import { createSettingsStore, DEFAULT_SETTINGS, COLLECTION_NAME_MAX } from './core/settings.js';
@@ -1815,6 +1817,8 @@ function renderSingleLabel(link) {
   const profile = previewProfile();
   const { geometry, content, verdict, dateOmitted, dateTropPetite, lateralRefused } =
     composeLabel(link, profile);
+  // L'URL réellement encodée : le raccourci quand c'est lui qui est choisi.
+  const cible = resolveTarget(link, el.qrTarget.value);
 
   const frame = document.createElement('div');
   frame.className = 'preview__page';
@@ -1831,7 +1835,7 @@ function renderSingleLabel(link) {
   drawLabel(sourceCtx, geometry, {
     titleLines: content.titleLines,
     showTitle: content.showTitle,
-    url: link.url,
+    url: cible.url,
     extraText: content.extraText,
   });
 
@@ -1895,6 +1899,11 @@ function renderSingleLabel(link) {
  * @returns {{ geometry: object, verdict: object }}
  */
 function composeLabel(link, profile) {
+  // Le QR encode la cible choisie — l'URL collectée ou son raccourci. Sans
+  // cette résolution, l'étiquette ignorait le réglage : la liste affichait un
+  // tinyurl que le QR n'encodait pas et que le texte n'imprimait pas non plus.
+  const target = resolveTarget(link, el.qrTarget.value);
+
   // Avec l'heure quand la place le permet : sur une étiquette étroite, la date
   // seule tient là où « date et heure » devrait céder une ligne.
   // La date seule par défaut : c'est ce qui tient sur une tête de 12 mm.
@@ -1915,8 +1924,8 @@ function composeLabel(link, profile) {
   // choisi. Le mode « QR seul » n'a donc aucun texte à mesurer, d'où la sonde
   // sur l'URL : c'est la matrice la plus large qui décide de l'échelle.
   const probe = computeLabelGeometry({
-    text: link.url,
-    qrText: link.url,
+    text: target.url,
+    qrText: target.url,
     widthPx: profile.printheadPixels,
     dpi: profile.dpi,
     ecc: 'M',
@@ -1971,7 +1980,7 @@ function composeLabel(link, profile) {
     : wrapText(cachedTextMeasure(probe.fontSize), titreVoulu, largeurUtile, { maxLines: 2 });
 
   // Le contenu se compose de choix indépendants, qui se cumulent.
-  const content = labelContentFromChoices(link, {
+  const content = labelContentFromChoices(target, {
     index: linkRanks.get(link.id) ?? null,
     indexVisible: el.labelShowIndex.checked,
     title: el.labelShowTitle.checked,
@@ -1983,7 +1992,7 @@ function composeLabel(link, profile) {
 
   let geometry = computeLabelGeometry({
     text: content.text,
-    qrText: link.url,
+    qrText: target.url,
     widthPx: profile.printheadPixels,
     dpi: profile.dpi,
     ecc: 'M',
