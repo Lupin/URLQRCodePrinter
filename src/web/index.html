@@ -260,6 +260,15 @@
             <span class="field__label">Format d'étiquette</span>
             <select id="label-profile" class="input"></select>
           </label>
+          <!-- Le profil ne connaît que la largeur de la tête. Sans la longueur
+               du rouleau, la composition se tassait en haut et l'imprimante
+               avançait jusqu'à la découpe suivante : le reste sortait blanc. -->
+          <label class="field">
+            <span class="field__label">Longueur d'étiquette (mm)</span>
+            <input id="label-length" class="input" type="number" min="0" max="300" step="1"
+                   list="label-length-suggestions" placeholder="Longueur libre">
+            <datalist id="label-length-suggestions"></datalist>
+          </label>
           <label class="field">
             <span class="field__label">Densité</span>
             <input id="density" class="input" type="number" min="1" max="3" value="2">
@@ -285,6 +294,11 @@
             <span class="field__label">Contenu de l'étiquette</span>
             <select id="label-content" class="input"></select>
           </label>
+          <!-- Où va la place restante quand la longueur du rouleau est connue. -->
+          <label class="field">
+            <span class="field__label">Disposition</span>
+            <select id="label-alignment" class="input"></select>
+          </label>
         </div>
         <p id="label-content-hint" class="hint hint--tight"></p>
 
@@ -304,6 +318,12 @@
         <button id="print-label" class="btn btn--primary btn--wide" type="button" disabled>
           Imprimer cette étiquette
         </button>
+        <!-- La portée de la série se choisit : « toute la collection » était la
+             seule option, alors que la sélection cochée existe déjà. -->
+        <label class="field field--inline">
+          <span class="field__label">Impression en série</span>
+          <select id="print-scope" class="input"></select>
+        </label>
         <button id="print-all-labels" class="btn btn--ghost btn--wide" type="button" disabled>
           Imprimer toute la collection
         </button>

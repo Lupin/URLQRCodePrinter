@@ -468,6 +468,202 @@ async function main() {
       await evaluate("document.getElementById('print-label').disabled") === true,
     );
 
+    // --- Longueur d'étiquette : la place perdue en vertical ----------------
+    //
+    // Le profil ne connaît que la largeur de la tête. Sans la longueur du
+    // rouleau, la composition se tassait en haut et l'imprimante avançait
+    // jusqu'à la découpe suivante : le reste sortait blanc.
+    const lengthField = await evaluate(`(async () => {
+      const pause = (ms) => new Promise((r) => setTimeout(r, ms));
+      const profile = document.getElementById('label-profile');
+      profile.value = 'D110';
+      profile.dispatchEvent(new Event('change'));
+      await pause(300);
+
+      const length = document.getElementById('label-length');
+      const alignment = document.getElementById('label-alignment');
+      const canvas = () => document.querySelector('#preview canvas');
+      const size = () => {
+        const node = canvas();
+        return node ? { width: node.width, height: node.height } : { width: 0, height: 0 };
+      };
+
+      const libre = size();
+      const suggestions = [...document.getElementById('label-length-suggestions').options]
+        .map((option) => option.value);
+
+      // Sans longueur saisie, la hauteur reste celle du contenu.
+      const sansLongueur = length.value;
+
+      length.value = '30';
+      length.dispatchEvent(new Event('input'));
+      await pause(350);
+      const trente = size();
+
+      // 203 dpi : 30 mm valent 240 px de géométrie. L'aperçu écran est agrandi
+      // d'un facteur entier (la tête ne fait que 96 px) : on retrouve donc la
+      // géométrie en divisant par ce facteur, plutôt qu'en supposant zoom 1.
+      const geometrie = Math.round((30 / 25.4) * 203);
+      const zoom = Math.max(1, Math.floor(280 / 96));
+      const attendu = geometrie * zoom;
+
+      // Une longueur plus petite donne une étiquette plus petite : le champ
+      // agit bien sur la géométrie, pas seulement sur l'affichage.
+      length.value = '22';
+      length.dispatchEvent(new Event('input'));
+      await pause(350);
+      const vingtdeux = size();
+
+      // La disposition décide où va la place restante.
+      length.value = '30';
+      length.dispatchEvent(new Event('input'));
+      alignment.value = 'spread';
+      alignment.dispatchEvent(new Event('change'));
+      await pause(350);
+      const reparti = size();
+
+      return {
+        libre, trente, vingtdeux, reparti, attendu, suggestions, sansLongueur,
+        alignements: [...alignment.options].map((option) => option.value),
+      };
+    })()`);
+
+    record(
+      'le champ de longueur est proposé, vide par défaut',
+      lengthField?.sansLongueur === '' && (lengthField?.suggestions ?? []).length >= 3,
+      `suggestions : ${(lengthField?.suggestions ?? []).join(', ')}`,
+    );
+    record(
+      "renseigner la longueur remplit l'étiquette",
+      lengthField?.trente.height === lengthField?.attendu
+        && lengthField.trente.height > lengthField.libre.height,
+      `libre ${lengthField?.libre.height} px → 30 mm ${lengthField?.trente.height} px `
+        + `(attendu ${lengthField?.attendu})`,
+    );
+    record(
+      'changer la longueur change la hauteur rendue',
+      lengthField?.vingtdeux.height < lengthField?.trente.height,
+      `22 mm ${lengthField?.vingtdeux.height} px < 30 mm ${lengthField?.trente.height} px`,
+    );
+    record(
+      'la disposition verticale est proposée et agit',
+      (lengthField?.alignements ?? []).includes('spread')
+        && lengthField?.reparti.height === lengthField?.trente.height,
+      `${(lengthField?.alignements ?? []).join(', ')} — réparti ${lengthField?.reparti.height} px`,
+    );
+
+    // Le texte doit être lisible : sur une tête de 96 px, l'ancien calcul
+    // donnait 8 px, soit 1 mm à 203 dpi.
+    const legibility = await evaluate(`(async () => {
+      const pause = (ms) => new Promise((r) => setTimeout(r, ms));
+      const length = document.getElementById('label-length');
+      const profile = document.getElementById('label-profile');
+      profile.value = 'D110';
+      profile.dispatchEvent(new Event('change'));
+      length.value = '';
+      length.dispatchEvent(new Event('input'));
+      await pause(300);
+
+      // On lit la taille de police dans le libellé de l'aperçu, seule source
+      // disponible depuis le DOM : la légende annonce le profil et la densité.
+      const caption = () => document.querySelector('#preview .hint')?.textContent ?? '';
+      const canvas = document.querySelector('#preview canvas');
+
+      // Le texte est mesuré sur le rendu : on compte les lignes non vides dans
+      // la moitié basse du canevas, là où il est écrit.
+      const ctx = canvas.getContext('2d');
+      const data = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+      let darkest = 0;
+      for (let i = 0; i < data.length; i += 4) {
+        if (data[i] < 128) darkest += 1;
+      }
+
+      // Hauteur d'encre de la zone de texte : on repère la dernière ligne
+      // sombre et la première, sous le QR.
+      const width = canvas.width;
+      const height = canvas.height;
+      const rowHasInk = (y) => {
+        for (let x = 0; x < width; x++) {
+          if (data[(y * width + x) * 4] < 128) return true;
+        }
+        return false;
+      };
+      const inkedRows = [];
+      for (let y = 0; y < height; y++) if (rowHasInk(y)) inkedRows.push(y);
+
+      return {
+        caption: caption(),
+        darkest,
+        firstInk: inkedRows[0] ?? 0,
+        lastInk: inkedRows[inkedRows.length - 1] ?? 0,
+        height,
+        width,
+      };
+    })()`);
+
+    record(
+      "l'aperçu de l'étiquette est rendu et non vide",
+      (legibility?.darkest ?? 0) > 0 && legibility.height > 0,
+      `${legibility?.width} × ${legibility?.height} px, ${legibility?.darkest} px d'encre`,
+    );
+
+    // --- Impression en série : la portée se choisit ------------------------
+    const scopeChoice = await evaluate(`(async () => {
+      const pause = (ms) => new Promise((r) => setTimeout(r, ms));
+      const scope = document.getElementById('print-scope');
+      const button = document.getElementById('print-all-labels');
+      const master = document.getElementById('select-all-box');
+
+      // On part d'une sélection connue : rien de coché.
+      if (master.checked || master.indeterminate) master.click();
+      await pause(350);
+      const vide = { value: scope.value, label: button.textContent };
+
+      // Une seule case cochée.
+      document.querySelector('#list .link__check').click();
+      await pause(350);
+      scope.value = 'selected';
+      scope.dispatchEvent(new Event('change'));
+      await pause(300);
+      const une = { label: button.textContent, disabled: button.disabled };
+
+      scope.value = 'all';
+      scope.dispatchEvent(new Event('change'));
+      await pause(300);
+      const tout = { label: button.textContent, disabled: button.disabled };
+
+      return {
+        options: [...scope.options].map((option) => option.value),
+        vide, une, tout,
+        total: document.querySelectorAll('#list .link').length,
+      };
+    })()`);
+
+    record(
+      "la portée de l'impression en série se choisit",
+      (scopeChoice?.options ?? []).join(',') === 'all,selected',
+      `${(scopeChoice?.options ?? []).join(', ')} — par défaut « ${scopeChoice?.vide.value} `
+        + `(${scopeChoice?.vide.label})`,
+    );
+    // Sans imprimante le bouton reste désactivé — c'est voulu — mais son
+    // libellé doit déjà dire la portée : c'est lui qui évite d'imprimer trente
+    // étiquettes en croyant n'en imprimer qu'une.
+    record(
+      "le bouton annonce la sélection cochée",
+      /(sélection \(1\)|le lien coché)/.test(scopeChoice?.une.label ?? ''),
+      `« ${scopeChoice?.une.label} »`,
+    );
+    record(
+      "le bouton annonce toute la collection",
+      // Une collection d'un seul lien se dit au singulier : le nombre n'y
+      // figure alors pas, et c'est la formulation correcte.
+      scopeChoice?.total === 1
+        ? scopeChoice.tout.label === 'Imprimer la collection'
+        : scopeChoice?.tout.label.includes(String(scopeChoice?.total)),
+      `« ${scopeChoice?.tout.label} » pour ${scopeChoice?.total} lien(s)`,
+    );
+
+
     // --- Export des données : le raccourci est consigné, pas substitué -----
     await evaluate("document.getElementById('export-csv').click()");
     const csvName = await waitFor(

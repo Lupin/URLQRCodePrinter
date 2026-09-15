@@ -27,6 +27,8 @@ import {
   drawLabel,
   checkQrLegibility,
   labelContent,
+  LABEL_ALIGNMENTS,
+  DEFAULT_LABEL_ALIGNMENT,
 } from './core/label.js';
 import { imageDataToMono, validateBitmap, rotateBitmap } from './core/raster.js';
 import {
@@ -46,7 +48,13 @@ import {
   SHEET_QR_GAP_MM,
   MIN_MODULE_MM_PAPER,
 } from './core/sheet.js';
-import { PROFILES, DEFAULT_PROFILE, findProfile } from './core/printer/profiles.js';
+import {
+  PROFILES,
+  DEFAULT_PROFILE,
+  findProfile,
+  compatibleSupplies,
+  COMMON_LENGTHS_MM,
+} from './core/printer/profiles.js';
 import {
   toCsv,
   toMarkdown,
@@ -135,6 +143,19 @@ const LABEL_ROTATIONS = Object.freeze([
   { id: '2', label: 'Demi-tour (180°)', turns: 2 },
   { id: '3', label: 'Trois quarts de tour (270°)', turns: 3 },
 ]);
+
+/**
+ * Portée de l'impression en série.
+ *
+ * « Toute la collection » était la seule option offerte, alors que la sélection
+ * cochée existait déjà pour l'impression papier : on ne pouvait pas imprimer
+ * les trois étiquettes qu'on venait de cocher sans sortir les trente autres.
+ */
+const PRINT_SCOPES = Object.freeze([
+  { id: 'all', label: 'Toute la collection' },
+  { id: 'selected', label: 'La sélection cochée' },
+]);
+
 
 /** Libellés des modes de date, dans l'ordre d'affichage. */
 const DATE_MODE_LABELS = Object.freeze({
@@ -277,12 +298,33 @@ function qrSvg(matrix, { scale = 4 } = {}) {
 // Collection
 // ---------------------------------------------------------------------------
 
+/**
+ * Met à jour le bouton d'impression en série : son libellé dit la portée, et il
+ * reste inerte tant qu'il n'y a rien à imprimer.
+ *
+ * Le libellé est ce qui évite la mauvaise surprise : « Imprimer toute la
+ * collection » alors que trois liens sont cochés ferait sortir trente
+ * étiquettes.
+ */
+function updatePrintScope() {
+  const scope = el.printScope.value;
+  const count = scope === 'selected'
+    ? links.filter((link) => selected.has(link.id)).length
+    : links.length;
+  const ready = links.length > 0 && Boolean(printer);
+
+  el.printAllLabels.disabled = !ready || (scope === 'selected' && count === 0);
+  el.printAllLabels.textContent = scope === 'selected'
+    ? (count === 1 ? 'Imprimer le lien coché' : `Imprimer la sélection (${count})`)
+    : (links.length === 1 ? 'Imprimer la collection' : `Imprimer toute la collection (${links.length})`);
+}
+
 /** Recharge la collection depuis le stockage et redessine. */
 async function refresh() {
   links = await store.list();
   linkRanks = new Map(links.map((link, index) => [link.id, index + 1]));
   fillLabelLinks();
-  el.printAllLabels.disabled = links.length === 0 || !printer;
+  updatePrintScope();
   // Les colonnes « Tags » et « Note » ne sont proposées que si la collection en
   // contient : une colonne vide sur toute une page n'apprend rien.
   updateTableOptions();
@@ -319,6 +361,9 @@ function renderList() {
   updateShortenStatus();
   updateTargetAvailability();
   updateSelectionHint();
+  // La sélection cochée peut changer sans que la liste soit rechargée : la
+  // portée de la série se recalcule donc ici, où tout passe.
+  updatePrintScope();
 
   for (const link of visible) el.list.appendChild(renderLink(link));
 }
@@ -1655,12 +1700,19 @@ function renderSingleLabel(link) {
  */
 function composeLabel(link, profile) {
   const wanted = formatCaptureDate(link.createdAt, dateMode());
+  const lengthPx = labelLengthPx(profile);
+  const alignment = el.labelAlignment.value || DEFAULT_LABEL_ALIGNMENT;
 
   // `drawLabel` écrit la date sur une seule ligne, sans la découper : on vérifie
   // d'abord qu'elle tient, à la taille de police que la géométrie va retenir.
   // Un premier calcul sans ligne réservée donne cette taille.
   const probe = computeLabelGeometry({
-    text: link.url, widthPx: profile.printheadPixels, dpi: profile.dpi, ecc: 'M',
+    text: link.url,
+    widthPx: profile.printheadPixels,
+    dpi: profile.dpi,
+    ecc: 'M',
+    maxHeightPx: lengthPx,
+    alignment,
   });
   const fits = wanted !== ''
     && cachedTextMeasure(probe.fontSize)(wanted) <= probe.width - probe.padding * 2;
@@ -1675,6 +1727,8 @@ function composeLabel(link, profile) {
     dpi: profile.dpi,
     ecc: 'M',
     extraLines: content.extraLines,
+    maxHeightPx: lengthPx,
+    alignment,
   });
 
   return {
@@ -1684,6 +1738,23 @@ function composeLabel(link, profile) {
     dateText,
     dateOmitted: wanted !== '' && !fits,
   };
+}
+
+/**
+ * Longueur d'étiquette en pixels, telle que saisie dans le panneau Niimbot.
+ *
+ * Zéro signifie « longueur libre » : le rouleau continu n'a pas de pas, et une
+ * longueur inventée ferait pire que bien. La valeur est bornée par la fenêtre
+ * d'impression du profil, faute de quoi l'imprimante s'arrêterait avant la fin.
+ *
+ * @param {import('./core/printer/profiles.js').PrinterProfile} profile
+ * @returns {number}
+ */
+function labelLengthPx(profile) {
+  const typed = Number(el.labelLength.value);
+  if (!Number.isFinite(typed) || typed <= 0) return 0;
+  const mm = Math.min(typed, profile.maxPrintHeightMm);
+  return Math.round((mm / 25.4) * profile.dpi);
 }
 
 /**
@@ -2184,6 +2255,20 @@ async function printAllLabels() {
     return;
   }
 
+  // La sélection vide vaut « tout » ailleurs dans l'application ; ici, la
+  // portée est un choix explicite. Une sélection vide avec « la sélection
+  // cochée » ne doit donc rien imprimer, et le dire, plutôt que de sortir
+  // trente étiquettes que personne n'a demandées.
+  const scope = el.printScope.value;
+  const items = scope === 'selected'
+    ? links.filter((link) => selected.has(link.id))
+    : links;
+
+  if (items.length === 0) {
+    toast('Aucun lien coché : cochez les étiquettes à imprimer, ou choisissez « toute la collection »', 'error');
+    return;
+  }
+
   el.printLabel.disabled = true;
   el.printAllLabels.disabled = true;
 
@@ -2191,9 +2276,9 @@ async function printAllLabels() {
   const failures = [];
 
   try {
-    for (const [index, link] of links.entries()) {
+    for (const [index, link] of items.entries()) {
       el.printStatus.textContent =
-        `Étiquette ${index + 1}/${links.length} — ${link.title || link.url}`;
+        `Étiquette ${index + 1}/${items.length} — ${link.title || link.url}`;
       try {
         // Une copie par lien : la quantité se règle dans la liste, pas ici.
         await sendLabel(link, { copies: 1 });
@@ -2257,6 +2342,63 @@ function fillProfiles() {
     el.labelProfile.appendChild(option);
   }
   el.labelProfile.value = DEFAULT_PROFILE.id;
+  fillSupplyChoices();
+}
+
+/**
+ * Le profil dont on remplit les consommables : celui du matériel réellement
+ * connecté quand il y en a un, sinon celui choisi pour l'aperçu.
+ *
+ * Avant connexion, tout le catalogue reste proposé, et c'est le profil choisi
+ * qui juge la compatibilité : on veut pouvoir préparer un format avant d'avoir
+ * l'imprimante sous la main.
+ */
+function supplyProfile() {
+  return printer?.profile ?? findProfile(el.labelProfile.value) ?? DEFAULT_PROFILE;
+}
+
+/**
+ * Propose les longueurs de rouleau du profil retenu.
+ *
+ * Les valeurs viennent du catalogue du modèle : proposer « 12 × 30 » pour un M2
+ * n'aurait aucun sens. Le champ reste libre — le catalogue du fabricant n'est
+ * pas la réalité de tous les rouleaux — et aucune longueur n'est imposée : un
+ * rouleau continu n'en a pas, et choisir à la place de l'utilisateur
+ * remplirait l'étiquette au hasard.
+ */
+function fillLabelLengths() {
+  const supplies = compatibleSupplies(supplyProfile());
+  el.labelLengthSuggestions.textContent = '';
+
+  const seen = new Set();
+  for (const supply of supplies) {
+    if (supply.lengthMm === null || seen.has(supply.lengthMm)) continue;
+    seen.add(supply.lengthMm);
+    const option = document.createElement('option');
+    option.value = String(supply.lengthMm);
+    option.textContent = `${supply.lengthMm} mm (${supply.label})`;
+    el.labelLengthSuggestions.appendChild(option);
+  }
+
+  // Une longueur suggérée qui ne vaut plus pour le nouveau profil ne doit pas
+  // rester affichée : le navigateur la garderait comme valeur implicite.
+  const current = Number(el.labelLength.value);
+  if (Number.isFinite(current) && current > 0 && !seen.has(current)) {
+    el.labelLength.value = '';
+  }
+}
+
+/** Remplit la disposition verticale, puis les longueurs suggérées. */
+function fillSupplyChoices() {
+  el.labelAlignment.textContent = '';
+  for (const alignment of LABEL_ALIGNMENTS) {
+    const option = document.createElement('option');
+    option.value = alignment.id;
+    option.textContent = alignment.label;
+    el.labelAlignment.appendChild(option);
+  }
+  el.labelAlignment.value = DEFAULT_LABEL_ALIGNMENT;
+  fillLabelLengths();
 }
 
 /**
@@ -2295,6 +2437,14 @@ function fillLabelChoices() {
     el.labelContent.appendChild(option);
   }
   el.labelContent.value = 'url';
+
+  for (const scope of PRINT_SCOPES) {
+    const option = document.createElement('option');
+    option.value = scope.id;
+    option.textContent = scope.label;
+    el.printScope.appendChild(option);
+  }
+  el.printScope.value = 'all';
 }
 
 /** Vocabulaire de l'étiquette, plus explicite que celui de l'export. */
@@ -2528,6 +2678,9 @@ el.sheetQr.addEventListener('input', renderPreview);
 el.sheetOffsetX.addEventListener('input', renderPreview);
 el.sheetOffsetY.addEventListener('input', renderPreview);
 el.labelProfile.addEventListener('change', () => {
+  // Changer de format change les longueurs proposées : le catalogue est propre
+  // à chaque modèle, et une longueur qui n'existe plus doit disparaître.
+  fillLabelLengths();
   updateProfileHint();
   renderPreview();
 });
@@ -2544,6 +2697,9 @@ el.labelContent.addEventListener('change', () => {
   updateLabelContentHint();
   renderPreview();
 });
+el.labelLength.addEventListener('input', renderPreview);
+el.labelAlignment.addEventListener('change', renderPreview);
+el.printScope.addEventListener('change', updatePrintScope);
 el.labelLink.addEventListener('change', renderPreview);
 el.labelFormat.addEventListener('change', renderPreview);
 el.labelText.addEventListener('change', renderPreview);
