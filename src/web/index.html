@@ -63,6 +63,7 @@
         <button class="tab tab--active" role="tab" data-mode="sheet" aria-selected="true">Planche d'étiquettes</button>
         <button class="tab" role="tab" data-mode="table" aria-selected="false">Tableau</button>
         <button class="tab" role="tab" data-mode="single" aria-selected="false">Étiquette Niimbot</button>
+        <button class="tab" role="tab" data-mode="images" aria-selected="false">Images à imprimer</button>
       </div>
 
       <!-- Planche -->
@@ -128,6 +129,42 @@
           Imprimer sur l'étiquette
         </button>
         <p id="print-status" class="hint" aria-live="polite"></p>
+      </div>
+
+
+      <!-- Export d'images : indépendant de toute imprimante -->
+      <div class="mode" data-mode-panel="images" hidden>
+        <div class="fields">
+          <label class="field">
+            <span class="field__label">Format d'étiquette</span>
+            <select id="label-format" class="input"></select>
+          </label>
+          <label class="field">
+            <span class="field__label">Texte imprimé</span>
+            <select id="label-text" class="input"></select>
+          </label>
+        </div>
+        <div class="fields">
+          <label class="field">
+            <span class="field__label">Marge (mm)</span>
+            <input id="label-margin" class="input" type="number" min="0" max="10" step="0.5" value="1.5">
+          </label>
+          <label class="field">
+            <span class="field__label">Taille du texte (pt)</span>
+            <input id="label-font" class="input" type="number" min="4" max="24" step="1" value="7">
+          </label>
+          <label class="field field--inline">
+            <input id="label-cut" type="checkbox" checked>
+            <span class="field__label">Traits de coupe</span>
+          </label>
+        </div>
+        <p class="hint">
+          Un dossier d'images prêtes à imprimer, avec une planche HTML et un CSV.
+          Fonctionne avec n'importe quelle étiqueteuse, ou sur papier.
+        </p>
+        <button id="export-labels" class="btn btn--primary btn--wide" type="button" disabled>
+          Exporter les images (ZIP)
+        </button>
       </div>
 
       <!-- Aperçu commun -->

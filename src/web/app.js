@@ -21,6 +21,16 @@ import { toCsv, toMarkdown, toJson, parseJsonExport, exportFilename } from './co
 import { downloadText, downloadBytes } from './core/download.js';
 import { buildLinkSpreadsheet } from './core/spreadsheet.js';
 import {
+  LABEL_FORMATS,
+  TEXT_MODES,
+  findFormat,
+  planLabel,
+  planLabels,
+  buildLabelArchive,
+  labelArchiveName,
+  ptToPx,
+} from './core/label-export.js';
+import {
   checkWebBluetoothSupport,
   requestPrinter,
   NiimbotTransport,
@@ -442,6 +452,16 @@ function renderPreview() {
     renderSingleLabel(items[0]);
     return;
   }
+
+  if (mode === 'images') {
+    // L'export d'images ne passe pas par la boîte d'impression : il produit des
+    // fichiers, utilisables avec n'importe quelle étiqueteuse.
+    el.print.hidden = true;
+    el.exportLabels.disabled = items.length === 0;
+    renderImagePreview(items[0]);
+    return;
+  }
+
   el.print.hidden = false;
 
   if (items.length === 0) {
@@ -589,6 +609,229 @@ function labelToBitmap(link, profile) {
 
   const imageData = ctx.getImageData(0, 0, geometry.width, geometry.height);
   return { bitmap: imageDataToMono(imageData, { threshold: 128 }), verdict, geometry };
+}
+
+// ---------------------------------------------------------------------------
+// Export d'images d'étiquettes
+// ---------------------------------------------------------------------------
+
+/**
+ * Construit une fonction de mesure du texte, adossée à un canvas.
+ *
+ * On ne peut pas planifier sans connaître la largeur réelle des caractères :
+ * une approximation ferait déborder les URL longues. Le canvas hors écran est
+ * créé une fois, puis réutilisé pour toutes les étiquettes.
+ *
+ * @param {number} fontSizePx
+ * @returns {(text: string) => number}
+ */
+function createTextMeasure(fontSizePx) {
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d');
+  const fontFamily = '-apple-system, system-ui, "Helvetica Neue", Arial, sans-serif';
+  ctx.font = `${fontSizePx}px ${fontFamily}`;
+  return (text) => ctx.measureText(text).width;
+}
+
+/**
+ * Lit les préférences de mise en page du formulaire.
+ * @returns {{ format: object, textMode: string, marginMm: number, fontSizePt: number, cutMarks: boolean }}
+ */
+function readLabelOptions() {
+  return {
+    format: findFormat(el.labelFormat.value),
+    textMode: el.labelText.value,
+    marginMm: Math.max(0, Number(el.labelMargin.value) || 0),
+    fontSizePt: Math.max(4, Number(el.labelFont.value) || 7),
+    cutMarks: el.labelCut.checked,
+  };
+}
+
+/**
+ * Dessine une étiquette dans un contexte 2D.
+ *
+ * Le rendu se fait par plus proche voisin : un QR lissé devient illisible.
+ *
+ * @param {CanvasRenderingContext2D} ctx
+ * @param {object} plan
+ * @param {string} url
+ * @param {{ cutMarks?: boolean }} [options]
+ */
+function drawLabelCanvas(ctx, plan, url, options = {}) {
+  const fontFamily = '-apple-system, system-ui, "Helvetica Neue", Arial, sans-serif';
+
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, plan.widthPx, plan.heightPx);
+
+  // QR code, centré horizontalement.
+  const matrix = encodeQr(url, { ecc: 'M', border: 2 });
+  const x0 = Math.floor((plan.widthPx - plan.qrSizePx) / 2);
+  ctx.fillStyle = '#000000';
+  for (let y = 0; y < matrix.size; y++) {
+    for (let x = 0; x < matrix.size; x++) {
+      if (!matrix.data[y][x]) continue;
+      ctx.fillRect(
+        x0 + x * plan.qrScale,
+        plan.marginPx + y * plan.qrScale,
+        plan.qrScale,
+        plan.qrScale,
+      );
+    }
+  }
+
+  // Textes, centrés.
+  ctx.fillStyle = '#000000';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'top';
+  ctx.font = `${plan.fontSizePx}px ${fontFamily}`;
+  plan.lines.forEach((line, index) => {
+    ctx.fillText(
+      line,
+      plan.widthPx / 2,
+      plan.textTopPx + index * plan.lineHeightPx,
+      plan.widthPx - plan.marginPx * 2,
+    );
+  });
+
+  if (options.cutMarks) {
+    ctx.strokeStyle = '#c8c8c8';
+    ctx.lineWidth = Math.max(1, Math.round(plan.widthPx / 200));
+    ctx.strokeRect(0.5, 0.5, plan.widthPx - 1, plan.heightPx - 1);
+  }
+}
+
+/**
+ * Rend une étiquette en PNG.
+ *
+ * @param {import('./core/link.js').LinkRecord} link
+ * @param {object} options
+ * @returns {Promise<{ png: Uint8Array, plan: object }>}
+ */
+async function renderLabelPng(link, options) {
+  const fontSizePx = Math.max(6, ptToPx(options.fontSizePt, options.format.dpi));
+  const plan = planLabel({
+    link,
+    format: options.format,
+    measure: createTextMeasure(fontSizePx),
+    textMode: options.textMode,
+    marginMm: options.marginMm,
+    fontSizePt: options.fontSizePt,
+  });
+
+  const canvas = document.createElement('canvas');
+  canvas.width = plan.widthPx;
+  canvas.height = plan.heightPx;
+
+  const ctx = canvas.getContext('2d');
+  ctx.imageSmoothingEnabled = false;
+  drawLabelCanvas(ctx, plan, link.url, { cutMarks: options.cutMarks });
+
+  const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/png'));
+  if (!blob) throw new Error('Le navigateur n\'a pas pu encoder l\'image.');
+  return { png: new Uint8Array(await blob.arrayBuffer()), plan };
+}
+
+/** Aperçu de la première étiquette sélectionnée. */
+function renderImagePreview(link) {
+  if (!link) {
+    const note = document.createElement('p');
+    note.className = 'hint';
+    note.textContent = 'Ajoutez des liens pour voir un aperçu.';
+    el.preview.appendChild(note);
+    return;
+  }
+
+  const options = readLabelOptions();
+  const fontSizePx = Math.max(6, ptToPx(options.fontSizePt, options.format.dpi));
+  const plan = planLabel({
+    link,
+    format: options.format,
+    measure: createTextMeasure(fontSizePx),
+    textMode: options.textMode,
+    marginMm: options.marginMm,
+    fontSizePt: options.fontSizePt,
+  });
+
+  const canvas = document.createElement('canvas');
+  canvas.width = plan.widthPx;
+  canvas.height = plan.heightPx;
+  const ctx = canvas.getContext('2d');
+  ctx.imageSmoothingEnabled = false;
+  drawLabelCanvas(ctx, plan, link.url, { cutMarks: options.cutMarks });
+
+  // La largeur réelle va de 12 mm à 70 mm : on met à l'échelle pour l'écran,
+  // en gardant des proportions exactes.
+  const scale = Math.min(6, Math.max(1, Math.floor(260 / plan.widthPx)));
+
+  const frame = document.createElement('div');
+  frame.className = 'preview__page';
+  frame.style.padding = '10px';
+
+  const shown = canvas;
+  shown.style.width = `${plan.widthPx * scale}px`;
+  shown.style.height = `${plan.heightPx * scale}px`;
+  shown.style.imageRendering = 'pixelated';
+  frame.appendChild(shown);
+
+  const caption = document.createElement('p');
+  caption.className = 'hint';
+  caption.textContent = plan.fits
+    ? `${options.format.widthMm} mm × ${plan.heightPx} px — ${plan.widthPx} × ${plan.heightPx} px à ${options.format.dpi} dpi`
+    : `URL trop longue pour ce format : le QR fait ${plan.qrSizePx} px pour ${plan.widthPx} px de large.`;
+  if (!plan.fits) caption.style.color = 'var(--danger)';
+  frame.appendChild(caption);
+
+  el.preview.appendChild(frame);
+}
+
+/** Exporte le dossier d'images prêt à imprimer. */
+async function exportLabelImages() {
+  const items = selectedLinks();
+  if (items.length === 0) return;
+
+  const options = readLabelOptions();
+  const label = el.exportLabels.textContent;
+  el.exportLabels.disabled = true;
+
+  try {
+    const planned = planLabels(items, {
+      format: options.format,
+      textMode: options.textMode,
+      marginMm: options.marginMm,
+      fontSizePt: options.fontSizePt,
+      measure: createTextMeasure(
+        Math.max(6, ptToPx(options.fontSizePt, options.format.dpi)),
+      ),
+    });
+
+    const images = new Map();
+    for (const [index, entry] of planned.entries()) {
+      el.exportLabels.textContent = `Étiquette ${index + 1}/${planned.length}…`;
+      const { png } = await renderLabelPng(entry.link, options);
+      images.set(entry.fileName, png);
+    }
+
+    el.exportLabels.textContent = 'Assemblage…';
+    const archive = buildLabelArchive({
+      planned,
+      images,
+      settings: { ...options, title: 'Mes liens' },
+    });
+
+    const filename = labelArchiveName();
+    const ok = downloadBytes(filename, archive, { mime: 'application/zip' });
+    toast(
+      ok
+        ? `${planned.length} étiquette${planned.length > 1 ? 's' : ''} — ${filename} enregistré`
+        : 'Téléchargement impossible',
+      ok ? 'info' : 'error',
+    );
+  } catch (error) {
+    toast(`Export impossible : ${error.message}`, 'error');
+  } finally {
+    el.exportLabels.textContent = label;
+    el.exportLabels.disabled = items.length === 0;
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -775,6 +1018,25 @@ function fillPresets() {
   el.preset.value = 'a4-3x8';
 }
 
+/** Remplit les listes de formats et de modes de texte. */
+function fillLabelForm() {
+  for (const format of LABEL_FORMATS) {
+    const option = document.createElement('option');
+    option.value = format.id;
+    option.textContent = format.name;
+    el.labelFormat.appendChild(option);
+  }
+  el.labelFormat.value = 'niimbot-d110';
+
+  for (const [id, label] of Object.entries(TEXT_MODES)) {
+    const option = document.createElement('option');
+    option.value = id;
+    option.textContent = label;
+    el.labelText.appendChild(option);
+  }
+  el.labelText.value = 'url';
+}
+
 function switchMode(next) {
   mode = next;
   for (const tab of document.querySelectorAll('.tab')) {
@@ -869,6 +1131,12 @@ el.sheetQr.addEventListener('input', renderPreview);
 el.tableQr.addEventListener('input', renderPreview);
 el.tableNote.addEventListener('change', renderPreview);
 el.showTitle.addEventListener('change', renderPreview);
+el.labelFormat.addEventListener('change', renderPreview);
+el.labelText.addEventListener('change', renderPreview);
+el.labelMargin.addEventListener('input', renderPreview);
+el.labelFont.addEventListener('input', renderPreview);
+el.labelCut.addEventListener('change', renderPreview);
+el.exportLabels.addEventListener('click', exportLabelImages);
 el.print.addEventListener('click', printSelection);
 el.connect.addEventListener('click', connectPrinter);
 el.disconnect.addEventListener('click', disconnectPrinter);
@@ -894,6 +1162,7 @@ window.addEventListener('beforeprint', () => {
 // --- Démarrage ---
 
 fillPresets();
+fillLabelForm();
 reportBluetoothSupport();
 switchMode('sheet');
 
