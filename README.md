@@ -17,11 +17,12 @@ Markdown, ou envoi direct à une imprimante Niimbot.
 | Planches Avery A4 et Letter, calibrage d'impression | fait, géométrie confrontée aux cotes publiées |
 | Aperçu d'étiquette Niimbot sans imprimante connectée | fait, vérifié dans Brave |
 | Extension Safari — projet Xcode multiplateforme | généré, **compile pour macOS** |
-| Extension Safari — exécution dans Safari | à éprouver sur ta machine |
+| Extension Safari — page `app.html` éprouvée dans Safari | fait, `npm run verify:safari` (37 vérifications) |
+| Extension Safari — chargement de l'extension par Safari | réglage manuel unique, voir « Safari » |
 | Socle natif Swift (protocole, session, CoreBluetooth) | fait, testé |
 | Application iOS qui utilise ce socle | à faire |
 
-**607 tests, tous verts** — 503 en JavaScript et 104 en Swift — dont :
+**620 tests, tous verts** — 516 en JavaScript et 104 en Swift — dont :
 
 - la validation **octet à octet** des trames Niimbot contre les relevés
   documentés, **dans les deux langages** : deux implémentations indépendantes
@@ -44,13 +45,20 @@ Markdown, ou envoi direct à une imprimante Niimbot.
 **L'application est vérifiée dans un vrai navigateur** : `npm run verify:brave`
 lance Brave sur un profil isolé, collecte un lien, le raccourcit, exporte le CSV
 et l'archive d'étiquettes, puis contrôle les fichiers réellement écrits sur le
-disque (signature ZIP, `unzip -t`, contenu du CSV). 93 vérifications, dont le
+disque (signature ZIP, `unzip -t`, contenu du CSV). 131 vérifications, dont le
 rendu des liens cliquables dans l'application *et* dans la fenêtre de
 l'extension, la grille réellement calculée pour quatre références Avery, et
 l'aperçu d'étiquette composé sans aucune imprimante connectée.
 
-Ce qui reste à éprouver : l'extension chargée dans Safari, et l'impression sur
-une imprimante physique.
+**La page de l'extension est vérifiée dans Safari** : `npm run verify:safari`
+pilote le Safari réel par WebDriver, charge `app.html`, et compare ses sorties au
+cœur exécuté hors navigateur. 37 vérifications — le CSV exporté par Safari est
+**identique octet pour octet** à celui du cœur, et le QR dessiné est **identique
+module pour module** (31 × 31, 436 modules, zéro écart). Le relevé complet, ce
+qui n'a pas pu être vérifié et pourquoi : `docs/safari-extension-verification.md`.
+
+Ce qui reste à éprouver : le chargement de l'extension par Safari lui-même
+(étape manuelle, voir ci-dessous), et l'impression sur une imprimante physique.
 
 **La cible iOS du projet Xcode ne se compile pas dans un environnement
 restreint.** Xcode a besoin d'écrire dans `~/Library/Developer/CoreSimulator`
@@ -99,6 +107,8 @@ scripts/build.mjs      assemble dist/extension et dist/web
 scripts/serve.mjs      serveur statique de développement
 scripts/make-icons.mjs génère les icônes PNG (encodeur maison, sans dépendance)
 scripts/verify-brave.mjs  parcours complet dans Brave, sur un profil isolé
+scripts/verify-safari.mjs parcours de la page d'extension dans le Safari réel
+scripts/webdriver-safari.mjs  client WebDriver minimal, sans dépendance
 scripts/package-safari.mjs  produit le projet Xcode Safari
 scripts/test-swift.mjs lance les tests du socle natif
 native/safari/         projet Xcode généré (macOS + iOS)
@@ -154,11 +164,29 @@ contrainte. Safari ne l'implémente pas du tout.
 
 ```bash
 npm run install:safari        # génère, compile l'app macOS et la lance
+npm run verify:safari         # éprouve la page de l'extension dans Safari
 ```
 
 C'est la voie la plus directe : une extension Safari **est** une application
 macOS, et l'exécuter est le seul moyen de l'enregistrer. Le script enchaîne
 tout, puis affiche les deux réglages qui restent à faire une fois.
+
+**Ce qui reste à faire une fois, à la main, dans Safari**, dans cet ordre :
+
+1. Réglages → **Avancé** → « Afficher le menu Développeur » ;
+2. menu **Développeur** → « Autoriser les extensions non signées » ;
+3. Réglages → **Extensions** → cocher « URLQRCodePrinter ».
+
+Ces réglages ne peuvent pas être automatisés, et Safari macOS est le seul
+navigateur du projet dans ce cas : `safaridriver` **ne connaît pas** de commande
+d'installation d'extension, et l'état des extensions n'est pas lisible depuis un
+script. Le relevé complet, avec ce qui a été constaté et ce qui ne peut pas
+l'être, est dans `docs/safari-extension-verification.md`.
+
+> `verify:safari` a par ailleurs besoin que Safari accepte WebDriver :
+> menu Développeur → « Autoriser l'automatisation à distance », ou
+> `sudo safaridriver --enable` — qui demande le mot de passe administrateur,
+> donc une fois, à la main.
 
 Pour aller pas à pas :
 
@@ -591,12 +619,18 @@ npm run test:swift # socle natif NiimbotKit
 npm run test:all   # les deux
 
 npm run verify:brave  # parcours complet dans Brave, sur un profil isolé
+npm run verify:safari # parcours de la page d'extension dans le Safari réel
 ```
 
 `verify:brave` exige Brave et un accès réseau (le raccourcissement interroge
 TinyURL). Il travaille dans `.verify-brave/`, redirige les téléchargements pour
 ne jamais toucher à vos Téléchargements, tourne hors écran et supprime tout en
 sortant.
+
+`verify:safari` exige Safari et `safaridriver`. Il n'existe pas de profil isolé
+pour Safari : le script pilote le Safari réel, c'est pourquoi il ne modifie
+aucun réglage, intercepte les exports au lieu de les enregistrer, et ferme ses
+fenêtres en sortant. Il dit à la fin ce qu'il n'a **pas** pu vérifier.
 
 `npm test` construit d'abord `dist/` (script `pretest`), car plusieurs tests
 portent sur l'artefact assemblé. Lancer `node --test` directement sans avoir

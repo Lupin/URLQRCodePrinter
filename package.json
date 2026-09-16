@@ -22,6 +22,7 @@
     "open:extension": "node scripts/open-extension.mjs",
     "open:safari": "node scripts/open-extension.mjs --safari",
     "verify:brave": "node scripts/verify-brave.mjs",
+    "verify:safari": "node scripts/verify-safari.mjs",
     "serve": "node scripts/serve.mjs",
     "dev": "node scripts/build.mjs && node scripts/serve.mjs"
   },

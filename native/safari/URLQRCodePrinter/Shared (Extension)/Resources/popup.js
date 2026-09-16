@@ -24,6 +24,10 @@
  * @property {number}   updatedAt Dernière modification (epoch ms).
  * @property {string}   source    Origine : 'context-menu' | 'toolbar' | 'manual' | 'import' | 'share'.
  * @property {string}   favicon   URL du favicon, ou chaîne vide.
+ * @property {string}   shortUrl  Lien raccourci, ou chaîne vide. N'écrase jamais `url` :
+ *   le lien d'origine reste la source de vérité, un service tiers pouvant fermer.
+ * @property {string}   shortProvider Identifiant du service qui a produit `shortUrl`.
+ * @property {number}   shortenedAt Date du raccourcissement (epoch ms), 0 si jamais raccourci.
  */
 
 /** Origines reconnues. Toute autre valeur est ramenée à 'manual'. */
@@ -111,6 +115,26 @@ function isValidUrl(input) {
 }
 
 /**
+ * Attribut `href` sûr pour une URL, ou chaîne vide si elle est inexploitable.
+ *
+ * La liste des liens est une porte de sortie vers l'extérieur, et son contenu
+ * peut venir d'un import ou d'une page web : un `href` ne doit donc jamais
+ * recevoir autre chose qu'une URL http(s), jamais un `javascript:` ni un `data:`.
+ * Les appelants affichent du texte simple quand cette fonction renvoie `''`.
+ *
+ * @param {unknown} url
+ * @returns {string}
+ */
+function safeHref(url) {
+  if (typeof url !== 'string' || url.trim() === '') return '';
+  try {
+    return normalizeUrl(url);
+  } catch {
+    return '';
+  }
+}
+
+/**
  * Domaine affichable d'une URL (sans « www. »).
  * @param {string} url
  * @returns {string}
@@ -143,6 +167,25 @@ function normalizeTags(tags) {
 }
 
 /**
+ * Valide un lien raccourci.
+ *
+ * Une valeur illisible est ignorée au lieu de faire échouer la construction :
+ * un raccourci abîmé ne doit pas empêcher d'importer un enregistrement dont
+ * l'URL d'origine, elle, est intacte.
+ *
+ * @param {unknown} value
+ * @returns {string}
+ */
+function normalizeShortUrl(value) {
+  if (typeof value !== 'string' || value.trim() === '') return '';
+  try {
+    return normalizeUrl(value);
+  } catch {
+    return '';
+  }
+}
+
+/**
  * Construit un LinkRecord complet et validé à partir d'une saisie partielle.
  *
  * @param {Partial<LinkRecord> & { url: string }} input
@@ -170,6 +213,11 @@ function createLink(input, options = {}) {
       : SOURCES.includes(input.source) ? input.source
       : 'manual',
     favicon: typeof input.favicon === 'string' ? input.favicon : '',
+    shortUrl: normalizeShortUrl(input.shortUrl),
+    shortProvider: typeof input.shortProvider === 'string' ? input.shortProvider : '',
+    shortenedAt: Number.isFinite(input.shortenedAt) && input.shortenedAt > 0
+      ? input.shortenedAt
+      : 0,
   };
 }
 
@@ -207,6 +255,87 @@ function findDuplicate(links, url) {
     return undefined;
   }
   return links.find((link) => isSameTarget(link.url, target));
+}
+
+/**
+ * Indique si un enregistrement possède un lien raccourci exploitable.
+ * @param {Partial<LinkRecord>} [link]
+ * @returns {boolean}
+ */
+function hasShortUrl(link) {
+  return typeof link?.shortUrl === 'string' && link.shortUrl !== '';
+}
+
+/**
+ * URL d'origine d'un enregistrement, même après passage par `resolveTarget`.
+ *
+ * C'est elle qui identifie le lien : le domaine affiché, le nom des fichiers
+ * d'étiquettes et la colonne « Domaine » des exports doivent la refléter, sans
+ * quoi une collection raccourcie deviendrait une liste de « tinyurl.com ».
+ *
+ * @param {Partial<LinkRecord>} [link]
+ * @returns {string}
+ */
+function sourceUrl(link) {
+  if (!link) return '';
+  return typeof link.originalUrl === 'string' && link.originalUrl !== ''
+    ? link.originalUrl
+    : link.url ?? '';
+}
+
+/**
+ * Domaine d'origine d'un enregistrement (sans « www. »).
+ * @param {Partial<LinkRecord>} [link]
+ * @returns {string}
+ */
+function sourceHost(link) {
+  return hostOf(sourceUrl(link));
+}
+
+/**
+ * Destinations possibles du QR code.
+ * - `original` : l'URL collectée (comportement par défaut) ;
+ * - `short` : le lien raccourci quand il existe, l'URL d'origine sinon.
+ */
+const TARGET_MODES = Object.freeze(['original', 'short']);
+
+/**
+ * Prépare un enregistrement pour l'affichage ou l'impression.
+ *
+ * Renvoie toujours une copie portant :
+ * - `url` : la destination retenue, celle que le QR code encode ;
+ * - `originalUrl` : l'URL collectée, jamais perdue ;
+ * - `shortUrl` : le lien raccourci, ou une chaîne vide.
+ *
+ * L'enregistrement stocké n'est pas modifié : on ne remplace jamais `url` en
+ * base, un service de raccourcissement pouvant disparaître du jour au
+ * lendemain.
+ *
+ * @param {LinkRecord} link
+ * @param {'original'|'short'} [mode]
+ * @returns {LinkRecord & { originalUrl: string }}
+ */
+function resolveTarget(link, mode = 'original') {
+  const originalUrl = link.url;
+  const shortUrl = hasShortUrl(link) ? link.shortUrl : '';
+  const useShort = mode === 'short' && shortUrl !== '' && shortUrl !== originalUrl;
+
+  return {
+    ...link,
+    url: useShort ? shortUrl : originalUrl,
+    originalUrl,
+    shortUrl,
+  };
+}
+
+/**
+ * Applique `resolveTarget` à une collection.
+ * @param {LinkRecord[]} links
+ * @param {'original'|'short'} [mode]
+ * @returns {Array<LinkRecord & { originalUrl: string }>}
+ */
+function resolveTargets(links, mode = 'original') {
+  return links.map((link) => resolveTarget(link, mode));
 }
 
 // ────────────────────────────────────────────────────────────────────────
@@ -711,6 +840,44 @@ function describeCapture(link, maxLength = 60) {
 
 
 /**
+ * Modes d'affichage de la date sous un QR code.
+ *
+ * `none` par défaut : un QR code doit rester lisible, et chaque ligne de texte
+ * supplémentaire réduit la place disponible. Le mode `datetime` sert aux cas où
+ * l'heure compte — recherche, essais, prototypes — où l'on doit pouvoir dater
+ * une capture à la minute près.
+ */
+const DATE_MODES = Object.freeze(['none', 'date', 'datetime']);
+
+/**
+ * Formate la date de collecte d'un lien, sans l'heure.
+ * @param {number} epochMs
+ * @returns {string} `JJ/MM/AAAA`, ou chaîne vide si la date est inutilisable.
+ */
+function formatDate(epochMs) {
+  if (!Number.isFinite(epochMs)) return '';
+  const d = new Date(epochMs);
+  const pad = (n) => String(n).padStart(2, '0');
+  return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()}`;
+}
+
+/**
+ * Texte de date à imprimer sous un QR code, selon le mode retenu.
+ *
+ * Une date illisible ne doit pas produire une ligne vide dans une étiquette :
+ * on renvoie une chaîne vide, que les appelants n'impriment pas.
+ *
+ * @param {number} epochMs
+ * @param {string} [mode] `none`, `date` ou `datetime`.
+ * @returns {string}
+ */
+function formatCaptureDate(epochMs, mode = 'none') {
+  if (mode === 'date') return formatDate(epochMs);
+  if (mode === 'datetime') return formatDateTime(epochMs);
+  return '';
+}
+
+/**
  * Colonnes de l'export tabulaire, dans l'ordre d'affichage.
  * `get` extrait la valeur brute ; `header` est le libellé de la colonne.
  */
@@ -723,6 +890,55 @@ const COLUMNS = [
   { key: 'note', header: 'Note', get: (link) => link.note },
   { key: 'createdAt', header: 'Ajouté le', get: (link) => formatDateTime(link.createdAt) },
 ];
+
+/**
+ * Colonne ajoutée en fin de tableau quand au moins un lien est raccourci.
+ *
+ * L'export texte reste ainsi un export de **données** : il conserve l'URL
+ * d'origine en colonne principale — c'est elle qui identifie le lien dans le
+ * temps — et consigne le raccourci à côté, sans jamais l'y substituer. Le choix
+ * « le QR encode le raccourci » ne concerne que les sorties imprimées.
+ */
+const SHORT_COLUMN = {
+  key: 'shortUrl',
+  header: 'URL courte',
+  get: (link) => (hasShortUrl(link) ? link.shortUrl : ''),
+};
+
+/**
+ * Indique si au moins un lien porte une note.
+ *
+ * Règle du projet : une colonne facultative — note, tags, URL courte — ne
+ * s'affiche que si elle a quelque chose à montrer. Un tableau dont une colonne
+ * reste vide sur toute sa hauteur ne fait qu'occuper la place.
+ *
+ * @param {import('./link.js').LinkRecord[]} links
+ * @returns {boolean}
+ */
+function hasAnyNote(links) {
+  return links.some((link) => typeof link.note === 'string' && link.note !== '');
+}
+
+/**
+ * Indique si au moins un lien porte un tag.
+ * @param {import('./link.js').LinkRecord[]} links
+ * @returns {boolean}
+ */
+function hasAnyTag(links) {
+  return links.some((link) => Array.isArray(link.tags) && link.tags.length > 0);
+}
+
+/**
+ * Colonnes à écrire pour une collection : la colonne « URL courte » n'apparaît
+ * que si elle a quelque chose à contenir.
+ *
+ * @param {import('./link.js').LinkRecord[]} links
+ * @param {typeof COLUMNS} [base]
+ * @returns {typeof COLUMNS}
+ */
+function columnsFor(links, base = COLUMNS) {
+  return links.some(hasShortUrl) ? [...base, SHORT_COLUMN] : base;
+}
 
 /**
  * Formate une date en `JJ/MM/AAAA HH:MM` (heure locale).
@@ -780,7 +996,7 @@ function escapeCsvField(value, delimiter = ';') {
  */
 function toCsv(links, options = {}) {
   const delimiter = options.delimiter === ',' ? ',' : ';';
-  const columns = options.columns ?? COLUMNS;
+  const columns = options.columns ?? columnsFor(links);
 
   const lines = [columns.map((c) => escapeCsvField(c.header, delimiter)).join(delimiter)];
   links.forEach((link, index) => {
@@ -870,13 +1086,25 @@ function toMarkdown(links, options = {}) {
     return out.join('\n');
   }
 
-  out.push('| N° | URL | Titre | Tags | Ajouté le |');
-  out.push('| ---: | --- | --- | --- | --- |');
+  // La colonne « Note » n'apparaît que si elle a du contenu : un tableau
+  // Markdown se lit mal quand une colonne reste vide, et la note est le seul
+  // champ dont la longueur n'est pas bornée.
+  const withNote = hasAnyNote(links);
+
+  out.push(withNote
+    ? '| N° | URL | Titre | Tags | Note | Ajouté le |'
+    : '| N° | URL | Titre | Tags | Ajouté le |');
+  out.push(withNote
+    ? '| ---: | --- | --- | --- | --- | --- |'
+    : '| ---: | --- | --- | --- | --- |');
+
   links.forEach((link, index) => {
     const linkCell = `[${escapeMarkdownCell(link.url)}](${link.url})`;
+    const noteCell = withNote ? `${escapeMarkdownCell(link.note)} | ` : '';
     out.push(
       `| ${index + 1} | ${linkCell} | ${escapeMarkdownCell(link.title)} | ` +
-        `${link.tags.map((t) => '`#' + t + '`').join(' ')} | ${formatDateIso(link.createdAt)} |`,
+        `${link.tags.map((t) => '`#' + t + '`').join(' ')} | ${noteCell}` +
+        `${formatDateIso(link.createdAt)} |`,
     );
   });
   out.push('');
@@ -967,13 +1195,40 @@ function exportFilename(base, extension, now = Date.now()) {
  * @returns {boolean} true si le téléchargement a pu être déclenché.
  */
 function downloadText(filename, text, options = {}) {
+  return downloadBlob(filename, new Blob([text], { type: options.mime ?? 'text/plain;charset=utf-8' }), options);
+}
+
+/**
+ * Déclenche le téléchargement d'un contenu binaire.
+ *
+ * Utilisé pour les classeurs `.xlsx`, qui ne sont pas du texte.
+ *
+ * @param {string} filename
+ * @param {Uint8Array} bytes
+ * @param {{ mime?: string, document?: Document, url?: typeof URL }} [options]
+ * @returns {boolean}
+ */
+function downloadBytes(filename, bytes, options = {}) {
+  const type = options.mime ?? 'application/octet-stream';
+  // On copie dans un tableau neuf : un `Uint8Array` peut être une vue sur un
+  // tampon plus grand, que le Blob embarquerait en entier.
+  return downloadBlob(filename, new Blob([bytes.slice().buffer], { type }), options);
+}
+
+/**
+ * Déclenche le téléchargement d'un Blob.
+ *
+ * @param {string} filename
+ * @param {Blob} blob
+ * @param {{ document?: Document, url?: typeof URL }} [options]
+ * @returns {boolean}
+ */
+function downloadBlob(filename, blob, options = {}) {
   const doc = options.document ?? globalThis.document;
   const urlApi = options.url ?? globalThis.URL;
 
   if (!doc || !urlApi?.createObjectURL) return false;
 
-  const mime = options.mime ?? 'text/plain;charset=utf-8';
-  const blob = new Blob([text], { type: mime });
   const objectUrl = urlApi.createObjectURL(blob);
 
   const anchor = doc.createElement('a');
@@ -985,10 +1240,13 @@ function downloadText(filename, text, options = {}) {
   doc.body.appendChild(anchor);
   anchor.click();
 
-  // La révocation est différée : certains navigateurs annulent le
-  // téléchargement si l'URL disparaît dans la même tâche.
+  // La révocation est différée largement : un navigateur lit le blob de façon
+  // asynchrone, et révoquer trop tôt peut le laisser croire à un téléchargement
+  // en cours — Brave affichait alors « Downloads are in progress » alors que
+  // rien ne se téléchargeait plus. Une minute est sans risque : le blob est de
+  // toute façon libéré à la fermeture de la page.
   const revoke = () => urlApi.revokeObjectURL(objectUrl);
-  if (typeof globalThis.setTimeout === 'function') globalThis.setTimeout(revoke, 10_000);
+  if (typeof globalThis.setTimeout === 'function') globalThis.setTimeout(revoke, 60_000);
   else revoke();
 
   if (anchor.parentNode) anchor.parentNode.removeChild(anchor);
@@ -1313,6 +1571,35 @@ async function render() {
 }
 
 /**
+ * Rend une URL cliquable, avec un repli en texte simple.
+ *
+ * Un titre de page vient d'un site tiers : il finit dans le DOM d'une page
+ * d'extension, qui dispose de privilèges. Le texte passe donc par
+ * `textContent`, et l'attribut `href` ne reçoit jamais qu'une URL http(s).
+ *
+ * @param {string} url
+ * @param {string} className
+ * @param {string} [label]
+ * @returns {HTMLElement}
+ */
+function linkAnchor(url, className, label = url) {
+  const href = safeHref(url);
+  const node = document.createElement(href === '' ? 'span' : 'a');
+  node.className = className;
+  node.textContent = label;
+  node.title = url;
+  if (href !== '') {
+    node.href = href;
+    // `_blank` + `noopener` : l'onglet ouvert ne doit pas pouvoir manipuler la
+    // fenêtre de l'extension.
+    node.target = '_blank';
+    node.rel = 'noopener noreferrer';
+    node.classList.add('item--clickable');
+  }
+  return node;
+}
+
+/**
  * Construit une ligne de la liste.
  * @param {import('./core/link.js').LinkRecord} link
  * @returns {HTMLLIElement}
@@ -1324,16 +1611,22 @@ function renderItem(link) {
   const body = document.createElement('div');
   body.className = 'item__body';
 
-  const title = document.createElement('span');
-  title.className = 'item__title';
-  title.textContent = link.title || hostOf(link.url) || link.url;
-  title.title = link.url;
-
-  const url = document.createElement('span');
-  url.className = 'item__url';
-  url.textContent = link.url;
+  // Ouvrir un lien collecté doit être possible sans quitter la fenêtre.
+  const title = linkAnchor(link.url, 'item__title', link.title || hostOf(link.url) || link.url);
+  const url = linkAnchor(link.url, 'item__url');
 
   body.append(title, url);
+
+  if (hasShortUrl(link)) {
+    const short = document.createElement('div');
+    short.className = 'item__short';
+    const mark = document.createElement('span');
+    mark.className = 'item__short-mark';
+    mark.textContent = '↳';
+    mark.setAttribute('aria-hidden', 'true');
+    short.append(mark, linkAnchor(link.shortUrl, 'item__short-url'));
+    body.appendChild(short);
+  }
 
   const remove = document.createElement('button');
   remove.className = 'item__remove';

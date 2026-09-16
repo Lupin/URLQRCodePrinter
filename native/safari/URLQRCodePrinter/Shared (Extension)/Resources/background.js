@@ -24,6 +24,10 @@
  * @property {number}   updatedAt Dernière modification (epoch ms).
  * @property {string}   source    Origine : 'context-menu' | 'toolbar' | 'manual' | 'import' | 'share'.
  * @property {string}   favicon   URL du favicon, ou chaîne vide.
+ * @property {string}   shortUrl  Lien raccourci, ou chaîne vide. N'écrase jamais `url` :
+ *   le lien d'origine reste la source de vérité, un service tiers pouvant fermer.
+ * @property {string}   shortProvider Identifiant du service qui a produit `shortUrl`.
+ * @property {number}   shortenedAt Date du raccourcissement (epoch ms), 0 si jamais raccourci.
  */
 
 /** Origines reconnues. Toute autre valeur est ramenée à 'manual'. */
@@ -111,6 +115,26 @@ function isValidUrl(input) {
 }
 
 /**
+ * Attribut `href` sûr pour une URL, ou chaîne vide si elle est inexploitable.
+ *
+ * La liste des liens est une porte de sortie vers l'extérieur, et son contenu
+ * peut venir d'un import ou d'une page web : un `href` ne doit donc jamais
+ * recevoir autre chose qu'une URL http(s), jamais un `javascript:` ni un `data:`.
+ * Les appelants affichent du texte simple quand cette fonction renvoie `''`.
+ *
+ * @param {unknown} url
+ * @returns {string}
+ */
+function safeHref(url) {
+  if (typeof url !== 'string' || url.trim() === '') return '';
+  try {
+    return normalizeUrl(url);
+  } catch {
+    return '';
+  }
+}
+
+/**
  * Domaine affichable d'une URL (sans « www. »).
  * @param {string} url
  * @returns {string}
@@ -143,6 +167,25 @@ function normalizeTags(tags) {
 }
 
 /**
+ * Valide un lien raccourci.
+ *
+ * Une valeur illisible est ignorée au lieu de faire échouer la construction :
+ * un raccourci abîmé ne doit pas empêcher d'importer un enregistrement dont
+ * l'URL d'origine, elle, est intacte.
+ *
+ * @param {unknown} value
+ * @returns {string}
+ */
+function normalizeShortUrl(value) {
+  if (typeof value !== 'string' || value.trim() === '') return '';
+  try {
+    return normalizeUrl(value);
+  } catch {
+    return '';
+  }
+}
+
+/**
  * Construit un LinkRecord complet et validé à partir d'une saisie partielle.
  *
  * @param {Partial<LinkRecord> & { url: string }} input
@@ -170,6 +213,11 @@ function createLink(input, options = {}) {
       : SOURCES.includes(input.source) ? input.source
       : 'manual',
     favicon: typeof input.favicon === 'string' ? input.favicon : '',
+    shortUrl: normalizeShortUrl(input.shortUrl),
+    shortProvider: typeof input.shortProvider === 'string' ? input.shortProvider : '',
+    shortenedAt: Number.isFinite(input.shortenedAt) && input.shortenedAt > 0
+      ? input.shortenedAt
+      : 0,
   };
 }
 
@@ -207,6 +255,87 @@ function findDuplicate(links, url) {
     return undefined;
   }
   return links.find((link) => isSameTarget(link.url, target));
+}
+
+/**
+ * Indique si un enregistrement possède un lien raccourci exploitable.
+ * @param {Partial<LinkRecord>} [link]
+ * @returns {boolean}
+ */
+function hasShortUrl(link) {
+  return typeof link?.shortUrl === 'string' && link.shortUrl !== '';
+}
+
+/**
+ * URL d'origine d'un enregistrement, même après passage par `resolveTarget`.
+ *
+ * C'est elle qui identifie le lien : le domaine affiché, le nom des fichiers
+ * d'étiquettes et la colonne « Domaine » des exports doivent la refléter, sans
+ * quoi une collection raccourcie deviendrait une liste de « tinyurl.com ».
+ *
+ * @param {Partial<LinkRecord>} [link]
+ * @returns {string}
+ */
+function sourceUrl(link) {
+  if (!link) return '';
+  return typeof link.originalUrl === 'string' && link.originalUrl !== ''
+    ? link.originalUrl
+    : link.url ?? '';
+}
+
+/**
+ * Domaine d'origine d'un enregistrement (sans « www. »).
+ * @param {Partial<LinkRecord>} [link]
+ * @returns {string}
+ */
+function sourceHost(link) {
+  return hostOf(sourceUrl(link));
+}
+
+/**
+ * Destinations possibles du QR code.
+ * - `original` : l'URL collectée (comportement par défaut) ;
+ * - `short` : le lien raccourci quand il existe, l'URL d'origine sinon.
+ */
+const TARGET_MODES = Object.freeze(['original', 'short']);
+
+/**
+ * Prépare un enregistrement pour l'affichage ou l'impression.
+ *
+ * Renvoie toujours une copie portant :
+ * - `url` : la destination retenue, celle que le QR code encode ;
+ * - `originalUrl` : l'URL collectée, jamais perdue ;
+ * - `shortUrl` : le lien raccourci, ou une chaîne vide.
+ *
+ * L'enregistrement stocké n'est pas modifié : on ne remplace jamais `url` en
+ * base, un service de raccourcissement pouvant disparaître du jour au
+ * lendemain.
+ *
+ * @param {LinkRecord} link
+ * @param {'original'|'short'} [mode]
+ * @returns {LinkRecord & { originalUrl: string }}
+ */
+function resolveTarget(link, mode = 'original') {
+  const originalUrl = link.url;
+  const shortUrl = hasShortUrl(link) ? link.shortUrl : '';
+  const useShort = mode === 'short' && shortUrl !== '' && shortUrl !== originalUrl;
+
+  return {
+    ...link,
+    url: useShort ? shortUrl : originalUrl,
+    originalUrl,
+    shortUrl,
+  };
+}
+
+/**
+ * Applique `resolveTarget` à une collection.
+ * @param {LinkRecord[]} links
+ * @param {'original'|'short'} [mode]
+ * @returns {Array<LinkRecord & { originalUrl: string }>}
+ */
+function resolveTargets(links, mode = 'original') {
+  return links.map((link) => resolveTarget(link, mode));
 }
 
 // ────────────────────────────────────────────────────────────────────────

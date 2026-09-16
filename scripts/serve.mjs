@@ -97,10 +97,18 @@ export async function serve(options = {}) {
 
 // Exécution directe.
 if (process.argv[1] && resolve(process.argv[1]) === resolve(fileURLToPath(import.meta.url))) {
-  const portArg = process.argv.find((arg) => arg.startsWith('--port='));
-  const port = portArg ? Number(portArg.slice('--port='.length)) : 4173;
+  const option = (name) => {
+    const found = process.argv.find((arg) => arg.startsWith(`--${name}=`));
+    return found ? found.slice(name.length + 3) : undefined;
+  };
 
-  const { url } = await serve({ port });
+  const port = option('port') ? Number(option('port')) : 4173;
+  // `--dir=` sert la variante de l'extension : `app.html` n'existe que dans
+  // `dist/extension*`, pas dans `dist/web`.
+  const dir = option('dir') ? resolve(ROOT, option('dir')) : undefined;
+
+  const { url } = await serve({ port, dir });
   console.log(`Application servie sur ${url}`);
+  if (dir) console.log(`Dossier servi : ${dir}`);
   console.log('Arrêtez avec Ctrl+C.');
 }
