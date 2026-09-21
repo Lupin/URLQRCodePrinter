@@ -20,7 +20,7 @@
  */
 
 import { execFileSync } from 'node:child_process';
-import { cp, mkdir, readdir, rm } from 'node:fs/promises';
+import { cp, mkdir, readdir, rm, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -114,6 +114,12 @@ async function main() {
     const label = page.path.slice(OUT.length + 1);
     if (stamped.length > 0) console.log(`  ${label} — ${stamped.join(', ')}`);
   }
+
+  // `.nojekyll` : GitHub Pages fait passer le site par Jekyll par défaut, qui
+  // ignore silencieusement tout fichier ou dossier commençant par un `_`. Le
+  // site n'en contient pas aujourd'hui, mais un seul suffirait à faire
+  // disparaître un fichier sans le moindre message d'erreur.
+  await writeFile(join(OUT, '.nojekyll'), '', 'utf8');
 
   const files = await readdir(OUT);
   console.log(`\n✓ ${OUT.slice(ROOT.length + 1)}  (${files.length} entrées)`);

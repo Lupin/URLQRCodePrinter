@@ -1,0 +1,59 @@
+# Publie le site sur GitHub Pages.
+#
+# Le site est un assemblage : la page de présentation à la racine, l'application
+# sous /app/. Les deux sont produits par `npm run build:site`, qui n'a besoin
+# que de Node — aucune clé, aucune variable d'environnement.
+#
+# Le déclenchement est limité à `main` : une branche de travail ne doit pas
+# publier. `workflow_dispatch` permet de relancer à la main sans nouveau commit.
+
+name: Site
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Une seule publication à la fois. `cancel-in-progress` évite qu'un déploiement
+# ancien écrase un plus récent — le cas classique quand deux poussées se suivent.
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - name: Installer les dépendances
+        run: npm ci
+
+      - name: Assembler le site
+        run: npm run build:site
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist/site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
