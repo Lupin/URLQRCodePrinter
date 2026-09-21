@@ -272,10 +272,15 @@ your single purpose »*.
 | Justifications de permissions | **Rédigées** ci-dessus |
 | Choix trader / non-trader | **Traité** |
 | Mention et consentement dans l'interface | **Fait** — voir section 3 ; reste à éprouver à la main dans le navigateur |
-| Captures d'écran | **À produire** — au moins une, 1280×800 ou 640×400 |
-| Icône de la fiche | Déjà présente : `dist/extension/icons/icon-128.png` |
+| Captures d'écran | **À produire** — déposer dans `store/screenshots/`, voir son README |
+| **Petite image promotionnelle 440×280** | **À produire — obligatoire.** Sans elle, la fiche est reléguée derrière les autres |
+| Icône de la fiche | Déjà conforme : `src/extension-src/icons/icon-128.png` (128×128, avec alpha, vérifié) |
+| Image « marquee » 1400×560 | Facultative — nécessaire seulement pour être mis en avant |
 | Catégorie et langue | À choisir : la locale par défaut du manifeste est `fr` |
 | Instructions de test pour la revue | À rédiger si l'extension exige une action particulière |
+
+Les dimensions des visuels sont récapitulées dans [`store/README.md`](../store/README.md),
+avec la source officielle.
 
 ---
 
