@@ -24,6 +24,7 @@ import { downloadText } from './core/download.js';
 import { hostOf, hasShortUrl, safeHref } from './core/link.js';
 import { resolveApi, readTabContext } from './api.js';
 import { initI18n, applyTranslations, setLocale, getLocale, t, tpl } from './core/i18n.js';
+import { readConsent, isAccepted } from './core/privacy.js';
 
 const api = resolveApi();
 
@@ -129,6 +130,8 @@ const el = {
   list: document.getElementById('list'),
   empty: document.getElementById('empty'),
   startupError: document.getElementById('startup-error'),
+  consentNotice: document.getElementById('consent-notice'),
+  openPrivacy: document.getElementById('open-privacy'),
   openApp: document.getElementById('open-app'),
   exportCsv: document.getElementById('export-csv'),
   exportMd: document.getElementById('export-md'),
@@ -361,6 +364,21 @@ async function notifyBadge() {
  * @returns {Promise<void>}
  */
 async function addCurrentTab() {
+  // Verrou de consentement, second chemin.
+  //
+  // Le clic droit est verrouillé dans `background.js` ; celui-ci l'est ici. Les
+  // deux sont nécessaires : ce sont deux chemins d'enregistrement distincts, et
+  // en oublier un ferait de la mention une formalité contournable.
+  const consent = await readConsent(api?.storage?.local);
+  if (!isAccepted(consent)) {
+    // Même règle que dans le service worker : la mention n'est rouverte que si
+    // l'utilisateur ne s'est jamais prononcé. Après un refus, on explique au
+    // lieu de rouvrir un onglet à chaque clic.
+    if (consent === null) openPrivacyNotice();
+    else toast(t('Refus enregistré : acceptez la mention pour enregistrer un lien.'));
+    return;
+  }
+
   const capture = captureFromTab(activeTab);
   if (!capture) {
     toast(t('Rien à enregistrer sur cette page'));
@@ -420,6 +438,21 @@ function openApp() {
 el.openApp.addEventListener('click', openApp);
 
 /**
+ * Ouvre la mention de confidentialité dans un onglet.
+ *
+ * Elle vit dans une page à part, et non dans la fenêtre : la fenêtre est une
+ * colonne étroite, alors que la mention doit être lisible — c'est une exigence
+ * du magasin, pas un confort. La même page sert à l'installation et au
+ * verrouillage.
+ */
+function openPrivacyNotice() {
+  api.tabs.create({ url: api.runtime.getURL('privacy.html') });
+  window.close();
+}
+
+el.openPrivacy?.addEventListener('click', openPrivacyNotice);
+
+/**
  * Affiche une erreur de démarrage dans la fenêtre.
  *
  * Sans cela, une exception au chargement laisse le HTML statique tel quel :
@@ -475,11 +508,27 @@ function wireLocaleSwitcher() {
   });
 }
 
+/**
+ * Rappelle la mention tant qu'elle n'a pas été acceptée.
+ *
+ * Le bouton reste actif et cliquable, mais un bouton qui ouvrirait la mention
+ * sans que rien ne l'annonce serait déroutant : cet encart dit pourquoi
+ * l'enregistrement n'a pas encore lieu, et donne le moyen de débloquer.
+ *
+ * @returns {Promise<boolean>} `true` si la collecte est autorisée.
+ */
+async function syncConsentNotice() {
+  const accepted = isAccepted(await readConsent(api?.storage?.local));
+  if (el.consentNotice) el.consentNotice.hidden = accepted;
+  return accepted;
+}
+
 async function main() {
   try {
     await initI18n();
     applyTranslations(document);
     wireLocaleSwitcher();
+    await syncConsentNotice();
     await loadActiveTab();
     await render();
   } catch (error) {

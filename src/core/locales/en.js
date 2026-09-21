@@ -376,6 +376,48 @@ export const EN_MESSAGES = {
   "Brother DK-22205 — 62 mm continu (300 dpi)": "Brother DK-22205 — 62 mm continuous (300 dpi)",
   "Brother DK-22210 — 29 mm continu (300 dpi)": "Brother DK-22210 — 29 mm continuous (300 dpi)",
   "Zebra 4 × 6 po — 104 × 152 mm (203 dpi)": "Zebra 4 × 6 in — 104 × 152 mm (203 dpi)",
+
+  // Mention de confidentialité — page présentée avant toute collecte.
+  "Confidentialité — URLQRCodePrinter": "Privacy — URLQRCodePrinter",
+  "Confidentialité": "Privacy",
+  "URLQRCodePrinter collecte les liens que vous choisissez, et rien d'autre. Avant de commencer, voici exactement ce qu'il lit.":
+    "URLQRCodePrinter collects the links you choose, and nothing else. Before you start, here is exactly what it reads.",
+  "Ce que l'extension lit": "What the extension reads",
+  "L'adresse et le titre de la page sur laquelle vous agissez — celle du clic droit, ou celle de l'onglet courant quand vous cliquez sur le bouton. Uniquement à ce moment-là.":
+    "The address and title of the page you act on — the one you right-clicked, or the current tab when you click the button. Only at that moment.",
+  "Ce que l'extension ne fait pas": "What the extension does not do",
+  "Aucun accès à votre historique de navigation.": "No access to your browsing history.",
+  "Aucune lecture en arrière-plan, ni des onglets que vous ne visez pas.":
+    "No reading in the background, and no reading of tabs you did not target.",
+  "Aucun compte, aucun serveur de l'éditeur.": "No account, and no server run by the publisher.",
+  "Aucune mesure d'audience, aucune publicité, aucune revente de données.":
+    "No analytics, no advertising, no selling of data.",
+  "Aucun code hébergé à distance : tout est embarqué dans l'extension.":
+    "No remotely hosted code: everything ships inside the extension.",
+  "Où vont vos liens": "Where your links go",
+  "Ils restent sur votre appareil, dans le stockage local du navigateur. Une seule action envoie quelque chose sur le réseau : si vous demandez le raccourcissement d'un lien, cette adresse est transmise au service que vous avez choisi (TinyURL, is.gd, v.gd ou spoo.me).":
+    "They stay on your device, in the browser's local storage. One action alone sends anything over the network: if you ask for a link to be shortened, that address is sent to the service you chose (TinyURL, is.gd, v.gd or spoo.me).",
+  "Votre accord": "Your consent",
+  "J'accepte": "I accept",
+  "Je refuse": "I decline",
+  "Sans votre accord, l'extension reste installée mais n'enregistre aucun lien. Vous pourrez changer d'avis depuis sa fenêtre.":
+    "Without your consent, the extension stays installed but records no link. You can change your mind from its popup.",
+  "En savoir plus": "Learn more",
+  "La politique de confidentialité complète est publiée avec le code source du projet.":
+    "The full privacy policy is published alongside the project's source code.",
+  "Accord enregistré. Vous pouvez ajouter des liens.":
+    "Consent recorded. You can now add links.",
+  "Refus enregistré. Aucun lien ne sera collecté.":
+    "Refusal recorded. No link will be collected.",
+  "Enregistrement impossible : stockage indisponible.":
+    "Could not record your choice: storage is unavailable.",
+
+  // Rappel dans la fenêtre tant que la mention n'a pas été acceptée.
+  "Avant d'enregistrer un lien, lisez la mention de confidentialité.":
+    "Before recording a link, please read the privacy notice.",
+  "Lire la mention": "Read the notice",
+  "Refus enregistré : acceptez la mention pour enregistrer un lien.":
+    "Consent declined: accept the notice to record a link.",
 };
 
 

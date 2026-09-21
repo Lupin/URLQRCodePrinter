@@ -22,6 +22,7 @@ import {
 } from './core/capture.js';
 import { resolveApi, contextMenusAvailable, installContextMenus } from './api.js';
 import { initI18n } from './core/i18n.js';
+import { readConsent, isAccepted } from './core/privacy.js';
 
 const api = resolveApi();
 
@@ -106,24 +107,61 @@ async function installMenus() {
 
 /**
  * Enregistre une capture et signale le résultat sur l'icône.
+ *
+ * Le contrôle du consentement est **ici**, et non chez les appelants. C'est le
+ * seul point par lequel passe toute collecte du service worker — clic droit,
+ * message venu d'une page, ou appel ajouté plus tard. Le placer chez les
+ * appelants ferait dépendre la garantie de leur discipline : un chemin oublié
+ * collecterait sans que personne ne l'ait accepté.
+ *
  * @param {object|null} capture
+ * @returns {Promise<{ recorded: boolean, reason?: 'consent'|'empty' }>}
  */
 async function record(capture) {
   if (!capture) {
     await flashBadge('!', BADGE_ERROR);
-    return;
+    return { recorded: false, reason: 'empty' };
   }
+
+  const consent = await readConsent(api?.storage?.local);
+  if (!isAccepted(consent)) {
+    // La mention n'est rouverte que si l'utilisateur ne s'est **jamais**
+    // prononcé. Après un refus explicite, rouvrir un onglet à chaque tentative
+    // serait du harcèlement : le refus est une décision, pas une absence.
+    if (consent === null) openPrivacyNotice();
+    else await flashBadge('!', BADGE_ERROR);
+    return { recorded: false, reason: 'consent' };
+  }
+
   try {
     const { duplicate } = await store.add(capture);
     await flashBadge(duplicate ? '=' : '+', duplicate ? BADGE_DUPLICATE : BADGE_ADDED);
+    return { recorded: true };
   } catch {
     await flashBadge('!', BADGE_ERROR);
+    return { recorded: false };
   }
 }
 
-api?.runtime?.onInstalled?.addListener(() => {
+/**
+ * Ouvre la mention de confidentialité.
+ *
+ * Elle doit être présentée **dans l'interface du produit**, avant toute
+ * collecte : une description soignée sur la fiche du magasin ne la remplace pas
+ * (FAQ Chrome Web Store, question 10). C'est aussi ce que fait ce service worker
+ * lorsque le clic droit est utilisé sans consentement.
+ */
+function openPrivacyNotice() {
+  api?.tabs?.create?.({ url: api.runtime.getURL('privacy.html') });
+}
+
+api?.runtime?.onInstalled?.addListener((details) => {
   installMenus();
   refreshBadge();
+
+  // Seulement à la première installation. Rouvrir un onglet à chaque mise à
+  // jour serait une intrusion, alors que le consentement est déjà enregistré.
+  if (details?.reason === 'install') openPrivacyNotice();
 });
 
 api?.runtime?.onStartup?.addListener(() => {
@@ -152,6 +190,10 @@ if (contextMenusAvailable(api)) {
       api.tabs.create({ url: api.runtime.getURL('popup.html') });
       return;
     }
+
+    // Le consentement est contrôlé par `record` lui-même : le clic droit serait
+    // sinon un chemin de collecte contournant la mention, que personne
+    // n'ouvrirait jamais depuis la fenêtre.
     await record(captureFromClick(info, tab));
   });
 }

@@ -14,8 +14,21 @@ import assert from 'node:assert/strict';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
+import { CONSENT_KEY, DISCLOSURE_VERSION } from '../src/core/privacy.js';
+
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const DIST = join(ROOT, 'dist', 'extension-safari');
+
+/**
+ * Stockage d'un utilisateur ayant accepté la mention.
+ *
+ * La version vient de `src/core/privacy.js` et n'est pas recopiée : un test qui
+ * figerait « 1 » en dur continuerait de passer après une incrémentation, en
+ * testant un consentement que le code ne reconnaît plus.
+ */
+function acceptedConsent() {
+  return { [CONSENT_KEY]: { version: DISCLOSURE_VERSION, decision: 'accepted', at: 1 } };
+}
 
 /** Compteur d'imports : chaque chargement doit repartir d'un état neuf. */
 let loadCount = 0;
@@ -57,6 +70,7 @@ function installChrome(options = {}) {
   trace = {
     menusCreated: [],
     badge: [],
+    tabsCreated: [],
     stored: options.stored ?? {},
     onClicked: null,
     onInstalled: null,
@@ -89,7 +103,9 @@ function installChrome(options = {}) {
     },
     tabs: {
       query: async () => [{ url: 'https://exemple.fr/page', title: 'Un titre' }],
-      create: () => {},
+      // L'URL est conservée : c'est ainsi qu'on vérifie que la mention s'ouvre
+      // là où la collecte a été refusée.
+      create: ({ url } = {}) => trace.tabsCreated.push(url),
     },
     scripting: {
       executeScript: async () => [{ result: { url: 'https://exemple.fr/page', title: 'Un titre' } }],
@@ -114,7 +130,7 @@ test('le service worker assemblé s\'exécute et enregistre ses menus', async ()
 });
 
 test('un clic contextuel enregistre bien le lien', async () => {
-  const state = installChrome();
+  const state = installChrome({ stored: acceptedConsent() });
   await loadFresh('background.js');
 
   assert.equal(typeof state.onClicked, 'function', 'le clic contextuel doit être branché');
@@ -137,6 +153,69 @@ test('un clic contextuel enregistre bien le lien', async () => {
     state.badge.includes('+'),
     `retour attendu sur l'icône, observés : ${JSON.stringify(state.badge)}`,
   );
+});
+
+// ---------------------------------------------------------------------------
+// Verrou de consentement — service worker
+// ---------------------------------------------------------------------------
+
+test('sans consentement, le clic droit n\'enregistre rien et ouvre la mention', async () => {
+  // Le clic droit est un chemin de collecte à part entière. Sans ce verrou, la
+  // mention serait une formalité que personne n'ouvrirait jamais, puisque rien
+  // n'oblige à passer par la fenêtre.
+  const state = installChrome();
+  await loadFresh('background.js');
+
+  await state.onClicked({
+    menuItemId: 'urq-add-link',
+    linkUrl: 'https://cible.fr/article',
+    pageUrl: 'https://hote.fr/',
+  });
+  await settle();
+
+  assert.deepEqual(state.stored.links ?? [], [], 'aucun lien ne doit être enregistré');
+  assert.ok(
+    state.tabsCreated.some((url) => url.endsWith('privacy.html')),
+    `la mention doit s'ouvrir, onglets ouverts : ${JSON.stringify(state.tabsCreated)}`,
+  );
+});
+
+test('un consentement d\'une version antérieure ne vaut plus', async () => {
+  // Sans cette règle, un accord donné pour un texte qui dit autre chose
+  // continuerait de faire foi après que la mention a changé de nature.
+  const state = installChrome({
+    stored: { [CONSENT_KEY]: { version: DISCLOSURE_VERSION - 1, decision: 'accepted', at: 1 } },
+  });
+  await loadFresh('background.js');
+
+  await state.onClicked({
+    menuItemId: 'urq-add-link',
+    linkUrl: 'https://cible.fr/article',
+    pageUrl: 'https://hote.fr/',
+  });
+  await settle();
+
+  assert.deepEqual(state.stored.links ?? [], []);
+  assert.ok(state.tabsCreated.some((url) => url.endsWith('privacy.html')));
+});
+
+test('un refus explicite ne collecte rien et ne rouvre pas la mention', async () => {
+  // Le refus est une décision, pas une absence : rouvrir un onglet à chaque
+  // tentative serait du harcèlement.
+  const state = installChrome({
+    stored: { [CONSENT_KEY]: { version: DISCLOSURE_VERSION, decision: 'declined', at: 1 } },
+  });
+  await loadFresh('background.js');
+
+  await state.onClicked({
+    menuItemId: 'urq-add-link',
+    linkUrl: 'https://cible.fr/article',
+    pageUrl: 'https://hote.fr/',
+  });
+  await settle();
+
+  assert.deepEqual(state.stored.links ?? [], [], 'un refus ne doit rien collecter');
+  assert.deepEqual(state.tabsCreated, [], 'la mention ne doit pas se rouvrir');
 });
 
 test('un clic sans rien d\'exploitable ne stocke rien', async () => {
@@ -252,7 +331,9 @@ function installDom() {
     addEventListener() {},
     body: makeNode('body'),
   };
-  globalThis.window = { addEventListener() {}, removeEventListener() {} };
+  // `close` est utilisé par les deux boutons qui ouvrent un onglet — la mention
+  // comme l'application : la fenêtre se ferme après avoir délégué.
+  globalThis.window = { addEventListener() {}, removeEventListener() {}, close() {} };
 
   return {
     element: (id) => registry.get(id),
@@ -299,7 +380,7 @@ test('la fenêtre assemblée s\'affiche et propose l\'onglet courant', async () 
 });
 
 test('l\'ajout de l\'onglet courant écrit dans le stockage', async () => {
-  const state = installChrome();
+  const state = installChrome({ stored: acceptedConsent() });
   await loadFresh('popup.js');
   await settle();
   await settle();
@@ -311,6 +392,44 @@ test('l\'ajout de l\'onglet courant écrit dans le stockage', async () => {
   assert.equal(stored.length, 1, 'le lien doit être enregistré');
   assert.equal(stored[0].url, 'https://exemple.fr/page');
   assert.equal(dom.element('count').textContent, '1', 'le compteur doit suivre');
+});
+
+test('sans consentement, la fenêtre n\'enregistre rien et ouvre la mention', async () => {
+  // Second chemin de collecte. Les deux doivent être verrouillés : en oublier
+  // un suffirait à contourner la mention.
+  const state = installChrome();
+  await loadFresh('popup.js');
+  await settle();
+  await settle();
+
+  await dom.fire('add-current', 'click');
+  await settle();
+
+  assert.deepEqual(state.stored.links ?? [], [], 'aucun lien ne doit être enregistré');
+  assert.ok(
+    state.tabsCreated.some((url) => url.endsWith('privacy.html')),
+    `la mention doit s'ouvrir, onglets ouverts : ${JSON.stringify(state.tabsCreated)}`,
+  );
+});
+
+test('l\'encart de confidentialité est visible tant que rien n\'est accepté', async () => {
+  // Le verrou doit être **expliqué** : sans cet encart, « Ajouter cette page »
+  // ouvrirait un onglet sans raison apparente.
+  installChrome();
+  await loadFresh('popup.js');
+  await settle();
+  await settle();
+
+  assert.equal(dom.element('consent-notice').hidden, false);
+});
+
+test('l\'encart disparaît une fois la mention acceptée', async () => {
+  installChrome({ stored: acceptedConsent() });
+  await loadFresh('popup.js');
+  await settle();
+  await settle();
+
+  assert.equal(dom.element('consent-notice').hidden, true);
 });
 
 test('la fenêtre affiche une erreur plutôt que de rester muette', async () => {

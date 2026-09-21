@@ -369,6 +369,23 @@ body {
   font-size: var(--type-sm);
 }
 
+/* Rappel de la mention de confidentialité, tant qu'elle n'a pas été acceptée.
+   Même famille visuelle que `.alert` — encart à bordure gauche épaisse — mais à
+   l'accent et non au rouge : ce n'est pas une panne, c'est une étape. Le rouge
+   reste réservé à ce qui a échoué. */
+.notice {
+  margin: 10px 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--border-line);
+  border-left: 4px solid var(--accent);
+  background: var(--surface);
+}
+
+.notice__text {
+  margin: 0 0 8px;
+  font-size: var(--type-sm);
+}
+
 /* --- Pied --- */
 
 .app-footer {

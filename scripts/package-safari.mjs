@@ -22,6 +22,7 @@ import { fileURLToPath } from 'node:url';
 
 import { writeIcons } from './make-icons.mjs';
 import { patchContainerApp } from './safari-container-app.mjs';
+import { patchAppStoreReadiness } from './safari-appstore.mjs';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -45,6 +46,25 @@ const DEPLOYMENT = {
 const PROJECT_LOCATION = join(ROOT, 'native', 'safari');
 const PROJECT_DIR = join(PROJECT_LOCATION, 'URLQRCodePrinter', 'URLQRCodePrinter.xcodeproj');
 const PROJECT_FILE = join(PROJECT_DIR, 'project.pbxproj');
+const PACKAGE_FILE = join(ROOT, 'package.json');
+
+/**
+ * Lit la version déclarée du projet.
+ *
+ * `package.json` est la source unique : la version de l'extension en dérive déjà
+ * (`manifest.template.json`), et celle des cibles Xcode doit en faire autant.
+ * Deux versions divergentes pour un même livrable sont un motif de confusion en
+ * revue, voire de rejet si la fiche App Store ne correspond pas au binaire.
+ *
+ * @returns {Promise<string>}
+ */
+export async function projectVersion() {
+  const pkg = JSON.parse(await readFile(PACKAGE_FILE, 'utf8'));
+  if (typeof pkg.version !== 'string' || pkg.version === '') {
+    throw new Error('package.json ne déclare pas de version exploitable.');
+  }
+  return pkg.version;
+}
 
 /**
  * Aligne les cibles de déploiement du projet sur la version minimale de Safari.
@@ -135,6 +155,18 @@ async function main() {
   for (const problem of container.missing) {
     // Le modèle d'Apple a changé : on le signale sans interrompre, la
     // compilation reste possible.
+    console.log(`  ⚠ non appliqué — ${problem}`);
+  }
+
+  // Sans cette étape, le convertisseur écraserait les manifestes de
+  // confidentialité et la version alignée : Apple refuse une soumission sans
+  // manifeste, et deux versions divergentes pour un même livrable.
+  console.log('→ Préparation App Store (manifestes de confidentialité, version)…');
+  const appStore = await patchAppStoreReadiness(PROJECT_LOCATION, {
+    version: await projectVersion(),
+  });
+  for (const file of appStore.patched) console.log(`  préparé : ${file}`);
+  for (const problem of appStore.missing) {
     console.log(`  ⚠ non appliqué — ${problem}`);
   }
 

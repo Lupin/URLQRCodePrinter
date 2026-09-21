@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title data-i18n="Confidentialité — URLQRCodePrinter">Confidentialité — URLQRCodePrinter</title>
+  <link rel="stylesheet" href="privacy.css">
+</head>
+<body>
+  <!-- La mention doit être présentée **dans l'interface du produit**, avant
+       toute collecte : une description soignée sur la fiche du magasin ne
+       satisfait pas cette exigence (FAQ Chrome Web Store, question 10). Cette
+       page existe pour cela, et pour rien d'autre. -->
+  <main class="sheet">
+    <h1 class="sheet__title" data-i18n="Confidentialité">Confidentialité</h1>
+
+    <p class="sheet__lead" data-i18n="URLQRCodePrinter collecte les liens que vous choisissez, et rien d'autre. Avant de commencer, voici exactement ce qu'il lit.">
+      URLQRCodePrinter collecte les liens que vous choisissez, et rien d'autre.
+      Avant de commencer, voici exactement ce qu'il lit.
+    </p>
+
+    <section class="block">
+      <h2 class="block__title" data-i18n="Ce que l'extension lit">Ce que l'extension lit</h2>
+      <p data-i18n="L'adresse et le titre de la page sur laquelle vous agissez — celle du clic droit, ou celle de l'onglet courant quand vous cliquez sur le bouton. Uniquement à ce moment-là.">
+        L'adresse et le titre de la page sur laquelle vous agissez — celle du clic
+        droit, ou celle de l'onglet courant quand vous cliquez sur le bouton.
+        Uniquement à ce moment-là.
+      </p>
+    </section>
+
+    <section class="block">
+      <h2 class="block__title" data-i18n="Ce que l'extension ne fait pas">Ce que l'extension ne fait pas</h2>
+      <ul class="block__list">
+        <li data-i18n="Aucun accès à votre historique de navigation.">Aucun accès à votre historique de navigation.</li>
+        <li data-i18n="Aucune lecture en arrière-plan, ni des onglets que vous ne visez pas.">Aucune lecture en arrière-plan, ni des onglets que vous ne visez pas.</li>
+        <li data-i18n="Aucun compte, aucun serveur de l'éditeur.">Aucun compte, aucun serveur de l'éditeur.</li>
+        <li data-i18n="Aucune mesure d'audience, aucune publicité, aucune revente de données.">Aucune mesure d'audience, aucune publicité, aucune revente de données.</li>
+        <li data-i18n="Aucun code hébergé à distance : tout est embarqué dans l'extension.">Aucun code hébergé à distance : tout est embarqué dans l'extension.</li>
+      </ul>
+    </section>
+
+    <section class="block">
+      <h2 class="block__title" data-i18n="Où vont vos liens">Où vont vos liens</h2>
+      <p data-i18n="Ils restent sur votre appareil, dans le stockage local du navigateur. Une seule action envoie quelque chose sur le réseau : si vous demandez le raccourcissement d'un lien, cette adresse est transmise au service que vous avez choisi (TinyURL, is.gd, v.gd ou spoo.me).">
+        Ils restent sur votre appareil, dans le stockage local du navigateur. Une
+        seule action envoie quelque chose sur le réseau : si vous demandez le
+        raccourcissement d'un lien, cette adresse est transmise au service que
+        vous avez choisi (TinyURL, is.gd, v.gd ou spoo.me).
+      </p>
+    </section>
+
+    <section class="consent" aria-labelledby="consent-title">
+      <h2 id="consent-title" class="block__title" data-i18n="Votre accord">Votre accord</h2>
+
+      <p id="state" class="consent__state" role="status" aria-live="polite"></p>
+
+      <div class="consent__actions">
+        <button id="accept" class="btn btn--primary" type="button" data-i18n="J'accepte">
+          J'accepte
+        </button>
+        <button id="decline" class="btn" type="button" data-i18n="Je refuse">
+          Je refuse
+        </button>
+      </div>
+
+      <p class="consent__note" data-i18n="Sans votre accord, l'extension reste installée mais n'enregistre aucun lien. Vous pourrez changer d'avis depuis sa fenêtre.">
+        Sans votre accord, l'extension reste installée mais n'enregistre aucun
+        lien. Vous pourrez changer d'avis depuis sa fenêtre.
+      </p>
+    </section>
+
+    <section class="block">
+      <h2 class="block__title" data-i18n="En savoir plus">En savoir plus</h2>
+      <p data-i18n="La politique de confidentialité complète est publiée avec le code source du projet.">
+        La politique de confidentialité complète est publiée avec le code source
+        du projet.
+      </p>
+    </section>
+  </main>
+
+  <script type="module" src="privacy.js"></script>
+</body>
+</html>

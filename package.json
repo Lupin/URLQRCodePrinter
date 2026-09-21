@@ -26,6 +26,7 @@
     "build:extension": "node scripts/build.mjs --only=extension",
     "icons": "node scripts/make-icons.mjs",
     "package:safari": "node scripts/package-safari.mjs",
+    "package:chrome": "node scripts/package-chrome.mjs",
     "sync:safari": "node scripts/sync-safari-resources.mjs",
     "install:safari": "node scripts/install-safari.mjs",
     "open:extension": "node scripts/open-extension.mjs",

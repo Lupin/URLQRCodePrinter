@@ -21,6 +21,8 @@ are welcome — see [CONTRIBUTING.md](../CONTRIBUTING.md).
 | Document | Language | Contents |
 |---|---|---|
 | [protocole-niimbot-ble.fr.md](protocole-niimbot-ble.fr.md) | FR | Niimbot BLE protocol: UUIDs, frame format, per-model print sequences, Web Bluetooth and CoreBluetooth constraints, and what still needs to be verified on real hardware |
+| [preparation-app-store.fr.md](preparation-app-store.fr.md) | FR | App Store submission: what is already compliant, what remains, the regeneration trap, and how to reuse the checklist for other Swift apps |
+| [chrome-web-store.md](chrome-web-store.md) | FR | Chrome Web Store listing: ready-to-paste description, permission justifications, privacy fields, and the in-product disclosure that is still missing |
 | [note-capacites-capture-url-safari-brave.md](note-capacites-capture-url-safari-brave.md) | FR | Capability matrix for browser extensions on Safari macOS, Safari iOS and Brave, with sources |
 | [safari-extension-verification.md](safari-extension-verification.md) | FR | What was verified in the real Safari browser, and what cannot be |
 

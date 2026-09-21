@@ -61,8 +61,14 @@ const WEB_APP_PAGE = 'app.html';
 /** Clés comprises par Safari mais inconnues de Chromium. */
 const SAFARI_ONLY_KEYS = ['browser_specific_settings'];
 
-/** Points d'entrée de l'extension, assemblés en fichiers uniques. */
-const EXTENSION_ENTRIES = ['background.js', 'popup.js', 'app.js'];
+/**
+ * Points d'entrée de l'extension, assemblés en fichiers uniques.
+ *
+ * `privacy.js` en fait partie : c'est une page à part entière, et elle importe
+ * le cœur. Sans assemblage, Safari ne résoudrait pas ses imports — le défaut
+ * qui a motivé tout ce mécanisme.
+ */
+const EXTENSION_ENTRIES = ['background.js', 'popup.js', 'privacy.js', 'app.js'];
 
 /** Dossiers et fichiers devenus inutiles une fois l'extension assemblée. */
 const EXTENSION_DEBRIS = ['core', 'api.js', 'element-ids.js'];
@@ -289,6 +295,7 @@ async function buildTarget(name) {
     ? [
         { path: join(outDir, WEB_APP_PAGE), assets: ['style.css', 'app.js'], label: 'application' },
         { path: join(outDir, 'popup.html'), assets: ['popup.css', 'popup.js'], label: 'fenêtre' },
+        { path: join(outDir, 'privacy.html'), assets: ['privacy.css', 'privacy.js'], label: 'confidentialité' },
       ]
     : [{ path: join(outDir, 'index.html'), assets: ['style.css', 'app.js'], label: 'application' }];
 
@@ -317,7 +324,7 @@ async function buildTarget(name) {
  * @param {string} dir
  * @returns {Promise<string[]>} noms retirés, pour les signaler
  */
-async function stripSystemFiles(dir) {
+export async function stripSystemFiles(dir) {
   const removed = [];
   for (const entry of await readdir(dir, { withFileTypes: true })) {
     const path = join(dir, entry.name);

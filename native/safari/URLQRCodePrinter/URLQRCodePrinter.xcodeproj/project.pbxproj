@@ -47,6 +47,10 @@
 		9375DA643061496300F8DB9C /* popup.css in Resources */ = {isa = PBXBuildFile; fileRef = 9375DA523061496300F8DB9C /* popup.css */; };
 		9375DA653061496300F8DB9C /* app.html in Resources */ = {isa = PBXBuildFile; fileRef = 9375DA533061496300F8DB9C /* app.html */; };
 		9375DA663061496300F8DB9C /* app.js in Resources */ = {isa = PBXBuildFile; fileRef = 9375DA543061496300F8DB9C /* app.js */; };
+		FA11E0033061496300F8DB9C /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = FA11E0013061496300F8DB9C /* PrivacyInfo.xcprivacy */; };
+		FA11E0043061496300F8DB9C /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = FA11E0013061496300F8DB9C /* PrivacyInfo.xcprivacy */; };
+		FA11E0053061496300F8DB9C /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = FA11E0023061496300F8DB9C /* PrivacyInfo.xcprivacy */; };
+		FA11E0063061496300F8DB9C /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = FA11E0023061496300F8DB9C /* PrivacyInfo.xcprivacy */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -122,6 +126,8 @@
 		9375DA523061496300F8DB9C /* popup.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; name = popup.css; path = Resources/popup.css; sourceTree = "<group>"; };
 		9375DA533061496300F8DB9C /* app.html */ = {isa = PBXFileReference; lastKnownFileType = text.html; name = app.html; path = Resources/app.html; sourceTree = "<group>"; };
 		9375DA543061496300F8DB9C /* app.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; name = app.js; path = Resources/app.js; sourceTree = "<group>"; };
+		FA11E0013061496300F8DB9C /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		FA11E0023061496300F8DB9C /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -175,6 +181,7 @@
 				9375D9F73061496100F8DB9C /* ViewController.swift */,
 				9375D9F83061496300F8DB9C /* Assets.xcassets */,
 				9375D9F13061496100F8DB9C /* Resources */,
+				FA11E0013061496300F8DB9C /* PrivacyInfo.xcprivacy */,
 			);
 			path = "Shared (App)";
 			sourceTree = "<group>";
@@ -195,6 +202,7 @@
 			children = (
 				9375DA4B3061496300F8DB9C /* Resources */,
 				9375D9FA3061496300F8DB9C /* SafariWebExtensionHandler.swift */,
+				FA11E0023061496300F8DB9C /* PrivacyInfo.xcprivacy */,
 			);
 			path = "Shared (Extension)";
 			sourceTree = "<group>";
@@ -406,6 +414,7 @@
 				9375DA373061496300F8DB9C /* Assets.xcassets in Resources */,
 				9375DA0B3061496300F8DB9C /* Main.storyboard in Resources */,
 				9375DA313061496300F8DB9C /* Style.css in Resources */,
+				FA11E0033061496300F8DB9C /* PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -419,6 +428,7 @@
 				9375DA343061496300F8DB9C /* Script.js in Resources */,
 				9375DA383061496300F8DB9C /* Assets.xcassets in Resources */,
 				9375DA2E3061496300F8DB9C /* Main.html in Resources */,
+				FA11E0043061496300F8DB9C /* PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -435,6 +445,7 @@
 				9375DA663061496300F8DB9C /* app.js in Resources */,
 				9375DA633061496300F8DB9C /* manifest.json in Resources */,
 				9375DA5E3061496300F8DB9C /* popup.js in Resources */,
+				FA11E0053061496300F8DB9C /* PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -451,6 +462,7 @@
 				9375DA5D3061496300F8DB9C /* app.js in Resources */,
 				9375DA5A3061496300F8DB9C /* manifest.json in Resources */,
 				9375DA553061496300F8DB9C /* popup.js in Resources */,
+				FA11E0063061496300F8DB9C /* PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -672,7 +684,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 0.1.0;
 				OTHER_LDFLAGS = (
 					"-framework",
 					SafariServices,
@@ -705,7 +717,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 0.1.0;
 				OTHER_LDFLAGS = (
 					"-framework",
 					SafariServices,
@@ -744,7 +756,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 0.1.0;
 				OTHER_LDFLAGS = (
 					"-framework",
 					SafariServices,
@@ -784,7 +796,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 0.1.0;
 				OTHER_LDFLAGS = (
 					"-framework",
 					SafariServices,
@@ -823,7 +835,7 @@
 					"@executable_path/../../../../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 13.3;
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 0.1.0;
 				OTHER_LDFLAGS = (
 					"-framework",
 					SafariServices,
@@ -858,7 +870,7 @@
 					"@executable_path/../../../../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 13.3;
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 0.1.0;
 				OTHER_LDFLAGS = (
 					"-framework",
 					SafariServices,
@@ -896,7 +908,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 13.3;
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 0.1.0;
 				OTHER_LDFLAGS = (
 					"-framework",
 					SafariServices,
@@ -937,7 +949,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 13.3;
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 0.1.0;
 				OTHER_LDFLAGS = (
 					"-framework",
 					SafariServices,
