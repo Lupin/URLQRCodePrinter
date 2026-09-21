@@ -10,24 +10,30 @@ couvre la voie Apple. Les deux fiches doivent raconter la **même** réalité.
 
 ---
 
-## 1. Le préalable : une URL publique
+## 1. L'URL publique de la politique
 
 Le portail exige une **adresse publique** pour la politique de confidentialité.
-GitHub n'est pas configuré comme dépôt distant (`git remote` est vide), donc
-`PRIVACY.md` n'est pour l'instant joignable par personne.
+Elle existe depuis que le dépôt est publié :
 
-Trois voies, par ordre de simplicité :
+```
+https://github.com/Lupin/URLQRCodePrinter/blob/main/PRIVACY.md
+```
 
-1. **Pousser le dépôt sur GitHub** et pointer vers
-   `https://github.com/<compte>/URLQRCodePrinter/blob/main/PRIVACY.md`.
-   GitHub rend le Markdown en page web : c'est une URL publique valide.
-2. **GitHub Pages**, si vous voulez une adresse plus présentable
-   (`https://<compte>.github.io/URLQRCodePrinter/privacy`).
-3. **Une page sur votre propre site**, si vous en avez un.
+C'est l'adresse à saisir dans le champ « Privacy policy URL ». GitHub rend le
+Markdown en page web : c'est une URL publique valide, vérifiée accessible
+(HTTP 200) depuis l'extérieur.
 
-Tant que cette URL n'existe pas, le champ ne peut pas être rempli et la
-publication reste bloquée. C'est le seul point de cette fiche que je ne peux pas
-résoudre à votre place.
+Deux variantes possibles, si vous préférez :
+
+1. **GitHub Pages**, pour une adresse plus présentable
+   (`https://lupin.github.io/URLQRCodePrinter/privacy`) — demande d'activer
+   Pages sur le dépôt.
+2. **Une page sur votre propre site**, si vous en avez un.
+
+Un point à ne pas perdre de vue : cette page est désormais **la référence
+publique**. Toute modification de `PRIVACY.md` doit être poussée pour que la
+déclaration reste exacte — la FAQ du magasin sanctionne tout écart entre la
+politique publiée, les déclarations du portail et le comportement réel.
 
 ---
 
@@ -82,7 +88,7 @@ bas de page.
 >
 > **Vie privée.** Aucune donnée ne quitte votre appareil en dehors du
 > raccourcissement que vous déclenchez vous-même. Le code est ouvert (licence
-> MIT) et vérifiable : `https://github.com/<compte>/URLQRCodePrinter`
+> MIT) et vérifiable : `https://github.com/Lupin/URLQRCodePrinter`
 >
 > **Ce qu'il vous faut.** Chrome sur ordinateur. L'impression Bluetooth directe
 > exige une imprimante Niimbot compatible ; à défaut, l'export d'images et
@@ -261,7 +267,7 @@ your single purpose »*.
 | Élément | État |
 |---|---|
 | Archive déposable | **Fait** — `npm run package:chrome` → `dist/url-qrcode-printer-chrome.zip` |
-| Politique de confidentialité | **Rédigée** — `PRIVACY.md`, reste à publier en URL publique |
+| Politique de confidentialité | **Publiée** — `PRIVACY.md`, accessible à l'URL de la section 1 |
 | Description et résumé | **Rédigés** ci-dessus |
 | Justifications de permissions | **Rédigées** ci-dessus |
 | Choix trader / non-trader | **Traité** |
