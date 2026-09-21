@@ -184,6 +184,36 @@ h2 {
   margin-top: 0.5rem;
 }
 
+/* --- Barre de langue --- */
+
+/*
+ * Le lien vers l'autre langue est **en tête de page**, et non au pied.
+ *
+ * C'est là qu'un visiteur qui ne lit pas la langue cherche à en sortir : au
+ * pied, il fallait parcourir toute la page pour le trouver, et la page est
+ * longue. Le séparateur reprend celui de l'en-tête pour que la barre se lise
+ * comme un élément de la page, pas comme un ajout.
+ */
+.lang-bar {
+  border-bottom: 1px solid var(--border);
+  padding: 0.7rem 0;
+  font-size: 0.875rem;
+}
+
+.lang-bar .wrap {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.lang-bar a {
+  text-decoration: none;
+}
+
+.lang-bar a:hover,
+.lang-bar a:focus-visible {
+  text-decoration: underline;
+}
+
 /* --- Pied --- */
 
 footer {
@@ -194,8 +224,4 @@ footer {
 
 footer p {
   margin: 0 0 0.5rem;
-}
-
-.lang {
-  font-size: 0.875rem;
 }

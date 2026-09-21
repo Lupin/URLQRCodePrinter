@@ -228,3 +228,31 @@ test('la dépendance externe du cœur est livrée et reste un module ES', () => 
     'le module embarqué doit rester importable comme module ES',
   );
 });
+
+test('le lien vers l\'autre langue est en tête de page', () => {
+  // Il vivait au pied de page. Sur une page de cette longueur, un visiteur qui
+  // ne lit pas la langue devait la parcourir entièrement pour en sortir — le
+  // seul cas où ce lien sert vraiment, c'est celui où on ne comprend rien.
+  const pages = [
+    { file: join(SITE, 'index.html'), href: 'en/', label: 'française' },
+    { file: join(SITE, 'en', 'index.html'), href: '../', label: 'anglaise' },
+  ];
+
+  for (const { file, href, label } of pages) {
+    const html = readFileSync(file, 'utf8');
+    const langIndex = html.indexOf(`href="${href}"`);
+    const heroIndex = html.indexOf('<header');
+
+    assert.notEqual(langIndex, -1, `lien de langue absent de la page ${label}`);
+    assert.ok(
+      langIndex < heroIndex,
+      `le lien de langue doit précéder l'en-tête, dans la page ${label}`,
+    );
+
+    const footer = html.slice(html.indexOf('<footer'));
+    assert.ok(
+      !footer.includes(`href="${href}"`),
+      `le lien de langue est resté au pied de la page ${label}`,
+    );
+  }
+});
