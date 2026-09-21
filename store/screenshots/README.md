@@ -38,17 +38,23 @@ Pour ce projet, cinq captures qui se répondent :
 5. La page de mention de confidentialité — elle fait partie de l'expérience, et
    la montrer appuie la déclaration faite dans les champs de confidentialité.
 
-## Comment les nommer
+## Comment elles sont nommées
 
-Le suffixe indique la langue et l'ordre d'affichage :
+Le préfixe donne l'ordre d'affichage, le suffixe la langue :
 
 ```
-01-fenetre-fr.png
-02-menu-contextuel-fr.png
-03-planche-fr.png
-04-impression-fr.png
-05-confidentialite-fr.png
+01-fenetre-popup-fr.jpg              la fenêtre, ouverte sur une page
+02-application-fr.png                l'application : collection, mise en forme, aperçu
+03-impression-niimbot-fr.png         l'onglet d'impression sur l'imprimante
+04-mention-confidentialite-fr.png    la mention, en attente d'accord
 ```
+
+Les quatre sont en **1280 × 800**, le maximum autorisé étant cinq captures.
+
+`02`, `03` et `04` sont produites par `scripts/capture-store-shots.mjs`, qui les
+prend depuis l'extension réelle dans Brave : elles sont donc reproductibles.
+`01` vient d'une capture d'écran manuelle — c'est la seule que ce script ne sait
+pas produire, la fenêtre de l'extension ne s'ouvrant pas depuis le contenu web.
 
 Le magasin permet des captures **par langue**. Le manifeste déclare `fr` par
 défaut, avec `en` : si vous visez les deux, suffixez `-en` pour la seconde

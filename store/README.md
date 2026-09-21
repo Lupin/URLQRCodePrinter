@@ -7,7 +7,7 @@ vérifiée le 21 septembre 2026 — pas d'une estimation.
 | Image | Dimensions | Format | Obligatoire ? | État |
 |---|---|---|---|---|
 | Icône de l'extension | 128 × 128 | PNG, avec canal alpha | **Oui**, dans le `.zip` | ✅ `src/extension-src/icons/icon-128.png` |
-| Captures d'écran | 1280 × 800 **ou** 640 × 400 | PNG ou JPEG | **Oui**, au moins 1, jusqu'à 5 | ✅ `screenshots/` — 03, 04, 05 |
+| Captures d'écran | 1280 × 800 **ou** 640 × 400 | PNG ou JPEG | **Oui**, au moins 1, jusqu'à 5 | ✅ `screenshots/` — 01 à 04 |
 | Petite image promotionnelle | 440 × 280 | PNG ou JPEG | **Oui** | ✅ [`promo/promo-440x280.jpg`](promo/promo-440x280.jpg) |
 | Image « marquee » | 1400 × 560 | PNG ou JPEG | Non | — |
 

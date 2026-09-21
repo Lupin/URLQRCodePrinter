@@ -217,10 +217,10 @@ async function main() {
     console.log(`Extension ${id}\n`);
 
     await capture({
-      port: PORT, id, file: 'app.html', name: '03-application-fr.png', seed: true,
+      port: PORT, id, file: 'app.html', name: '02-application-fr.png', seed: true,
     });
     await capture({
-      port: PORT, id, file: 'app.html', name: '04-impression-niimbot-fr.png',
+      port: PORT, id, file: 'app.html', name: '03-impression-niimbot-fr.png',
       before: `(async () => {
         const onglet = [...document.querySelectorAll('button')]
           .find((b) => b.textContent.includes('Niimbot'));
@@ -231,7 +231,7 @@ async function main() {
       })()`,
     });
     await capture({
-      port: PORT, id, file: 'privacy.html', name: '05-mention-confidentialite-fr.png',
+      port: PORT, id, file: 'privacy.html', name: '04-mention-confidentialite-fr.png',
     });
 
     console.log(`\n✓ captures écrites dans ${OUT.slice(ROOT.length + 1)}`);
