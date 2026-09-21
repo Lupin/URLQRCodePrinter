@@ -964,17 +964,51 @@ async function installContextMenus(api, definitions) {
 
 const api = resolveApi();
 
-/** Couleur du badge : vert ardoise pour un ajout, ambre pour un doublon. */
-const BADGE_ADDED = '#21808d';
-const BADGE_DUPLICATE = '#a84b2f';
+/**
+ * Couleurs du badge.
+ *
+ * Le badge est peint par le service worker, **pas** par la feuille de style :
+ * c'est le troisième endroit où vivait la charte, et le seul qui ait gardé le
+ * teal d'origine après la refonte. Il ne se voit nulle part dans le code de
+ * l'interface — seulement dans la barre d'outils.
+ *
+ * Le compteur est à l'encre, comme celui de la fenêtre, et surtout **pas à
+ * l'accent** : l'icône de la barre d'outils est déjà orange, un badge orange s'y
+ * fondrait au lieu de s'en détacher.
+ */
+const BADGE_COUNT = '#1a1a1a';
+const BADGE_ADDED = '#1c7c4a';
+const BADGE_DUPLICATE = '#1a1a1a';
+const BADGE_ERROR = '#b3122b';
+/** Texte du badge : les quatre fonds sont sombres, le texte est donc clair. */
+const BADGE_TEXT = '#ffffff';
 
 const store = createChromeStorageStore({ area: api?.storage?.local });
+
+/**
+ * Impose la couleur du texte du badge, si l'API existe.
+ *
+ * `setBadgeTextColor` n'existe que depuis Chrome 110 et Safari l'ignore. L'appel
+ * est isolé pour qu'une absence n'interrompe pas la pose du texte : sans cette
+ * précaution, un `await` qui échoue laisserait le badge **vide** au lieu de le
+ * laisser au navigateur le soin de choisir une couleur lisible.
+ *
+ * @returns {Promise<void>}
+ */
+async function applyBadgeTextColor() {
+  try {
+    await api.action.setBadgeTextColor?.({ color: BADGE_TEXT });
+  } catch {
+    // Le navigateur choisira lui-même une couleur de texte.
+  }
+}
 
 /** Met à jour le badge avec le nombre de liens, ou le vide. */
 async function refreshBadge() {
   try {
     const links = await store.list();
-    await api.action.setBadgeBackgroundColor({ color: BADGE_ADDED });
+    await api.action.setBadgeBackgroundColor({ color: BADGE_COUNT });
+    await applyBadgeTextColor();
     await api.action.setBadgeText({ text: links.length ? String(links.length) : '' });
   } catch {
     // L'API badge peut être absente ou refusée : ce n'est pas bloquant.
@@ -985,6 +1019,7 @@ async function refreshBadge() {
 async function flashBadge(text, color) {
   try {
     await api.action.setBadgeBackgroundColor({ color });
+    await applyBadgeTextColor();
     await api.action.setBadgeText({ text });
     setTimeout(refreshBadge, 1500);
   } catch {
@@ -1011,14 +1046,14 @@ async function installMenus() {
  */
 async function record(capture) {
   if (!capture) {
-    await flashBadge('!', BADGE_DUPLICATE);
+    await flashBadge('!', BADGE_ERROR);
     return;
   }
   try {
     const { duplicate } = await store.add(capture);
     await flashBadge(duplicate ? '=' : '+', duplicate ? BADGE_DUPLICATE : BADGE_ADDED);
   } catch {
-    await flashBadge('!', BADGE_DUPLICATE);
+    await flashBadge('!', BADGE_ERROR);
   }
 }
 
@@ -1031,6 +1066,20 @@ api?.runtime?.onStartup?.addListener(() => {
   installMenus();
   refreshBadge();
 });
+
+// Reprise du badge au démarrage du service worker.
+//
+// `onInstalled` et `onStartup` ne couvrent pas le rechargement d'une extension
+// non empaquetée, et `onStartup` ne se déclenche qu'au démarrage du navigateur.
+// Le badge gardait donc la couleur de l'exécution précédente — c'est ainsi
+// qu'une pastille teal a survécu à la refonte de la palette alors que le code
+// livré ne contenait plus un seul teal.
+//
+// Le worker se réveille à chaque événement : le badge se réconcilie avec le
+// stockage à ce moment-là. L'appel est volontairement non attendu : un `await`
+// de premier niveau empêcherait l'enregistrement des écouteurs qui suivent, et
+// la fenêtre resterait muette — panne déjà observée sur Safari.
+refreshBadge();
 
 // Le menu contextuel n'est branché que s'il existe réellement.
 if (contextMenusAvailable(api)) {

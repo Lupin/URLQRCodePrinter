@@ -4,11 +4,25 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>URLQRCodePrinter</title>
-  <link rel="stylesheet" href="style.css?v=36155ba1efed">
+  <link rel="stylesheet" href="style.css?v=687c02df804c">
 </head>
 <body>
   <header class="topbar">
-    <h1 class="topbar__title">URLQRCodePrinter</h1>
+      <!-- La marque reprend le tracé de `docs/logo/logo-2-trait.svg`.
+           `aria-hidden` : le <h1> qui suit porte déjà le nom — un texte de
+           remplacement ferait annoncer « URLQRCodePrinter » deux fois.
+           Les couleurs passent par des classes plutôt que par des attributs :
+           `var()` dans un attribut de présentation n'est pas fiable. -->
+      <div class="topbar__brand">
+        <svg class="marque" viewBox="0 0 64 64" aria-hidden="true" focusable="false">
+      <path d="M18 33 V2 H46 V33" class="marque__papier" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round"/>
+      <path class="marque__qr" fill-rule="nonzero" transform="translate(21.5 5.5) scale(1.05)" d="M0 0h1v1h-1zM1 0h1v1h-1zM2 0h1v1h-1zM3 0h1v1h-1zM4 0h1v1h-1zM5 0h1v1h-1zM6 0h1v1h-1zM8 0h1v1h-1zM9 0h1v1h-1zM10 0h1v1h-1zM11 0h1v1h-1zM14 0h1v1h-1zM15 0h1v1h-1zM16 0h1v1h-1zM17 0h1v1h-1zM18 0h1v1h-1zM19 0h1v1h-1zM20 0h1v1h-1zM0 1h1v1h-1zM6 1h1v1h-1zM8 1h1v1h-1zM9 1h1v1h-1zM14 1h1v1h-1zM20 1h1v1h-1zM0 2h1v1h-1zM2 2h1v1h-1zM3 2h1v1h-1zM4 2h1v1h-1zM6 2h1v1h-1zM8 2h1v1h-1zM10 2h1v1h-1zM14 2h1v1h-1zM16 2h1v1h-1zM17 2h1v1h-1zM18 2h1v1h-1zM20 2h1v1h-1zM0 3h1v1h-1zM2 3h1v1h-1zM3 3h1v1h-1zM4 3h1v1h-1zM6 3h1v1h-1zM9 3h1v1h-1zM10 3h1v1h-1zM11 3h1v1h-1zM14 3h1v1h-1zM16 3h1v1h-1zM17 3h1v1h-1zM18 3h1v1h-1zM20 3h1v1h-1zM0 4h1v1h-1zM2 4h1v1h-1zM3 4h1v1h-1zM4 4h1v1h-1zM6 4h1v1h-1zM9 4h1v1h-1zM12 4h1v1h-1zM14 4h1v1h-1zM16 4h1v1h-1zM17 4h1v1h-1zM18 4h1v1h-1zM20 4h1v1h-1zM0 5h1v1h-1zM6 5h1v1h-1zM8 5h1v1h-1zM10 5h1v1h-1zM14 5h1v1h-1zM20 5h1v1h-1zM0 6h1v1h-1zM1 6h1v1h-1zM2 6h1v1h-1zM3 6h1v1h-1zM4 6h1v1h-1zM5 6h1v1h-1zM6 6h1v1h-1zM8 6h1v1h-1zM10 6h1v1h-1zM12 6h1v1h-1zM14 6h1v1h-1zM15 6h1v1h-1zM16 6h1v1h-1zM17 6h1v1h-1zM18 6h1v1h-1zM19 6h1v1h-1zM20 6h1v1h-1zM8 7h1v1h-1zM9 7h1v1h-1zM10 7h1v1h-1zM0 8h1v1h-1zM4 8h1v1h-1zM5 8h1v1h-1zM6 8h1v1h-1zM7 8h1v1h-1zM8 8h1v1h-1zM9 8h1v1h-1zM10 8h1v1h-1zM11 8h1v1h-1zM13 8h1v1h-1zM14 8h1v1h-1zM15 8h1v1h-1zM17 8h1v1h-1zM19 8h1v1h-1zM0 9h1v1h-1zM1 9h1v1h-1zM2 9h1v1h-1zM3 9h1v1h-1zM4 9h1v1h-1zM7 9h1v1h-1zM9 9h1v1h-1zM10 9h1v1h-1zM11 9h1v1h-1zM13 9h1v1h-1zM14 9h1v1h-1zM15 9h1v1h-1zM17 9h1v1h-1zM19 9h1v1h-1zM20 9h1v1h-1zM0 10h1v1h-1zM1 10h1v1h-1zM4 10h1v1h-1zM5 10h1v1h-1zM6 10h1v1h-1zM8 10h1v1h-1zM9 10h1v1h-1zM11 10h1v1h-1zM15 10h1v1h-1zM17 10h1v1h-1zM19 10h1v1h-1zM0 11h1v1h-1zM2 11h1v1h-1zM3 11h1v1h-1zM7 11h1v1h-1zM8 11h1v1h-1zM10 11h1v1h-1zM12 11h1v1h-1zM16 11h1v1h-1zM17 11h1v1h-1zM18 11h1v1h-1zM20 11h1v1h-1zM0 12h1v1h-1zM1 12h1v1h-1zM3 12h1v1h-1zM6 12h1v1h-1zM10 12h1v1h-1zM11 12h1v1h-1zM14 12h1v1h-1zM16 12h1v1h-1zM20 12h1v1h-1zM8 13h1v1h-1zM10 13h1v1h-1zM11 13h1v1h-1zM15 13h1v1h-1zM19 13h1v1h-1zM20 13h1v1h-1zM0 14h1v1h-1zM1 14h1v1h-1zM2 14h1v1h-1zM3 14h1v1h-1zM4 14h1v1h-1zM5 14h1v1h-1zM6 14h1v1h-1zM8 14h1v1h-1zM14 14h1v1h-1zM15 14h1v1h-1zM18 14h1v1h-1zM19 14h1v1h-1zM20 14h1v1h-1zM0 15h1v1h-1zM6 15h1v1h-1zM8 15h1v1h-1zM10 15h1v1h-1zM11 15h1v1h-1zM12 15h1v1h-1zM15 15h1v1h-1zM16 15h1v1h-1zM17 15h1v1h-1zM18 15h1v1h-1zM19 15h1v1h-1zM20 15h1v1h-1zM0 16h1v1h-1zM2 16h1v1h-1zM3 16h1v1h-1zM4 16h1v1h-1zM6 16h1v1h-1zM8 16h1v1h-1zM10 16h1v1h-1zM11 16h1v1h-1zM12 16h1v1h-1zM13 16h1v1h-1zM14 16h1v1h-1zM18 16h1v1h-1zM19 16h1v1h-1zM20 16h1v1h-1zM0 17h1v1h-1zM2 17h1v1h-1zM3 17h1v1h-1zM4 17h1v1h-1zM6 17h1v1h-1zM8 17h1v1h-1zM9 17h1v1h-1zM11 17h1v1h-1zM12 17h1v1h-1zM13 17h1v1h-1zM14 17h1v1h-1zM15 17h1v1h-1zM16 17h1v1h-1zM18 17h1v1h-1zM20 17h1v1h-1zM0 18h1v1h-1zM2 18h1v1h-1zM3 18h1v1h-1zM4 18h1v1h-1zM6 18h1v1h-1zM11 18h1v1h-1zM12 18h1v1h-1zM13 18h1v1h-1zM15 18h1v1h-1zM16 18h1v1h-1zM18 18h1v1h-1zM19 18h1v1h-1zM20 18h1v1h-1zM0 19h1v1h-1zM6 19h1v1h-1zM8 19h1v1h-1zM9 19h1v1h-1zM10 19h1v1h-1zM12 19h1v1h-1zM13 19h1v1h-1zM14 19h1v1h-1zM19 19h1v1h-1zM0 20h1v1h-1zM1 20h1v1h-1zM2 20h1v1h-1zM3 20h1v1h-1zM4 20h1v1h-1zM5 20h1v1h-1zM6 20h1v1h-1zM8 20h1v1h-1zM9 20h1v1h-1zM10 20h1v1h-1zM12 20h1v1h-1zM17 20h1v1h-1zM18 20h1v1h-1z"/>
+      <rect x="8" y="30" width="48" height="22" rx="3" class="marque__papier" stroke="currentColor" stroke-width="2.5"/>
+      <path d="M17 36 H47" stroke="currentColor" stroke-width="2.5"/>
+      <circle cx="49" cy="46" r="2" class="marque__qr"/>
+        </svg>
+        <h1 class="topbar__title">URLQRCodePrinter</h1>
+      </div>
     <p class="topbar__subtitle">Collectez vos liens, imprimez-les en QR codes.</p>
     <span id="count" class="pill" aria-live="polite">0 lien</span>
   </header>
@@ -86,20 +100,24 @@
            effacer. Elles étaient mêlées sur deux lignes, avec « Tableur + QR »
            en avant — une hiérarchie que rien ne justifiait. -->
       <div class="panel__footer">
+        <!-- `btn--fill` : au survol, le contour devient un aplat d'accent. Le
+             modificateur est explicite plutôt que déduit du conteneur — un
+             `.actions` englobe aussi le groupe de droite, et une règle fondée
+             sur `:not(.actions--end)` casserait au premier bouton ajouté. -->
         <div class="actions">
           <span class="actions__label">Exporter</span>
-          <button id="export-xlsx" class="btn btn--ghost" type="button" disabled>Tableur + QR</button>
-          <button id="export-csv" class="btn btn--ghost" type="button" disabled>CSV</button>
-          <button id="export-md" class="btn btn--ghost" type="button" disabled>Markdown</button>
-          <button id="export-json" class="btn btn--ghost" type="button" disabled>Archive</button>
+          <button id="export-xlsx" class="btn btn--ghost btn--fill" type="button" disabled>Tableur + QR</button>
+          <button id="export-csv" class="btn btn--ghost btn--fill" type="button" disabled>CSV</button>
+          <button id="export-md" class="btn btn--ghost btn--fill" type="button" disabled>Markdown</button>
+          <button id="export-json" class="btn btn--ghost btn--fill" type="button" disabled>Archive</button>
         </div>
 
         <div class="actions actions--end">
-          <button id="import" class="btn btn--ghost" type="button"
+          <button id="import" class="btn btn--ghost btn--fill" type="button"
                   title="Relit l'archive JSON, le dossier d'étiquettes .zip ou un CSV exporté d'ici">
             Importer…
           </button>
-          <button id="clear" class="btn btn--ghost btn--danger" type="button" disabled>Tout effacer</button>
+          <button id="clear" class="btn btn--ghost btn--danger btn--fill" type="button" disabled>Tout effacer</button>
           <input id="import-file" class="sr-only" type="file"
                  accept=".json,.csv,.zip,application/json,text/csv,application/zip">
         </div>
@@ -161,6 +179,14 @@
              d'où une option et non un réglage par défaut. -->
         <fieldset class="columns">
           <legend class="columns__legend">Sous chaque QR</legend>
+          <!-- L'URL manquait : la planche n'imprimait que le titre, et
+               retombait sur l'URL uniquement quand il n'y en avait pas. Sur
+               une étiquette, l'URL est pourtant ce qu'on scanne en dernier
+               recours quand le QR est abîmé. -->
+          <label class="columns__item field__label">
+            <input id="sheet-url" type="checkbox">
+            <span>URL</span>
+          </label>
           <label class="columns__item field__label">
             <input id="sheet-date" type="checkbox">
             <span>Date de collecte</span>
@@ -199,12 +225,15 @@
           </label>
         </div>
         <div class="fields">
+          <!-- « Rangées » et « colonnes » se lisaient comme des lignes de
+               texte : sur une planche, ce sont les étiquettes qu'ils
+               espacent. Le nom le dit maintenant, et l'axe est explicite. -->
           <label class="field">
-            <span class="field__label">Écart entre colonnes (mm)</span>
+            <span class="field__label">Écart entre étiquettes — horizontal (mm)</span>
             <input id="sheet-gap-x" class="input" type="number" min="0" max="10" step="0.25" value="2.5">
           </label>
           <label class="field">
-            <span class="field__label">Écart entre rangées (mm)</span>
+            <span class="field__label">Écart entre étiquettes — vertical (mm)</span>
             <input id="sheet-gap-y" class="input" type="number" min="0" max="10" step="0.25" value="0">
           </label>
         </div>
@@ -518,6 +547,6 @@
 
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
-  <script type="module" src="app.js?v=85d35660a3b9"></script>
+  <script type="module" src="app.js?v=d52b0c5aaf79"></script>
 </body>
 </html>

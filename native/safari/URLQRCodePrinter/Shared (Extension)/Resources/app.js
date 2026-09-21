@@ -687,6 +687,7 @@ const ELEMENT_IDS = Object.freeze([
   'sheet-qr',
   'sheet-font',
   'sheet-qr-info',
+  'sheet-url',
   'sheet-date',
   'sheet-date-time',
   'sheet-date-index',
@@ -3385,22 +3386,38 @@ function computeLabelGeometry(options) {
       // la ferait dépasser ne doit pas être retenu.
       limits.push(Math.floor((target - padding) / height));
     }
+    const lignes = wrapText(mesure, options.text ?? '', innerWidth, {
+      maxLines: Math.max(0, Math.min(...limits)),
+    });
     return {
-      lines: wrapText(mesure, options.text ?? '', innerWidth, {
-        maxLines: Math.max(0, Math.min(...limits)),
-      }),
+      lines: lignes,
       lineHeight: height,
+      // Le texte est-il entier ? Le plafond de lignes peut céder avant la fin
+      // du texte quand la place manque, et `tryFont` refuse alors cette taille :
+      // une URL coupée après « com/ » est fausse, pas seulement tronquée.
+      complete: lignes.length >= complet.length,
     };
   };
 
-  // Le texte dispose de la place que le QR lui laisse ; on retient donc la
-  // police la plus grande qui tienne, en essayant d'abord de remplir la
-  // longueur, puis la taille demandée, puis la lisibilité minimale.
+  // Le texte dispose de la place que le QR lui laisse. L'ordre des candidats
+  // décide de tout :
+  //
+  // 1. **La taille demandée passe en premier.** C'est un réglage de
+  //    l'utilisateur, pas une suggestion. Elle était essayée en second, après
+  //    un candidat « remplir la longueur » qui, borné par le plafond de largeur,
+  //    tenait toujours — si bien que le réglage « Taille du texte » n'avait
+  //    aucun effet : de 2 à 7 mm, la même police sortait. Un réglage sans effet
+  //    est pire que pas de réglage.
+  // 2. À défaut, remplir la longueur du rouleau.
+  // 3. À défaut, la lisibilité minimale.
+  //
+  // Le nombre de lignes n'est pas décidé ici : il découle de la taille retenue
+  // et de la place réellement disponible, un peu plus bas (`lignesPossibles`).
   const requested = Math.floor(options.fontSize ?? 0);
   const candidates = [];
-  if (target > 0) candidates.push(Math.floor((target * 0.22) / lineSpacing));
-  if (requested > 0) candidates.push(requested);
-  candidates.push(fontSize);
+  if (requested > 0) candidates.push({ size: requested, explicit: true });
+  if (target > 0) candidates.push({ size: Math.floor((target * 0.22) / lineSpacing), explicit: false });
+  candidates.push({ size: fontSize, explicit: false });
 
   const textTarget = Math.floor(innerWidth * qrRatio);
   const scale = Math.max(minScale, pickScale(textTarget, matrix.size));
@@ -3408,7 +3425,9 @@ function computeLabelGeometry(options) {
   const fits = qrSize <= innerWidth;
 
   // Le texte ne monte pas plus haut que cette part de la largeur de la tête :
-  // au-delà il dominerait le QR au lieu de l'accompagner.
+  // au-delà il dominerait le QR au lieu de l'accompagner. C'est une règle
+  // d'**équilibre**, et elle ne vaut que pour le choix automatique — voir
+  // `tryFont`.
   const fontCeiling = Math.max(6, Math.floor(width * MAX_FONT_WIDTH_RATIO));
 
   /**
@@ -3418,9 +3437,18 @@ function computeLabelGeometry(options) {
    * marge basse de l'étiquette, et le QR conserve sa place au-dessus. Ne
    * vérifier que la première laissait passer une taille qui chassait le QR ou
    * qui collait le texte au bord.
+   *
+   * @param {number} size
+   * @param {boolean} [explicit] Taille demandée par l'utilisateur : elle échappe
+   *   au plafond d'équilibre. Le plafond existe pour empêcher le **choix
+   *   automatique** de laisser le texte dominer le QR ; il n'a pas à annuler un
+   *   réglage explicite, sans quoi le réglage n'a aucun effet — c'était le cas,
+   *   et de 2 à 7 mm la même police sortait. La place réellement disponible
+   *   reste vérifiée juste en dessous, et c'est elle qui borne.
    */
-  const tryFont = (size) => {
-    const usable = Math.max(6, Math.min(size, fontCeiling));
+  const tryFont = (size, explicit = false) => {
+    const borné = explicit ? Math.min(size, innerWidth) : Math.min(size, fontCeiling);
+    const usable = Math.max(6, borné);
     const attempt = layoutText(usable);
     const textHeight = (attempt.lines.length + extraLines) * attempt.lineHeight;
     // Hauteur complète : marge haute, QR, écart, texte, **et marge basse**.
@@ -3435,14 +3463,17 @@ function computeLabelGeometry(options) {
       lineHeight: attempt.lineHeight,
       textHeight,
       naturalHeight: natural,
-      ok: target === 0 ? true : natural <= target,
+      // Deux conditions, et la seconde est la plus importante : la taille doit
+      // tenir **et** le texte doit être entier. Une taille qui coupe le texte
+      // n'est pas une taille qui tient.
+      ok: (target === 0 ? true : natural <= target) && attempt.complete,
     };
   };
 
   let placed = null;
   let fallback = null;
-  for (const size of candidates) {
-    const attempt = tryFont(size);
+  for (const candidat of candidates) {
+    const attempt = tryFont(candidat.size, candidat.explicit);
     if (attempt.ok) {
       placed = attempt;
       break;
@@ -8820,11 +8851,19 @@ function renderLink(link) {
     for (const tag of link.tags) {
       // Cliquer une puce filtre la collection sur ce tag : c'est le seul
       // intérêt de classer, et cela évite d'avoir à le retaper.
-      const chip = button(`#${tag}`, 'tag', () => {
+      //
+      // Le « # » est une syntaxe de saisie, pas une identité : `normalizeTags`
+      // l'accepte puis le retire, si bien que le tag est déjà stocké sans lui.
+      // La puce n'a donc pas à le réafficher — son fond dit assez qu'il s'agit
+      // d'un tag. Le nom accessible, lui, explicite l'action : un bouton nommé
+      // « musique » n'apprend rien à un lecteur d'écran.
+      const chip = button(tag, 'tag', () => {
         el.search.value = tag;
         renderList();
       });
-      chip.title = `Filtrer sur #${tag}`;
+      const action = `Filtrer sur le tag « ${tag} »`;
+      chip.title = action;
+      chip.setAttribute('aria-label', action);
       tags.appendChild(chip);
     }
     body.appendChild(tags);
@@ -9225,7 +9264,7 @@ function updateDateHint() {
         + `${pad(date.getHours())}:${pad(date.getMinutes())}`;
     parties.push(`Date de collecte sur sa propre ligne — ${echantillon}.`);
   }
-  if (el.sheetDateIndex.checked) parties.push('Le numéro du lien précède la date.');
+  if (el.sheetDateIndex.checked) parties.push('Le numéro du lien s\'imprime au-dessus du titre.');
   parties.push('Chaque ligne de plus réduit la place du QR code.');
   el.sheetDateHint.textContent = parties.join(' ');
 }
@@ -9515,11 +9554,29 @@ function buildSheetPages(items) {
   // place que le QR doit laisser, sinon le curseur autoriserait un réglage qui
   // la rogne.
   const wantsDate = dateMode() !== 'none';
-  const bounds = qrRatioBounds({
+  // Lues **avant** d'être utilisées : `const` lue plus haut lève une
+  // `ReferenceError`, et `buildSheetPages` s'arrêtait là — la planche restait
+  // vierge, sans message.
+  const veutIndex = el.sheetDateIndex.checked;
+  // Le numéro et la date occupent chacun une ligne à part entière, en plus du
+  // texte principal. Ils doivent être comptés dans la place que le QR laisse,
+  // sinon le curseur autoriserait un réglage qui les rogne.
+  const indexLignes = veutIndex ? 1 : 0;
+  const dateLignes = wantsDate ? 1 : 0;
+  const lignesHorsTexte = indexLignes + dateLignes;
+
+  /**
+   * Bornes du QR pour un nombre de lignes de texte donné.
+   *
+   * Les bornes dépendent de la place que le texte réclame : c'est ce qui permet
+   * de **réserver deux lignes** plutôt que de tronquer le titre. Une seule
+   * ligne réservée donnait, dès 8 pt, « https://www.youtube.com/watch?v=jYI8-… ».
+   */
+  const bornesPourLignes = (lignesTexte) => qrRatioBounds({
     labelWidthMm: layout.labelWidthMm,
     labelHeightMm: layout.labelHeightMm,
     qrModules: modules,
-    textLines: wantsDate ? 2 : 1,
+    textLines: lignesTexte + lignesHorsTexte,
     marginMm: SHEET_CELL_MARGIN_MM,
     gapMm: SHEET_QR_GAP_MM,
     minModuleMm: MIN_MODULE_MM_PAPER,
@@ -9527,6 +9584,42 @@ function buildSheetPages(items) {
     // laisse moins de place au QR, et la borne haute doit en tenir compte.
     fontSizePt: sheetFontPt(),
   });
+
+  /**
+   * Ce qui s'imprime sous le QR.
+   *
+   * Un titre absent laissait déjà la place à l'URL ; l'option l'ajoute au
+   * titre. La même fonction sert au calcul des lignes réservées et au rendu :
+   * deux expressions séparées auraient réservé un nombre de lignes qui ne
+   * correspondait pas au texte réellement écrit.
+   */
+  const montreUrl = el.sheetUrl.checked;
+  const texteSousLeQr = (item) => {
+    const titre = typeof item.title === 'string' ? item.title.trim() : '';
+    if (!montreUrl) return titre || item.url;
+    return titre === '' ? item.url : `${titre} ${item.url}`;
+  };
+
+  // Combien de lignes le texte le plus long réclame-t-il à cette taille ?
+  const mesurePlanche = cachedTextMeasure(metrics.fontSizePx);
+  const largeurInterieurePx =
+    ((layout.labelWidthMm - SHEET_CELL_MARGIN_MM * 2) * 96) / 25.4;
+  const lignesNecessaires = encoded.flat().reduce((plus, entree) => {
+    const texte = texteSousLeQr(entree.item);
+    return Math.max(plus, sheetCellLines(texte, {
+      measure: mesurePlanche,
+      innerWidthPx: largeurInterieurePx,
+      maxLines: 99,
+    }).length);
+  }, 1);
+
+  // Ce que le format peut réellement offrir : c'est `textLinesAtMin` qui le dit,
+  // puisque le QR ne descend pas sous la taille où ses modules restent lisibles.
+  // Au-delà, on tronque — mais seulement au-delà.
+  const sondeLignes = bornesPourLignes(1);
+  const lignesOffertes = Math.max(1, sondeLignes.textLinesAtMin - lignesHorsTexte);
+
+  const bounds = bornesPourLignes(Math.min(lignesNecessaires, lignesOffertes));
 
   // Le curseur est borné par ce que l'impression permet réellement.
   applyQrSliderBounds(bounds);
@@ -9539,7 +9632,12 @@ function buildSheetPages(items) {
   const innerWidthMm = layout.labelWidthMm - SHEET_CELL_MARGIN_MM * 2;
   const textSpaceMm = layout.labelHeightMm - SHEET_CELL_MARGIN_MM * 2
     - side - SHEET_QR_GAP_MM;
-  const maxLines = Math.max(1, Math.floor(textSpaceMm / metrics.lineHeightMm));
+  // La tolérance n'est pas cosmétique : la borne du QR est arrondie au millième
+  // par `qrRatioBounds`, et cet arrondi se propage jusqu'ici. Sans elle, une
+  // place calculée pour deux lignes n'en donnait qu'une — 12,978 mm pour
+  // 6,493 mm d'interligne vaut 1,9989, que `floor` ramenait à 1. Le texte était
+  // alors tronqué pour un millième de millimètre.
+  const maxLines = Math.max(1, Math.floor(textSpaceMm / metrics.lineHeightMm + 1e-3));
   const measure = cachedTextMeasure(metrics.fontSizePx);
   const innerWidthPx = (innerWidthMm * 96) / 25.4;
   /** Liens dont la date n'a pas pu être imprimée, faute de largeur. */
@@ -9603,12 +9701,17 @@ function buildSheetPages(items) {
       const dateText = wanted !== '' && measure(wanted) <= innerWidthPx ? wanted : '';
       const dropped = wanted !== '' && dateText === '';
 
-      const lines = sheetCellLines(item.title || item.url, {
+      const lines = sheetCellLines(texteSousLeQr(item), {
         measure,
         innerWidthPx,
-        // La date prend sa ligne : le texte se contente de ce qui reste.
-        maxLines: dateText ? Math.max(1, maxLines - 1) : maxLines,
+        // Le numéro et la date prennent leur ligne : le texte principal se
+        // contente de ce qui reste.
+        maxLines: Math.max(1, maxLines - lignesHorsTexte),
       });
+      // Le numéro occupe sa ligne, comme la date : il sert à retrouver le lien
+      // dans la collection, donc à l'écran comme sur le papier.
+      const rang = veutIndex ? linkRanks.get(item.id) : null;
+      if (rang) lines.unshift(String(rang));
       if (dateText) lines.push(dateText);
       if (dropped) omittedDates.add(item.id);
 

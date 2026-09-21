@@ -3,41 +3,71 @@
 <head>
   <meta charset="UTF-8">
   <title>URLQRCodePrinter</title>
-  <link rel="stylesheet" href="popup.css">
+  <link rel="stylesheet" href="popup.css?v=81ed1760ece8">
 </head>
 <body>
-  <header class="header">
-    <h1 class="header__title">URLQRCodePrinter</h1>
-    <span id="count" class="badge" aria-live="polite">0</span>
+  <!-- `header`, `main` et `footer` sont de vrais repères : un utilisateur de
+       lecteur d'écran navigue par région, pas dans un mur de `div`. La version
+       précédente empilait deux `footer` de premier niveau — donc deux repères
+       `contentinfo` concurrents — et n'avait aucun `main`. -->
+  <header class="app-header">
+    <h1 class="app-header__title">URLQRCodePrinter</h1>
+
+    <!-- Le compteur annonce « Liens enregistrés : 3 liens », pas « 3 ». Une
+         région live qui ne dit qu'un nombre oblige à deviner de quoi on parle.
+         `#count` reste seul porteur du chiffre : le libellé et l'unité vivent
+         à côté, ce qui laisse le test vérifier « 0 » ou « 1 » sans unité. -->
+    <p class="count" role="status" aria-live="polite" aria-atomic="true">
+      <span id="count-label" class="sr-only">Liens enregistrés :</span>
+      <span id="count" class="count__value">0</span>
+      <span id="count-unit" class="count__unit">lien</span>
+    </p>
   </header>
 
-  <section class="add">
-    <p id="current-tab" class="current-tab" title="">Chargement…</p>
-    <button id="add-current" class="btn btn--primary" disabled>
-      Ajouter cette page
-    </button>
-  </section>
+  <main class="app-main">
+    <section class="capture" aria-labelledby="capture-title">
+      <h2 id="capture-title" class="sr-only">Ajouter la page courante</h2>
+      <p id="current-tab" class="capture__page" title="">Chargement…</p>
+      <button id="add-current" class="btn btn--primary" type="button" disabled>
+        Ajouter cette page
+      </button>
+    </section>
 
-  <section class="list-section">
-    <h2 class="section-title">Liens enregistrés</h2>
-    <ul id="list" class="list"></ul>
-    <p id="empty" class="empty">Aucun lien pour l'instant.<br>Utilisez le clic droit sur une page ou un lien.</p>
-  </section>
+    <section class="collection" aria-labelledby="collection-title">
+      <h2 id="collection-title" class="section-title">Liens enregistrés</h2>
+      <ul id="list" class="list" aria-labelledby="collection-title"></ul>
+      <!-- Masqué au départ : laisser ce message visible pendant le chargement
+           afficherait « Aucun lien » à quelqu'un qui en a. -->
+      <p id="empty" class="empty" hidden>
+        Aucun lien pour l'instant.<br>
+        Utilisez le clic droit sur une page ou un lien.
+      </p>
+    </section>
 
-  <footer class="footer">
-    <button id="open-app" class="btn btn--primary" disabled>
+    <!-- Région dédiée à l'échec de démarrage. Elle portait auparavant le texte
+         dans la zone « liste vide », sans rôle : rien n'était annoncé. -->
+    <p id="startup-error" class="alert" role="alert" hidden></p>
+  </main>
+
+  <footer class="app-footer">
+    <!-- Le message transitoire est ancré au-dessus du pied : il ne recouvre
+         jamais les boutons sur lesquels l'utilisateur s'apprête à cliquer. -->
+    <div id="toast" class="toast" role="status" aria-live="polite" aria-atomic="true"></div>
+
+    <!-- Rempli, mais à l'encre et non à l'accent : deux boutons pleins de
+         couleurs différentes mettraient deux accents à l'écran. L'orange ne
+         désigne donc qu'une seule chose — ajouter la page courante. -->
+    <button id="open-app" class="btn btn--neutral" type="button" disabled>
       Voir les QR codes
     </button>
+
+    <div class="app-footer__row">
+      <button id="export-csv" class="btn btn--ghost" type="button" disabled>CSV</button>
+      <button id="export-md" class="btn btn--ghost" type="button" disabled>Markdown</button>
+      <button id="clear" class="btn btn--ghost btn--danger" type="button" disabled>Tout effacer</button>
+    </div>
   </footer>
 
-  <footer class="footer">
-    <button id="export-csv" class="btn btn--ghost" disabled>CSV</button>
-    <button id="export-md" class="btn btn--ghost" disabled>Markdown</button>
-    <button id="clear" class="btn btn--ghost btn--danger" disabled>Tout effacer</button>
-  </footer>
-
-  <div id="toast" class="toast" role="status" aria-live="polite"></div>
-
-  <script type="module" src="popup.js"></script>
+  <script type="module" src="popup.js?v=cfe58bb8278d"></script>
 </body>
 </html>

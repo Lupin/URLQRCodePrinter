@@ -1416,7 +1416,7 @@ async function installContextMenus(api, definitions) {
 /**
  * Fenêtre de l'extension.
  *
- * Deux précautions structurantes :
+ * Trois précautions structurantes :
  *
  * - **Aucun `innerHTML` avec des données de page.** Les titres proviennent de
  *   sites tiers ; les injecter comme HTML dans une page d'extension, qui
@@ -1425,6 +1425,11 @@ async function installContextMenus(api, definitions) {
  * - **L'URL de l'onglet peut être absente.** `activeTab` n'est accordé qu'à
  *   l'invocation de l'extension, et Safari ne le garantit pas de la même
  *   façon. L'absence est traitée comme un cas normal, pas comme une erreur.
+ * - **Le focus doit survivre à ce qu'il désigne.** Une suppression reconstruit
+ *   la liste : sans précaution, le bouton focalisé disparaît et le focus
+ *   retombe sur le document, en haut de la fenêtre. La ligne suivante reprend
+ *   donc le focus — c'est `focusAfterRemoval`, et c'est la seule partie de ce
+ *   fichier qui n'est pas évidente à la lecture.
  */
 
 
@@ -1435,6 +1440,60 @@ async function installContextMenus(api, definitions) {
 
 
 const api = resolveApi();
+
+/**
+ * Icônes d'interface.
+ *
+ * Phosphor Icons, graisse `regular`, licence MIT. Les tracés sont recopiés du
+ * paquet `@phosphor-icons/core` plutôt que tirés d'une dépendance : le projet
+ * n'a qu'une dépendance d'exécution (`uqr`), et une icône ne justifie pas d'en
+ * ajouter une seconde — le tracé utilisé ici tient en 200 octets.
+ *
+ * Deux propriétés ont décidé du choix, et elles comptent surtout en petit :
+ *
+ * - **Le tracé est rempli, pas tracé.** Phosphor dessine sur une grille de
+ *   256 × 256 avec des contours pleins ; Lucide, Feather et Heroicons dessinent
+ *   un trait de 1,5 à 2 px sur une grille de 24. Rendue à 16 px, cette grille
+ *   de 24 donne un trait de 1 px antialiasé sur deux rangées de pixels : le
+ *   dessin s'empâte. Un contour plein garde sa forme.
+ * - **`fill="currentColor"`.** L'icône prend la couleur du bouton, donc le
+ *   passage au rouge au survol ne demande aucune règle supplémentaire.
+ *
+ * Source : https://github.com/phosphor-icons/core — MIT.
+ */
+const ICON_PATHS = {
+  remove:
+    'M205.66,194.34a8,8,0,0,1-11.32,11.32L128,139.31,61.66,205.66a8,8,0,0,1-11.32-11.32' +
+    'L116.69,128,50.34,61.66A8,8,0,0,1,61.66,50.34L128,116.69l66.34-66.35a8,8,0,0,1,11.32,11.32' +
+    'L139.31,128Z',
+};
+
+const SVG_NS = 'http://www.w3.org/2000/svg';
+
+/**
+ * Construit une icône décorative.
+ *
+ * `aria-hidden` : le nom accessible est porté par le bouton, jamais par le
+ * dessin. Sans cela, un lecteur d'écran annoncerait le bouton deux fois — une
+ * fois par son icône, une fois par son libellé.
+ *
+ * @param {keyof typeof ICON_PATHS} name
+ * @returns {SVGElement}
+ */
+function icon(name) {
+  const svg = document.createElementNS(SVG_NS, 'svg');
+  svg.setAttribute('viewBox', '0 0 256 256');
+  svg.setAttribute('fill', 'currentColor');
+  svg.setAttribute('aria-hidden', 'true');
+  svg.setAttribute('focusable', 'false');
+  svg.classList.add('icon');
+
+  const path = document.createElementNS(SVG_NS, 'path');
+  path.setAttribute('d', ICON_PATHS[name]);
+  svg.appendChild(path);
+
+  return svg;
+}
 
 /**
  * Résout le stockage sans jamais faire échouer la fenêtre.
@@ -1476,11 +1535,14 @@ function withTimeout(promise, ms, label) {
 }
 
 const el = {
+  countLabel: document.getElementById('count-label'),
   count: document.getElementById('count'),
+  countUnit: document.getElementById('count-unit'),
   currentTab: document.getElementById('current-tab'),
   addCurrent: document.getElementById('add-current'),
   list: document.getElementById('list'),
   empty: document.getElementById('empty'),
+  startupError: document.getElementById('startup-error'),
   openApp: document.getElementById('open-app'),
   exportCsv: document.getElementById('export-csv'),
   exportMd: document.getElementById('export-md'),
@@ -1555,7 +1617,10 @@ async function loadActiveTab() {
 async function render() {
   const links = await store.list();
 
+  // Le nombre et son unité vivent dans deux nœuds : la région live reste
+  // lisible (« 3 liens »), et `#count` seul porte le chiffre.
   el.count.textContent = String(links.length);
+  el.countUnit.textContent = links.length === 1 ? 'lien' : 'liens';
   el.list.textContent = '';
 
   const hasLinks = links.length > 0;
@@ -1571,18 +1636,21 @@ async function render() {
 }
 
 /**
- * Rend une URL cliquable, avec un repli en texte simple.
+ * Rend un lien externe, avec un repli en texte simple.
  *
  * Un titre de page vient d'un site tiers : il finit dans le DOM d'une page
  * d'extension, qui dispose de privilèges. Le texte passe donc par
  * `textContent`, et l'attribut `href` ne reçoit jamais qu'une URL http(s).
+ *
+ * L'ouverture dans un nouvel onglet est annoncée : sans cela, le changement de
+ * contexte est une surprise pour un utilisateur de lecteur d'écran.
  *
  * @param {string} url
  * @param {string} className
  * @param {string} [label]
  * @returns {HTMLElement}
  */
-function linkAnchor(url, className, label = url) {
+function externalLink(url, className, label = url) {
   const href = safeHref(url);
   const node = document.createElement(href === '' ? 'span' : 'a');
   node.className = className;
@@ -1594,26 +1662,39 @@ function linkAnchor(url, className, label = url) {
     // fenêtre de l'extension.
     node.target = '_blank';
     node.rel = 'noopener noreferrer';
-    node.classList.add('item--clickable');
+    const hint = document.createElement('span');
+    hint.className = 'sr-only';
+    hint.textContent = ' (ouvre un nouvel onglet)';
+    node.appendChild(hint);
   }
   return node;
 }
 
 /**
  * Construit une ligne de la liste.
+ *
+ * Une seule action de navigation par ligne : le titre est le lien, l'adresse
+ * redevient du texte. Deux liens vers la même destination faisaient deux
+ * arrêts de tabulation et deux annonces pour une seule action. L'adresse
+ * raccourcie, elle, reste un lien — c'est une destination différente.
+ *
  * @param {import('./core/link.js').LinkRecord} link
  * @returns {HTMLLIElement}
  */
 function renderItem(link) {
   const item = document.createElement('li');
   item.className = 'item';
+  item.dataset.id = link.id;
 
   const body = document.createElement('div');
   body.className = 'item__body';
 
-  // Ouvrir un lien collecté doit être possible sans quitter la fenêtre.
-  const title = linkAnchor(link.url, 'item__title', link.title || hostOf(link.url) || link.url);
-  const url = linkAnchor(link.url, 'item__url');
+  const title = externalLink(link.url, 'item__title', link.title || hostOf(link.url) || link.url);
+
+  const url = document.createElement('span');
+  url.className = 'item__url';
+  url.textContent = link.url;
+  url.title = link.url;
 
   body.append(title, url);
 
@@ -1624,24 +1705,60 @@ function renderItem(link) {
     mark.className = 'item__short-mark';
     mark.textContent = '↳';
     mark.setAttribute('aria-hidden', 'true');
-    short.append(mark, linkAnchor(link.shortUrl, 'item__short-url'));
+    short.append(mark, externalLink(link.shortUrl, 'item__short-url'));
     body.appendChild(short);
   }
 
   const remove = document.createElement('button');
   remove.className = 'item__remove';
   remove.type = 'button';
-  remove.textContent = '×';
-  remove.setAttribute('aria-label', `Supprimer ${link.title || link.url}`);
-  remove.addEventListener('click', async () => {
-    await store.remove(link.id);
-    await notifyBadge();
-    await render();
-    toast('Lien supprimé');
-  });
+  remove.append(icon('remove'));
+  remove.title = 'Supprimer';
+  remove.setAttribute('aria-label', `Supprimer « ${link.title || link.url} »`);
+  remove.addEventListener('click', () => removeLink(link.id));
 
   item.append(body, remove);
   return item;
+}
+
+/**
+ * Supprime une ligne et remet le focus là où l'utilisateur l'attendait.
+ *
+ * @param {string} id
+ * @returns {Promise<void>}
+ */
+async function removeLink(id) {
+  const items = [...el.list.children];
+  const index = items.findIndex((node) => node.dataset?.id === id);
+
+  await store.remove(id);
+  await notifyBadge();
+  await render();
+
+  focusAfterRemoval(index);
+  toast('Lien supprimé');
+}
+
+/**
+ * Repose le focus après une suppression.
+ *
+ * Le bouton qui portait le focus n'existe plus : sans cette reprise, le focus
+ * repart à `<body>` et l'utilisateur au clavier doit retraverser toute la
+ * fenêtre. On vise la ligne qui a pris la place de la ligne supprimée, sinon
+ * la dernière, sinon la liste elle-même — qui est nommée par son titre, donc
+ * annoncée correctement.
+ *
+ * @param {number} index  Position de la ligne supprimée, ou -1 si inconnue.
+ */
+function focusAfterRemoval(index) {
+  const remaining = el.list.querySelectorAll('.item__remove');
+  if (remaining.length === 0) {
+    el.list.tabIndex = -1;
+    el.list.focus();
+    return;
+  }
+  const target = remaining[Math.min(Math.max(index, 0), remaining.length - 1)];
+  target.focus();
 }
 
 /** Demande au service worker de rafraîchir le compteur de l'icône. */
@@ -1723,6 +1840,9 @@ el.openApp.addEventListener('click', openApp);
  * « Chargement… » indéfiniment, sans le moindre indice. C'est exactement le
  * symptôme observé sur Safari avant que ce message existe.
  *
+ * Le détail va dans une région `role="alert"` : un message d'erreur écrit dans
+ * un paragraphe ordinaire n'est annoncé à personne.
+ *
  * @param {unknown} error
  */
 function reportStartupFailure(error) {
@@ -1733,10 +1853,12 @@ function reportStartupFailure(error) {
   el.currentTab.title = message;
   el.addCurrent.disabled = true;
 
-  el.empty.hidden = false;
-  el.empty.textContent = `${message} — API détectée : ${detected}`;
+  el.startupError.textContent = `${message} — API détectée : ${detected}`;
+  el.startupError.hidden = false;
 
+  el.countLabel.textContent = 'Erreur :';
   el.count.textContent = '!';
+  el.countUnit.textContent = '';
 }
 
 /**
