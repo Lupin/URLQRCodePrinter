@@ -12,7 +12,7 @@ them straight to a Niimbot printer.
 |---|---|
 | Core business logic (links, QR, labels, storage, exports) | done, tested |
 | Niimbot protocol (frames, D110 / M2 / M3 profiles) | done, tested |
-| Web Bluetooth transport + D110 / M2 / M3 print session | done, tested |
+| Web Bluetooth transport + D110 / M2 / M3 print session | done, tested, **printed on a real D110** |
 | Brave / Chrome extension (right-click, popup, clickable links) | done, verified in Brave |
 | Standalone web app (list, exports, layouts) | done, verified in Brave |
 | Optional URL shortening (TinyURL, is.gd, v.gd, spoo.me) | done, verified in Brave |
@@ -60,7 +60,8 @@ module for module** (31 × 31, 436 modules, zero gap). The full record, what
 could not be verified and why: `docs/safari-extension-verification.md`.
 
 What remains to be verified: the loading of the extension by Safari itself
-(manual step, see below), and printing on a physical printer.
+(manual step, see below). Printing, for its part, came out on a **real Niimbot
+D110** — see "Acknowledged uncertainties".
 
 **The iOS target of the Xcode project does not compile in a restricted
 environment.** Xcode needs to write to `~/Library/Developer/CoreSimulator` to
@@ -698,18 +699,34 @@ they did not stem from the same cause:
 This composer serves the Swift core, not the Brave / web path, which composes
 its labels in JavaScript.
 
+### What was measured on a real D110
+
+A complete label came out of a **real Niimbot D110**. Three findings:
+
+- the printer **identifies itself correctly on connection**: the `modelId` read
+  is indeed that of a D110;
+- the printed content is correct **for the chosen density and text size** — those
+  two settings remain the ones that govern legibility;
+- **text rotated by 90° is cropped, whereas at 270° it is not.** The two
+  rotation directions therefore do not behave symmetrically: this is the known
+  defect in this version, and the reason 270° is the direction to prefer until it
+  is fixed.
+
 ### What cannot be verified here
 
 These points cannot be settled without hardware or a device:
 
 - **Matrix orientation.** The D110 profile carries `transposed: true`, based on
-  the convention of the reference implementations. If the first label comes out
-  rotated by 90°, it is this boolean that must be flipped.
+  the convention of the reference implementations. It was not explicitly recorded
+  during the real test. If a label comes out rotated by 90°, it is this boolean
+  that must be flipped.
 - **Batching of Bluetooth writes.** The 240-byte groups were validated on B1
-  and M2-H, never on D110. The limit is adjustable.
+  and M2-H. A complete label came out on D110, which exercises that path, but the
+  group size was not instrumented on that model: the limit remains adjustable.
 - **"D110A" does not exist in any source** — neither the Niimbot wiki, nor the
   manufacturer API, nor the libraries. The real `modelId` is read at connection
-  time and logged.
+  time and logged, and model identification is correct on the D110 that was
+  exercised; a "D110A" unit would be settled by that same reading.
 - **`contextMenus` on Safari iOS.** MDN announces it as unsupported, WebKit's
   source code suggests the opposite. The extension no longer depends on the
   answer: the menu is only wired up if it exists, and everything remains

@@ -377,7 +377,8 @@ top, the text at the bottom).
   enough for it to fit, never below 1.6 mm — below that, it would no longer be
   legible.
 - **Orientation**: Normal (« Normale »), 90°, 180°, 270°. The preview shows the
-  rotation, hence what will come out.
+  rotation, hence what will come out. On a real D110, **90° crops the text and
+  270° does not**: prefer 270° until that defect is fixed.
 - **Layout** (« Disposition »): see above.
 
 Printing refuses a bitmap wider than the printhead rather than letting it be
@@ -511,15 +512,22 @@ before clicking "Connect" (« Connecter »).
 also be dirty: clean it with a cotton swab soaked in isopropyl alcohol, with the
 printer turned off.
 
+**Rotated text is cropped.** At orientation 90°, the text comes out cropped on a
+real D110; at 270° it does not. The two rotation directions therefore do not
+behave symmetrically: use 270° until the defect is fixed.
+
 **A label comes out rotated by 90°.** The D110 profile carries a `transposed`
-boolean based on the convention of the reference implementations, never verified
-on real hardware. Report it: that boolean is what needs to be flipped.
+boolean based on the convention of the reference implementations; it was not
+explicitly recorded during the test on a real D110. Report it: that boolean is
+what needs to be flipped.
 
 ## Known limitations
 
-- **Niimbot printing has not been validated on physical hardware.** The protocol
-  is implemented from the specification and verified byte by byte in tests, but
-  no label has come out of a real D110.
+- **Niimbot printing has been validated on a real Niimbot D110.** A complete
+  label came out, and the printer identifies itself correctly on connection. Two
+  reservations: **text rotated by 90° is cropped, whereas at 270° it is not**, and
+  the rendering remains sensitive to the chosen density and text size. The other
+  models in the catalogue (M2, M3) have not been exercised on hardware.
 - **Safari** does not implement Web Bluetooth. The Safari extension works for
   collecting, not for direct printing: use the image folder.
 - **Avery and Niimbot are trademarks of their respective owners.** The

@@ -12,7 +12,7 @@ Markdown, ou envoi direct à une imprimante Niimbot.
 |---|---|
 | Cœur métier (liens, QR, étiquettes, stockage, exports) | fait, testé |
 | Protocole Niimbot (trames, profils D110 / M2 / M3) | fait, testé |
-| Transport Web Bluetooth + session d'impression D110 / M2 / M3 | fait, testé |
+| Transport Web Bluetooth + session d'impression D110 / M2 / M3 | fait, testé, **impression réelle sur une D110** |
 | Extension Brave / Chrome (clic droit, popup, liens cliquables) | fait, vérifié dans Brave |
 | Application web autonome (liste, exports, mises en page) | fait, vérifié dans Brave |
 | Raccourcissement d'URL en option (TinyURL, is.gd, v.gd, spoo.me) | fait, vérifié dans Brave |
@@ -60,7 +60,8 @@ module pour module** (31 × 31, 436 modules, zéro écart). Le relevé complet, 
 qui n'a pas pu être vérifié et pourquoi : `docs/safari-extension-verification.md`.
 
 Ce qui reste à éprouver : le chargement de l'extension par Safari lui-même
-(étape manuelle, voir ci-dessous), et l'impression sur une imprimante physique.
+(étape manuelle, voir ci-dessous). L'impression, elle, est sortie sur une
+**Niimbot D110 réelle** — voir « Incertitudes assumées ».
 
 **La cible iOS du projet Xcode ne se compile pas dans un environnement
 restreint.** Xcode a besoin d'écrire dans `~/Library/Developer/CoreSimulator`
@@ -704,18 +705,35 @@ relevaient pas de la même cause :
 Ce composeur sert le socle Swift, pas le chemin Brave / web, qui compose ses
 étiquettes en JavaScript.
 
+### Ce qui a été mesuré sur une D110 réelle
+
+Une étiquette complète est sortie d'une **Niimbot D110 réelle**. Trois constats :
+
+- l'imprimante **s'identifie correctement à la connexion** : le `modelId` lu est
+  bien celui d'une D110 ;
+- le contenu imprimé est correct **pour la densité et la taille de texte
+  choisies** — ces deux réglages restent ceux qui commandent la lisibilité ;
+- **le texte tourné à 90° est rogné, alors qu'à 270° il ne l'est pas.** Les deux
+  sens de rotation ne se comportent donc pas symétriquement : c'est le défaut
+  connu de cette version, et la raison pour laquelle 270° est le sens à préférer
+  tant qu'il n'est pas corrigé.
+
 ### Ce qui ne peut pas être vérifié ici
 
 Ces points ne peuvent pas être tranchés sans matériel ni appareil :
 
 - **Orientation de la matrice.** Le profil D110 porte `transposed: true`, fondé
-  sur la convention des implémentations de référence. Si la première étiquette
-  sort pivotée de 90°, c'est ce booléen qu'il faut basculer.
+  sur la convention des implémentations de référence. Elle n'a pas été relevée
+  explicitement lors de l'essai réel. Si une étiquette sort pivotée de 90°, c'est
+  ce booléen qu'il faut basculer.
 - **Groupage des écritures Bluetooth.** Les groupes de 240 octets ont été validés
-  sur B1 et M2-H, jamais sur D110. La limite est réglable.
+  sur B1 et M2-H. Une étiquette complète est sortie sur D110, ce qui exerce ce
+  chemin, mais la taille de groupe n'a pas été instrumentée sur ce modèle : la
+  limite reste réglable.
 - **« D110A » n'existe dans aucune source** — ni le wiki Niimbot, ni l'API
   constructeur, ni les bibliothèques. Le `modelId` réel est lu à la connexion et
-  journalisé.
+  journalisé, et l'identification du modèle est correcte sur la D110 éprouvée ;
+  un exemplaire « D110A » se trancherait par cette même lecture.
 - **`contextMenus` sur Safari iOS.** MDN l'annonce non supporté, le code source
   de WebKit suggère le contraire. L'extension ne dépend plus de la réponse : le
   menu n'est branché que s'il existe, et tout reste accessible depuis la fenêtre

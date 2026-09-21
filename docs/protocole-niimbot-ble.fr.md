@@ -420,6 +420,8 @@ Sur M2-H : 50 trames en 287 ms (5,7 ms/trame) contre 11,5 ms/trame sans bundling
 
 ## 6. Incertitudes et points à vérifier expérimentalement
 
+**Statut de vérification matérielle.** Une étiquette complète est sortie d'une **Niimbot D110 réelle**, imprimée par la session d'impression de l'application. Deux points relevés : l'imprimante **s'identifie correctement à la connexion** (le `modelId` lu est celui d'une D110), et le contenu est correct pour la densité et la taille de texte choisies. Un défaut observé, qui ne relève pas du protocole : **le texte tourné à 90° est rogné, alors qu'à 270° il ne l'est pas**. Les points ci-dessous restent ouverts dans la mesure où cet essai ne les tranche pas.
+
 **Contradictions / incertitudes ouvertes — à ne pas trancher sans mesure :**
 
 1. **« D110A » n'existe dans aucune source.** Ni le wiki NIIMBOT, ni `printer_models.ts` de `niimbluelib`, ni l'API cloud officielle (`/api/hardware/list`, 80 modèles) ne listent de `D110A`. La série D110 ne contient que **D110 (2304, 2305)**, **D110_M (2320)** et **Hi-D110 (2305)**. **Si vous avez un « D110A » physique, il faut lire son `modelId` via `PrinterInfo 0x40 [08]` et nous le communiquer** — les UUID sont très probablement les mêmes, mais les paramètres de tête (96 px ? 120 px ?) et le task d'impression ne sont pas garantis. Le nom `HI_D110` (2305) est en revanche documenté avec une tête **15 mm / 120 px**, différente du D110.
@@ -454,7 +456,7 @@ Sur M2-H : 50 trames en 287 ms (5,7 ms/trame) contre 11,5 ms/trame sans bundling
 
 12. **`0xD3` : nom trompeur.** `niimbluelib` l'appelle `PrinterCheckLine` / `In_PrinterCheckLine` et le documente comme une trame *envoyée par le client* tous les 200 lignes (`0x86`). `iscarelli` a mesuré que le `0xD3` **reçu** est un **compteur de lignes reçues** — donc un indicateur de troncature, pas un accusé de contrôle. Deux lectures incompatibles du même code : **à instrumenter si vous devez diagnostiquer des étiquettes courtes.**
 
-13. **Aucune mesure du D110 en bundle Web Bluetooth.** Le bundling n'est validé que sur **B1 (4096)** et **M2-H (4608)** (`MODEL_IDS[...].bundle` dans `iscarelli`), il est **désactivé sur B1 Pro** « for want of testing ». **Le gain attendu est le même sur D110 (jusqu'à ~10×), mais il n'est pas mesuré** — à valider vous-même, avec un contrôle visuel du papier (compter les étiquettes, vérifier qu'aucune n'est courte).
+13. **Aucune mesure du D110 en bundle Web Bluetooth.** Le bundling n'est validé que sur **B1 (4096)** et **M2-H (4608)** (`MODEL_IDS[...].bundle` dans `iscarelli`), il est **désactivé sur B1 Pro** « for want of testing ». **Le gain attendu est le même sur D110 (jusqu'à ~10×), mais il n'est pas mesuré** — à valider vous-même, avec un contrôle visuel du papier (compter les étiquettes, vérifier qu'aucune n'est courte). **Depuis : une étiquette complète est sortie sur une D110 réelle par la session d'impression de l'application**, ce qui exerce ce chemin ; la taille de groupe qui ferait perdre des lignes n'a pas été cherchée pour autant.
 
 14. **Le `Heartbeat (0xDC [04])` one-way après `PrintStart` / `PrintEnd`** est présenté dans `niimbluelib` comme un contournement du **B21_PRO** qui perd le premier paquet après ces commandes en BLE. **Non observé sur D110 ni M2_H** — à ne pas généraliser, mais à garder comme parade si un premier paquet est perdu.
 
