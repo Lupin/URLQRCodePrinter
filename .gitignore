@@ -31,3 +31,7 @@ native/niimbot-kit/.build/
 
 # Sondes de mesure ponctuelles
 .probe-*/
+
+# Profils de navigateur des captures et vérifications
+.shot-profile/
+.store-shots/
