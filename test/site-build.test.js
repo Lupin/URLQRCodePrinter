@@ -24,6 +24,8 @@ import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { findImports } from '../scripts/bundle.mjs';
+
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const SITE = join(ROOT, 'dist', 'site');
 
@@ -155,4 +157,74 @@ test('l\'URL de confidentialité publiée est celle du dépôt', () => {
       `lien de confidentialité absent ou divergent : ${page}`,
     );
   }
+});
+
+// ---------------------------------------------------------------------------
+// Modules livrés
+// ---------------------------------------------------------------------------
+
+/**
+ * Liste récursivement les fichiers `.js` d'un dossier.
+ * @param {string} dir
+ * @returns {string[]}
+ */
+function jsFiles(dir) {
+  const found = [];
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    const path = join(dir, entry.name);
+    if (entry.isDirectory()) found.push(...jsFiles(path));
+    else if (entry.name.endsWith('.js')) found.push(path);
+  }
+  return found;
+}
+
+test('l\'application publiée n\'importe aucun module par son nom de paquet', () => {
+  // La page publiée s'affichait un jour entièrement — titre, formulaire,
+  // onglets — sans qu'aucun bouton ne réponde. Le navigateur refusait le module
+  // d'entrée sur « Failed to resolve module specifier "uqr" » : le cœur importe
+  // `uqr` par son nom de paquet, que Node résout depuis `node_modules` et qu'un
+  // navigateur refuse. Comme le HTML est statique, la panne était invisible :
+  // la page restait présentable, et rien ne fonctionnait.
+  //
+  // Aucune vérification existante ne pouvait l'attraper : les tests Node
+  // chargent `dist/web` depuis le dépôt, où `node_modules` est à portée, et
+  // `verify:brave` ouvre la page **de l'extension**, assemblée en fichiers
+  // uniques. Ce contrôle-ci porte sur le livrable réellement publié.
+  const problems = [];
+  for (const file of jsFiles(join(SITE, 'app'))) {
+    for (const specifier of findImports(readFileSync(file, 'utf8'))) {
+      if (!specifier.startsWith('.') && !specifier.startsWith('/')) {
+        problems.push(`${file.slice(SITE.length + 1)} importe « ${specifier} »`);
+      }
+    }
+  }
+  assert.deepEqual(
+    problems,
+    [],
+    `le navigateur ne résoudra pas ces imports :\n${problems.join('\n')}`,
+  );
+});
+
+test('chaque import relatif de l\'application résout vers un fichier livré', () => {
+  // L'autre moitié du même défaut : un import réécrit vers `vendor/uqr.js` qui
+  // ne serait pas copié donnerait exactement la même page morte.
+  const missing = [];
+  for (const file of jsFiles(join(SITE, 'app'))) {
+    for (const specifier of findImports(readFileSync(file, 'utf8'))) {
+      if (!specifier.startsWith('.')) continue;
+      const target = resolve(dirname(file), specifier.split('?')[0]);
+      if (!existsSync(target)) missing.push(`${file.slice(SITE.length + 1)} → ${specifier}`);
+    }
+  }
+  assert.deepEqual(missing, [], `imports morts :\n${missing.join('\n')}`);
+});
+
+test('la dépendance externe du cœur est livrée et reste un module ES', () => {
+  const vendor = join(SITE, 'app', 'vendor', 'uqr.js');
+  assert.ok(existsSync(vendor), 'le module `uqr` doit être livré dans `app/vendor/`');
+  assert.match(
+    readFileSync(vendor, 'utf8'),
+    /export\s*\{/,
+    'le module embarqué doit rester importable comme module ES',
+  );
 });

@@ -14,9 +14,16 @@
  * choses qui n'ont rien à voir avec lui. Le site est un assemblage, pas un
  * déplacement.
  *
- * L'application est un site statique dont **tous** les imports sont relatifs
+ * L'application est un site statique dont les imports sont relatifs
  * (`./core/...`) : elle fonctionne donc sous un sous-chemin, sans réécriture.
- * C'est ce qui rend cette organisation possible.
+ * C'est ce qui rend cette organisation possible — à une condition, et elle a
+ * été payée cher : ses **dépendances de paquet** doivent, elles aussi, être
+ * relatives. `src/core/qr.js` importe `uqr` par son nom, ce que Node résout
+ * depuis `node_modules` et qu'un navigateur refuse ; la page publiée s'affichait
+ * alors sans qu'aucun script ne tourne. C'est `build.mjs` qui embarque ces
+ * dépendances dans `vendor/` (voir `vendorExternalModules`), et
+ * `test/site-build.test.js` qui vérifie qu'aucun nom de paquet ne subsiste dans
+ * le livrable. Cette phrase, elle, affirmait le contraire sans le vérifier.
  */
 
 import { execFileSync } from 'node:child_process';

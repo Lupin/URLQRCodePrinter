@@ -15,10 +15,10 @@
 import { cp, mkdir, rm, stat, readdir, readFile, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { createHash } from 'node:crypto';
-import { dirname, join, resolve } from 'node:path';
+import { dirname, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { bundle, findResidualModuleSyntax } from './bundle.mjs';
+import { bundle, findImports, findResidualModuleSyntax, resolveSpecifier } from './bundle.mjs';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const SRC = join(ROOT, 'src');
@@ -49,7 +49,10 @@ const TARGETS = {
     manifest: 'safari',
     webApp: true,
   },
-  web: { from: join(SRC, 'web'), shared: [join(SRC, 'core')] },
+  // L'application web reste en modules ES natifs : elle n'est pas assemblée,
+  // mais ses dépendances de paquet doivent être recopiées. Voir
+  // `vendorExternalModules`.
+  web: { from: join(SRC, 'web'), shared: [join(SRC, 'core')], externals: true },
 };
 
 /** Fichiers de l'application web recopiés dans l'extension. */
@@ -222,6 +225,103 @@ async function bundleExtension(outDir) {
   return { entries, modules: seen.size };
 }
 
+/**
+ * Liste récursivement les fichiers `.js` d'un dossier.
+ * @param {string} dir
+ * @returns {Promise<string[]>}
+ */
+async function jsFiles(dir) {
+  const found = [];
+  for (const entry of await readdir(dir, { withFileTypes: true })) {
+    const path = join(dir, entry.name);
+    if (entry.isDirectory()) found.push(...await jsFiles(path));
+    else if (entry.name.endsWith('.js')) found.push(path);
+  }
+  return found;
+}
+
+/**
+ * Recopie dans la cible les dépendances que le navigateur ne sait pas résoudre.
+ *
+ * Le cœur est recopié tel quel dans l'application web, qui reste en modules ES
+ * natifs. Or `src/core/qr.js` importe `uqr`, un **nom de paquet** : Node le
+ * résout depuis `node_modules`, un navigateur non. Il répond alors, au
+ * chargement du module :
+ *
+ *     Failed to resolve module specifier "uqr". Relative references must start
+ *     with either "/", "./", or "../".
+ *
+ * Et l'échec est trompeur à l'écran : le HTML est statique, donc la page
+ * s'affiche entièrement — titre, formulaire, onglets — pendant qu'aucun script
+ * ne tourne. Tout paraît normal, et *rien* ne répond : c'est le symptôme
+ * constaté sur `lupin.github.io/URLQRCodePrinter/app/`, où « Ajouter » restait
+ * sans effet.
+ *
+ * Le défaut a échappé aux deux vérifications existantes, qui l'évitaient chacune
+ * à sa manière : les tests Node chargent `dist/web` depuis le dépôt, où
+ * `node_modules` est à portée, et `verify:brave` ouvre la page **de
+ * l'extension**, assemblée en fichiers uniques. Aucune ne voyait l'import de
+ * paquet resté dans le livrable web.
+ *
+ * On recopie donc le fichier du paquet dans `vendor/` et on réécrit l'import en
+ * chemin relatif : c'est ce qui permet de garder des modules natifs sans
+ * imposer une carte d'imports dans la page. Le contrôle final refuse de livrer
+ * s'il reste un spécificateur que le navigateur ne saurait pas résoudre.
+ *
+ * @param {string} outDir
+ * @returns {Promise<string[]>} les réécritures faites, pour les signaler
+ */
+async function vendorExternalModules(outDir) {
+  const vendored = new Map();
+  const rewritten = [];
+
+  for (const file of await jsFiles(outDir)) {
+    let source = await readFile(file, 'utf8');
+    const bare = findImports(source).filter(
+      (specifier) => !specifier.startsWith('.') && !specifier.startsWith('/'),
+    );
+    if (bare.length === 0) continue;
+
+    for (const specifier of bare) {
+      // Le paquet est résolu depuis le fichier importateur : c'est la règle de
+      // Node, donc exactement la dépendance que les tests exercent.
+      if (!vendored.has(specifier)) {
+        const resolved = resolveSpecifier(file, specifier);
+        const name = specifier.replace(/^@/, '').replace(/\//g, '__');
+        const target = join(outDir, 'vendor', `${name}.js`);
+        await mkdir(dirname(target), { recursive: true });
+        await cp(resolved, target);
+        vendored.set(specifier, target);
+      }
+
+      let rel = relative(dirname(file), vendored.get(specifier)).split(sep).join('/');
+      if (!rel.startsWith('.')) rel = `./${rel}`;
+
+      const escaped = specifier.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      source = source.replace(new RegExp(`(['"])${escaped}\\1`, 'g'), `$1${rel}$1`);
+      rewritten.push(`${specifier} → ${rel}`);
+    }
+
+    await writeFile(file, source, 'utf8');
+  }
+
+  // Garde-fou : un spécificateur nu resté dans le livrable casse la page
+  // entière, en silence. Mieux vaut faire échouer la construction.
+  for (const file of await jsFiles(outDir)) {
+    const source = await readFile(file, 'utf8');
+    for (const specifier of findImports(source)) {
+      if (!specifier.startsWith('.') && !specifier.startsWith('/')) {
+        throw new Error(
+          `${relative(outDir, file)} importe « ${specifier} », que le navigateur ` +
+          'ne saura pas résoudre : la page s\'afficherait sans jamais s\'exécuter.',
+        );
+      }
+    }
+  }
+
+  return [...new Set(rewritten)];
+}
+
 /** Vérifie l'existence d'un chemin. */
 async function exists(path) {
   try {
@@ -280,6 +380,14 @@ async function buildTarget(name) {
       `  ${name} : ${bundled.entries.join(' et ')} assemblés ` +
       `(${bundled.modules} modules, plus aucun import)`,
     );
+  }
+
+  // Les cibles non assemblées gardent leurs modules natifs : leurs dépendances
+  // de paquet doivent donc voyager avec elles, en chemins relatifs.
+  if (target.externals) {
+    for (const line of await vendorExternalModules(outDir)) {
+      console.log(`  ${name} : dépendance embarquée — ${line}`);
+    }
   }
 
   // Après l'assemblage : l'empreinte doit porter sur le contenu livré.
@@ -392,8 +500,10 @@ async function main() {
   }
 
   for (const result of results) {
-    const relative = result.outDir.slice(ROOT.length + 1);
-    console.log(`✓ ${result.name.padEnd(10)} ${relative}  (${result.files} fichiers)`);
+    // Nommée `relPath` et non `relative` : `relative` est la fonction de
+    // `node:path`, désormais importée par ce module.
+    const relPath = result.outDir.slice(ROOT.length + 1);
+    console.log(`✓ ${result.name.padEnd(10)} ${relPath}  (${result.files} fichiers)`);
   }
 }
 
