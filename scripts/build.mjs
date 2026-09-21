@@ -160,7 +160,7 @@ async function copyWebApp(outDir) {
  * @param {string[]} assets  Noms de fichiers référencés par la page.
  * @returns {Promise<string[]>} Les ressources effectivement versionnées.
  */
-async function stampAssetVersions(pagePath, outDir, assets) {
+export async function stampAssetVersions(pagePath, outDir, assets) {
   let html = await readFile(pagePath, 'utf8');
   const stamped = [];
 

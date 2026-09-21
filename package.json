@@ -23,6 +23,7 @@
     "test:all": "npm test && npm run test:swift",
     "build": "node scripts/build.mjs",
     "build:web": "node scripts/build.mjs --only=web",
+    "build:site": "node scripts/build-site.mjs",
     "build:extension": "node scripts/build.mjs --only=extension",
     "icons": "node scripts/make-icons.mjs",
     "package:safari": "node scripts/package-safari.mjs",

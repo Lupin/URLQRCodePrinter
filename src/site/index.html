@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>URLQRCodePrinter — des liens qui deviennent des étiquettes QR</title>
+  <meta name="description" content="Collectez des liens depuis votre navigateur et imprimez-les en étiquettes QR. Tout reste sur votre appareil : aucun compte, aucun serveur, aucune mesure d'audience.">
+  <link rel="icon" href="icon-512.png">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap">
+    <img class="hero__mark" src="icon-512.png" width="88" height="88"
+         alt="Icône d'URLQRCodePrinter : un QR code stylisé">
+    <h1 class="hero__title">URLQRCodePrinter</h1>
+    <p class="hero__lead">
+      Transformez les adresses que vous croisez en étiquettes QR à coller sur vos
+      affaires, vos dossiers ou vos câbles. Tout reste sur votre appareil.
+    </p>
+
+    <div class="actions">
+      <a class="btn btn--primary" href="app/">Essayer dans le navigateur</a>
+      <a class="btn" href="https://github.com/Lupin/URLQRCodePrinter">Voir le code</a>
+    </div>
+  </div>
+</header>
+
+<main>
+
+<section>
+  <div class="wrap">
+    <h2>Ce que ça fait</h2>
+    <ul class="features">
+      <li class="feature">
+        <h3 class="feature__title">Collecter en un geste</h3>
+        <p class="feature__text">
+          Clic droit sur une page ou sur un lien, ou le bouton de la barre
+          d'outils. Le titre est conservé, pour que l'étiquette reste
+          reconnaissable.
+        </p>
+      </li>
+      <li class="feature">
+        <h3 class="feature__title">Composer la planche</h3>
+        <p class="feature__text">
+          Les étiquettes sont mises en page selon le support visé, puis
+          imprimées en PDF — mesure du rendu réel comprise, pas une estimation.
+        </p>
+      </li>
+      <li class="feature">
+        <h3 class="feature__title">Imprimer en direct</h3>
+        <p class="feature__text">
+          Sur une imprimante Niimbot D110 ou M2, en Bluetooth, sans passer par
+          un fichier intermédiaire.
+        </p>
+      </li>
+      <li class="feature">
+        <h3 class="feature__title">Raccourcir pour un QR plus lisible</h3>
+        <p class="feature__text">
+          Un lien plus court donne un QR plus dense mais plus petit, donc plus
+          rapide à scanner et tenant sur une étiquette étroite.
+        </p>
+      </li>
+      <li class="feature">
+        <h3 class="feature__title">Exporter</h3>
+        <p class="feature__text">
+          CSV, Markdown, JSON, ou les images PNG en archive — pour repartir avec
+          vos données à tout moment, dans un format lisible.
+        </p>
+      </li>
+      <li class="feature">
+        <h3 class="feature__title">Rien à installer côté serveur</h3>
+        <p class="feature__text">
+          L'application web fonctionne seule. L'extension ajoute la collecte
+          depuis le navigateur et la même collection au même endroit.
+        </p>
+      </li>
+    </ul>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2>Vie privée</h2>
+    <div class="note">
+      <p>
+        <strong>Ce qui est lu.</strong> L'adresse et le titre de la page sur
+        laquelle vous agissez — uniquement celle-là, et uniquement au moment où
+        vous le demandez.
+      </p>
+      <p>
+        <strong>Ce qui n'est pas fait.</strong> Aucun accès à votre historique,
+        aucune lecture en arrière-plan, aucun compte, aucun serveur de l'éditeur,
+        aucune mesure d'audience, aucune publicité, aucune revente de données.
+        Aucun code n'est chargé à distance : tout est embarqué.
+      </p>
+      <p>
+        <strong>Le seul envoi réseau.</strong> Si vous demandez le
+        raccourcissement d'un lien, cette adresse part vers le service que vous
+        avez choisi — TinyURL, is.gd, v.gd ou spoo.me. Sans cette action, aucune
+        requête n'est émise.
+      </p>
+      <p>
+        <a href="https://github.com/Lupin/URLQRCodePrinter/blob/main/PRIVACY.md">Politique de confidentialité complète</a>
+      </p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2>Ce qu'il ne fait pas</h2>
+    <p>
+      Autant le dire ici plutôt que de le laisser découvrir à l'usage :
+    </p>
+    <ul class="limits">
+      <li>
+        <strong>Safari et Firefox ne peuvent pas imprimer en direct.</strong>
+        Aucun des deux n'implémente Web Bluetooth, et Safari impose son moteur à
+        tous les navigateurs sur iPhone et iPad. L'export d'images reste
+        disponible partout.
+      </li>
+      <li>
+        <strong>Brave demande une manipulation.</strong> Web Bluetooth y est
+        désactivé par défaut, derrière un drapeau à activer dans
+        <code>brave://flags</code>.
+      </li>
+      <li>
+        <strong>L'application web et l'extension ne partagent pas leurs
+        données.</strong> La première stocke dans le navigateur, la seconde dans
+        le stockage de l'extension. Utilisez l'une ou l'autre — l'export sert de
+        pont.
+      </li>
+      <li>
+        <strong>L'extension n'est pas encore publiée.</strong> Elle se charge à
+        la main depuis les sources en attendant le Chrome Web Store.
+      </li>
+    </ul>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <p>
+      Code ouvert, licence MIT.
+      <a href="https://github.com/Lupin/URLQRCodePrinter">github.com/Lupin/URLQRCodePrinter</a>
+    </p>
+    <p class="lang"><a href="en/" hreflang="en" lang="en">Read this page in English</a></p>
+  </div>
+</footer>
+
+</body>
+</html>

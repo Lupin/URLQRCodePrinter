@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>URLQRCodePrinter — turn links into QR labels</title>
+  <meta name="description" content="Collect links from your browser and print them as QR labels. Everything stays on your device: no account, no server, no analytics.">
+  <link rel="icon" href="../icon-512.png">
+  <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap">
+    <img class="hero__mark" src="../icon-512.png" width="88" height="88"
+         alt="URLQRCodePrinter icon: a stylised QR code">
+    <h1 class="hero__title">URLQRCodePrinter</h1>
+    <p class="hero__lead">
+      Turn the addresses you come across into QR labels you can stick on your
+      belongings, folders or cables. Everything stays on your device.
+    </p>
+
+    <div class="actions">
+      <a class="btn btn--primary" href="../app/">Try it in your browser</a>
+      <a class="btn" href="https://github.com/Lupin/URLQRCodePrinter">View the code</a>
+    </div>
+  </div>
+</header>
+
+<main>
+
+<section>
+  <div class="wrap">
+    <h2>What it does</h2>
+    <ul class="features">
+      <li class="feature">
+        <h3 class="feature__title">Collect in one gesture</h3>
+        <p class="feature__text">
+          Right-click a page or a link, or use the toolbar button. The title is
+          kept, so the label stays recognisable.
+        </p>
+      </li>
+      <li class="feature">
+        <h3 class="feature__title">Compose the sheet</h3>
+        <p class="feature__text">
+          Labels are laid out for the medium you are targeting, then printed to
+          PDF — with the real rendering measured, not estimated.
+        </p>
+      </li>
+      <li class="feature">
+        <h3 class="feature__title">Print directly</h3>
+        <p class="feature__text">
+          To a Niimbot D110 or M2 printer over Bluetooth, with no intermediate
+          file.
+        </p>
+      </li>
+      <li class="feature">
+        <h3 class="feature__title">Shorten for a smaller QR</h3>
+        <p class="feature__text">
+          A shorter link gives a smaller code that scans faster and fits on a
+          narrow label.
+        </p>
+      </li>
+      <li class="feature">
+        <h3 class="feature__title">Export</h3>
+        <p class="feature__text">
+          CSV, Markdown, JSON, or the PNG images as an archive — so you can take
+          your data away at any time, in a readable format.
+        </p>
+      </li>
+      <li class="feature">
+        <h3 class="feature__title">Nothing to run server-side</h3>
+        <p class="feature__text">
+          The web app works on its own. The extension adds collection from the
+          browser, into the same collection.
+        </p>
+      </li>
+    </ul>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2>Privacy</h2>
+    <div class="note">
+      <p>
+        <strong>What is read.</strong> The address and title of the page you act
+        on — only that one, and only at the moment you ask.
+      </p>
+      <p>
+        <strong>What is not done.</strong> No access to your history, no reading
+        in the background, no account, no server run by the publisher, no
+        analytics, no advertising, no selling of data. No code is loaded
+        remotely: everything ships with the app.
+      </p>
+      <p>
+        <strong>The only network request.</strong> If you ask for a link to be
+        shortened, that address is sent to the service you chose — TinyURL,
+        is.gd, v.gd or spoo.me. Without that action, no request is made.
+      </p>
+      <p>
+        <a href="https://github.com/Lupin/URLQRCodePrinter/blob/main/PRIVACY.md">Full privacy policy</a>
+      </p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2>What it does not do</h2>
+    <p>
+      Better said here than discovered in use:
+    </p>
+    <ul class="limits">
+      <li>
+        <strong>Safari and Firefox cannot print directly.</strong> Neither
+        implements Web Bluetooth, and Safari imposes its engine on every browser
+        on iPhone and iPad. Image export remains available everywhere.
+      </li>
+      <li>
+        <strong>Brave needs a manual step.</strong> Web Bluetooth is disabled by
+        default there, behind a flag to enable in <code>brave://flags</code>.
+      </li>
+      <li>
+        <strong>The web app and the extension do not share data.</strong> The
+        first stores in the browser, the second in the extension's storage. Use
+        one or the other — export is the bridge.
+      </li>
+      <li>
+        <strong>The extension is not published yet.</strong> It is loaded from
+        source while waiting for the Chrome Web Store.
+      </li>
+    </ul>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <p>
+      Open source, MIT licence.
+      <a href="https://github.com/Lupin/URLQRCodePrinter">github.com/Lupin/URLQRCodePrinter</a>
+    </p>
+    <p class="lang"><a href="../" hreflang="fr" lang="fr">Lire cette page en français</a></p>
+  </div>
+</footer>
+
+</body>
+</html>
