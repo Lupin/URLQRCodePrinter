@@ -244,6 +244,10 @@ function installDom() {
   globalThis.document = {
     getElementById: nodeFor,
     createElement: makeNode,
+    // Les icônes sont construites dans l'espace de noms SVG : `createElement`
+    // produirait un élément HTML inerte, sans `viewBox` ni rendu. Le double de
+    // test doit donc exposer la même API que le navigateur.
+    createElementNS: (_namespace, tag) => makeNode(tag),
     querySelectorAll: () => [],
     addEventListener() {},
     body: makeNode('body'),

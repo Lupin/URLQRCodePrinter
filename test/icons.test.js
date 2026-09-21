@@ -19,6 +19,7 @@ import {
   renderIcon,
   writeIcons,
   ICON_SIZES,
+  INK,
   MODULE_COUNT,
 } from '../scripts/make-icons.mjs';
 
@@ -135,11 +136,59 @@ test('renderIcon produit un tampon RVBA de la bonne taille', () => {
   assert.equal(image.data.length, 64 * 64 * 4);
 });
 
-test('le fond de l\'icône est opaque et blanc', () => {
+test('le fond de l\'icône est transparent', () => {
+  // Inversion assumée : le fond était opaque et blanc. Une icône de barre
+  // d'outils doit laisser voir la barre — un carré blanc opaque s'y lit comme
+  // un autocollant, et MV3 ne permet plus de fournir une variante par thème
+  // (`theme_icons` a disparu avec MV2). C'est donc le PNG lui-même qui doit
+  // fonctionner sur les deux fonds.
   const image = renderIcon(64);
-  // Le coin supérieur gauche est dans la marge blanche.
-  assert.equal(image.data[0], 0xff);
-  assert.equal(image.data[3], 0xff, 'alpha du fond');
+  // Le coin supérieur gauche est dans la marge de silence.
+  assert.equal(image.data[3], 0, 'alpha du fond');
+  assert.equal(image.data[0], 0);
+});
+
+test('l\'encre reste lisible sur une barre d\'outils claire et sombre', () => {
+  // Contrainte du support : un seul PNG sert les deux thèmes. Le graphite de
+  // l'interface tombe à 1,08:1 sur une barre sombre — l'icône disparaîtrait.
+  const [r, g, b] = INK;
+  const luminance = (canaux) => {
+    const [lr, lg, lb] = canaux.map((canal) => {
+      const c = canal / 255;
+      return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+    });
+    return 0.2126 * lr + 0.7152 * lg + 0.0722 * lb;
+  };
+  const contraste = (a, b) => {
+    const [clair, sombre] = [luminance(a), luminance(b)].sort((x, y) => y - x);
+    return (clair + 0.05) / (sombre + 0.05);
+  };
+
+  const BARRES = [
+    ['claire', [255, 255, 255]],
+    ['claire grise', [241, 243, 244]],
+    ['sombre', [32, 33, 36]],
+    ['sombre 2', [41, 42, 45]],
+  ];
+
+  // Le seuil de 3:1 de WCAG 1.4.11 vise les composants du contenu web, pas une
+  // icône peinte par le navigateur. On tient donc deux exigences distinctes :
+  // franche sur une barre claire, et **visible** sur une barre sombre — le
+  // graphite y tombait à 1,08:1, ce qui est le vrai échec à interdire.
+  const surClair = BARRES.filter(([nom]) => nom.startsWith('claire'));
+  const surSombre = BARRES.filter(([nom]) => nom.startsWith('sombre'));
+
+  for (const [nom, fond] of surClair) {
+    const rapport = contraste([r, g, b], fond);
+    assert.ok(rapport >= 3, `barre ${nom} : ${rapport.toFixed(2)}:1, minimum 3:1`);
+  }
+  for (const [nom, fond] of surSombre) {
+    const rapport = contraste([r, g, b], fond);
+    assert.ok(
+      rapport >= 2.5,
+      `barre ${nom} : ${rapport.toFixed(2)}:1 — la marque s'efface (le graphite tombait à 1,08:1)`,
+    );
+  }
 });
 
 test('l\'icône contient des pixels encrés', () => {

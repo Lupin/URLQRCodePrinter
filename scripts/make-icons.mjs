@@ -24,8 +24,28 @@ const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 /** Côté de la matrice : un QR de version 1 fait 21 modules. */
 export const MODULE_COUNT = 21;
 
-/** Bleu-vert de la charte, en composantes RVB. */
-export const INK = [33, 128, 141];
+/**
+ * Encre du motif : l'accent de l'interface, `#c2410c`.
+ *
+ * La couleur est **choisie**, pas subie : c'est celle de la charte, et une
+ * marque qui ne serait pas de la couleur de la marque ne serait pas une marque.
+ *
+ * Ce qu'elle coûte, mesuré sur les fonds réels des barres d'outils :
+ *
+ * | Fond | Contraste |
+ * |---|---|
+ * | barre claire `#ffffff` | 5,18:1 |
+ * | barre claire grise `#f1f3f4` | 4,65:1 |
+ * | barre sombre `#202124` | 3,11:1 |
+ * | barre sombre `#292a2d` | **2,77:1** |
+ *
+ * Le seuil de 3:1 de WCAG 1.4.11 régit les composants **du contenu web** : il ne
+ * s'applique pas à une icône peinte par le navigateur dans sa propre barre. La
+ * valeur basse n'est donc pas une non-conformité, c'est un arbitrage assumé —
+ * l'icône reste visible sur une barre sombre, simplement moins franche que sur
+ * une barre claire. Le graphite, lui, y tombait à 1,08:1 : il disparaissait.
+ */
+export const INK = [194, 65, 12];
 
 // ---------------------------------------------------------------------------
 // Motif
@@ -90,24 +110,109 @@ export function buildMatrix() {
  * @param {number} size Côté en pixels.
  * @returns {{ width: number, height: number, data: Buffer }}
  */
+/**
+ * Motif QR suggéré, pour les tailles où la matrice réelle ne peut pas exister.
+ *
+ * Trois repères d'orientation aux angles, et quelques modules épars. C'est la
+ * structure que l'œil identifie comme un QR code — un aplat disait seulement
+ * « il y a quelque chose ici ». À 32 px, cinq modules de côté tiennent dans
+ * dix pixels : assez pour se lire.
+ *
+ * @param {number} x0
+ * @param {number} y0
+ * @param {number} taille Côté du carré, en unités de logo.
+ * @returns {number[][]} rectangles `[x0, y0, x1, y1]`
+ */
+export function qrSuggestion(x0, y0, taille) {
+  const m = taille / 21;
+  // Quatre modules de côté, et non cinq : à cinq, le repère venait toucher le
+  // trait de la feuille et se confondait avec lui.
+  const c = 4 * m;
+  const rects = [
+    [x0, y0],
+    [x0 + taille - c, y0],
+    [x0, y0 + taille - c],
+  ].map(([x, y]) => [x, y, x + c, y + c]);
+
+  // Modules épars, à un module et demi : à un seul, ils disparaissaient sous
+  // deux pixels. Sans eux, trois carrés pourraient passer pour autre chose.
+  for (const [col, lig] of [[7, 7], [9, 12], [12, 7], [14, 14], [11, 17], [7, 14], [17, 9]]) {
+    const x = x0 + col * m;
+    const y = y0 + lig * m;
+    rects.push([x, y, x + 1.5 * m, y + 1.5 * m]);
+  }
+
+  return rects;
+}
+
 export function renderIcon(size) {
   const side = Math.max(1, Math.trunc(size));
+  // Tampon laissé à zéro : fond **transparent**.
   const data = Buffer.alloc(side * side * 4);
 
-  // Fond blanc opaque.
-  data.fill(0xff);
+  // Le dessin vit sur une grille de 64 × 64, comme `docs/logo/logo-2-trait.svg`.
+  const unite = 64 / side;
+  // 4,5 unités sur 64, et non les 2,5 du dessin de la page : une icône n'est
+  // pas un logo. À 2,5, le trait vaut 0,6 pixel à 16 px — l'icône s'efface. Quatre
+  // épaisseurs ont été comparées de 16 à 128 px : 3,5 reste timide, 5,5 engorge
+  // la feuille et mange le QR, 4,5 est le cran où la silhouette s'impose sans
+  // que le motif perde sa place. Le plancher `unite` garantit par ailleurs un
+  // pixel de trait aux très petites tailles.
+  const trait = Math.max(4.5, unite);
+  const d = trait / 2;
+  const rects = [
+    // Feuille : trois côtés, arrêtés au bord supérieur du corps.
+    [18 - d, 2, 18 + d, 30 - d],
+    [18 - d, 2 - d, 46 + d, 2 + d],
+    [46 - d, 2, 46 + d, 30 - d],
+    // Corps de l'imprimante : contour complet.
+    [8 - d, 30 - d, 56 + d, 30 + d],
+    [8 - d, 52 - d, 56 + d, 52 + d],
+    [8 - d, 30 - d, 8 + d, 52 + d],
+    [56 - d, 30 - d, 56 + d, 52 + d],
+    // Fente de sortie, et voyant.
+    [17, 36 - d, 47, 36 + d],
+    [47, 44, 51, 48],
+  ];
 
-  const quiet = Math.max(1, Math.round(side * 0.08));
-  const inner = side - quiet * 2;
-  const grid = buildMatrix();
+  // Le QR n'est lisible qu'à partir d'une certaine taille : à 16 px, ses
+  // 21 modules tiennent dans 5 pixels. En dessous du seuil, il devient un aplat
+  // — la marque reste reconnaissable, le détail disparaît.
+  const seuilModules = 96;
+  const modulesLisibles = side >= seuilModules;
+  const [qx, qy, qs] = [21.5, 5.5, 1.05];
+  const cote = MODULE_COUNT * qs;
+  const grid = modulesLisibles ? buildMatrix() : null;
+  // Inscrit dans la feuille, avec de l'air : le carré du motif ne doit pas
+  // venir buter contre son trait.
+  const suggere = modulesLisibles ? null : qrSuggestion(24, 8, 16);
 
   for (let py = 0; py < side; py++) {
     for (let px = 0; px < side; px++) {
-      const gx = Math.floor(((px - quiet) / inner) * MODULE_COUNT);
-      const gy = Math.floor(((py - quiet) / inner) * MODULE_COUNT);
-      const inside = gx >= 0 && gy >= 0 && gx < MODULE_COUNT && gy < MODULE_COUNT;
-      if (!inside || !grid[gy][gx]) continue;
+      const x = (px + 0.5) * unite;
+      const y = (py + 0.5) * unite;
 
+      let encre = false;
+      for (const [x0, y0, x1, y1] of rects) {
+        if (x >= x0 && x < x1 && y >= y0 && y < y1) { encre = true; break; }
+      }
+
+      if (!encre && suggere) {
+        for (const [x0, y0, x1, y1] of suggere) {
+          if (x >= x0 && x < x1 && y >= y0 && y < y1) { encre = true; break; }
+        }
+      }
+
+      if (!encre && grid) {
+        const dedans = x >= qx && x < qx + cote && y >= qy && y < qy + cote;
+        if (dedans) {
+          const col = Math.floor((x - qx) / qs);
+          const lig = Math.floor((y - qy) / qs);
+          encre = grid[lig]?.[col] === true;
+        }
+      }
+
+      if (!encre) continue;
       const offset = (py * side + px) * 4;
       data[offset] = INK[0];
       data[offset + 1] = INK[1];

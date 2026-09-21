@@ -130,7 +130,14 @@ test('les services de raccourcissement sont proposés dès le démarrage', () =>
   for (const [value, label] of choices) {
     assert.ok(value, 'chaque service porte un identifiant');
     assert.ok(label, 'chaque service porte un nom lisible');
+    // Le libellé dit ce que le service change pour un usage ordinaire, pas
+    // seulement sa marque : sans cela, choisir revenait à arbitrer entre quatre
+    // noms inconnus, alors qu'on veut juste un lien plus court.
+    assert.match(label, /—/, `${value} : le libellé doit expliquer le service`);
   }
+  // Le service recommandé vient en tête, et il le dit.
+  assert.equal(choices[0][0], 'tinyurl');
+  assert.match(choices[0][1], /recommandé/);
   // Le service retenu par défaut est appliqué avant le premier rendu.
   assert.equal(registry.get('shortener').value, 'tinyurl');
 });

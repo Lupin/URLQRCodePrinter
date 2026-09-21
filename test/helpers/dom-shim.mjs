@@ -158,11 +158,12 @@ const documentStub = {
  *   distWeb: string,
  *   computedStyle?: (element: object) => object,
  *   windowExtras?: object,
+ *   language?: string,
  * }} options
  * @returns {Promise<{ registry: Map<string, object>, bootError: Error|null }>}
  */
 export async function bootApp(options) {
-  const { distWeb, computedStyle, windowExtras = {} } = options;
+  const { distWeb, computedStyle, windowExtras = {}, language = 'fr-FR' } = options;
 
   globalThis.document = documentStub;
   globalThis.window = {
@@ -173,6 +174,15 @@ export async function bootApp(options) {
     ...windowExtras,
   };
   if (computedStyle) globalThis.getComputedStyle = computedStyle;
+
+  // La langue de l'interface suit celle du navigateur, et l'application lit
+  // `navigator.language` au démarrage. Sans navigateur fixé, la suite
+  // dépendrait de la locale du système et rendrait l'interface en anglais.
+  Object.defineProperty(globalThis, 'navigator', {
+    value: { language, languages: [language] },
+    configurable: true,
+    writable: true,
+  });
 
   let bootError = null;
   try {

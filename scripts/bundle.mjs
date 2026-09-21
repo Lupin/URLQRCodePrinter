@@ -20,7 +20,7 @@
  */
 
 import { readFileSync, existsSync } from 'node:fs';
-import { dirname, join, resolve } from 'node:path';
+import { dirname, join, relative, resolve } from 'node:path';
 
 /** Formes d'import reconnues. Aucune n'utilise d'alias ni d'espace de noms. */
 const IMPORT_PATTERN = /^import\s[\s\S]*?from\s+['"]([^'"]+)['"];?/gm;
@@ -160,8 +160,12 @@ export function stripModuleSyntax(source) {
 /**
  * Assemble un point d'entrée et ses dépendances.
  *
+ * L'en-tête de chaque module porte son chemin. Ce chemin est rendu **relatif à
+ * `options.root`** quand il est fourni : un fichier publié ne doit pas contenir
+ * le chemin absolu de la machine qui l'a assemblé.
+ *
  * @param {string} entryPath
- * @param {{ header?: string }} [options]
+ * @param {{ header?: string, root?: string }} [options]
  * @returns {{ code: string, modules: string[], declarations: Map<string, string> }}
  */
 export function bundle(entryPath, options = {}) {
@@ -209,9 +213,10 @@ export function bundle(entryPath, options = {}) {
 
   const parts = [options.header ?? ''];
   for (const file of order) {
+    const label = options.root ? relative(options.root, file) : file;
     parts.push(
       `// ${'─'.repeat(72)}\n` +
-      `// ${file}\n` +
+      `// ${label}\n` +
       `// ${'─'.repeat(72)}\n\n` +
       stripModuleSyntax(sources.get(file)),
     );

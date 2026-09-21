@@ -1,8 +1,9 @@
 {
   "manifest_version": 3,
-  "name": "URLQRCodePrinter",
+  "default_locale": "fr",
+  "name": "__MSG_name__",
   "version": "0.1.0",
-  "description": "Collecte les URL de vos onglets et imprime-les en étiquettes QR (Niimbot D110 / M2).",
+  "description": "__MSG_description__",
   "permissions": [
     "contextMenus",
     "storage",
@@ -14,7 +15,7 @@
   },
   "action": {
     "default_popup": "popup.html",
-    "default_title": "URLQRCodePrinter",
+    "default_title": "__MSG_action_title__",
     "default_icon": {
       "16": "icons/icon-16.png",
       "32": "icons/icon-32.png",

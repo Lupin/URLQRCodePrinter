@@ -71,6 +71,19 @@ test('le bandeau de feuille de style obsolète dit quoi faire', () => {
   assert.match(html, /<div id="stale-style"[^>]*hidden/);
 });
 
+test('le réglage du raccourcisseur est nommé par ce qu\'il règle', () => {
+  // « Raccourcir les liens » coiffait directement la liste des services : le
+  // libellé du champ semblait nommer l'action, et choisir un service ressemblait
+  // à un arbitrage obligatoire. Le titre nomme l'action, le champ nomme le
+  // réglage — et « Service » suffit à comprendre qu'on ne fait que choisir qui
+  // raccourcit.
+  assert.match(html, /class="shortener__title"[\s\S]{0,80}data-i18n="Raccourcir les liens"/);
+  assert.match(html, /class="field__label" data-i18n="Service"/);
+  // Le sélecteur et les boutons sont dans la rangée du réglage, pas dans le
+  // titre : la structure porte la distinction que le texte annonce.
+  assert.match(html, /class="shortener__row"[\s\S]*id="shortener"[\s\S]*id="shorten"/);
+});
+
 test('les colonnes du tableau ont leurs valeurs par défaut dans le HTML', () => {
   // Ce qui décrit un lien est affiché ; les champs facultatifs attendent d'être
   // remplis. Un test de démarrage ne peut pas le voir : le DOM de substitution
@@ -290,4 +303,55 @@ test('le sélecteur de fichier accepte les formats relisibles', () => {
   for (const accept of ['.json', '.csv', '.zip']) {
     assert.ok(input[0].includes(accept), `le champ doit accepter ${accept}`);
   }
+});
+
+test("la planche peut imprimer l'URL sous le QR", () => {
+  // Elle n'imprimait que le titre, et retombait sur l'URL uniquement quand il
+  // n'y en avait pas : aucune option ne permettait de l'ajouter.
+  const html = readFileSync(join(ROOT, 'src', 'web', 'index.html'), 'utf8');
+  const ids = readFileSync(join(ROOT, 'src', 'web', 'element-ids.js'), 'utf8');
+  const app = readFileSync(join(ROOT, 'src', 'web', 'app.js'), 'utf8');
+
+  const champ = html.match(/<input id="sheet-url"[^>]*>/);
+  assert.ok(champ, "aucune case « URL » dans « Sous chaque QR »");
+  assert.match(champ[0], /type="checkbox"/);
+  assert.ok(ids.includes("'sheet-url'"), "l'identifiant n'est pas déclaré");
+
+  // Et elle doit être branchée : une case qui ne change rien est pire qu'une
+  // case absente.
+  assert.match(app, /el\.sheetUrl\.checked/, 'la case n\'est pas lue');
+  assert.match(app, /texteSousLeQr\(/, 'le texte imprimé ne suit pas le choix');
+});
+
+test("les écarts de la planche sont nommés d'après les étiquettes, pas les lignes", () => {
+  // « Écart entre rangées » se lisait comme un interligne : sur une planche,
+  // ce sont les étiquettes qu'il espace. Le mot « rangée » a disparu des deux
+  // libellés, pour qu'aucun des deux ne prête à confusion.
+  const html = readFileSync(join(ROOT, 'src', 'web', 'index.html'), 'utf8');
+  // Le libellé apparaît deux fois dès qu'il est marqué pour la traduction :
+  // une fois dans `data-i18n`, une fois dans le contenu. On dédoublonne.
+  const libellés = [...new Set(
+    [...html.matchAll(/Écart entre ([^<(]+)\(mm\)/g)].map((m) => m[1].trim()),
+  )];
+
+  assert.equal(libellés.length, 2, `attendu deux écarts, trouvé : ${libellés.join(' / ')}`);
+  for (const libellé of libellés) {
+    assert.match(libellé, /étiquettes/, `« ${libellé} » ne nomme pas les étiquettes`);
+    assert.doesNotMatch(libellé, /rangée|ligne/i, `« ${libellé} » prête à confusion`);
+  }
+  // L'axe reste explicite : deux « écart entre étiquettes » sans direction
+  // seraient indiscernables.
+  assert.match(libellés[0], /horizontal/);
+  assert.match(libellés[1], /vertical/);
+});
+
+test("l'aperçu se recale sur la largeur disponible", () => {
+  // L'échelle d'une page était calculée avec un minimum fixe de 280 px : dès
+  // que le panneau de prévisualisation était plus étroit que lui, la planche
+  // débordait horizontalement. Elle suit désormais la largeur utile du panneau,
+  // et se recalcule quand la fenêtre change de taille.
+  const app = readFileSync(join(ROOT, 'src', 'web', 'app.js'), 'utf8');
+  assert.match(app, /function previewViewportWidth\(/);
+  assert.doesNotMatch(app, /Math\.max\(280,\s*el\.preview\.clientWidth/);
+  assert.match(app, /addEventListener\('resize'/);
 });

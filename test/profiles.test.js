@@ -12,6 +12,7 @@ import assert from 'node:assert/strict';
 import {
   D110,
   M2,
+  M3,
   PROFILES,
   DEFAULT_PROFILE,
   ALL_NAME_PREFIXES,
@@ -20,6 +21,7 @@ import {
   findProfile,
   withReportedHead,
   planPageWidth,
+  compatibleSupplies,
 } from '../src/core/printer/profiles.js';
 import { mmToPx } from '../src/core/label.js';
 
@@ -56,7 +58,31 @@ test('findByModelId retrouve le D110', () => {
   assert.equal(findByModelId(2304)?.id, 'D110');
   assert.equal(findByModelId(2320)?.id, 'D110');
   assert.equal(findByModelId(4608)?.id, 'M2');
+  assert.equal(findByModelId(6400)?.id, 'M3');
   assert.equal(findByModelId(9999), undefined);
+});
+
+test('le profil M3 déclare 851 px à 300 dpi et le task B1', () => {
+  // Le M3 est un 3 pouces : 851 px à 300 dpi font 72 mm utiles. Il partage la
+  // famille du M2 (transfert thermique, sens `top`), d'où la séquence `B1`.
+  assert.equal(M3.printheadPixels, 851);
+  assert.equal(M3.dpi, 300);
+  assert.equal(M3.printTask, 'B1');
+  assert.equal(findProfile('M3')?.printheadPixels, 851);
+});
+
+test('findByName reconnaît un nom BLE de M3', () => {
+  assert.equal(findByName('M3-ABC12345')?.id, 'M3');
+  assert.equal(findByName('M3_H-ABC12345')?.id, 'M3');
+});
+
+test('le catalogue de consommables du M3 reste sous la tête', () => {
+  const supplies = compatibleSupplies(M3);
+  assert.ok(supplies.length >= 5, `${supplies.length} consommables M3`);
+  for (const supply of supplies) {
+    assert.ok(supply.widthMm <= M3.printheadPixels / M3.dpi * 25.4 + 4, supply.id);
+  }
+  assert.ok(supplies.some((supply) => supply.id === 'm3-continue'));
 });
 
 test('findByName reconnaît les noms BLE réels', () => {

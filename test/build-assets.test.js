@@ -15,17 +15,38 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
 /** Pages construites, avec le dossier où lire leurs ressources. */
+/**
+ * Pages construites, avec le dossier où lire leurs ressources et les fichiers
+ * qui doivent y être versionnés.
+ *
+ * La fenêtre de l'extension est dans la liste, et pas seulement la page de
+ * l'application : elle a exactement le même problème de cache, et il est même
+ * plus visible — recharger l'extension ne change pas l'URL de `popup.css`. Cette
+ * page a été oubliée ici, si bien que le garde-fou existait sans couvrir le cas
+ * qui allait se produire : les couleurs de la fenêtre semblaient ne pas avoir
+ * été appliquées alors que le disque était à jour.
+ */
 const PAGES = [
-  { label: 'extension', page: join(ROOT, 'dist', 'extension', 'app.html') },
-  { label: 'extension-safari', page: join(ROOT, 'dist', 'extension-safari', 'app.html') },
-  { label: 'web', page: join(ROOT, 'dist', 'web', 'index.html') },
+  { label: 'extension/app', page: join(ROOT, 'dist', 'extension', 'app.html'), assets: ['style.css', 'app.js'] },
+  { label: 'extension/fenêtre', page: join(ROOT, 'dist', 'extension', 'popup.html'), assets: ['popup.css', 'popup.js'] },
+  {
+    label: 'extension-safari/app',
+    page: join(ROOT, 'dist', 'extension-safari', 'app.html'),
+    assets: ['style.css', 'app.js'],
+  },
+  {
+    label: 'extension-safari/fenêtre',
+    page: join(ROOT, 'dist', 'extension-safari', 'popup.html'),
+    assets: ['popup.css', 'popup.js'],
+  },
+  { label: 'web', page: join(ROOT, 'dist', 'web', 'index.html'), assets: ['style.css', 'app.js'] },
 ];
 
 /** Empreinte attendue pour un fichier livré. */
@@ -39,7 +60,7 @@ function stampedReferences(html) {
     .map((match) => ({ file: match[1], digest: match[2] }));
 }
 
-for (const { label, page } of PAGES) {
+for (const { label, page, assets } of PAGES) {
   const dir = dirname(page);
 
   test(`${label} : l'empreinte des ressources correspond au contenu livré`, () => {
@@ -49,10 +70,7 @@ for (const { label, page } of PAGES) {
     const html = readFileSync(page, 'utf8');
     const refs = stampedReferences(html);
 
-    const expected = label === 'web'
-      ? ['style.css', 'app.js']
-      : ['style.css', 'app.js'];
-    for (const file of expected) {
+    for (const file of assets) {
       const found = refs.find((ref) => ref.file === file);
       assert.ok(found, `${label} : ${file} n'est pas versionné`);
       assert.equal(
@@ -89,4 +107,35 @@ test('l\'empreinte change dès que la feuille de style change', () => {
   const one = createHash('sha256').update('a { color: red }').digest('hex').slice(0, 12);
   const two = createHash('sha256').update('a { color: blue }').digest('hex').slice(0, 12);
   assert.notEqual(one, two);
+});
+
+// ---------------------------------------------------------------------------
+// Ce qui empêche Chrome de charger l'extension
+// ---------------------------------------------------------------------------
+
+test("aucun livrable ne contient de nom réservé ni de doublon de copie", () => {
+  // Chrome refuse de charger un dossier dont un nom commence par `_` s'il n'est
+  // pas exactement `_locales`. Un `_locales 2` — créé en copiant un dossier dans
+  // un dossier qui le contenait déjà — rend l'extension **entièrement**
+  // inchargeable, avec un message qui ne dit pas d'où vient le dossier.
+  for (const nom of ['extension', 'extension-safari']) {
+    const racine = join(ROOT, 'dist', nom);
+    const coupables = [];
+
+    const parcourir = (dir, prefixe = '') => {
+      for (const entree of readdirSync(dir, { withFileTypes: true })) {
+        const chemin = `${prefixe}${entree.name}`;
+        if (/ 2(\.[^.]+)?$/.test(entree.name)) {
+          coupables.push(`${nom}/${chemin} — doublon de copie`);
+        }
+        if (entree.name.startsWith('_') && entree.name !== '_locales') {
+          coupables.push(`${nom}/${chemin} — nom réservé, Chrome refusera le dossier`);
+        }
+        if (entree.isDirectory()) parcourir(join(dir, entree.name), `${chemin}/`);
+      }
+    };
+    parcourir(racine);
+
+    assert.deepEqual(coupables, [], `l'extension ne se chargera pas :\n${coupables.join('\n')}`);
+  }
 });

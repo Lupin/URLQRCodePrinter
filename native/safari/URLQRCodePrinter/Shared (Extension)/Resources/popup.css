@@ -153,6 +153,30 @@ body {
   font-weight: 650;
 }
 
+/* Le titre et le sélecteur de langue forment la moitié gauche de l'en-tête ;
+   le compteur occupe la droite. */
+.app-header__top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.locale__select {
+  font: inherit;
+  font-size: var(--type-xs);
+  padding: 2px 4px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  background: var(--bg);
+  color: var(--text);
+}
+
+.locale__select:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 1px;
+}
+
 .count {
   display: inline-flex;
   align-items: baseline;

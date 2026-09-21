@@ -9,6 +9,7 @@
  */
 
 import { isValidUrl, hostOf } from './link.js';
+import { t } from './i18n.js';
 
 /** Identifiants des entrées de menu contextuel. Stables : ils sont persistés. */
 export const MENU_IDS = Object.freeze({
@@ -32,17 +33,17 @@ export function buildMenuDefinitions(options = {}) {
   const menus = [
     {
       id: MENU_IDS.page,
-      title: 'Ajouter cette page à URLQRCodePrinter',
+      title: t('Ajouter cette page à URLQRCodePrinter'),
       contexts: ['page'],
     },
     {
       id: MENU_IDS.link,
-      title: 'Ajouter ce lien à URLQRCodePrinter',
+      title: t('Ajouter ce lien à URLQRCodePrinter'),
       contexts: ['link'],
     },
     {
       id: MENU_IDS.selection,
-      title: 'Ajouter « %s » à URLQRCodePrinter',
+      title: t('Ajouter « %s » à URLQRCodePrinter'),
       contexts: ['selection'],
       enabled: Boolean(options.includeSelection),
     },
@@ -53,7 +54,7 @@ export function buildMenuDefinitions(options = {}) {
       { id: MENU_IDS.separator, type: 'separator', contexts: ['page', 'link', 'selection'] },
       {
         id: MENU_IDS.openApp,
-        title: 'Ouvrir URLQRCodePrinter',
+        title: t('Ouvrir URLQRCodePrinter'),
         contexts: ['page', 'link', 'selection'],
       },
     );

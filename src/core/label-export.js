@@ -44,6 +44,13 @@ export const LABEL_FORMATS = Object.freeze([
     dpi: 300,
   },
   {
+    id: 'niimbot-m3',
+    name: 'Niimbot M3 — 72 mm (300 dpi)',
+    widthMm: 72,
+    heightMm: null,
+    dpi: 300,
+  },
+  {
     id: 'brother-62',
     name: 'Brother QL — 62 mm (300 dpi)',
     widthMm: 62,
@@ -85,6 +92,79 @@ export const LABEL_FORMATS = Object.freeze([
     heightMm: 33.9,
     dpi: 300,
   },
+  // Formats Brother QL (rouleaux DK, 300 dpi). Les cotes proviennent du
+  // catalogue du fabricant ; ce sont des cibles d'image, pas des profils
+  // d'imprimante — l'export ne parle à aucune étiqueteuse.
+  {
+    id: 'brother-dk11201',
+    name: 'Brother DK-11201 — 29 × 90 mm (300 dpi)',
+    widthMm: 29,
+    heightMm: 90,
+    dpi: 300,
+  },
+  {
+    id: 'brother-dk11202',
+    name: 'Brother DK-11202 — 62 × 100 mm (300 dpi)',
+    widthMm: 62,
+    heightMm: 100,
+    dpi: 300,
+  },
+  {
+    id: 'brother-dk11208',
+    name: 'Brother DK-11208 — 38 × 90 mm (300 dpi)',
+    widthMm: 38,
+    heightMm: 90,
+    dpi: 300,
+  },
+  {
+    id: 'brother-dk11209',
+    name: 'Brother DK-11209 — 29 × 62 mm (300 dpi)',
+    widthMm: 29,
+    heightMm: 62,
+    dpi: 300,
+  },
+  {
+    id: 'brother-dk11218',
+    name: 'Brother DK-11218 — 24 mm rond (300 dpi)',
+    widthMm: 24,
+    heightMm: 24,
+    dpi: 300,
+  },
+  {
+    id: 'brother-dk11219',
+    name: 'Brother DK-11219 — 12 mm rond (300 dpi)',
+    widthMm: 12,
+    heightMm: 12,
+    dpi: 300,
+  },
+  {
+    id: 'brother-dk22205',
+    name: 'Brother DK-22205 — 62 mm continu (300 dpi)',
+    widthMm: 62,
+    heightMm: null,
+    dpi: 300,
+  },
+  {
+    id: 'brother-dk22210',
+    name: 'Brother DK-22210 — 29 mm continu (300 dpi)',
+    widthMm: 29,
+    heightMm: null,
+    dpi: 300,
+  },
+  {
+    id: 'dymo-54x101',
+    name: 'Dymo LabelWriter — 54 × 101 mm (300 dpi)',
+    widthMm: 54,
+    heightMm: 101,
+    dpi: 300,
+  },
+  {
+    id: 'zebra-4x6',
+    name: 'Zebra 4 × 6 po — 104 × 152 mm (203 dpi)',
+    widthMm: 104,
+    heightMm: 152,
+    dpi: 203,
+  },
 ]);
 
 /**
@@ -109,6 +189,9 @@ export const TEXT_MODES = Object.freeze({
 export const DEFAULT_EXPORT_OPTIONS = Object.freeze({
   formatId: 'niimbot-d110',
   textMode: 'url',
+  // Le titre se coche à part dans l'onglet « Étiquette (divers) » : décoché, il
+  // n'apparaît que si le mode de texte le porte déjà.
+  showTitle: false,
   // Aucune date par défaut : chaque ligne de texte prend la place du QR, et une
   // étiquette de 12 mm n'en a pas de reste.
   dateMode: 'none',
@@ -202,6 +285,8 @@ export function labelFileName(link, index, total) {
  * @param {(text: string) => number} options.measure Mesure de texte, fournie
  *   par l'appelant — lui seul connaît la police réellement utilisée.
  * @param {string} [options.textMode]
+ * @param {boolean} [options.showTitle] Imprime le titre sous le QR, même quand
+ *   le mode de texte ne le demande pas. Sans doublon s'il y figure déjà.
  * @param {number} [options.marginMm]
  * @param {number} [options.qrRatio]
  * @param {number} [options.fontSizePt]
@@ -215,6 +300,7 @@ export function labelFileName(link, index, total) {
 export function planLabel(options) {
   const { link, format, measure } = options;
   const textMode = options.textMode ?? DEFAULT_EXPORT_OPTIONS.textMode;
+  const showTitle = options.showTitle ?? DEFAULT_EXPORT_OPTIONS.showTitle;
   const dateMode = options.dateMode ?? DEFAULT_EXPORT_OPTIONS.dateMode;
   const marginMm = options.marginMm ?? DEFAULT_EXPORT_OPTIONS.marginMm;
   const qrRatio = options.qrRatio ?? DEFAULT_EXPORT_OPTIONS.qrRatio;
@@ -250,7 +336,8 @@ export function planLabel(options) {
     : [];
   const dateOmitted = dateText !== '' && dateLines.length === 0;
 
-  const body = labelText(link, textMode).join(' ');
+  const bodySource = labelText(link, textMode);
+  const body = bodySource.join(' ');
   // Le texte principal garde son propre plafond : la date s'ajoute à lui au
   // lieu de lui prendre ses lignes. Elle les lui prenait, et l'URL se trouvait
   // tronquée à deux lignes dès qu'on demandait la date.
@@ -258,7 +345,16 @@ export function planLabel(options) {
     ? wrapText(measure, body, innerWidth, { maxLines })
     : [];
 
-  const lines = [...bodyLines, ...dateLines];
+  // Le titre coché s'ajoute sous le QR, comme la date : il vient avant le
+  // texte principal. Il ne se duplique pas quand le mode de texte le porte
+  // déjà — « Titre puis URL » plus la case « Titre » n'imprime qu'un titre.
+  const title = typeof link.title === 'string' ? link.title.trim() : '';
+  const titleInBody = title !== '' && bodySource.some((line) => line.trim() === title);
+  const titleLines = showTitle && title !== '' && !titleInBody
+    ? wrapText(measure, title, innerWidth, { maxLines })
+    : [];
+
+  const lines = [...titleLines, ...bodyLines, ...dateLines];
   const textHeight = lines.length * lineHeightPx;
 
   // Hauteur fixe (planche) ou déduite du contenu (rouleau continu).
@@ -457,6 +553,7 @@ export function buildLabelArchive(options) {
           heightMm: format.heightMm,
           dpi: format.dpi,
           textMode: options.settings?.textMode ?? DEFAULT_EXPORT_OPTIONS.textMode,
+          showTitle: options.settings?.showTitle ?? DEFAULT_EXPORT_OPTIONS.showTitle,
           dateMode: options.settings?.dateMode ?? DEFAULT_EXPORT_OPTIONS.dateMode,
           marginMm: options.settings?.marginMm ?? DEFAULT_EXPORT_OPTIONS.marginMm,
           fontSizePt: options.settings?.fontSizePt ?? DEFAULT_EXPORT_OPTIONS.fontSizePt,

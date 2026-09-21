@@ -108,7 +108,8 @@ body {
 
 .topbar {
   display: grid;
-  grid-template-columns: 1fr auto;
+  /* Marque et sous-titre, sélecteur de langue, compteur. */
+  grid-template-columns: 1fr auto auto;
   align-items: baseline;
   gap: 4px 12px;
   padding: 22px clamp(16px, 4vw, 40px) 14px;
@@ -131,11 +132,16 @@ body {
   flex: none;
   width: 30px;
   height: 30px;
-  /* L'encre suit le thème : `--ink` vaut noir en clair, blanc en sombre. Un
-     logo noir et blanc ne s'inverse pas — il change d'encre, et son « papier »
-     prend la couleur du fond. Une inversion photographique aurait transformé la
-     feuille en aplat noir. */
-  color: var(--ink);
+  /* La marque porte la couleur de la marque, pas l'encre du texte : c'est le
+     seul endroit de la page où l'accent désigne une **identité** et non une
+     action, et `craft/color.md` ne rationne pas ce cas — il plafonne les usages
+     de l'accent dans l'interface, pas la signature du produit.
+     Le titre, lui, reste à l'encre.
+     La couleur suit le thème toute seule : `--accent` vaut orange brûlé en
+     clair, orange clair en sombre. Une inversion photographique aurait
+     transformé la feuille en aplat noir ; ici le « papier » garde la couleur du
+     fond et seuls le trait et le QR changent. */
+  color: var(--accent);
 }
 
 .marque__papier { fill: var(--bg); }
@@ -155,12 +161,35 @@ body {
   font-size: 13px;
 }
 
+/* Le sélecteur de langue est aligné verticalement avec le bloc de marque :
+   il occupe la colonne du milieu, sur les deux rangées. */
+.locale {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  align-self: center;
+}
+
+.locale__select {
+  font: inherit;
+  font-size: 12px;
+  padding: 2px 6px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  background: var(--bg);
+  color: var(--text);
+}
+
+.locale__select:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
 .pill {
   /* `grid-column` est indispensable : un élément dont la ligne est définie mais
      dont la colonne est automatique est placé **avant** les éléments
      entièrement automatiques. Sans cette ligne, le compteur prenait la colonne
      large et repoussait le titre à droite. */
-  grid-column: 2;
+  grid-column: 3;
   grid-row: 1 / span 2;
   align-self: center;
   padding: 4px 12px;
@@ -221,6 +250,19 @@ body {
   gap: 12px;
   padding-top: 10px;
   border-top: 1px solid var(--border-line);
+}
+
+/* Deux sorties du tableau, côte à côte, placées entre les instructions du mode
+   actif et l'aperçu : on règle, on agit, puis on regarde le résultat. La
+   disposition verticale vient du `gap` du panneau, dont cette rangée est un
+   enfant direct — pas de pied de panneau ici. */
+.panel__actions {
+  display: flex;
+  gap: 6px;
+}
+
+.panel__actions .btn {
+  flex: 1 1 0;
 }
 
 /* --- Formulaires --- */
@@ -543,14 +585,28 @@ body {
 
 /* --- Raccourcissement d'URL --- */
 
+/* Le titre et la rangée sont empilés : le titre nomme l'action, la rangée porte
+   le réglage et les boutons. Auparavant le libellé du champ servait de titre,
+   ce qui faisait lire la liste des services comme le nom du bouton. */
 .shortener {
-  display: flex;
-  align-items: flex-end;
-  gap: 6px;
   margin-top: 10px;
 }
 
-.shortener .field { min-width: 0; }
+.shortener__title {
+  margin: 0 0 4px;
+  color: var(--text-2);
+  font-size: 12px;
+}
+
+.shortener__title em { font-style: normal; color: var(--text-3); }
+
+.shortener__row {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+}
+
+.shortener__row .field { flex: 1; min-width: 0; }
 
 /* Le libellé de l'onglet « Étiquette Niimbot » reste lisible même quand la
    fenêtre est étroite : le format d'étiquette y prend toute la largeur. */

@@ -86,6 +86,7 @@ import {
   labelArchiveName,
   ptToPx,
 } from './core/label-export.js';
+import { buildTableArchive } from './core/table-export.js';
 import {
   probeWebBluetooth,
   explainBluetoothFailure,
@@ -93,6 +94,9 @@ import {
   NiimbotTransport,
 } from './core/printer/transport.js';
 import { NiimbotPrinter } from './core/printer/printer.js';
+import {
+  initI18n, applyTranslations, setLocale, getLocale, t, tpl,
+} from './core/i18n.js';
 
 const PX_PER_MM = 96 / 25.4;
 
@@ -377,32 +381,30 @@ function updatePrintScope() {
   // fois plus d'étiquettes que ce que la phrase laisse croire.
   const copies = seriesCopies();
   const total = count * copies;
-  const pluriel = (n, mot) => `${n} ${mot}${n > 1 ? 's' : ''}`;
-
   el.printAllLabels.textContent = total === 0
-    ? 'Aucun lien à imprimer'
-    : `Imprimer ${pluriel(total, 'étiquette')}`
-      + (copies > 1 ? ` (${pluriel(count, 'lien')} × ${copies})` : '');
+    ? t('Aucun lien à imprimer')
+    : tpl(total, 'Imprimer {count} étiquette', 'Imprimer {count} étiquettes')
+      + (copies > 1 ? ` (${tpl(count, '{count} lien', '{count} liens')} × ${copies})` : '');
 
   // La phrase dit ce qui est retenu, et pourquoi le bouton est inerte le cas
   // échéant : « Portée » seul ne disait pas ce qui allait sortir.
   el.printAllLabels.title = '';
 
   if (links.length === 0) {
-    el.printScopeHint.textContent = 'Aucun lien dans la collection.';
+    el.printScopeHint.textContent = t('Aucun lien dans la collection.');
     return;
   }
   if (scope === 'selected' && checked === 0) {
-    el.printScopeHint.textContent =
-      'Aucun lien coché : cochez les liens à imprimer dans la liste, '
-      + 'ou choisissez « Toute la collection ».';
+    el.printScopeHint.textContent = t(
+      'Aucun lien coché : cochez les liens à imprimer dans la liste, ou choisissez « Toute la collection ».',
+    );
     return;
   }
   const source = scope === 'selected'
-    ? `${pluriel(checked, 'lien coché')}`
-    : `les ${links.length} liens de la collection`;
+    ? tpl(checked, '{count} lien coché', '{count} liens cochés')
+    : t('les {count} liens de la collection', { count: links.length });
   el.printScopeHint.textContent = copies > 1
-    ? `${source}, ${pluriel(copies, 'exemplaire')} de chacun.`
+    ? tpl(copies, '{source}, {count} exemplaire de chacun.', '{source}, {count} exemplaires de chacun.', { source })
     : `${source}.`;
 }
 
@@ -447,10 +449,10 @@ function renderList() {
   el.list.textContent = '';
   el.empty.hidden = visible.length > 0;
   el.empty.textContent = links.length === 0
-    ? 'Aucun lien. Ajoutez-en un ci-dessus, importez une archive, ou utilisez l\'extension navigateur.'
-    : 'Aucun lien ne correspond à la recherche.';
+    ? t('Aucun lien. Ajoutez-en un ci-dessus, importez une archive, ou utilisez l\'extension navigateur.')
+    : t('Aucun lien ne correspond à la recherche.');
 
-  el.count.textContent = `${links.length} lien${links.length > 1 ? 's' : ''}`;
+  el.count.textContent = tpl(links.length, '{count} lien', '{count} liens');
 
   const hasLinks = links.length > 0;
   el.exportXlsx.disabled = !hasLinks;
@@ -524,9 +526,9 @@ function linkEditor(link) {
     form.className = 'link__editor-form';
 
     const fields = [
-      { key: 'title', label: 'Titre', value: link.title, placeholder: 'Titre de la page' },
-      { key: 'tags', label: 'Tags', value: link.tags.join(', '), placeholder: 'veille, travail' },
-      { key: 'note', label: 'Note', value: link.note, placeholder: 'Note libre' },
+      { key: 'title', label: t('Titre'), value: link.title, placeholder: t('Titre de la page') },
+      { key: 'tags', label: t('Tags'), value: link.tags.join(', '), placeholder: t('veille, travail') },
+      { key: 'note', label: t('Note'), value: link.note, placeholder: t('Note libre') },
     ];
 
     const inputs = new Map();
@@ -543,7 +545,7 @@ function linkEditor(link) {
       input.className = 'input input--compact';
       input.value = field.value ?? '';
       input.placeholder = field.placeholder;
-      input.setAttribute('aria-label', `${field.label} pour ${link.url}`);
+      input.setAttribute('aria-label', t('{label} pour {url}', { label: field.label, url: link.url }));
 
       line.append(caption, input);
       form.appendChild(line);
@@ -552,7 +554,7 @@ function linkEditor(link) {
 
     const hint = document.createElement('p');
     hint.className = 'hint hint--tight';
-    hint.textContent = 'Entrée pour enregistrer, Échap pour annuler. Tags séparés par des virgules.';
+    hint.textContent = t('Entrée pour enregistrer, Échap pour annuler. Tags séparés par des virgules.');
     form.appendChild(hint);
 
     const finish = async (save) => {
@@ -574,7 +576,7 @@ function linkEditor(link) {
         if (changed) {
           await store.put({ ...link, title: updated.title, note: updated.note, tags: updated.tags });
           await refresh();
-          toast('Lien mis à jour');
+          toast(t('Lien mis à jour'));
           return;
         }
       }
@@ -597,8 +599,8 @@ function linkEditor(link) {
     wrap.appendChild(form);
     inputs.get('title')?.focus();
   });
-  open.setAttribute('aria-label', `Modifier titre, tags et note de ${link.title || link.url}`);
-  open.title = 'Modifier le titre, les tags et la note';
+  open.setAttribute('aria-label', t('Modifier titre, tags et note de {title}', { title: link.title || link.url }));
+  open.title = t('Modifier le titre, les tags et la note');
 
   wrap.appendChild(open);
   return wrap;
@@ -617,7 +619,7 @@ function renderLink(link) {
   check.type = 'checkbox';
   check.className = 'link__check';
   check.checked = selected.has(link.id);
-  check.setAttribute('aria-label', `Sélectionner ${link.title || link.url}`);
+  check.setAttribute('aria-label', t('Sélectionner {title}', { title: link.title || link.url }));
   check.addEventListener('change', () => {
     if (check.checked) selected.add(link.id);
     else selected.delete(link.id);
@@ -669,11 +671,19 @@ function renderLink(link) {
     for (const tag of link.tags) {
       // Cliquer une puce filtre la collection sur ce tag : c'est le seul
       // intérêt de classer, et cela évite d'avoir à le retaper.
-      const chip = button(`#${tag}`, 'tag', () => {
+      //
+      // Le « # » est une syntaxe de saisie, pas une identité : `normalizeTags`
+      // l'accepte puis le retire, si bien que le tag est déjà stocké sans lui.
+      // La puce n'a donc pas à le réafficher — son fond dit assez qu'il s'agit
+      // d'un tag. Le nom accessible, lui, explicite l'action : un bouton nommé
+      // « musique » n'apprend rien à un lecteur d'écran.
+      const chip = button(tag, 'tag', () => {
         el.search.value = tag;
         renderList();
       });
-      chip.title = `Filtrer sur #${tag}`;
+      const action = t('Filtrer sur le tag « {tag} »', { tag });
+      chip.title = action;
+      chip.setAttribute('aria-label', action);
       tags.appendChild(chip);
     }
     body.appendChild(tags);
@@ -683,14 +693,14 @@ function renderLink(link) {
     await store.remove(link.id);
     selected.delete(link.id);
     await refresh();
-    toast('Lien supprimé');
+    toast(t('Lien supprimé'));
   });
-  remove.setAttribute('aria-label', `Supprimer ${link.title || link.url}`);
+  remove.setAttribute('aria-label', t('Supprimer {title}', { title: link.title || link.url }));
 
   const rank = document.createElement('span');
   rank.className = 'link__index';
   rank.textContent = String(linkRanks.get(link.id) ?? '');
-  rank.title = 'Rang dans la collection, celui du tableau imprimé';
+  rank.title = t('Rang dans la collection, celui du tableau imprimé');
 
   item.append(check, rank, body, linkEditor(link), remove);
   return item;
@@ -718,13 +728,13 @@ function updateSelectionHint() {
     return;
   }
   if (all) {
-    el.selectionHint.textContent = `Les ${links.length} liens sont cochés.`;
+    el.selectionHint.textContent = t('Les {count} liens sont cochés.', { count: links.length });
     return;
   }
   el.selectionHint.textContent = selected.size === 0
-    ? `Aucun lien coché : l'impression portera sur toute la collection (${links.length}).`
-    : `${selected.size} lien${selected.size > 1 ? 's' : ''} coché${selected.size > 1 ? 's' : ''} `
-      + `sur ${links.length}.`;
+    ? t("Aucun lien coché : l'impression portera sur toute la collection ({count}).", { count: links.length })
+    : `${tpl(selected.size, '{count} lien coché', '{count} liens cochés')} `
+      + t('sur {count}.', { count: links.length });
 }
 
 /**
@@ -734,14 +744,38 @@ function updateSelectionHint() {
  * @returns {string}
  */
 function printLabel(count) {
-  if (count === 0) return 'Imprimer';
+  if (count === 0) return t('Imprimer');
 
   // Cocher tous les liens revient à imprimer la collection : le dire ainsi est
   // plus clair que « la sélection (33) ».
   const whole = selected.size === 0 || selected.size >= links.length;
-  if (whole) return count === 1 ? 'Imprimer le lien' : `Imprimer les ${count} liens`;
+  if (whole) return count === 1 ? t('Imprimer le lien') : t('Imprimer les {count} liens', { count });
 
-  return `Imprimer la sélection (${count})`;
+  return t('Imprimer la sélection ({count})', { count });
+}
+
+/**
+ * Libellé du bouton d'export d'images, portée comprise.
+ *
+ * Même règle que le bouton d'impression : cocher tous les liens vaut la
+ * collection entière, et le nombre annonce exactement ce qui sortira de
+ * l'archive. « Exporter les images » sans nombre laissait deviner la portée
+ * alors que la sélection, elle, pouvait n'être que partielle.
+ *
+ * @param {number} count
+ * @returns {string}
+ */
+function exportImagesLabel(count) {
+  if (count === 0) return t('Exporter les images (ZIP)');
+
+  const whole = selected.size === 0 || selected.size >= links.length;
+  if (whole) {
+    return count === 1
+      ? t("Exporter l'image (ZIP)")
+      : t('Exporter les {count} images (ZIP)', { count });
+  }
+
+  return t('Exporter la sélection ({count})', { count });
 }
 
 /** L'ensemble des liens actuellement sélectionnés, dans l'ordre d'affichage. */
@@ -762,7 +796,7 @@ function selectedLinks() {
  */
 function collectionName() {
   const typed = el.collectionName.value.trim();
-  return typed === '' ? DEFAULT_SETTINGS.collectionName : typed.slice(0, COLLECTION_NAME_MAX);
+  return typed === '' ? t(DEFAULT_SETTINGS.collectionName) : typed.slice(0, COLLECTION_NAME_MAX);
 }
 
 /** Reporte le nom de collection sur le titre de la page. */
@@ -790,7 +824,7 @@ async function addFromInput() {
   el.addError.hidden = true;
 
   if (raw === '') {
-    el.addError.textContent = 'Saisissez une URL.';
+    el.addError.textContent = t('Saisissez une URL.');
     el.addError.hidden = false;
     return;
   }
@@ -807,7 +841,7 @@ async function addFromInput() {
   el.urlInput.value = '';
   selected.add(link.id);
   await refresh();
-  toast(duplicate ? 'Ce lien est déjà dans la collection' : 'Lien ajouté');
+  toast(duplicate ? t('Ce lien est déjà dans la collection') : t('Lien ajouté'));
 }
 
 /**
@@ -833,7 +867,7 @@ function exportAs(format) {
   const filename = exportFilename(name, spec.ext);
 
   const ok = downloadText(filename, spec.text, { mime: spec.mime });
-  toast(ok ? `${filename} enregistré` : 'Téléchargement impossible', ok ? 'info' : 'error');
+  toast(ok ? t('{filename} enregistré', { filename }) : t('Téléchargement impossible'), ok ? 'info' : 'error');
 }
 
 /**
@@ -843,7 +877,7 @@ function exportAs(format) {
 async function importArchive(file) {
   const label = el.import.textContent;
   el.import.disabled = true;
-  el.import.textContent = 'Lecture…';
+  el.import.textContent = t('Lecture…');
 
   try {
     // Un ZIP se lit en octets, un texte en texte : le manifeste du dossier
@@ -856,7 +890,7 @@ async function importArchive(file) {
     // Un enregistrement illisible n'arrête pas l'import : il est compté.
     const { links: candidates, rejected } = toImportableLinks(parsed.records);
     if (candidates.length === 0) {
-      toast(`Aucun lien exploitable dans ${file.name}`, 'error');
+      toast(t('Aucun lien exploitable dans {file}', { file: file.name }), 'error');
       return;
     }
 
@@ -871,7 +905,7 @@ async function importArchive(file) {
     await refresh();
     toast(importReport({ added, duplicates, rejected }));
   } catch (error) {
-    toast(`Import impossible : ${error.message}`, 'error');
+    toast(t('Import impossible : {message}', { message: error.message }), 'error');
   } finally {
     el.import.textContent = label;
     el.import.disabled = false;
@@ -888,10 +922,9 @@ async function importArchive(file) {
  * @returns {string}
  */
 function importReport({ added, duplicates, rejected }) {
-  const plural = (count, noun) => `${count} ${noun}${count > 1 ? 's' : ''}`;
-  const parts = [`${plural(added, 'lien')} importé${added > 1 ? 's' : ''}`];
-  if (duplicates > 0) parts.push(`${duplicates} déjà présent${duplicates > 1 ? 's' : ''}`);
-  if (rejected > 0) parts.push(plural(rejected, 'illisible'));
+  const parts = [tpl(added, '{count} lien importé', '{count} liens importés')];
+  if (duplicates > 0) parts.push(tpl(duplicates, '{count} déjà présent', '{count} déjà présents'));
+  if (rejected > 0) parts.push(tpl(rejected, '{count} illisible', '{count} illisibles'));
   return parts.join(', ');
 }
 
@@ -902,6 +935,11 @@ function importReport({ added, duplicates, rejected }) {
 /**
  * Remplit la liste des services de raccourcissement.
  *
+ * Le libellé de chaque option dit ce que le service change pour un usage
+ * ordinaire — quelqu'un qui veut seulement un lien plus court n'a pas à
+ * arbitrer entre quatre marques. TinyURL est proposé d'emblée et marqué
+ * « recommandé » ; la note technique reste en infobulle.
+ *
  * L'URL complète est transmise au service choisi : c'est une décision qui
  * appartient à l'utilisateur, donc rien n'est coché ni déclenché d'avance.
  */
@@ -910,7 +948,7 @@ function fillShorteners() {
   for (const shortener of SHORTENERS) {
     const option = document.createElement('option');
     option.value = shortener.id;
-    option.textContent = shortener.name;
+    option.textContent = t(shortener.label);
     option.title = shortener.note;
     el.shortener.appendChild(option);
   }
@@ -936,13 +974,15 @@ function updateShortenStatus(message = '') {
   }
 
   const scope = selected.size > 0
-    ? `${selected.size} lien${selected.size > 1 ? 's' : ''} coché${selected.size > 1 ? 's' : ''}`
-    : 'toute la collection';
+    ? tpl(selected.size, '{count} lien coché', '{count} liens cochés')
+    : t('toute la collection');
   const done = shortened.length > 0
-    ? ` — ${shortened.length} raccourci${shortened.length > 1 ? 's' : ''} en place`
+    ? tpl(shortened.length, ' — {count} raccourci en place', ' — {count} raccourcis en place')
     : '';
-  el.shortenStatus.textContent =
-    `${currentShortener().name} · ${scope}${done}. L'URL complète est transmise au service.`;
+  el.shortenStatus.textContent = t(
+    "{label} · {scope}{done}. L'URL complète est transmise au service.",
+    { label: t(currentShortener().label), scope, done },
+  );
 }
 
 /**
@@ -962,7 +1002,7 @@ async function shortenSelection() {
 
   const targets = selectedLinks().filter((link) => !hasShortUrl(link));
   if (targets.length === 0) {
-    updateShortenStatus('Tous les liens visés sont déjà raccourcis.');
+    updateShortenStatus(t('Tous les liens visés sont déjà raccourcis.'));
     return;
   }
 
@@ -971,14 +1011,14 @@ async function shortenSelection() {
   shortenJob = controller;
 
   el.shorten.disabled = false;
-  el.shorten.textContent = 'Annuler';
-  toast(`Raccourcissement via ${shortener.provider.name}…`);
+  el.shorten.textContent = t('Annuler');
+  toast(t('Raccourcissement via {name}…', { name: shortener.provider.name }));
 
   try {
     const report = await shortener.shortenMany(targets, {
       signal: controller.signal,
       onProgress: (done, total) => {
-        updateShortenStatus(`${shortener.provider.name} · ${done}/${total}…`);
+        updateShortenStatus(t('{name} · {done}/{total}…', { name: shortener.provider.name, done, total }));
       },
     });
 
@@ -1001,11 +1041,11 @@ async function shortenSelection() {
     toast(summary, report.failed.length > 0 ? 'error' : 'info');
     updateShortenStatus(summary);
   } catch (error) {
-    toast(`Raccourcissement impossible : ${error.message}`, 'error');
+    toast(t('Raccourcissement impossible : {message}', { message: error.message }), 'error');
     updateShortenStatus(error.message);
   } finally {
     shortenJob = null;
-    el.shorten.textContent = 'Raccourcir';
+    el.shorten.textContent = t('Raccourcir');
     el.shorten.disabled = links.length === 0;
     updateTargetAvailability();
   }
@@ -1064,7 +1104,7 @@ function updateDateHint() {
   const mode = dateMode();
   const parties = [];
   if (mode === 'none') {
-    parties.push('Aucune date imprimée.');
+    parties.push(t('Aucune date imprimée.'));
   } else {
     const date = new Date();
     const pad = (n) => String(n).padStart(2, '0');
@@ -1072,17 +1112,17 @@ function updateDateHint() {
       ? `${pad(date.getDate())}/${pad(date.getMonth() + 1)}/${date.getFullYear()}`
       : `${pad(date.getDate())}/${pad(date.getMonth() + 1)}/${date.getFullYear()} `
         + `${pad(date.getHours())}:${pad(date.getMinutes())}`;
-    parties.push(`Date de collecte sur sa propre ligne — ${echantillon}.`);
+    parties.push(t('Date de collecte sur sa propre ligne — {sample}.', { sample: echantillon }));
   }
-  if (el.sheetDateIndex.checked) parties.push('Le numéro du lien précède la date.');
-  parties.push('Chaque ligne de plus réduit la place du QR code.');
+  if (el.sheetDateIndex.checked) parties.push(t('Le numéro du lien s\'imprime au-dessus du titre.'));
+  parties.push(t('Chaque ligne de plus réduit la place du QR code.'));
   el.sheetDateHint.textContent = parties.join(' ');
 }
 
 function fillTargets() {
   const choices = [
-    { value: 'original', label: "L'URL collectée" },
-    { value: 'short', label: 'Le lien raccourci' },
+    { value: 'original', label: t("L'URL collectée") },
+    { value: 'short', label: t('Le lien raccourci') },
   ];
   el.qrTarget.textContent = '';
   targetOptions.clear();
@@ -1113,9 +1153,12 @@ function updateTargetAvailability() {
   }
 
   el.targetHint.textContent = shortened === 0
-    ? "Le QR code encode l'URL collectée."
-    : `${shortened} lien${shortened > 1 ? 's' : ''} raccourci${shortened > 1 ? 's' : ''} : `
-      + 'un QR plus court se scanne plus vite et tient sur une plus petite étiquette.';
+    ? t("Le QR code encode l'URL collectée.")
+    : tpl(
+      shortened,
+      '{count} lien raccourci : un QR plus court se scanne plus vite et tient sur une plus petite étiquette.',
+      '{count} liens raccourcis : un QR plus court se scanne plus vite et tient sur une plus petite étiquette.',
+    );
 }
 
 /** Retire les raccourcis : les URL d'origine n'ont jamais bougé. */
@@ -1127,7 +1170,7 @@ async function clearShortUrls() {
     await store.put({ ...link, shortUrl: '', shortProvider: '', shortenedAt: 0 });
   }
   await refresh();
-  toast(`${shortened.length} raccourci${shortened.length > 1 ? 's' : ''} retiré${shortened.length > 1 ? 's' : ''}`);
+  toast(tpl(shortened.length, '{count} raccourci retiré', '{count} raccourcis retirés'));
 }
 
 // ---------------------------------------------------------------------------
@@ -1287,19 +1330,28 @@ function updateFitHint(state) {
   const size = `${decimal(layout.labelWidthMm)} × ${decimal(layout.labelHeightMm)} mm`;
 
   const parts = [
-    `Taille des étiquettes déduite de ces six valeurs : ${size}, `
-    + `${layout.columns} × ${layout.rows} par feuille.`,
+    t('Taille des étiquettes déduite de ces six valeurs : {size}, {columns} × {rows} par feuille.', {
+      size,
+      columns: layout.columns,
+      rows: layout.rows,
+    }),
   ];
 
   if (offsetXMm !== 0 || offsetYMm !== 0) {
     const moves = [];
     if (offsetXMm !== 0) {
-      moves.push(`${decimal(Math.abs(offsetXMm))} mm vers la ${offsetXMm > 0 ? 'droite' : 'gauche'}`);
+      moves.push(t('{mm} mm vers la {direction}', {
+        mm: decimal(Math.abs(offsetXMm)),
+        direction: offsetXMm > 0 ? t('droite') : t('gauche'),
+      }));
     }
     if (offsetYMm !== 0) {
-      moves.push(`${decimal(Math.abs(offsetYMm))} mm vers le ${offsetYMm > 0 ? 'bas' : 'haut'}`);
+      moves.push(t('{mm} mm vers le {direction}', {
+        mm: decimal(Math.abs(offsetYMm)),
+        direction: offsetYMm > 0 ? t('bas') : t('haut'),
+      }));
     }
-    parts.push(`Décalage appliqué : ${moves.join(' et ')}.`);
+    parts.push(t('Décalage appliqué : {moves}.', { moves: moves.join(t(' et ')) }));
   }
 
   el.sheetFitHint.textContent = parts.join(' ');
@@ -1364,11 +1416,29 @@ function buildSheetPages(items) {
   // place que le QR doit laisser, sinon le curseur autoriserait un réglage qui
   // la rogne.
   const wantsDate = dateMode() !== 'none';
-  const bounds = qrRatioBounds({
+  // Lues **avant** d'être utilisées : `const` lue plus haut lève une
+  // `ReferenceError`, et `buildSheetPages` s'arrêtait là — la planche restait
+  // vierge, sans message.
+  const veutIndex = el.sheetDateIndex.checked;
+  // Le numéro et la date occupent chacun une ligne à part entière, en plus du
+  // texte principal. Ils doivent être comptés dans la place que le QR laisse,
+  // sinon le curseur autoriserait un réglage qui les rogne.
+  const indexLignes = veutIndex ? 1 : 0;
+  const dateLignes = wantsDate ? 1 : 0;
+  const lignesHorsTexte = indexLignes + dateLignes;
+
+  /**
+   * Bornes du QR pour un nombre de lignes de texte donné.
+   *
+   * Les bornes dépendent de la place que le texte réclame : c'est ce qui permet
+   * de **réserver deux lignes** plutôt que de tronquer le titre. Une seule
+   * ligne réservée donnait, dès 8 pt, « https://www.youtube.com/watch?v=jYI8-… ».
+   */
+  const bornesPourLignes = (lignesTexte) => qrRatioBounds({
     labelWidthMm: layout.labelWidthMm,
     labelHeightMm: layout.labelHeightMm,
     qrModules: modules,
-    textLines: wantsDate ? 2 : 1,
+    textLines: lignesTexte + lignesHorsTexte,
     marginMm: SHEET_CELL_MARGIN_MM,
     gapMm: SHEET_QR_GAP_MM,
     minModuleMm: MIN_MODULE_MM_PAPER,
@@ -1376,6 +1446,42 @@ function buildSheetPages(items) {
     // laisse moins de place au QR, et la borne haute doit en tenir compte.
     fontSizePt: sheetFontPt(),
   });
+
+  /**
+   * Ce qui s'imprime sous le QR.
+   *
+   * Un titre absent laissait déjà la place à l'URL ; l'option l'ajoute au
+   * titre. La même fonction sert au calcul des lignes réservées et au rendu :
+   * deux expressions séparées auraient réservé un nombre de lignes qui ne
+   * correspondait pas au texte réellement écrit.
+   */
+  const montreUrl = el.sheetUrl.checked;
+  const texteSousLeQr = (item) => {
+    const titre = typeof item.title === 'string' ? item.title.trim() : '';
+    if (!montreUrl) return titre || item.url;
+    return titre === '' ? item.url : `${titre} ${item.url}`;
+  };
+
+  // Combien de lignes le texte le plus long réclame-t-il à cette taille ?
+  const mesurePlanche = cachedTextMeasure(metrics.fontSizePx);
+  const largeurInterieurePx =
+    ((layout.labelWidthMm - SHEET_CELL_MARGIN_MM * 2) * 96) / 25.4;
+  const lignesNecessaires = encoded.flat().reduce((plus, entree) => {
+    const texte = texteSousLeQr(entree.item);
+    return Math.max(plus, sheetCellLines(texte, {
+      measure: mesurePlanche,
+      innerWidthPx: largeurInterieurePx,
+      maxLines: 99,
+    }).length);
+  }, 1);
+
+  // Ce que le format peut réellement offrir : c'est `textLinesAtMin` qui le dit,
+  // puisque le QR ne descend pas sous la taille où ses modules restent lisibles.
+  // Au-delà, on tronque — mais seulement au-delà.
+  const sondeLignes = bornesPourLignes(1);
+  const lignesOffertes = Math.max(1, sondeLignes.textLinesAtMin - lignesHorsTexte);
+
+  const bounds = bornesPourLignes(Math.min(lignesNecessaires, lignesOffertes));
 
   // Le curseur est borné par ce que l'impression permet réellement.
   applyQrSliderBounds(bounds);
@@ -1388,7 +1494,12 @@ function buildSheetPages(items) {
   const innerWidthMm = layout.labelWidthMm - SHEET_CELL_MARGIN_MM * 2;
   const textSpaceMm = layout.labelHeightMm - SHEET_CELL_MARGIN_MM * 2
     - side - SHEET_QR_GAP_MM;
-  const maxLines = Math.max(1, Math.floor(textSpaceMm / metrics.lineHeightMm));
+  // La tolérance n'est pas cosmétique : la borne du QR est arrondie au millième
+  // par `qrRatioBounds`, et cet arrondi se propage jusqu'ici. Sans elle, une
+  // place calculée pour deux lignes n'en donnait qu'une — 12,978 mm pour
+  // 6,493 mm d'interligne vaut 1,9989, que `floor` ramenait à 1. Le texte était
+  // alors tronqué pour un millième de millimètre.
+  const maxLines = Math.max(1, Math.floor(textSpaceMm / metrics.lineHeightMm + 1e-3));
   const measure = cachedTextMeasure(metrics.fontSizePx);
   const innerWidthPx = (innerWidthMm * 96) / 25.4;
   /** Liens dont la date n'a pas pu être imprimée, faute de largeur. */
@@ -1409,7 +1520,7 @@ function buildSheetPages(items) {
     // Nommer le lien fautif évite de chercher lequel, sur une planche de trente
     // étiquettes, demande trop de place.
     const culprit = densest.item
-      ? ` Le lien le plus dense est « ${densest.item.title || densest.item.url} ».`
+      ? t(' Le lien le plus dense est « {title} ».', { title: densest.item.title || densest.item.url })
       : '';
     warnings.push(bounds.reason + culprit);
   }
@@ -1452,12 +1563,17 @@ function buildSheetPages(items) {
       const dateText = wanted !== '' && measure(wanted) <= innerWidthPx ? wanted : '';
       const dropped = wanted !== '' && dateText === '';
 
-      const lines = sheetCellLines(item.title || item.url, {
+      const lines = sheetCellLines(texteSousLeQr(item), {
         measure,
         innerWidthPx,
-        // La date prend sa ligne : le texte se contente de ce qui reste.
-        maxLines: dateText ? Math.max(1, maxLines - 1) : maxLines,
+        // Le numéro et la date prennent leur ligne : le texte principal se
+        // contente de ce qui reste.
+        maxLines: Math.max(1, maxLines - lignesHorsTexte),
       });
+      // Le numéro occupe sa ligne, comme la date : il sert à retrouver le lien
+      // dans la collection, donc à l'écran comme sur le papier.
+      const rang = veutIndex ? linkRanks.get(item.id) : null;
+      if (rang) lines.unshift(String(rang));
       if (dateText) lines.push(dateText);
       if (dropped) omittedDates.add(item.id);
 
@@ -1484,18 +1600,21 @@ function buildSheetPages(items) {
   });
 
   if (omittedDates.size > 0) {
-    warnings.push(
-      `Date non imprimée sur ${omittedDates.size} étiquette`
-      + `${omittedDates.size > 1 ? 's' : ''} : elle ne tient pas sur une ligne à `
-      + 'cette largeur.',
-    );
+    warnings.push(tpl(
+      omittedDates.size,
+      'Date non imprimée sur {count} étiquette : elle ne tient pas sur une ligne à cette largeur.',
+      'Date non imprimée sur {count} étiquettes : elle ne tient pas sur une ligne à cette largeur.',
+    ));
   }
 
   el.sheetInfo.textContent = layout.perPage > 0
-    ? `${layout.columns} × ${layout.rows} = ${layout.perPage} étiquettes par page ` +
-      `de ${decimal(layout.labelWidthMm)} × ${decimal(layout.labelHeightMm)} mm, ` +
-      `${layout.pages} page${layout.pages > 1 ? 's' : ''}` +
-      (warnings.length ? ` — ${warnings.join(' ')}` : '')
+    ? t('{columns} × {rows} = {perPage} de {size} mm, {pages}', {
+      columns: layout.columns,
+      rows: layout.rows,
+      perPage: tpl(layout.perPage, '{count} étiquette par page', '{count} étiquettes par page'),
+      size: `${decimal(layout.labelWidthMm)} × ${decimal(layout.labelHeightMm)}`,
+      pages: tpl(layout.pages, '{count} page', '{count} pages'),
+    }) + (warnings.length ? ` — ${warnings.join(' ')}` : '')
     : layout.warnings.join(' ');
 
   return built;
@@ -1538,11 +1657,20 @@ function updateQrInfo(state) {
     return;
   }
 
-  const range = `${Math.round(bounds.min * 100)} à ${Math.round(bounds.max * 100)} %`;
-  el.sheetQrInfo.textContent =
-    `QR de ${decimal(side)} mm (${decimal(moduleMm, 2)} mm par module, `
-    + `minimum ${decimal(bounds.minModuleMm, 2)} mm) — ` +
-    `réglable de ${range} — ${maxLines} ligne${maxLines > 1 ? 's' : ''} de texte.`;
+  const range = t('{min} à {max} %', {
+    min: Math.round(bounds.min * 100),
+    max: Math.round(bounds.max * 100),
+  });
+  el.sheetQrInfo.textContent = t(
+    'QR de {side} mm ({module} mm par module, minimum {minimum} mm) — réglable de {range} — {lines} de texte.',
+    {
+      side: decimal(side),
+      module: decimal(moduleMm, 2),
+      minimum: decimal(bounds.minModuleMm, 2),
+      range,
+      lines: tpl(maxLines, '{count} ligne', '{count} lignes'),
+    },
+  );
   el.sheetQrInfo.style.color = moduleMm < bounds.minModuleMm ? 'var(--danger)' : '';
 }
 
@@ -1732,8 +1860,8 @@ function hasAnyTableColumn() {
  */
 function updateTableOptions() {
   const options = [
-    { box: el.tableColTags, available: hasAnyTag(links), what: 'tag' },
-    { box: el.tableColNote, available: hasAnyNote(links), what: 'note' },
+    { box: el.tableColTags, available: hasAnyTag(links), what: t('tag') },
+    { box: el.tableColNote, available: hasAnyNote(links), what: t('note') },
   ];
 
   for (const { box, available, what } of options) {
@@ -1742,14 +1870,14 @@ function updateTableOptions() {
     const label = box.parentNode;
     if (label) {
       label.title = available
-        ? `Imprimer la colonne « ${what} »`
-        : `Aucun lien n'a de ${what} : ajoutez-en un avec le bouton ✎ de la liste.`;
+        ? t('Imprimer la colonne « {what} »', { what })
+        : t("Aucun lien n'a de {what} : ajoutez-en un avec le bouton ✎ de la liste.", { what });
     }
   }
 
   el.tableHint.textContent = hasAnyNote(links) || hasAnyTag(links)
-    ? 'Les tags et la note saisis dans la liste (bouton ✎) peuvent être imprimés ici.'
-    : 'Ajoutez un tag ou une note depuis la liste (bouton ✎) pour pouvoir les imprimer.';
+    ? t('Les tags et la note saisis dans la liste (bouton ✎) peuvent être imprimés ici.')
+    : t('Ajoutez un tag ou une note depuis la liste (bouton ✎) pour pouvoir les imprimer.');
 }
 
 /** Redessine l'aperçu selon le mode actif. */
@@ -1758,6 +1886,14 @@ function renderPreview() {
   el.preview.textContent = '';
   el.print.disabled = items.length === 0;
   el.print.textContent = printLabel(items.length);
+  // L'export du tableau suit la même portée que l'impression : la sélection et
+  // les colonnes cochées. Sans colonne, il n'y a rien à exporter. Il ne se
+  // montre que dans l'onglet Tableau, à côté d'« Imprimer ».
+  el.exportTable.hidden = mode !== 'table';
+  el.exportTable.disabled = items.length === 0 || !hasAnyTableColumn();
+  // Niimbot et Étiquette (divers) ont leur propre bouton dans le panneau : la
+  // rangée commune disparaît, sans laisser un blanc entre le mode et l'aperçu.
+  el.panelActions.hidden = mode === 'single' || mode === 'images';
 
   if (mode === 'single') {
     el.print.hidden = true;
@@ -1771,6 +1907,9 @@ function renderPreview() {
     // fichiers, utilisables avec n'importe quelle étiqueteuse.
     el.print.hidden = true;
     el.exportLabels.disabled = items.length === 0;
+    // Le libellé dit la portée et le nombre, comme le bouton d'impression :
+    // « Exporter les images » laissait croire à toute la collection.
+    el.exportLabels.textContent = exportImagesLabel(items.length);
     renderImagePreview(items[0]);
     return;
   }
@@ -1789,7 +1928,7 @@ function renderPreview() {
 
     const note = document.createElement('p');
     note.className = 'hint';
-    note.textContent = 'Ajoutez des liens pour voir un aperçu.';
+    note.textContent = t('Ajoutez des liens pour voir un aperçu.');
     el.preview.appendChild(note);
     return;
   }
@@ -1800,7 +1939,7 @@ function renderPreview() {
       // d'afficher un cadre vide.
       const note = document.createElement('p');
       note.className = 'hint';
-      note.textContent = 'Aucune colonne sélectionnée : cochez au moins une colonne.';
+      note.textContent = t('Aucune colonne sélectionnée : cochez au moins une colonne.');
       el.preview.appendChild(note);
       return;
     }
@@ -1815,6 +1954,35 @@ function renderPreview() {
 }
 
 /**
+ * Largeur utile de l'aperçu, en pixels.
+ *
+ * `clientWidth` inclut le rembourrage de `.preview` : on le retire pour obtenir
+ * la place réellement offerte à une page. Un minimum fixe de 280 px faisait
+ * déborder la page dès que le panneau était plus étroit que lui — fenêtre
+ * rétrécie ou téléphone. Si la mesure est indisponible (DOM de substitution),
+ * on retombe sur une valeur raisonnable.
+ *
+ * @returns {number}
+ */
+function previewViewportWidth() {
+  const node = el.preview;
+  const raw = Number(node?.clientWidth);
+  if (!Number.isFinite(raw) || raw <= 0) return 320;
+
+  let padX = 28;
+  if (typeof getComputedStyle === 'function') {
+    try {
+      const styles = getComputedStyle(node);
+      padX = (Number.parseFloat(styles.paddingLeft) || 0)
+        + (Number.parseFloat(styles.paddingRight) || 0);
+    } catch {
+      // On garde le rembourrage par défaut.
+    }
+  }
+  return Math.max(120, raw - padX);
+}
+
+/**
  * Met une page en millimètres à l'échelle de l'aperçu.
  * @param {HTMLElement} page
  * @returns {HTMLElement}
@@ -1822,7 +1990,7 @@ function renderPreview() {
 function scaleForScreen(page) {
   const widthMm = Number.parseFloat(page.style.width);
   const heightMm = Number.parseFloat(page.style.height);
-  const available = Math.max(280, el.preview.clientWidth - 40);
+  const available = previewViewportWidth();
   const scale = Math.min(0.6, available / (widthMm * PX_PER_MM));
 
   const frame = document.createElement('div');
@@ -1873,7 +2041,7 @@ function renderSingleLabel(link) {
   if (!link) {
     const note = document.createElement('p');
     note.className = 'hint';
-    note.textContent = 'Sélectionnez un lien pour voir l\'étiquette.';
+    note.textContent = t('Sélectionnez un lien pour voir l\'étiquette.');
     el.preview.appendChild(note);
     return;
   }
@@ -1913,16 +2081,23 @@ function renderSingleLabel(link) {
   const shown = rotated ?? source;
 
   const canvas = document.createElement('canvas');
-  // Le rendu écran est agrandi : la tête ne fait que 96 px de large.
-  const zoom = Math.max(1, Math.floor(280 / shown.width));
-  canvas.width = shown.width * zoom;
-  canvas.height = shown.height * zoom;
-  canvas.style.width = `${shown.width * zoom}px`;
-  canvas.style.imageRendering = 'pixelated';
+  // Le rendu écran suit la place disponible : agrandi quand la tête est étroite
+  // (96 px sur un D110), réduit quand elle est large (851 px sur un M3) — un
+  // zoom minimal de 1 faisait déborder ce dernier du panneau.
+  const available = Math.max(1, previewViewportWidth() - 20);
+  const zoom = Math.min(4, available / shown.width);
+  const displayWidth = Math.max(1, Math.round(shown.width * zoom));
+  const displayHeight = Math.max(1, Math.round(shown.height * zoom));
+  canvas.width = displayWidth;
+  canvas.height = displayHeight;
+  canvas.style.width = `${displayWidth}px`;
+  canvas.style.imageRendering = zoom < 1 ? 'auto' : 'pixelated';
 
   const ctx = canvas.getContext('2d');
-  ctx.imageSmoothingEnabled = false;
-  ctx.drawImage(shown, 0, 0, canvas.width, canvas.height);
+  // À la réduction, un lissage garde le QR lisible ; à l'agrandissement, le plus
+  // proche voisin conserve les modules nets.
+  ctx.imageSmoothingEnabled = zoom < 1;
+  ctx.drawImage(shown, 0, 0, displayWidth, displayHeight);
 
   frame.appendChild(canvas);
 
@@ -1931,21 +2106,26 @@ function renderSingleLabel(link) {
   // `composeLabel` sait si la date a été écartée : on le dit, plutôt que de
   // laisser croire que l'option n'a pas d'effet.
   const dateNote = dateTropPetite
-    ? ' — date non imprimée : elle exigerait un texte trop petit pour être lu.'
+    ? t(' — date non imprimée : elle exigerait un texte trop petit pour être lu.')
     : (dateOmitted ? composeDateNote() : '');
   // La taille réellement retenue peut différer de celle demandée : la géométrie
   // réduit plutôt que de tronquer. On le dit, sinon le réglage semble sans effet.
   const tailleObtenue = pxToMm(geometry.fontSize, profile.dpi).toFixed(1);
-  el.labelFontHint.textContent =
-    `Texte de ${tailleObtenue} mm de haut, `
-    + `${geometry.lines.length + (content.titleLines?.length ?? 0)} ligne(s) de texte.`;
+  el.labelFontHint.textContent = t('Texte de {size} mm de haut, {lines} de texte.', {
+    size: tailleObtenue,
+    lines: tpl(geometry.lines.length + (content.titleLines?.length ?? 0), '{count} ligne', '{count} lignes'),
+  });
   const orientationNote = lateralRefused
-    ? ' — texte empilé : le QR laisse trop peu de largeur pour une colonne de texte.'
-    : (turns === 0 ? '' : ` — orientation : ${labelRotation().label}`);
+    ? t(' — texte empilé : le QR laisse trop peu de largeur pour une colonne de texte.')
+    : (turns === 0 ? '' : t(' — orientation : {label}', { label: t(labelRotation().label) }));
   caption.textContent = (verdict.ok
-    ? `${profile.id} — ${geometry.width} × ${geometry.height} px, `
-      + `${decimal(verdict.pxPerModule)} px par module`
-    : `${profile.id} — ${verdict.reason}`) + orientationNote + dateNote;
+    ? t('{profile} — {width} × {height} px, {px} px par module', {
+      profile: profile.id,
+      width: geometry.width,
+      height: geometry.height,
+      px: decimal(verdict.pxPerModule),
+    })
+    : t('{profile} — {reason}', { profile: profile.id, reason: t(verdict.reason) })) + orientationNote + dateNote;
   if (!verdict.ok) caption.style.color = 'var(--danger)';
   frame.appendChild(caption);
 
@@ -2214,12 +2394,13 @@ function cachedTextMeasure(fontSizePx) {
 
 /**
  * Lit les préférences de mise en page du formulaire.
- * @returns {{ format: object, textMode: string, marginMm: number, fontSizePt: number, cutMarks: boolean }}
+ * @returns {{ format: object, textMode: string, showTitle: boolean, dateMode: string, marginMm: number, fontSizePt: number, cutMarks: boolean }}
  */
 function readLabelOptions() {
   return {
     format: findFormat(el.labelFormat.value),
     textMode: el.labelText.value,
+    showTitle: el.exportTitle.checked,
     dateMode: exportDateMode(),
     marginMm: Math.max(0, Number(el.labelMargin.value) || 0),
     fontSizePt: Math.max(4, Number(el.labelFont.value) || 7),
@@ -2294,6 +2475,7 @@ async function renderLabelPng(link, options) {
     format: options.format,
     measure: createTextMeasure(fontSizePx),
     textMode: options.textMode,
+    showTitle: options.showTitle,
     // Sans cette ligne, la date choisie dans l'interface était silencieusement
     // ignorée : les réglages consignés la mentionnaient, mais ni l'aperçu ni
     // les images ne la portaient.
@@ -2311,7 +2493,7 @@ async function renderLabelPng(link, options) {
   drawLabelCanvas(ctx, plan, link.url, { cutMarks: options.cutMarks });
 
   const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/png'));
-  if (!blob) throw new Error('Le navigateur n\'a pas pu encoder l\'image.');
+  if (!blob) throw new Error(t('Le navigateur n\'a pas pu encoder l\'image.'));
   return { png: new Uint8Array(await blob.arrayBuffer()), plan };
 }
 
@@ -2320,7 +2502,7 @@ function renderImagePreview(link) {
   if (!link) {
     const note = document.createElement('p');
     note.className = 'hint';
-    note.textContent = 'Ajoutez des liens pour voir un aperçu.';
+    note.textContent = t('Ajoutez des liens pour voir un aperçu.');
     el.preview.appendChild(note);
     return;
   }
@@ -2332,6 +2514,7 @@ function renderImagePreview(link) {
     format: options.format,
     measure: createTextMeasure(fontSizePx),
     textMode: options.textMode,
+    showTitle: options.showTitle,
     // Sans cette ligne, la date choisie dans l'interface était silencieusement
     // ignorée : les réglages consignés la mentionnaient, mais ni l'aperçu ni
     // les images ne la portaient.
@@ -2347,27 +2530,38 @@ function renderImagePreview(link) {
   ctx.imageSmoothingEnabled = false;
   drawLabelCanvas(ctx, plan, link.url, { cutMarks: options.cutMarks });
 
-  // La largeur réelle va de 12 mm à 70 mm : on met à l'échelle pour l'écran,
-  // en gardant des proportions exactes.
-  const scale = Math.min(6, Math.max(1, Math.floor(260 / plan.widthPx)));
+  // La largeur réelle va de 12 mm à 104 mm : on met à l'échelle pour l'écran,
+  // en gardant des proportions exactes et sans jamais dépasser la place
+  // disponible — un minimum de 1 faisait déborder les formats larges.
+  const available = Math.max(1, previewViewportWidth() - 20);
+  const scale = Math.min(6, available / plan.widthPx);
 
   const frame = document.createElement('div');
   frame.className = 'preview__page';
   frame.style.padding = '10px';
 
   const shown = canvas;
-  shown.style.width = `${plan.widthPx * scale}px`;
-  shown.style.height = `${plan.heightPx * scale}px`;
-  shown.style.imageRendering = 'pixelated';
+  shown.style.width = `${Math.round(plan.widthPx * scale)}px`;
+  shown.style.height = `${Math.round(plan.heightPx * scale)}px`;
+  shown.style.imageRendering = scale < 1 ? 'auto' : 'pixelated';
   frame.appendChild(shown);
 
   const caption = document.createElement('p');
   caption.className = 'hint';
   caption.textContent = (plan.fits
-    ? `${options.format.widthMm} mm × ${plan.heightPx} px — ${plan.widthPx} × ${plan.heightPx} px à ${options.format.dpi} dpi`
-    : `URL trop longue pour ce format : le QR fait ${plan.qrSizePx} px pour ${plan.widthPx} px de large.`)
+    ? t('{width} mm × {height} px — {widthPx} × {heightPx} px à {dpi} dpi', {
+      width: options.format.widthMm,
+      height: plan.heightPx,
+      widthPx: plan.widthPx,
+      heightPx: plan.heightPx,
+      dpi: options.format.dpi,
+    })
+    : t('URL trop longue pour ce format : le QR fait {size} px pour {width} px de large.', {
+      size: plan.qrSizePx,
+      width: plan.widthPx,
+    }))
     + (plan.dateOmitted
-      ? ' — date non imprimée : elle ne tient pas sur ce format, réduisez la taille du texte.'
+      ? t(' — date non imprimée : elle ne tient pas sur ce format, réduisez la taille du texte.')
       : '');
   if (!plan.fits) caption.style.color = 'var(--danger)';
   frame.appendChild(caption);
@@ -2381,13 +2575,13 @@ async function exportLabelImages() {
   if (items.length === 0) return;
 
   const options = readLabelOptions();
-  const label = el.exportLabels.textContent;
   el.exportLabels.disabled = true;
 
   try {
     const planned = planLabels(items, {
       format: options.format,
       textMode: options.textMode,
+      showTitle: options.showTitle,
       dateMode: options.dateMode,
       marginMm: options.marginMm,
       fontSizePt: options.fontSizePt,
@@ -2398,12 +2592,15 @@ async function exportLabelImages() {
 
     const images = new Map();
     for (const [index, entry] of planned.entries()) {
-      el.exportLabels.textContent = `Étiquette ${index + 1}/${planned.length}…`;
+      el.exportLabels.textContent = t('Étiquette {index}/{total}…', {
+        index: index + 1,
+        total: planned.length,
+      });
       const { png } = await renderLabelPng(entry.link, options);
       images.set(entry.fileName, png);
     }
 
-    el.exportLabels.textContent = 'Assemblage…';
+    el.exportLabels.textContent = t('Assemblage…');
     const name = collectionName();
     const archive = buildLabelArchive({
       planned,
@@ -2415,14 +2612,21 @@ async function exportLabelImages() {
     const ok = downloadBytes(filename, archive, { mime: 'application/zip' });
     toast(
       ok
-        ? `${planned.length} étiquette${planned.length > 1 ? 's' : ''} — ${filename} enregistré`
-        : 'Téléchargement impossible',
+        ? tpl(
+          planned.length,
+          '{count} étiquette — {filename} enregistré',
+          '{count} étiquettes — {filename} enregistré',
+          { filename },
+        )
+        : t('Téléchargement impossible'),
       ok ? 'info' : 'error',
     );
   } catch (error) {
-    toast(`Export impossible : ${error.message}`, 'error');
+    toast(t('Export impossible : {message}', { message: error.message }), 'error');
   } finally {
-    el.exportLabels.textContent = label;
+    // Le libellé de repos est recalculé, et non restauré : la portée et le
+    // nombre restent ceux de la collection au moment où l'on regarde.
+    el.exportLabels.textContent = exportImagesLabel(items.length);
     el.exportLabels.disabled = items.length === 0;
   }
 }
@@ -2435,7 +2639,7 @@ async function exportLabelImages() {
 function printSelection() {
   const items = printableLinks();
   if (items.length === 0) {
-    toast('Aucun lien à imprimer', 'error');
+    toast(t('Aucun lien à imprimer'), 'error');
     return;
   }
 
@@ -2480,14 +2684,14 @@ async function reportBluetoothSupport() {
     el.bleSupport.textContent = `${support.reason} ${support.hint}`;
     // Une note manuscrite vaut mieux qu'un texte gris : c'est la cause
     // n° 1 des échecs de connexion, et elle se règle en deux minutes.
-    el.printStatus.textContent = 'Impression directe indisponible — voir le message ci-dessus.';
+    el.printStatus.textContent = t('Impression directe indisponible — voir le message ci-dessus.');
   }
 }
 
 /** Ouvre le sélecteur puis établit la session d'impression. */
 async function connectPrinter() {
   el.connect.disabled = true;
-  el.printStatus.textContent = 'Recherche de l\'imprimante…';
+  el.printStatus.textContent = t('Recherche de l\'imprimante…');
 
   try {
     const device = await requestPrinter();
@@ -2504,11 +2708,11 @@ async function connectPrinter() {
     el.printLabel.disabled = false;
 
     const details = [
-      modelId !== null ? `modèle ${modelId}` : 'modèle non rapporté',
-      `${profile.printheadPixels} px de tête`,
+      modelId !== null ? t('modèle {id}', { id: modelId }) : t('modèle non rapporté'),
+      t('{count} px de tête', { count: profile.printheadPixels }),
     ];
-    if (reportedHeadPixels !== null) details.push(`largeur mesurée ${reportedHeadPixels} px`);
-    el.printStatus.textContent = `Connecté : ${details.join(', ')}.`;
+    if (reportedHeadPixels !== null) details.push(t('largeur mesurée {count} px', { count: reportedHeadPixels }));
+    el.printStatus.textContent = t('Connecté : {details}.', { details: details.join(', ') });
 
     // L'aperçu se cale sur le matériel présent : ce qu'on voit est ce qu'on
     // imprimera. Le sélecteur reste modifiable pour explorer un autre format.
@@ -2532,7 +2736,7 @@ async function connectPrinter() {
 
 /** L'imprimante s'éteint en veille : on remet l'interface en cohérence. */
 function handlePrinterLost() {
-  toast('Imprimante déconnectée', 'error');
+  toast(t('Imprimante déconnectée'), 'error');
   resetPrinter();
   renderPreview();
 }
@@ -2542,7 +2746,7 @@ function resetPrinter() {
   transport = null;
   printer = null;
   el.printerDot.className = 'dot dot--off';
-  el.printerName.textContent = 'Aucune imprimante connectée';
+  el.printerName.textContent = t('Aucune imprimante connectée');
   el.connect.hidden = false;
   el.disconnect.hidden = true;
   el.printLabel.disabled = true;
@@ -2593,7 +2797,7 @@ async function sendLabel(link, options = {}) {
     density,
     copies,
     onProgress: ({ page }) => {
-      el.printStatus.textContent = `Impression ${page}/${copies}…`;
+      el.printStatus.textContent = t('Impression {page}/{copies}…', { page, copies });
     },
   });
 
@@ -2603,27 +2807,29 @@ async function sendLabel(link, options = {}) {
 /** Imprime l'étiquette du lien choisi. */
 async function printOneLabel() {
   if (!printer) {
-    toast('Aucune imprimante connectée', 'error');
+    toast(t('Aucune imprimante connectée'), 'error');
     return;
   }
 
   const link = chosenLabelLink();
   if (!link) {
-    toast('Aucun lien dans la collection', 'error');
+    toast(t('Aucun lien dans la collection'), 'error');
     return;
   }
 
   el.printLabel.disabled = true;
-  el.printStatus.textContent = 'Composition de l\'étiquette…';
+  el.printStatus.textContent = t('Composition de l\'étiquette…');
 
   try {
-    el.printStatus.textContent = 'Envoi en cours…';
+    el.printStatus.textContent = t('Envoi en cours…');
     const result = await sendLabel(link);
-    el.printStatus.textContent =
-      `Étiquette imprimée : ${result.rows} lignes, ${result.frames} trames.`;
+    el.printStatus.textContent = t('Étiquette imprimée : {rows} lignes, {frames} trames.', {
+      rows: result.rows,
+      frames: result.frames,
+    });
   } catch (error) {
     el.printStatus.textContent = '';
-    toast(error.message ?? 'Impression impossible', 'error');
+    toast(error.message ?? t('Impression impossible'), 'error');
   } finally {
     el.printLabel.disabled = false;
   }
@@ -2650,11 +2856,11 @@ let seriesRunning = false;
 
 async function printAllLabels() {
   if (!printer) {
-    toast('Aucune imprimante connectée', 'error');
+    toast(t('Aucune imprimante connectée'), 'error');
     return;
   }
   if (links.length === 0) {
-    toast('Aucun lien dans la collection', 'error');
+    toast(t('Aucun lien dans la collection'), 'error');
     return;
   }
 
@@ -2668,7 +2874,7 @@ async function printAllLabels() {
     : links;
 
   if (items.length === 0) {
-    toast('Aucun lien coché : cochez les étiquettes à imprimer, ou choisissez « toute la collection »', 'error');
+    toast(t('Aucun lien coché : cochez les étiquettes à imprimer, ou choisissez « toute la collection »'), 'error');
     return;
   }
 
@@ -2677,7 +2883,7 @@ async function printAllLabels() {
   el.printAllLabels.disabled = true;
   // Le bouton devient l'arrêt de la série : trente étiquettes lancées par
   // erreur ne doivent pas obliger à couper l'imprimante.
-  el.printAllLabels.textContent = 'Arrêter la série';
+  el.printAllLabels.textContent = t('Arrêter la série');
   seriesRunning = true;
 
   let printed = 0;
@@ -2686,23 +2892,26 @@ async function printAllLabels() {
   try {
     for (const [index, link] of items.entries()) {
       if (!seriesRunning) break;
-      el.printStatus.textContent =
-        `Étiquette ${index + 1}/${items.length} — ${link.title || link.url}`;
+      el.printStatus.textContent = t('Étiquette {index}/{total} — {title}', {
+        index: index + 1,
+        total: items.length,
+        title: link.title || link.url,
+      });
       try {
         // La quantité est un réglage de la série : sans elle, impossible de
         // sortir deux exemplaires de chaque étiquette d'un seul geste.
         await sendLabel(link, { copies });
         printed += copies;
       } catch (error) {
-        failures.push(error.message ?? 'impression impossible');
+        failures.push(error.message ?? t('impression impossible'));
       }
     }
 
     // Le compte porte sur les étiquettes réellement sorties, pas sur les liens
     // parcourus : avec deux exemplaires, dix liens font vingt étiquettes.
-    const parts = [`${printed} étiquette${printed > 1 ? 's' : ''} imprimée${printed > 1 ? 's' : ''}`];
-    if (!seriesRunning) parts.push('série arrêtée');
-    if (failures.length > 0) parts.push(`${failures.length} en échec — ${failures[0]}`);
+    const parts = [tpl(printed, '{count} étiquette imprimée', '{count} étiquettes imprimées')];
+    if (!seriesRunning) parts.push(t('série arrêtée'));
+    if (failures.length > 0) parts.push(t('{count} en échec — {message}', { count: failures.length, message: failures[0] }));
     el.printStatus.textContent = parts.join(', ') + '.';
     toast(parts.join(', '), failures.length > 0 ? 'error' : 'info');
   } finally {
@@ -2727,11 +2936,11 @@ function fillPresets() {
     if (entries.length === 0) continue;
 
     const optgroup = document.createElement('optgroup');
-    optgroup.label = group.label;
+    optgroup.label = t(group.label);
     for (const [key, preset] of entries) {
       const option = document.createElement('option');
       option.value = key;
-      option.textContent = preset.label;
+      option.textContent = t(preset.label);
       optgroup.appendChild(option);
     }
     el.preset.appendChild(optgroup);
@@ -2755,7 +2964,11 @@ function fillProfiles() {
     const option = document.createElement('option');
     option.value = profile.id;
     const printableMm = Math.round((profile.printheadPixels / profile.dpi) * 25.4);
-    option.textContent = `Niimbot ${profile.id} — ${printableMm} mm utiles, ${profile.dpi} dpi`;
+    option.textContent = t('Niimbot {id} — {mm} mm utiles, {dpi} dpi', {
+      id: profile.id,
+      mm: printableMm,
+      dpi: profile.dpi,
+    });
     el.labelProfile.appendChild(option);
   }
   el.labelProfile.value = DEFAULT_PROFILE.id;
@@ -2791,13 +3004,13 @@ function fillSupplies() {
     const option = document.createElement('option');
     option.value = supply.id;
     const length = supply.lengthMm === null
-      ? 'longueur libre'
+      ? t('longueur libre')
       : `${supply.lengthMm} mm`;
     // La raison est affichée dès qu'il y en a une, compatible ou non : un
     // rouleau plus large que la tête imprime avec une marge, et l'utilisateur
     // doit le savoir sans que l'option soit écartée.
-    option.textContent = `${supply.label} — ${length}`
-      + (supply.reason === '' ? '' : ` (${supply.reason})`);
+    option.textContent = `${t(supply.label)} — ${length}`
+      + (supply.reason === '' ? '' : ` (${t(supply.reason)})`);
     // Un consommable que la tête ne peut pas atteindre reste visible, mais ne
     // peut pas être choisi : le faire disparaître ferait croire à une option
     // manquante.
@@ -2831,8 +3044,8 @@ function updateSupplyLength() {
   const supply = chosenSupply();
   const longueur = supply?.lengthMm ?? null;
   el.supplyHint.textContent = longueur === null
-    ? 'Rouleau continu : la longueur suit le contenu.'
-    : `Longueur imposée par le rouleau : ${longueur} mm.`;
+    ? t('Rouleau continu : la longueur suit le contenu.')
+    : t('Longueur imposée par le rouleau : {mm} mm.', { mm: longueur });
 }
 
 /** Propose les dispositions applicables au format retenu. */
@@ -2845,7 +3058,7 @@ function fillLayouts() {
   for (const disposition of disponibles) {
     const option = document.createElement('option');
     option.value = disposition.id;
-    option.textContent = disposition.label;
+    option.textContent = t(disposition.label);
     el.labelRotation.appendChild(option);
   }
 
@@ -2861,7 +3074,7 @@ function fillSupplyChoices() {
   for (const alignment of LABEL_ALIGNMENTS) {
     const option = document.createElement('option');
     option.value = alignment.id;
-    option.textContent = alignment.label;
+    option.textContent = t(alignment.label);
     el.labelAlignment.appendChild(option);
   }
   el.labelAlignment.value = DEFAULT_LABEL_ALIGNMENT;
@@ -2879,7 +3092,7 @@ function fillSupplyChoices() {
  */
 function composeDateNote() {
   if (dateMode() === 'none') return '';
-  return ' — aucune date : elle ne tient pas sur une ligne à cette taille de texte.';
+  return t(' — aucune date : elle ne tient pas sur une ligne à cette taille de texte.');
 }
 
 /**
@@ -2898,7 +3111,7 @@ function fillLabelChoices() {
   for (const [id, label] of [['portrait', 'Portrait'], ['landscape', 'Paysage']]) {
     const option = document.createElement('option');
     option.value = id;
-    option.textContent = label;
+    option.textContent = t(label);
     el.tableOrientation.appendChild(option);
   }
   el.tableOrientation.value = 'portrait';
@@ -2906,7 +3119,7 @@ function fillLabelChoices() {
   for (const scope of PRINT_SCOPES) {
     const option = document.createElement('option');
     option.value = scope.id;
-    option.textContent = scope.label;
+    option.textContent = t(scope.label);
     el.printScope.appendChild(option);
   }
   el.printScope.value = 'all';
@@ -2949,20 +3162,22 @@ function fillLabelLinks() {
 /** Explique ce qui sera imprimé sous le QR, d'après les cases cochées. */
 function updateLabelContentHint() {
   const choisis = [];
-  if (el.labelShowIndex.checked) choisis.push('le numéro du lien');
-  if (el.labelShowTitle.checked) choisis.push('le titre');
-  if (el.labelShowUrl.checked) choisis.push('l\'URL');
-  if (el.labelShowHost.checked) choisis.push('le domaine');
+  if (el.labelShowIndex.checked) choisis.push(t('le numéro du lien'));
+  if (el.labelShowTitle.checked) choisis.push(t('le titre'));
+  if (el.labelShowUrl.checked) choisis.push(t('l\'URL'));
+  if (el.labelShowHost.checked) choisis.push(t('le domaine'));
   if (el.labelShowDate.checked) {
-    choisis.push(el.labelDateTime.checked ? 'la date et l\'heure' : 'la date de collecte');
+    choisis.push(el.labelDateTime.checked ? t('la date et l\'heure') : t('la date de collecte'));
   }
 
   if (choisis.length === 0) {
-    el.labelContentHint.textContent = 'Le QR code seul, sans texte sous lui.';
+    el.labelContentHint.textContent = t('Le QR code seul, sans texte sous lui.');
     return;
   }
-  el.labelContentHint.textContent =
-    `Sous le QR : ${choisis.join(', ')}. Le texte est découpé à la largeur de la tête.`;
+  el.labelContentHint.textContent = t(
+    'Sous le QR : {list}. Le texte est découpé à la largeur de la tête.',
+    { list: choisis.join(', ') },
+  );
 }
 
 /**
@@ -3037,16 +3252,19 @@ function updateProfileHint() {
   const printableMm = ((profile.printheadPixels / profile.dpi) * 25.4).toFixed(1);
 
   if (!printer) {
-    el.profileHint.textContent =
-      `Aperçu composé avec le ${profile.id} (${printableMm} mm utiles, ${profile.dpi} dpi), `
-      + 'sans imprimante connectée : les dimensions et le nombre de modules sont exacts.';
+    el.profileHint.textContent = t(
+      'Aperçu composé avec le {profile} ({mm} mm utiles, {dpi} dpi), sans imprimante connectée : les dimensions et le nombre de modules sont exacts.',
+      { profile: profile.id, mm: printableMm, dpi: profile.dpi },
+    );
     return;
   }
   const connected = printer.profile;
   el.profileHint.textContent = connected.id === profile.id
-    ? `Imprimante connectée : ${connected.id}. Aperçu et impression identiques.`
-    : `Imprimante connectée : ${connected.id}. L'aperçu montre le ${profile.id} choisi ; `
-      + `« Imprimer » se fera au format du ${connected.id}.`;
+    ? t('Imprimante connectée : {id}. Aperçu et impression identiques.', { id: connected.id })
+    : t(
+      "Imprimante connectée : {id}. L'aperçu montre le {profile} choisi ; « Imprimer » se fera au format du {connected}.",
+      { id: connected.id, profile: profile.id, connected: connected.id },
+    );
 }
 
 /** Remplit les listes de formats et de modes de texte. */
@@ -3054,7 +3272,7 @@ function fillLabelForm() {
   for (const format of LABEL_FORMATS) {
     const option = document.createElement('option');
     option.value = format.id;
-    option.textContent = format.name;
+    option.textContent = t(format.name);
     el.labelFormat.appendChild(option);
   }
   el.labelFormat.value = 'niimbot-d110';
@@ -3062,7 +3280,7 @@ function fillLabelForm() {
   for (const [id, label] of Object.entries(TEXT_MODES)) {
     const option = document.createElement('option');
     option.value = id;
-    option.textContent = label;
+    option.textContent = t(label);
     el.labelText.appendChild(option);
   }
   el.labelText.value = 'url';
@@ -3109,7 +3327,7 @@ el.selectAllBox.addEventListener('change', () => {
   if (selected.size === 0) {
     // Une sélection vide signifie « tout » à l'impression : c'est la règle la
     // moins devinable, on la rappelle au moment où elle s'applique.
-    toast('Aucun lien coché : l\'impression portera sur toute la collection');
+    toast(t('Aucun lien coché : l\'impression portera sur toute la collection'));
   }
 });
 
@@ -3124,24 +3342,61 @@ async function exportSpreadsheet() {
 
   const label = el.exportXlsx.textContent;
   el.exportXlsx.disabled = true;
-  el.exportXlsx.textContent = 'Génération…';
+  el.exportXlsx.textContent = t('Génération…');
 
   try {
     const bytes = await buildLinkSpreadsheet(resolveTargets(links, el.qrTarget.value), {
       onProgress: (done, total) => {
-        el.exportXlsx.textContent = `QR ${done}/${total}…`;
+        el.exportXlsx.textContent = t('QR {done}/{total}…', { done, total });
       },
     });
     const filename = exportFilename(collectionName(), 'xlsx');
     const ok = downloadBytes(filename, bytes, {
       mime: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     });
-    toast(ok ? `${filename} enregistré` : 'Téléchargement impossible', ok ? 'info' : 'error');
+    toast(ok ? t('{filename} enregistré', { filename }) : t('Téléchargement impossible'), ok ? 'info' : 'error');
   } catch (error) {
-    toast(`Export impossible : ${error.message}`, 'error');
+    toast(t('Export impossible : {message}', { message: error.message }), 'error');
   } finally {
     el.exportXlsx.textContent = label;
     el.exportXlsx.disabled = links.length === 0;
+  }
+}
+
+/**
+ * Exporte le tableau configuré : un dossier autonome JSON + PNG + HTML.
+ *
+ * Contrairement aux exports de la collection, celui-ci suit la sélection et
+ * les colonnes cochées dans l'onglet, comme l'impression : c'est le même
+ * tableau, avec ses QR codes prêts à l'emploi.
+ */
+async function exportTableArchive() {
+  const items = printableLinks();
+  if (items.length === 0) return;
+
+  const label = el.exportTable.textContent;
+  el.exportTable.disabled = true;
+  el.exportTable.textContent = t('Génération…');
+
+  try {
+    const { bytes } = await buildTableArchive(items, {
+      title: collectionName(),
+      columns: tableColumns(),
+      dateMode: tableDateMode(),
+      // Le rang de la collection, celui que porte le tableau imprimé.
+      rankOf: (link, index) => linkRanks.get(link.id) ?? index + 1,
+      onProgress: (done, total) => {
+        el.exportTable.textContent = t('QR {done}/{total}…', { done, total });
+      },
+    });
+    const filename = exportFilename(collectionName(), 'zip');
+    const ok = downloadBytes(filename, bytes, { mime: 'application/zip' });
+    toast(ok ? t('{filename} enregistré', { filename }) : t('Téléchargement impossible'), ok ? 'info' : 'error');
+  } catch (error) {
+    toast(t('Export impossible : {message}', { message: error.message }), 'error');
+  } finally {
+    el.exportTable.textContent = label;
+    el.exportTable.disabled = items.length === 0 || !hasAnyTableColumn();
   }
 }
 
@@ -3149,6 +3404,7 @@ el.exportXlsx.addEventListener('click', exportSpreadsheet);
 el.exportCsv.addEventListener('click', () => exportAs('csv'));
 el.exportMd.addEventListener('click', () => exportAs('md'));
 el.exportJson.addEventListener('click', () => exportAs('json'));
+el.exportTable.addEventListener('click', exportTableArchive);
 
 el.import.addEventListener('click', () => el.importFile.click());
 el.importFile.addEventListener('change', async () => {
@@ -3161,7 +3417,7 @@ el.clear.addEventListener('click', async () => {
   await store.clear();
   selected = new Set();
   await refresh();
-  toast('Collection vidée');
+  toast(t('Collection vidée'));
 });
 
 for (const tab of document.querySelectorAll('.tab')) {
@@ -3180,7 +3436,7 @@ for (const box of [el.sheetDate, el.sheetDateTime, el.sheetDateIndex]) {
     renderPreview();
   });
 }
-for (const box of [el.exportDate, el.exportDateTime]) {
+for (const box of [el.exportTitle, el.exportDate, el.exportDateTime]) {
   box.addEventListener('change', renderPreview);
 }
 for (const box of [el.tableColDate, el.tableColDateTime]) {
@@ -3271,14 +3527,24 @@ el.printAllLabels.addEventListener('click', () => {
   // seconde par-dessus la première.
   if (seriesRunning) {
     seriesRunning = false;
-    el.printStatus.textContent = 'Arrêt demandé : la série s\'arrête après l\'étiquette en cours.';
+    el.printStatus.textContent = t('Arrêt demandé : la série s\'arrête après l\'étiquette en cours.');
     return;
   }
   // `printAllLabels` attrape ses propres erreurs ; on protège malgré tout
   // l'appel, sans quoi un rejet deviendrait une promesse non traitée.
   printAllLabels().catch((error) => {
-    toast(error.message ?? 'Impression impossible', 'error');
+    toast(error.message ?? t('Impression impossible'), 'error');
   });
+});
+
+// L'échelle des pages est calculée en pixels au moment du rendu : sans ce
+// rappel, une planche composée pour une grande fenêtre débordait après
+// réduction, et gardait une petite échelle après agrandissement. Le délai
+// regroupe les événements d'un redimensionnement continu.
+let previewResizeTimer = null;
+window.addEventListener('resize', () => {
+  clearTimeout(previewResizeTimer);
+  previewResizeTimer = setTimeout(() => renderPreview(), 150);
 });
 
 window.addEventListener('beforeprint', () => {
@@ -3296,7 +3562,30 @@ window.addEventListener('beforeprint', () => {
   }
 });
 
+/**
+ * Branche le sélecteur de langue de la barre supérieure.
+ *
+ * Le changement mémorise la langue puis recharge la page : tout est ainsi
+ * rendu dans la bonne langue, y compris les libellés construits par le code.
+ */
+function wireLocaleSwitcher() {
+  const select = document.getElementById('locale');
+  if (!select) return;
+  select.value = getLocale();
+  select.addEventListener('change', async () => {
+    if (select.value === getLocale()) return;
+    await setLocale(select.value);
+    location.reload();
+  });
+}
+
 // --- Démarrage ---
+
+// La langue doit être connue avant de construire les listes : leurs libellés
+// passent par `t()`.
+await initI18n();
+applyTranslations(document);
+wireLocaleSwitcher();
 
 fillPresets();
 fillLabelForm();
@@ -3311,7 +3600,10 @@ fillLabelChoices();
 const preferences = settings.load();
 el.shortener.value = preferences.shortener;
 el.qrTarget.value = preferences.targetMode;
-el.collectionName.value = preferences.collectionName;
+// Le nom par défaut suit la langue ; un nom saisi par l'utilisateur, non.
+el.collectionName.value = preferences.collectionName === DEFAULT_SETTINGS.collectionName
+  ? t(DEFAULT_SETTINGS.collectionName)
+  : preferences.collectionName;
 applyCollectionName();
 updateDateHint();
 
@@ -3324,7 +3616,7 @@ updateProfileHint();
 if (!stylesheetIsCurrent()) el.staleStyle.hidden = false;
 
 if (storeKind === 'memory') {
-  toast('Stockage temporaire : IndexedDB indisponible, les liens seront perdus', 'error');
+  toast(t('Stockage temporaire : IndexedDB indisponible, les liens seront perdus'), 'error');
 }
 
 await refresh();

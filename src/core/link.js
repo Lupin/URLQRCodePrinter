@@ -6,6 +6,8 @@
  * navigateur et, plus tard, une couche native.
  */
 
+import { t } from './i18n.js';
+
 /**
  * @typedef {Object} LinkRecord
  * @property {string}   id        Identifiant stable (UUID v4).
@@ -55,9 +57,9 @@ export function newId() {
  * @throws {TypeError} si l'entrée ne peut pas être analysée comme une URL http(s).
  */
 export function normalizeUrl(input) {
-  if (typeof input !== 'string') throw new TypeError('URL attendue sous forme de chaîne');
+  if (typeof input !== 'string') throw new TypeError(t('URL attendue sous forme de chaîne'));
   let raw = input.trim();
-  if (raw === '') throw new TypeError('URL vide');
+  if (raw === '') throw new TypeError(t('URL vide'));
 
   // Un schéma explicite non http(s) (mailto:, tel:, ftp:) est rejeté : ces
   // chaînes ne sont pas des liens web et fausseraient le rendu des colonnes.
@@ -65,7 +67,7 @@ export function normalizeUrl(input) {
   // d'un port ; on le traite comme une URL sans schéma plutôt que de le refuser.
   const isHostPort = /^[^\s/?#@]+:\d+(?:[/?#]|$)/.test(raw);
   if (/^[a-z][a-z0-9+.-]*:/i.test(raw) && !/^https?:/i.test(raw) && !isHostPort) {
-    throw new TypeError('Seuls les schémas http et https sont pris en charge');
+    throw new TypeError(t('Seuls les schémas http et https sont pris en charge'));
   }
   if (!/^https?:\/\//i.test(raw)) raw = 'https://' + raw;
 
@@ -73,10 +75,10 @@ export function normalizeUrl(input) {
   try {
     parsed = new URL(raw);
   } catch {
-    throw new TypeError('URL invalide : ' + input);
+    throw new TypeError(t('URL invalide : {input}', { input }));
   }
   if (!parsed.hostname.includes('.') && parsed.hostname !== 'localhost') {
-    throw new TypeError('Nom d\'hôte invalide : ' + parsed.hostname);
+    throw new TypeError(t("Nom d'hôte invalide : {host}", { host: parsed.hostname }));
   }
 
   parsed.hash = '';
@@ -187,7 +189,7 @@ function normalizeShortUrl(value) {
  */
 export function createLink(input, options = {}) {
   if (!input || typeof input.url !== 'string') {
-    throw new TypeError('createLink exige au minimum { url }');
+    throw new TypeError(t('createLink exige au minimum { url }'));
   }
   const now = options.now ?? Date.now();
   const title = typeof input.title === 'string'

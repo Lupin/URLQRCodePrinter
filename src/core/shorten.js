@@ -19,6 +19,7 @@
  */
 
 import { normalizeUrl, isValidUrl, isSameTarget } from './link.js';
+import { t, tpl } from './i18n.js';
 
 /** Délai au-delà duquel une requête est abandonnée. */
 export const SHORTENER_TIMEOUT_MS = 12000;
@@ -110,11 +111,18 @@ function excerpt(text) {
  * `spacingMs` est le délai minimal entre deux requêtes : il respecte les limites
  * documentées par les services bénévoles (`is.gd` et `v.gd` refusent au-delà de
  * cinq créations par tranche de dix secondes).
+ *
+ * `label` est le texte montré dans la liste déroulante. Il ne dit pas ce que le
+ * service *est* (`note`, réservé à l'infobulle et à la documentation) mais ce
+ * qu'il **change pour l'utilisateur** : quelqu'un qui veut seulement un lien
+ * plus court doit pouvoir choisir sans connaître ces quatre marques. D'où le
+ * « recommandé » sur le premier, et un différenciateur concret sur les autres.
  */
 export const SHORTENERS = Object.freeze([
   {
     id: 'tinyurl',
     name: 'TinyURL',
+    label: 'TinyURL — recommandé',
     site: 'https://tinyurl.com',
     note: 'Sans clé d\'API, HTTPS, liens durables. Service commercial.',
     spacingMs: 500,
@@ -131,6 +139,7 @@ export const SHORTENERS = Object.freeze([
   {
     id: 'isgd',
     name: 'is.gd',
+    label: 'is.gd — sans statistiques',
     site: 'https://is.gd',
     note: 'Sans clé ni statistiques. Service bénévole, régulièrement indisponible.',
     spacingMs: 2200,
@@ -143,6 +152,7 @@ export const SHORTENERS = Object.freeze([
   {
     id: 'vgd',
     name: 'v.gd',
+    label: 'v.gd — avertissement avant redirection',
     site: 'https://v.gd',
     note: 'Même infrastructure que is.gd, mais les liens affichent un avertissement avant redirection.',
     spacingMs: 2200,
@@ -155,6 +165,7 @@ export const SHORTENERS = Object.freeze([
   {
     id: 'spoome',
     name: 'spoo.me',
+    label: 'spoo.me — statistiques de clics',
     site: 'https://spoo.me',
     note: 'Sans clé, statistiques de clics. Répond en HTTP : le lien est ramené en HTTPS.',
     spacingMs: 700,
@@ -270,10 +281,10 @@ export async function shortenUrl(url, options = {}) {
 
   const shortener = typeof provider === 'string' ? findShortener(provider) : provider;
   if (!shortener) {
-    throw new ShortenError(`Service de raccourcissement inconnu : ${provider}`, 'unknown');
+    throw new ShortenError(t('Service de raccourcissement inconnu : {provider}', { provider }), 'unknown');
   }
   if (typeof fetchImpl !== 'function') {
-    throw new ShortenError('Raccourcissement indisponible : fetch absent', 'unsupported', {
+    throw new ShortenError(t('Raccourcissement indisponible : fetch absent'), 'unsupported', {
       provider: shortener.id,
     });
   }
@@ -282,7 +293,7 @@ export async function shortenUrl(url, options = {}) {
   try {
     target = normalizeUrl(url);
   } catch (error) {
-    throw new ShortenError(`Lien à raccourcir invalide : ${url}`, 'invalid', {
+    throw new ShortenError(t('Lien à raccourcir invalide : {url}', { url }), 'invalid', {
       provider: shortener.id,
       cause: error,
     });
@@ -301,7 +312,7 @@ export async function shortenUrl(url, options = {}) {
   if (signal) {
     if (signal.aborted) {
       clearTimeout(timer);
-      throw new ShortenError('Raccourcissement annulé', 'aborted', { provider: shortener.id });
+      throw new ShortenError(t('Raccourcissement annulé'), 'aborted', { provider: shortener.id });
     }
     signal.addEventListener('abort', onAbort, { once: true });
   }
@@ -322,11 +333,11 @@ export async function shortenUrl(url, options = {}) {
     if (error instanceof ShortenError) throw error;
     if (error?.name === 'AbortError') {
       throw timedOut
-        ? new ShortenError(`${shortener.name} n'a pas répondu en ${Math.round(timeoutMs / 1000)} s`, 'timeout', { provider: shortener.id, cause: error })
-        : new ShortenError('Raccourcissement annulé', 'aborted', { provider: shortener.id, cause: error });
+        ? new ShortenError(t("{name} n'a pas répondu en {seconds} s", { name: shortener.name, seconds: Math.round(timeoutMs / 1000) }), 'timeout', { provider: shortener.id, cause: error })
+        : new ShortenError(t('Raccourcissement annulé'), 'aborted', { provider: shortener.id, cause: error });
     }
     throw new ShortenError(
-      `Impossible de joindre ${shortener.name} : ${error?.message ?? error}`,
+      t('Impossible de joindre {name} : {message}', { name: shortener.name, message: error?.message ?? error }),
       'network',
       { provider: shortener.id, cause: error },
     );
@@ -383,7 +394,7 @@ export function createShortener(options = {}) {
     ? findShortener(options.provider)
     : options.provider;
   if (!shortener) {
-    throw new ShortenError(`Service de raccourcissement inconnu : ${options.provider}`, 'unknown');
+    throw new ShortenError(t('Service de raccourcissement inconnu : {provider}', { provider: options.provider }), 'unknown');
   }
 
   const fetchImpl = options.fetch ?? globalThis.fetch;
@@ -504,9 +515,9 @@ export function describeShortenReport(report) {
   const failed = report.failed ?? [];
   const skipped = report.skipped?.filter((item) => item.reason === 'already').length ?? 0;
 
-  parts.push(`${okCount} lien${okCount > 1 ? 's' : ''} raccourci${okCount > 1 ? 's' : ''}`);
-  if (skipped > 0) parts.push(`${skipped} déjà fait${skipped > 1 ? 's' : ''}`);
-  if (failed.length > 0) parts.push(`${failed.length} échec${failed.length > 1 ? 's' : ''}`);
+  parts.push(tpl(okCount, '{count} lien raccourci', '{count} liens raccourcis'));
+  if (skipped > 0) parts.push(tpl(skipped, '{count} déjà fait', '{count} déjà faits'));
+  if (failed.length > 0) parts.push(tpl(failed.length, '{count} échec', '{count} échecs'));
 
   const first = failed[0];
   return first ? `${parts.join(', ')} — ${first.message}` : parts.join(', ');

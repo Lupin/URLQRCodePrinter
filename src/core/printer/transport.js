@@ -24,6 +24,7 @@
 
 import { PacketStreamDecoder } from './packet.js';
 import { ALL_NAME_PREFIXES } from './profiles.js';
+import { t } from '../i18n.js';
 
 /** Service exposé par la quasi-totalité des imprimantes Niimbot. */
 export const SERVICE_UUID = 'e7810a71-73ae-499d-8c15-faa9aef0c3f2';
@@ -94,25 +95,25 @@ export function checkWebBluetoothSupport(env = {}) {
   if (!bluetooth) {
     return {
       ok: false,
-      reason: 'Web Bluetooth n\'est pas disponible dans ce navigateur.',
-      hint: `Safari (macOS et iOS) ne l'implémente pas. ${BRAVE_BLUETOOTH_HINT}`,
+      reason: t('Web Bluetooth n\'est pas disponible dans ce navigateur.'),
+      hint: t("Safari (macOS et iOS) ne l'implémente pas. {brave}", { brave: t(BRAVE_BLUETOOTH_HINT) }),
     };
   }
   if (secure === false) {
     return {
       ok: false,
-      reason: 'Web Bluetooth exige un contexte sécurisé (HTTPS ou localhost).',
-      hint: 'Ouvrez l\'application via https:// ou http://localhost.',
+      reason: t('Web Bluetooth exige un contexte sécurisé (HTTPS ou localhost).'),
+      hint: t('Ouvrez l\'application via https:// ou http://localhost.'),
     };
   }
   // `available === false` : le navigateur a répondu que non.
   if (env.available === false) {
     return {
       ok: false,
-      reason:
-        'Web Bluetooth est désactivé dans ce navigateur — ou le Bluetooth de ' +
-        'cet ordinateur est éteint.',
-      hint: BRAVE_BLUETOOTH_HINT,
+      reason: t(
+        'Web Bluetooth est désactivé dans ce navigateur — ou le Bluetooth de cet ordinateur est éteint.',
+      ),
+      hint: t(BRAVE_BLUETOOTH_HINT),
     };
   }
   return { ok: true };
@@ -155,15 +156,15 @@ export async function probeWebBluetooth(env = {}) {
 export function explainBluetoothFailure(error) {
   const message = String(error?.message ?? error ?? '');
   if (/globally disabled/i.test(message)) {
-    return `Web Bluetooth est désactivé dans ce navigateur. ${BRAVE_BLUETOOTH_HINT}`;
+    return t('Web Bluetooth est désactivé dans ce navigateur. {brave}', { brave: t(BRAVE_BLUETOOTH_HINT) });
   }
   if (/user denied|user cancel|chooser/i.test(message) || error?.name === 'NotFoundError') {
-    return 'Aucun appareil choisi. Réveillez l\'imprimante, puis relancez la connexion.';
+    return t('Aucun appareil choisi. Réveillez l\'imprimante, puis relancez la connexion.');
   }
   if (/permission|not allowed|SecurityError/i.test(message)) {
-    return 'Le navigateur a refusé l\'accès au Bluetooth : autorisez-le pour cette page, puis réessayez.';
+    return t('Le navigateur a refusé l\'accès au Bluetooth : autorisez-le pour cette page, puis réessayez.');
   }
-  return `Connexion impossible : ${message}`;
+  return t('Connexion impossible : {message}', { message });
 }
 
 /**
@@ -333,7 +334,7 @@ export class NiimbotTransport {
    * @param {Uint8Array} frame
    */
   async write(frame) {
-    if (!this.characteristic) throw new Error('Transport non connecté');
+    if (!this.characteristic) throw new Error(t('Transport non connecté'));
     if (frame.length === 0) return;
 
     // Une trame plus grosse que la limite partirait en une écriture refusée :

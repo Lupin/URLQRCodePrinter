@@ -59,8 +59,37 @@ export const M2 = Object.freeze({
   transposed: false,
 });
 
+/**
+ * Profil M3 — 72 mm utiles, 300 dpi, tête 851 px.
+ *
+ * Le M3 appartient à la même famille que le M2 : 300 dpi, sens d'impression
+ * `top`, transfert thermique au ruban. `niimbluelib` lui associe 851 px et le
+ * modelId 6400, mais ne lui donne pas encore de task dédiée : on lui applique
+ * donc la séquence `B1` du M2_H, la seule de la famille validée sur matériel.
+ * À confirmer sur un M3 physique, comme l'a été le M2.
+ *
+ * 851 px à 300 dpi font 72 mm : c'est le « 3 pouces » du fabricant. Les
+ * étiquettes existent jusqu'à 78 mm de large, la tête n'imprimant qu'une bande
+ * de 72 mm et le reste restant blanc — même situation que le D110 avec ses
+ * rouleaux de 15 mm.
+ */
+export const M3 = Object.freeze({
+  id: 'M3',
+  modelIds: [6400],
+  dpi: 300,
+  printheadPixels: 851,
+  maxLabelWidthMm: 78,
+  // Fenêtre d'impression alignée sur le M2 : les étiquettes M3 courantes vont
+  // jusqu'à 100 mm de long, et le rouleau continu n'est pas borné ici.
+  maxPrintHeightMm: 240,
+  density: { min: 1, max: 5, default: 3 },
+  printTask: 'B1',
+  namePrefixes: ['M3'],
+  transposed: false,
+});
+
 /** Tous les profils connus, du plus spécifique au plus générique. */
-export const PROFILES = Object.freeze([D110, M2]);
+export const PROFILES = Object.freeze([D110, M2, M3]);
 
 /** Profil utilisé quand le modèle n'est pas identifié. */
 export const DEFAULT_PROFILE = D110;
@@ -197,6 +226,17 @@ export const SUPPLIES = Object.freeze({
     { id: 'm2-34x17-rond', label: '34 × 17 mm (rond)', widthMm: 34, lengthMm: 17 },
     { id: 'm2-50x50-rond', label: '50 × 50 mm (rond)', widthMm: 50, lengthMm: 50 },
     { id: 'm2-continue', label: 'Rouleau continu 48 mm (longueur libre)', widthMm: 48, lengthMm: null },
+  ]),
+  // Collection du M3, telle que listée par le fabricant : les quatre cotes
+  // viennent de la fiche produit, le rouleau continu reprend la largeur de tête
+  // (72 mm). La tête imprime 72 mm ; les étiquettes plus larges gardent une
+  // bande blanche, comme sur le D110.
+  M3: Object.freeze([
+    { id: 'm3-40x20', label: '40 × 20 mm', widthMm: 40, lengthMm: 20 },
+    { id: 'm3-50x30', label: '50 × 30 mm', widthMm: 50, lengthMm: 30 },
+    { id: 'm3-60x100', label: '60 × 100 mm', widthMm: 60, lengthMm: 100 },
+    { id: 'm3-70x50', label: '70 × 50 mm', widthMm: 70, lengthMm: 50 },
+    { id: 'm3-continue', label: 'Rouleau continu 72 mm (longueur libre)', widthMm: 72, lengthMm: null },
   ]),
 });
 

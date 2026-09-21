@@ -193,6 +193,7 @@ async function bundleExtension(outDir) {
     if (!existsSync(path)) continue;
 
     const { code, modules } = bundle(path, {
+      root: ROOT,
       header:
         `// ${entry} — fichier assemblé par scripts/build.mjs.\n` +
         '// Ne pas modifier ici : éditez les modules de src/ et reconstruisez.',
@@ -252,7 +253,10 @@ async function buildTarget(name) {
     await cp(sharedDir, join(outDir, sharedName), { recursive: true });
   }
 
-  await stripSystemFiles(outDir);
+  const parasites = await stripSystemFiles(outDir);
+  if (parasites.length > 0) {
+    console.log(`  ${name} : ${parasites.length} fichier(s) parasite(s) retiré(s)`);
+  }
 
   const removed = await materialiseManifest(outDir, target.manifest);
   if (removed.length > 0) {
@@ -273,36 +277,73 @@ async function buildTarget(name) {
   }
 
   // Après l'assemblage : l'empreinte doit porter sur le contenu livré.
-  const page = target.webApp ? join(outDir, WEB_APP_PAGE) : join(outDir, 'index.html');
-  if (existsSync(page)) {
-    const stamped = await stampAssetVersions(page, outDir, ['style.css', 'app.js']);
-    if (stamped.length > 0) console.log(`  ${name} : ${stamped.join(', ')}`);
+  //
+  // **Les deux pages doivent être versionnées**, pas seulement celle de
+  // l'application. La fenêtre a le même problème et il est plus visible
+  // qu'ailleurs : recharger l'extension ne change pas l'URL de `popup.css`, donc
+  // le navigateur peut continuer à servir l'ancienne feuille. Le symptôme est
+  // déroutant — on recharge, on rouvre, et rien n'a bougé alors que le disque
+  // est à jour. C'est exactement ce qui a fait croire que les couleurs de la
+  // fenêtre n'avaient pas été appliquées.
+  const pages = target.webApp
+    ? [
+        { path: join(outDir, WEB_APP_PAGE), assets: ['style.css', 'app.js'], label: 'application' },
+        { path: join(outDir, 'popup.html'), assets: ['popup.css', 'popup.js'], label: 'fenêtre' },
+      ]
+    : [{ path: join(outDir, 'index.html'), assets: ['style.css', 'app.js'], label: 'application' }];
+
+  for (const { path, assets, label } of pages) {
+    if (!existsSync(path)) continue;
+    const stamped = await stampAssetVersions(path, outDir, assets);
+    if (stamped.length > 0) console.log(`  ${name} : ${label} — ${stamped.join(', ')}`);
   }
 
   return { name, outDir, files: await countFiles(outDir) };
 }
 
 /**
- * Retire les fichiers de travail du système.
+ * Retire du livrable ce qui n'a pas été produit par la construction.
  *
- * macOS sème des `.DS_Store` dans les dossiers parcourus par le Finder. Ils se
- * retrouvent recopiés dans le livrable, où ils n'ont rien à faire — et où ils
- * peuvent faire échouer une vérification d'intégrité.
+ * Deux familles, et la seconde est celle qui coûte cher :
+ *
+ * 1. **Les fichiers du système.** macOS sème des `.DS_Store` dans les dossiers
+ *    parcourus par le Finder.
+ * 2. **Les doublons « 2 ».** Copier un dossier dans un dossier qui le contient
+ *    déjà en crée une copie suffixée ` 2`. Sur une extension, c'est fatal :
+ *    Chrome refuse de charger un dossier dont un nom commence par `_` s'il n'est
+ *    pas exactement `_locales` — un `_locales 2` rend l'extension **entièrement**
+ *    inchargeable, avec un message qui ne dit pas d'où vient le dossier.
  *
  * @param {string} dir
- * @returns {Promise<number>} nombre de fichiers retirés
+ * @returns {Promise<string[]>} noms retirés, pour les signaler
  */
 async function stripSystemFiles(dir) {
-  let removed = 0;
+  const removed = [];
   for (const entry of await readdir(dir, { withFileTypes: true })) {
     const path = join(dir, entry.name);
     if (entry.isDirectory()) {
-      removed += await stripSystemFiles(path);
-    } else if (entry.name === '.DS_Store' || entry.name === 'Thumbs.db') {
+      removed.push(...await stripSystemFiles(path));
+      continue;
+    }
+
+    const doublon = / 2(\.[^.]+)?$/.test(entry.name);
+    if (entry.name === '.DS_Store' || entry.name === 'Thumbs.db' || doublon) {
       await rm(path, { force: true });
-      removed += 1;
+      removed.push(join(dir.slice(dir.lastIndexOf('dist')), entry.name));
+      continue;
     }
   }
+
+  // Un dossier doublonné se retire en entier : le parcourir d'abord ne
+  // laisserait que ses fichiers, et le dossier vide suffirait à bloquer Chrome.
+  for (const entry of await readdir(dir, { withFileTypes: true })) {
+    if (!entry.isDirectory()) continue;
+    if (!/ 2$/.test(entry.name)) continue;
+    const path = join(dir, entry.name);
+    await rm(path, { recursive: true, force: true });
+    removed.push(join(dir.slice(dir.lastIndexOf('dist')), entry.name));
+  }
+
   return removed;
 }
 

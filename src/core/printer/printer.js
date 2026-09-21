@@ -40,6 +40,7 @@ import {
   parsePrinterInfo,
 } from './packet.js';
 import { DEFAULT_PROFILE, findByModelId, findByName, withReportedHead } from './profiles.js';
+import { t } from '../i18n.js';
 
 /** Délai de réponse par défaut pour une commande de réglage. */
 export const DEFAULT_ACK_TIMEOUT_MS = 3000;
@@ -256,7 +257,7 @@ export class NiimbotPrinter {
 
     if (this.info.error !== null) {
       const label = PRINT_ERRORS[this.info.error] ?? `code 0x${this.info.error.toString(16)}`;
-      throw new Error(`L'imprimante a signalé une erreur : ${label}`);
+      throw new Error(t("L'imprimante a signalé une erreur : {label}", { label }));
     }
 
     return { pages: copies, rows: bitmap.height, frames: frames.length };
@@ -306,10 +307,10 @@ export class NiimbotPrinter {
       await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL_MS));
     }
 
-    throw new Error(
-      `L'impression n'a pas confirmé son achèvement après ${this.printTimeoutMs} ms. ` +
-      'L\'étiquette est peut-être incomplète.',
-    );
+    throw new Error(t(
+      "L'impression n'a pas confirmé son achèvement après {ms} ms. L'étiquette est peut-être incomplète.",
+      { ms: this.printTimeoutMs },
+    ));
   }
 
   /**

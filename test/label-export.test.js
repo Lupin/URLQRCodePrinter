@@ -93,6 +93,26 @@ test('findFormat retombe sur le premier format connu', () => {
   assert.equal(findFormat('inexistant').id, LABEL_FORMATS[0].id);
 });
 
+test('les formats Brother DK et Niimbot M3 sont proposés', () => {
+  const ids = LABEL_FORMATS.map((format) => format.id);
+  for (const id of [
+    'niimbot-m3',
+    'brother-dk11201',
+    'brother-dk11202',
+    'brother-dk11208',
+    'brother-dk11209',
+    'brother-dk11218',
+    'brother-dk11219',
+    'brother-dk22205',
+    'brother-dk22210',
+  ]) {
+    assert.ok(ids.includes(id), id);
+  }
+  assert.equal(findFormat('niimbot-m3').widthMm, 72);
+  assert.equal(findFormat('brother-dk11202').widthMm, 62);
+  assert.equal(findFormat('brother-dk22205').heightMm, null, 'un rouleau continu n\'a pas de hauteur');
+});
+
 test('les conversions d\'unités sont justes', () => {
   assert.equal(mmToPx(25.4, 203), 203);
   assert.equal(mmToPx(12, 203), 96, 'la largeur utile d\'un D110');
@@ -175,6 +195,45 @@ test('le mode sans texte produit une étiquette plus courte', () => {
   const sans = planLabel({ link: link('https://a.fr/article'), format, measure: measure1, textMode: 'none' });
   assert.ok(sans.heightPx < avec.heightPx);
   assert.deepEqual(sans.lines, []);
+});
+
+test('la case « Titre » ajoute le titre sous le QR', () => {
+  const format = findFormat('generic-50x30');
+  const item = link('https://exemple.fr/a', 'Un titre');
+
+  const sans = planLabel({ link: item, format, measure: measure1, textMode: 'url' });
+  const avec = planLabel({
+    link: item,
+    format,
+    measure: measure1,
+    textMode: 'url',
+    showTitle: true,
+  });
+
+  assert.deepEqual(sans.lines, ['https://exemple.fr/a']);
+  assert.deepEqual(avec.lines, ['Un titre', 'https://exemple.fr/a']);
+});
+
+test('le titre coché ne se double pas quand le texte le porte déjà', () => {
+  const plan = planLabel({
+    link: link('https://exemple.fr/a', 'Un titre'),
+    format: findFormat('generic-50x30'),
+    measure: measure1,
+    textMode: 'title',
+    showTitle: true,
+  });
+  assert.deepEqual(plan.lines, ['Un titre']);
+});
+
+test('la case « Titre » sans titre n\'ajoute aucune ligne vide', () => {
+  const plan = planLabel({
+    link: link('https://exemple.fr/a'),
+    format: findFormat('generic-50x30'),
+    measure: measure1,
+    textMode: 'url',
+    showTitle: true,
+  });
+  assert.deepEqual(plan.lines, ['https://exemple.fr/a']);
 });
 
 test('la marge est respectée de chaque côté', () => {

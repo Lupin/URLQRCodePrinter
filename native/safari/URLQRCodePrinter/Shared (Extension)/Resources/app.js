@@ -2,7 +2,627 @@
 // Ne pas modifier ici : éditez les modules de src/ et reconstruisez.
 
 // ────────────────────────────────────────────────────────────────────────
-// /Users/gael/Documents/GitHub/URLQRCodePrinter/dist/extension-safari/core/link.js
+// dist/extension-safari/core/locales/en.js
+// ────────────────────────────────────────────────────────────────────────
+
+/**
+ * Traductions anglaises.
+ *
+ * Les clés sont les messages français **tels qu'ils apparaissent dans le code**
+ * (interface, infobulles, messages transitoires). Un message absent d'ici
+ * s'affiche en français : la table peut donc être complétée sans jamais casser
+ * l'interface. `test/i18n.test.js` vérifie qu'aucune clé employée ne manque.
+ */
+const EN_MESSAGES = {
+  // -------------------------------------------------------------------------
+  // Fenêtre de l'extension
+  // -------------------------------------------------------------------------
+  "Liens enregistrés :": "Saved links:",
+  "Liens enregistrés": "Saved links",
+  "Ajouter la page courante": "Add the current page",
+  "Ajouter cette page": "Add this page",
+  "Aucun lien pour l'instant.": "No links yet.",
+  "Utilisez le clic droit sur une page ou un lien.": "Right-click a page or a link to save it.",
+  "Voir les QR codes": "View the QR codes",
+  "Tout effacer": "Clear all",
+  "Chargement…": "Loading…",
+  "lien": "link",
+  "liens": "links",
+  "Cette page ne peut pas être enregistrée.": "This page cannot be saved.",
+  "Lien supprimé": "Link deleted",
+  "Rien à enregistrer sur cette page": "Nothing to save on this page",
+  "Déjà enregistré": "Already saved",
+  "Page ajoutée": "Page added",
+  "Liste vidée": "List cleared",
+  "Téléchargement impossible": "Download failed",
+  "{filename} enregistré": "{filename} saved",
+  " (ouvre un nouvel onglet)": " (opens in a new tab)",
+  "Supprimer": "Delete",
+  "Supprimer « {title} »": "Delete “{title}”",
+  "{label} : aucune réponse après {ms} ms": "{label}: no response after {ms} ms",
+  "tabs.query": "tabs.query",
+  "lecture de l'onglet": "reading the tab",
+  "Démarrage impossible": "Startup failed",
+  "API détectée :": "API detected:",
+  "{message} — API détectée : {api}": "{message} — detected API: {api}",
+  "Erreur :": "Error:",
+
+  // -------------------------------------------------------------------------
+  // Menus contextuels
+  // -------------------------------------------------------------------------
+  "Ajouter cette page à URLQRCodePrinter": "Add this page to URLQRCodePrinter",
+  "Ajouter ce lien à URLQRCodePrinter": "Add this link to URLQRCodePrinter",
+  "Ajouter « %s » à URLQRCodePrinter": "Add “%s” to URLQRCodePrinter",
+  "Ouvrir URLQRCodePrinter": "Open URLQRCodePrinter",
+
+  // -------------------------------------------------------------------------
+  // Application — coquille HTML
+  // -------------------------------------------------------------------------
+  "Collectez vos liens, imprimez-les en QR codes.": "Collect your links, print them as QR codes.",
+  "Feuille de style obsolète.": "Outdated stylesheet.",
+  "Le navigateur utilise une ancienne version du style : l'aperçu de la planche ne reflète pas ce qui sera imprimé.": "The browser is using an old version of the stylesheet: the sheet preview does not reflect what will be printed.",
+  "Rechargez l'extension (↻ dans brave://extensions), puis rouvrez cette page. Si cela persiste, videz le cache du navigateur.": "Reload the extension (↻ in brave://extensions), then reopen this page. If it persists, clear the browser cache.",
+  "Ma collection": "My collection",
+  "Nom de la collection": "Collection name",
+  "Mes liens": "My links",
+  "URL à ajouter": "URL to add",
+  "https://exemple.com/page": "https://example.com/page",
+  "Ajouter": "Add",
+  "Rechercher": "Search",
+  "Rechercher…": "Search…",
+  "Raccourcir les liens": "Shorten links",
+  "(option)": "(optional)",
+  "Raccourcir": "Shorten",
+  "Retirer": "Remove",
+  "Service": "Service",
+  "TinyURL — recommandé": "TinyURL — recommended",
+  "is.gd — sans statistiques": "is.gd — no statistics",
+  "v.gd — avertissement avant redirection": "v.gd — warning before redirect",
+  "spoo.me — statistiques de clics": "spoo.me — click statistics",
+  "Tout sélectionner": "Select all",
+  "Aucun lien.": "No links.",
+  "Ajoutez-en un ci-dessus, importez une archive, ou utilisez l'extension navigateur pour les collecter au clic droit.": "Add one above, import an archive, or use the browser extension to collect them by right-clicking.",
+  "Exporter": "Export",
+  "Tableur + QR": "Spreadsheet + QR",
+  "Archive": "Archive",
+  "Importer…": "Import…",
+  "Relit l'archive JSON, le dossier d'étiquettes .zip ou un CSV exporté d'ici": "Reads back the JSON archive, the .zip label folder or a CSV exported from here",
+  "Importer relit l'Archive, le .zip d'étiquettes ou un CSV ; les liens déjà présents sont ignorés.": "Import reads back the Archive, the label .zip or a CSV; links already present are ignored.",
+  "Mise en forme": "Layout",
+  "Le QR code pointe vers": "The QR code points to",
+  "Planche d'étiquettes": "Label sheet",
+  "Tableau": "Table",
+  "Étiquette Niimbot": "Niimbot label",
+  "Étiquette (divers)": "Label (misc.)",
+  "Disposition": "Layout",
+  "Largeur du QR": "QR width",
+  "Taille du texte (pt)": "Text size (pt)",
+  "Sous chaque QR": "Below each QR",
+  "URL": "URL",
+  "Date de collecte": "Collection date",
+  "Avec l'heure": "With time",
+  "N° du lien": "Link no.",
+  "Colonnes": "Columns",
+  "Rangées": "Rows",
+  "Marge gauche et droite (mm)": "Left and right margin (mm)",
+  "Marge haut et bas (mm)": "Top and bottom margin (mm)",
+  "Écart entre étiquettes — horizontal (mm)": "Gap between labels — horizontal (mm)",
+  "Écart entre étiquettes — vertical (mm)": "Gap between labels — vertical (mm)",
+  "Décalage horizontal (mm)": "Horizontal offset (mm)",
+  "Décalage vertical (mm)": "Vertical offset (mm)",
+  "Imprimez d'abord sur papier ordinaire, superposez la feuille obtenue à votre planche : si le texte est trop haut ou trop à gauche, corrigez ici.": "Print on plain paper first and overlay the result on your sheet: if the text is too high or too far left, correct it here.",
+  "Taille du QR": "QR size",
+  "Orientation de la page": "Page orientation",
+  "En-tête de page": "Page header",
+  "Avec la date d'impression": "With print date",
+  "Tableau imprimé": "Printed table",
+  "N°": "No.",
+  "QR": "QR",
+  "Titre": "Title",
+  "Tags": "Tags",
+  "Note": "Note",
+  "Date": "Date",
+  "Grille et bordures": "Grid and borders",
+  "Un tableau dense, adapté à une relecture ou à un archivage papier.": "A dense table, suited to review or paper archiving.",
+  "Exporter le tableau (ZIP)": "Export table (ZIP)",
+  "L'export du tableau produit un modèle JSON, les QR en PNG et une page HTML. La sélection et les colonnes cochées s'appliquent.": "The table export produces a JSON model, the QR codes as PNG and an HTML page. The selection and checked columns apply.",
+  "Format d'étiquette": "Label format",
+  "Densité": "Density",
+  "Copies": "Copies",
+  "Disposition du texte": "Text orientation",
+  "Lien à imprimer": "Link to print",
+  "Consommable": "Supply",
+  "Taille du texte (mm)": "Text size (mm)",
+  "Contenu de l'étiquette": "Label content",
+  "Domaine seul": "Host only",
+  "Aucune imprimante connectée": "No printer connected",
+  "Connecter": "Connect",
+  "Déconnecter": "Disconnect",
+  "Imprimer cette étiquette": "Print this label",
+  "Imprimer en série": "Batch printing",
+  "Quels liens": "Which links",
+  "Exemplaires de chacun": "Copies of each",
+  "Imprimer la collection": "Print the collection",
+  "Texte imprimé": "Printed text",
+  "Marge (mm)": "Margin (mm)",
+  "Traits de coupe": "Cut marks",
+  "Sous le QR": "Below the QR",
+  "Un dossier d'images prêtes à imprimer, avec une planche HTML et un CSV. Fonctionne avec n'importe quelle étiqueteuse, ou sur papier.": "A folder of print-ready images, with an HTML sheet and a CSV. Works with any label printer, or on paper.",
+  "Exporter les images (ZIP)": "Export images (ZIP)",
+  "Exporter l'image (ZIP)": "Export image (ZIP)",
+  "Exporter les {count} images (ZIP)": "Export {count} images (ZIP)",
+  "Exporter la sélection ({count})": "Export selection ({count})",
+  "Imprimer": "Print",
+  "Langue": "Language",
+
+  // -------------------------------------------------------------------------
+  // Application — messages dynamiques
+  // -------------------------------------------------------------------------
+  " Le lien le plus dense est « {title} ».": " The densest link is “{title}”.",
+  " et ": " and ",
+  " — aucune date : elle ne tient pas sur une ligne à cette taille de texte.": " — no date: it does not fit on one line at this text size.",
+  " — date non imprimée : elle exigerait un texte trop petit pour être lu.": " — date not printed: it would require text too small to read.",
+  " — orientation : {label}": " — orientation: {label}",
+  " — texte empilé : le QR laisse trop peu de largeur pour une colonne de texte.": " — stacked text: the QR leaves too little width for a text column.",
+  " — {count} raccourci en place": " — {count} short link in place",
+  " — {count} raccourcis en place": " — {count} short links in place",
+  "Ajoutez des liens pour voir un aperçu.": "Add links to see a preview.",
+  "Ajoutez un tag ou une note depuis la liste (bouton ✎) pour pouvoir les imprimer.": "Add a tag or a note from the list (✎ button) to be able to print them.",
+  "Annuler": "Cancel",
+  "Aperçu composé avec le {profile} ({mm} mm utiles, {dpi} dpi), sans imprimante connectée : les dimensions et le nombre de modules sont exacts.": "Preview composed with the {profile} ({mm} mm usable, {dpi} dpi), without a connected printer: the dimensions and module count are exact.",
+  "Arrêt demandé : la série s'arrête après l'étiquette en cours.": "Stop requested: the series stops after the current label.",
+  "Arrêter la série": "Stop the series",
+  "Assemblage…": "Assembling…",
+  "Aucun lien coché : cochez les liens à imprimer dans la liste, ou choisissez « Toute la collection ».": "No link checked: check the links to print in the list, or choose “the whole collection”.",
+  "Aucun lien coché : cochez les étiquettes à imprimer, ou choisissez « toute la collection »": "No link checked: check the labels to print, or choose “the whole collection”",
+  "Aucun lien coché : l'impression portera sur toute la collection": "No link checked: printing will cover the whole collection",
+  "Aucun lien coché : l'impression portera sur toute la collection ({count}).": "No link checked: printing will cover the whole collection ({count}).",
+  "Aucun lien dans la collection": "No link in the collection",
+  "Aucun lien dans la collection.": "No link in the collection.",
+  "Aucun lien exploitable dans {file}": "No usable link in {file}",
+  "Aucun lien n'a de {what} : ajoutez-en un avec le bouton ✎ de la liste.": "No link has a {what}: add one with the ✎ button in the list.",
+  "Aucun lien ne correspond à la recherche.": "No link matches the search.",
+  "Aucun lien à imprimer": "No link to print",
+  "Aucun lien. Ajoutez-en un ci-dessus, importez une archive, ou utilisez l'extension navigateur.": "No links. Add one above, import an archive, or use the browser extension.",
+  "Aucune colonne sélectionnée : cochez au moins une colonne.": "No column selected: check at least one column.",
+  "Aucune date imprimée.": "No date printed.",
+  "CSV": "CSV",
+  "Ce lien est déjà dans la collection": "This link is already in the collection",
+  "Chaque ligne de plus réduit la place du QR code.": "Each extra line reduces the space for the QR code.",
+  "Collection vidée": "Collection cleared",
+  "Composition de l'étiquette…": "Composing the label…",
+  "Connecté : {details}.": "Connected: {details}.",
+  "Date de collecte sur sa propre ligne — {sample}.": "Collection date on its own line — {sample}.",
+  "Date non imprimée sur {count} étiquette : elle ne tient pas sur une ligne à cette largeur.": "Date not printed on {count} label: it does not fit on one line at this width.",
+  "Date non imprimée sur {count} étiquettes : elle ne tient pas sur une ligne à cette largeur.": "Date not printed on {count} labels: it does not fit on one line at this width.",
+  "Décalage appliqué : {moves}.": "Offset applied: {moves}.",
+  "Entrée pour enregistrer, Échap pour annuler. Tags séparés par des virgules.": "Enter to save, Escape to cancel. Tags separated by commas.",
+  "Envoi en cours…": "Sending…",
+  "Export impossible : {message}": "Export failed: {message}",
+  "Filtrer sur le tag « {tag} »": "Filter by tag “{tag}”",
+  "Génération…": "Generating…",
+  "Import impossible : {message}": "Import failed: {message}",
+  "Impression directe indisponible — voir le message ci-dessus.": "Direct printing unavailable — see the message above.",
+  "Impression impossible": "Printing failed",
+  "Impression {page}/{copies}…": "Printing {page}/{copies}…",
+  "Imprimante connectée : {id}. Aperçu et impression identiques.": "Printer connected: {id}. Preview and printing are identical.",
+  "Imprimante connectée : {id}. L'aperçu montre le {profile} choisi ; « Imprimer » se fera au format du {connected}.": "Printer connected: {id}. The preview shows the chosen {profile}; “Print” will use the format of the {connected}.",
+  "Imprimante déconnectée": "Printer disconnected",
+  "Imprimer la colonne « {what} »": "Print the “{what}” column",
+  "Imprimer la sélection ({count})": "Print the selection ({count})",
+  "Imprimer le lien": "Print the link",
+  "Imprimer les {count} liens": "Print the {count} links",
+  "Imprimer {count} étiquette": "Print {count} label",
+  "Imprimer {count} étiquettes": "Print {count} labels",
+  "L'URL collectée": "The collected URL",
+  "Le QR code encode l'URL collectée.": "The QR code encodes the collected URL.",
+  "Le QR code seul, sans texte sous lui.": "The QR code alone, with no text below it.",
+  "Le lien raccourci": "The shortened link",
+  "Le navigateur n'a pas pu encoder l'image.": "The browser could not encode the image.",
+  "Le numéro du lien s'imprime au-dessus du titre.": "The link number is printed above the title.",
+  "Lecture…": "Reading…",
+  "Les tags et la note saisis dans la liste (bouton ✎) peuvent être imprimés ici.": "Tags and the note entered in the list (✎ button) can be printed here.",
+  "Les {count} liens sont cochés.": "All {count} links are checked.",
+  "Lien ajouté": "Link added",
+  "Lien mis à jour": "Link updated",
+  "Longueur imposée par le rouleau : {mm} mm.": "Length imposed by the roll: {mm} mm.",
+  "Markdown": "Markdown",
+  "Modifier le titre, les tags et la note": "Edit the title, tags and note",
+  "Modifier titre, tags et note de {title}": "Edit title, tags and note for {title}",
+  "Niimbot {id} — {mm} mm utiles, {dpi} dpi": "Niimbot {id} — {mm} mm usable, {dpi} dpi",
+  "Note libre": "Free note",
+  "QR de {side} mm ({module} mm par module, minimum {minimum} mm) — réglable de {range} — {lines} de texte.": "QR {side} mm ({module} mm per module, minimum {minimum} mm) — adjustable from {range} — {lines} of text.",
+  "QR {done}/{total}…": "QR {done}/{total}…",
+  "Raccourcissement impossible : {message}": "Shortening failed: {message}",
+  "Raccourcissement via {name}…": "Shortening via {name}…",
+  "Rang dans la collection, celui du tableau imprimé": "Rank in the collection, the one in the printed table",
+  "Recherche de l'imprimante…": "Searching for the printer…",
+  "Rouleau continu : la longueur suit le contenu.": "Continuous roll: the length follows the content.",
+  "Saisissez une URL.": "Enter a URL.",
+  "Sous le QR : {list}. Le texte est découpé à la largeur de la tête.": "Below the QR: {list}. The text is wrapped to the width of the printhead.",
+  "Stockage temporaire : IndexedDB indisponible, les liens seront perdus": "Temporary storage: IndexedDB unavailable, links will be lost",
+  "Supprimer {title}": "Delete {title}",
+  "Sélectionner {title}": "Select {title}",
+  "Sélectionnez un lien pour voir l'étiquette.": "Select a link to see the label.",
+  "Taille des étiquettes déduite de ces six valeurs : {size}, {columns} × {rows} par feuille.": "Label size derived from these six values: {size}, {columns} × {rows} per sheet.",
+  "Texte de {size} mm de haut, {lines} de texte.": "Text {size} mm high, {lines} of text.",
+  "Titre de la page": "Page title",
+  "Tous les liens visés sont déjà raccourcis.": "All targeted links are already shortened.",
+  "bas": "bottom",
+  "droite": "right",
+  "gauche": "left",
+  "haut": "top",
+  "impression impossible": "printing failed",
+  "l'URL": "the URL",
+  "la date de collecte": "the collection date",
+  "la date et l'heure": "the date and time",
+  "largeur mesurée {count} px": "measured width {count} px",
+  "le domaine": "the host",
+  "le numéro du lien": "the link number",
+  "le titre": "the title",
+  "les {count} liens de la collection": "the {count} links in the collection",
+  "longueur libre": "free length",
+  "modèle non rapporté": "model not reported",
+  "modèle {id}": "model {id}",
+  "note": "note",
+  "sur {count}.": "out of {count}.",
+  "série arrêtée": "series stopped",
+  "tag": "tag",
+  "toute la collection": "the whole collection",
+  "veille, travail": "reading, work",
+  "{columns} × {rows} = {perPage} de {size} mm, {pages}": "{columns} × {rows} = {perPage} of {size} mm, {pages}",
+  "{count} déjà présent": "{count} already present",
+  "{count} déjà présents": "{count} already present",
+  "{count} en échec — {message}": "{count} failed — {message}",
+  "{count} illisible": "{count} unreadable",
+  "{count} illisibles": "{count} unreadable",
+  "{count} lien": "{count} link",
+  "{count} lien coché": "{count} checked link",
+  "{count} lien importé": "{count} imported link",
+  "{count} lien raccourci : un QR plus court se scanne plus vite et tient sur une plus petite étiquette.": "{count} shortened link: a shorter QR scans faster and fits on a smaller label.",
+  "{count} liens": "{count} links",
+  "{count} liens cochés": "{count} checked links",
+  "{count} liens importés": "{count} imported links",
+  "{count} liens raccourcis : un QR plus court se scanne plus vite et tient sur une plus petite étiquette.": "{count} shortened links: a shorter QR scans faster and fits on a smaller label.",
+  "{count} ligne": "{count} line",
+  "{count} lignes": "{count} lines",
+  "{count} page": "{count} page",
+  "{count} pages": "{count} pages",
+  "{count} px de tête": "{count} px printhead",
+  "{count} raccourci retiré": "{count} short link removed",
+  "{count} raccourcis retirés": "{count} short links removed",
+  "{count} étiquette imprimée": "{count} label printed",
+  "{count} étiquette par page": "{count} label per page",
+  "{count} étiquette — {filename} enregistré": "{count} label — {filename} saved",
+  "{count} étiquettes imprimées": "{count} labels printed",
+  "{count} étiquettes par page": "{count} labels per page",
+  "{count} étiquettes — {filename} enregistré": "{count} labels — {filename} saved",
+  "{label} pour {url}": "{label} for {url}",
+  "{min} à {max} %": "{min} to {max} %",
+  "{mm} mm vers la {direction}": "{mm} mm to the {direction}",
+  "{mm} mm vers le {direction}": "{mm} mm to the {direction}",
+  "{name} · {done}/{total}…": "{name} · {done}/{total}…",
+  "{label} · {scope}{done}. L'URL complète est transmise au service.": "{label} · {scope}{done}. The full URL is sent to the service.",
+  "{profile} — {reason}": "{profile} — {reason}",
+  "{profile} — {width} × {height} px, {px} px par module": "{profile} — {width} × {height} px, {px} px per module",
+  "{source}, {count} exemplaire de chacun.": "{source}, {count} copy of each.",
+  "{source}, {count} exemplaires de chacun.": "{source}, {count} copies of each.",
+  "Étiquette imprimée : {rows} lignes, {frames} trames.": "Label printed: {rows} lines, {frames} frames.",
+  "Étiquette {index}/{total} — {title}": "Label {index}/{total} — {title}",
+  "Étiquette {index}/{total}…": "Label {index}/{total}…",
+
+  // -------------------------------------------------------------------------
+  // Cœur — messages visibles (Bluetooth, raccourcissement, erreurs)
+  // -------------------------------------------------------------------------
+  "Brave désactive Web Bluetooth par défaut. Ouvrez brave://flags/#brave-web-bluetooth-api, mettez « Web Bluetooth API » sur Enabled, puis relancez Brave. Chrome et Edge fonctionnent sans réglage.": "Brave disables Web Bluetooth by default. Open brave://flags/#brave-web-bluetooth-api, set “Web Bluetooth API” to Enabled, then restart Brave. Chrome and Edge work without any setting.",
+  "Web Bluetooth n'est pas disponible dans ce navigateur.": "Web Bluetooth is not available in this browser.",
+  "Safari (macOS et iOS) ne l'implémente pas. {brave}": "Safari (macOS and iOS) does not implement it. {brave}",
+  "Web Bluetooth exige un contexte sécurisé (HTTPS ou localhost).": "Web Bluetooth requires a secure context (HTTPS or localhost).",
+  "Ouvrez l'application via https:// ou http://localhost.": "Open the app over https:// or http://localhost.",
+  "Web Bluetooth est désactivé dans ce navigateur — ou le Bluetooth de cet ordinateur est éteint.": "Web Bluetooth is disabled in this browser — or this computer's Bluetooth is off.",
+  "Web Bluetooth est désactivé dans ce navigateur. {brave}": "Web Bluetooth is disabled in this browser. {brave}",
+  "Aucun appareil choisi. Réveillez l'imprimante, puis relancez la connexion.": "No device chosen. Wake the printer, then start the connection again.",
+  "Le navigateur a refusé l'accès au Bluetooth : autorisez-le pour cette page, puis réessayez.": "The browser denied Bluetooth access: allow it for this page, then try again.",
+  "Connexion impossible : {message}": "Connection failed: {message}",
+  "Transport non connecté": "Transport not connected",
+  "Service de raccourcissement inconnu : {provider}": "Unknown shortening service: {provider}",
+  "Raccourcissement indisponible : fetch absent": "Shortening unavailable: fetch is missing",
+  "Lien à raccourcir invalide : {url}": "Invalid link to shorten: {url}",
+  "Raccourcissement annulé": "Shortening cancelled",
+  "{name} n'a pas répondu en {seconds} s": "{name} did not respond within {seconds} s",
+  "Impossible de joindre {name} : {message}": "Could not reach {name}: {message}",
+  "{count} lien raccourci": "{count} shortened link",
+  "{count} liens raccourcis": "{count} shortened links",
+  "{count} déjà fait": "{count} already done",
+  "{count} déjà faits": "{count} already done",
+  "{count} échec": "{count} failure",
+  "{count} échecs": "{count} failures",
+  "Rouleau continu 12 mm (longueur libre)": "Continuous roll 12 mm (free length)",
+  "Rouleau continu 48 mm (longueur libre)": "Continuous roll 48 mm (free length)",
+  "trop large pour cette tête": "too wide for this printhead",
+  "plus longue que la fenêtre d'impression": "longer than the print window",
+  "marge non imprimée sur les côtés": "unprinted margin on the sides",
+  "Niimbot D110 — 12 mm utile (203 dpi)": "Niimbot D110 — 12 mm usable (203 dpi)",
+  "Zebra 2 pouces — 54 mm (203 dpi)": "Zebra 2 inches — 54 mm (203 dpi)",
+  "Générique — 50 × 30 mm (300 dpi)": "Generic — 50 × 30 mm (300 dpi)",
+  "Générique — 70 × 40 mm (300 dpi)": "Generic — 70 × 40 mm (300 dpi)",
+  "Planche A4 — 3 × 8 (63,5 × 33,9 mm)": "A4 sheet — 3 × 8 (63.5 × 33.9 mm)",
+  "Titre puis URL": "Title then URL",
+  "URL seule": "URL only",
+  "Titre seul": "Title only",
+  "Aucun texte": "No text",
+  "Centré": "Centered",
+  "En haut": "Top",
+  "Réparti (QR en haut, texte en bas)": "Spread (QR at top, text at bottom)",
+  "URL trop longue : le QR fait {size} px pour {width} px de large. Raccourcissez l'URL ou utilisez une étiquette plus large.": "URL too long: the QR is {size} px for {width} px of width. Shorten the URL or use a wider label.",
+  "QR trop dense : {px} px par module (minimum {min}). Raccourcissez l'URL ou augmentez la largeur de l'étiquette.": "QR too dense: {px} px per module (minimum {min}). Shorten the URL or increase the label width.",
+  "Dispositions génériques": "Generic layouts",
+  "Avery — A4": "Avery — A4",
+  "Avery — Letter (US)": "Avery — Letter (US)",
+  "A4 — 3 × 4 grandes étiquettes QR (60 × 60 mm)": "A4 — 3 × 4 large QR labels (60 × 60 mm)",
+  "L'imprimante a signalé une erreur : {label}": "The printer reported an error: {label}",
+  "L'impression n'a pas confirmé son achèvement après {ms} ms. L'étiquette est peut-être incomplète.": "Printing did not confirm completion after {ms} ms. The label may be incomplete.",
+  "URL attendue sous forme de chaîne": "URL must be a string",
+  "URL vide": "Empty URL",
+  "Seuls les schémas http et https sont pris en charge": "Only http and https schemes are supported",
+  "URL invalide : {input}": "Invalid URL: {input}",
+  "Nom d'hôte invalide : {host}": "Invalid host name: {host}",
+  "createLink exige au minimum { url }": "createLink requires at least { url }",
+  "{width} mm × {height} px — {widthPx} × {heightPx} px à {dpi} dpi": "{width} mm × {height} px — {widthPx} × {heightPx} px at {dpi} dpi",
+  "URL trop longue pour ce format : le QR fait {size} px pour {width} px de large.": "URL too long for this format: the QR is {size} px for {width} px of width.",
+  " — date non imprimée : elle ne tient pas sur ce format, réduisez la taille du texte.": " — date not printed: it does not fit on this format, reduce the text size.",
+  "{detail} Formats acceptés : l'archive JSON du bouton « Archive », le dossier d'étiquettes (.zip) ou son export.json, ou un CSV exporté d'ici.": "{detail} Accepted formats: the JSON archive from the “Archive” button, the label folder (.zip) or its export.json, or a CSV exported from here.",
+  "Fichier illisible : {message}.": "Unreadable file: {message}.",
+  "Archive JSON sans liste de liens": "JSON archive without a link list",
+  "Archive JSON sans liste de liens (format « {format} »)": "JSON archive without a link list (format “{format}”)",
+  "CSV sans ligne de données.": "CSV without a data row.",
+  "CSV sans colonne « URL » (colonnes trouvées : {columns}).": "CSV without an “URL” column (columns found: {columns}).",
+  "Rouleau continu 72 mm (longueur libre)": "Continuous roll 72 mm (free length)",
+  "Brother DK-11218 — 24 mm rond (300 dpi)": "Brother DK-11218 — 24 mm round (300 dpi)",
+  "Brother DK-11219 — 12 mm rond (300 dpi)": "Brother DK-11219 — 12 mm round (300 dpi)",
+  "Brother DK-22205 — 62 mm continu (300 dpi)": "Brother DK-22205 — 62 mm continuous (300 dpi)",
+  "Brother DK-22210 — 29 mm continu (300 dpi)": "Brother DK-22210 — 29 mm continuous (300 dpi)",
+  "Zebra 4 × 6 po — 104 × 152 mm (203 dpi)": "Zebra 4 × 6 in — 104 × 152 mm (203 dpi)",
+};
+
+// ────────────────────────────────────────────────────────────────────────
+// dist/extension-safari/core/i18n.js
+// ────────────────────────────────────────────────────────────────────────
+
+/**
+ * Internationalisation de l'interface — français et anglais.
+ *
+ * Le français est la langue source : les messages sont écrits en français dans
+ * le code, et le catalogue ne contient que les traductions. Une clé absente
+ * retombe donc sur le texte français, jamais sur un identifiant technique — ce
+ * qui rend la migration incrémentale sans jamais afficher de « clé manquante ».
+ *
+ * Les messages peuvent contenir des emplacements `{nom}`, remplacés par `t()`.
+ * Le pluriel passe par `tpl()`, qui choisit la forme adaptée à la langue avec
+ * `Intl.PluralRules` : le français met « 0 lien » au singulier, l'anglais écrit
+ * « 0 links » au pluriel.
+ *
+ * La langue retenue est mémorisée — `chrome.storage.local` dans l'extension
+ * (le service worker y a accès, contrairement à `localStorage`), `localStorage`
+ * sur le Web. La première visite suit la langue du navigateur.
+ */
+
+
+
+/** Langues proposées, dans l'ordre d'affichage. */
+const SUPPORTED_LOCALES = Object.freeze(['fr', 'en']);
+
+/** Langue de repli, et langue source des messages. */
+const DEFAULT_LOCALE = 'fr';
+
+/** Clé de mémorisation, partagée avec le service worker. */
+const LOCALE_STORAGE_KEY = 'locale';
+
+/** Catalogues de traduction. Le français est le texte source, donc absent. */
+const CATALOGS = Object.freeze({ en: EN_MESSAGES });
+
+let currentLocale = DEFAULT_LOCALE;
+const listeners = new Set();
+
+/**
+ * Ramène un code de langue à une langue gérée : « en-GB » → « en ».
+ * @param {unknown} value
+ * @returns {'fr'|'en'|null}
+ */
+function normalizeLocale(value) {
+  if (typeof value !== 'string') return null;
+  const base = value.trim().toLowerCase().split(/[-_]/)[0];
+  return SUPPORTED_LOCALES.includes(base) ? base : null;
+}
+
+/**
+ * Choisit la langue du navigateur, ou le français par défaut.
+ * @param {Navigator|undefined} [navigatorLike]
+ * @returns {'fr'|'en'}
+ */
+function detectLocale(navigatorLike = globalThis.navigator) {
+  const candidates = [navigatorLike?.languages, navigatorLike?.language]
+    .flat()
+    .filter((entry) => typeof entry === 'string' && entry !== '');
+  for (const candidate of candidates) {
+    const normalized = normalizeLocale(candidate);
+    if (normalized) return normalized;
+  }
+  return DEFAULT_LOCALE;
+}
+
+/** La langue actuellement appliquée. */
+function getLocale() {
+  return currentLocale;
+}
+
+/** L'espace de stockage à utiliser, ou `null` hors extension. */
+function resolveArea(area) {
+  if (area) return area;
+  return globalThis.chrome?.storage?.local ?? null;
+}
+
+/**
+ * Lit la langue mémorisée. Ne lève jamais : un stockage indisponible n'est pas
+ * une raison d'échouer au démarrage.
+ * @param {any} [area]
+ * @returns {Promise<'fr'|'en'|null>}
+ */
+async function readStoredLocale(area) {
+  const resolved = resolveArea(area);
+  if (resolved) {
+    try {
+      const data = await resolved.get(LOCALE_STORAGE_KEY);
+      return normalizeLocale(data?.[LOCALE_STORAGE_KEY]);
+    } catch {
+      return null;
+    }
+  }
+  try {
+    return normalizeLocale(globalThis.localStorage?.getItem(LOCALE_STORAGE_KEY));
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Mémorise la langue. Ne lève jamais.
+ * @param {any} [area]
+ * @param {'fr'|'en'} locale
+ * @returns {Promise<void>}
+ */
+async function writeStoredLocale(area, locale) {
+  const resolved = resolveArea(area);
+  if (resolved) {
+    try {
+      await resolved.set({ [LOCALE_STORAGE_KEY]: locale });
+    } catch {
+      // La langue reste appliquée pour la session en cours.
+    }
+    return;
+  }
+  try {
+    globalThis.localStorage?.setItem(LOCALE_STORAGE_KEY, locale);
+  } catch {
+    // Idem.
+  }
+}
+
+/**
+ * Détermine la langue de départ d'une page.
+ *
+ * L'ordre reflète les priorités : un choix explicite passé en option, puis la
+ * langue mémorisée, puis celle du navigateur.
+ *
+ * @param {{ area?: any, locale?: unknown, navigator?: Navigator }} [options]
+ * @returns {Promise<'fr'|'en'>}
+ */
+async function initI18n(options = {}) {
+  const stored = await readStoredLocale(options.area);
+  currentLocale =
+    normalizeLocale(options.locale) ?? stored ?? detectLocale(options.navigator);
+  return currentLocale;
+}
+
+/**
+ * Change la langue, la mémorise et prévient les abonnés.
+ * @param {unknown} locale
+ * @param {{ area?: any }} [options]
+ * @returns {Promise<'fr'|'en'>}
+ */
+async function setLocale(locale, options = {}) {
+  const normalized = normalizeLocale(locale);
+  if (!normalized) return currentLocale;
+  currentLocale = normalized;
+  await writeStoredLocale(options.area, normalized);
+  for (const listener of listeners) {
+    try {
+      listener(normalized);
+    } catch {
+      // Un abonné fautif ne doit pas empêcher les autres d'être prévenus.
+    }
+  }
+  return currentLocale;
+}
+
+/**
+ * S'abonne aux changements de langue.
+ * @param {(locale: 'fr'|'en') => void} listener
+ * @returns {() => void} désabonnement
+ */
+function onLocaleChange(listener) {
+  listeners.add(listener);
+  return () => listeners.delete(listener);
+}
+
+/**
+ * Traduit un message source.
+ * @param {string} source
+ * @param {Record<string, string|number>} [params]
+ * @returns {string}
+ */
+function t(source, params) {
+  const table = CATALOGS[currentLocale];
+  const message = table?.[source] ?? source;
+  if (!params) return message;
+  return message.replace(/\{(\w+)\}/g, (match, name) =>
+    Object.prototype.hasOwnProperty.call(params, name) ? String(params[name]) : match,
+  );
+}
+
+/**
+ * Traduit un message au pluriel.
+ *
+ * `one` et `other` sont les deux formes françaises ; la règle de la langue
+ * courante choisit laquelle traduire. `count` est fourni d'office aux
+ * emplacements du message.
+ *
+ * @param {number} count
+ * @param {string} one
+ * @param {string} other
+ * @param {Record<string, string|number>} [params]
+ * @returns {string}
+ */
+function tpl(count, one, other, params = {}) {
+  const rule = typeof Intl !== 'undefined' && Intl.PluralRules
+    ? new Intl.PluralRules(currentLocale).select(count)
+    : (count === 1 ? 'one' : 'other');
+  return t(rule === 'one' ? one : other, { ...params, count });
+}
+
+/**
+ * Applique les traductions aux éléments balisés du document.
+ *
+ * Les attributs reconnus : `data-i18n` (texte), `data-i18n-placeholder`,
+ * `data-i18n-title` et `data-i18n-aria-label`. Seuls des éléments sans balise
+ * enfant portent `data-i18n` : le texte remplace tout le contenu.
+ *
+ * @param {ParentNode} [root]
+ */
+function applyTranslations(root = globalThis.document) {
+  if (!root?.querySelectorAll) return;
+
+  for (const node of root.querySelectorAll('[data-i18n]')) {
+    const key = node.getAttribute('data-i18n');
+    if (key) node.textContent = t(key);
+  }
+  for (const node of root.querySelectorAll('[data-i18n-placeholder]')) {
+    const key = node.getAttribute('data-i18n-placeholder');
+    if (key) node.setAttribute('placeholder', t(key));
+  }
+  for (const node of root.querySelectorAll('[data-i18n-title]')) {
+    const key = node.getAttribute('data-i18n-title');
+    if (key) node.setAttribute('title', t(key));
+  }
+  for (const node of root.querySelectorAll('[data-i18n-aria-label]')) {
+    const key = node.getAttribute('data-i18n-aria-label');
+    if (key) node.setAttribute('aria-label', t(key));
+  }
+  if (root.documentElement) root.documentElement.lang = currentLocale;
+}
+
+// ────────────────────────────────────────────────────────────────────────
+// dist/extension-safari/core/link.js
 // ────────────────────────────────────────────────────────────────────────
 
 /**
@@ -12,6 +632,8 @@
  * d'être réutilisé tel quel par l'application web autonome, l'extension
  * navigateur et, plus tard, une couche native.
  */
+
+
 
 /**
  * @typedef {Object} LinkRecord
@@ -62,9 +684,9 @@ function newId() {
  * @throws {TypeError} si l'entrée ne peut pas être analysée comme une URL http(s).
  */
 function normalizeUrl(input) {
-  if (typeof input !== 'string') throw new TypeError('URL attendue sous forme de chaîne');
+  if (typeof input !== 'string') throw new TypeError(t('URL attendue sous forme de chaîne'));
   let raw = input.trim();
-  if (raw === '') throw new TypeError('URL vide');
+  if (raw === '') throw new TypeError(t('URL vide'));
 
   // Un schéma explicite non http(s) (mailto:, tel:, ftp:) est rejeté : ces
   // chaînes ne sont pas des liens web et fausseraient le rendu des colonnes.
@@ -72,7 +694,7 @@ function normalizeUrl(input) {
   // d'un port ; on le traite comme une URL sans schéma plutôt que de le refuser.
   const isHostPort = /^[^\s/?#@]+:\d+(?:[/?#]|$)/.test(raw);
   if (/^[a-z][a-z0-9+.-]*:/i.test(raw) && !/^https?:/i.test(raw) && !isHostPort) {
-    throw new TypeError('Seuls les schémas http et https sont pris en charge');
+    throw new TypeError(t('Seuls les schémas http et https sont pris en charge'));
   }
   if (!/^https?:\/\//i.test(raw)) raw = 'https://' + raw;
 
@@ -80,10 +702,10 @@ function normalizeUrl(input) {
   try {
     parsed = new URL(raw);
   } catch {
-    throw new TypeError('URL invalide : ' + input);
+    throw new TypeError(t('URL invalide : {input}', { input }));
   }
   if (!parsed.hostname.includes('.') && parsed.hostname !== 'localhost') {
-    throw new TypeError('Nom d\'hôte invalide : ' + parsed.hostname);
+    throw new TypeError(t("Nom d'hôte invalide : {host}", { host: parsed.hostname }));
   }
 
   parsed.hash = '';
@@ -194,7 +816,7 @@ function normalizeShortUrl(value) {
  */
 function createLink(input, options = {}) {
   if (!input || typeof input.url !== 'string') {
-    throw new TypeError('createLink exige au minimum { url }');
+    throw new TypeError(t('createLink exige au minimum { url }'));
   }
   const now = options.now ?? Date.now();
   const title = typeof input.title === 'string'
@@ -339,7 +961,7 @@ function resolveTargets(links, mode = 'original') {
 }
 
 // ────────────────────────────────────────────────────────────────────────
-// /Users/gael/Documents/GitHub/URLQRCodePrinter/dist/extension-safari/core/store.js
+// dist/extension-safari/core/store.js
 // ────────────────────────────────────────────────────────────────────────
 
 /**
@@ -646,7 +1268,7 @@ function resolveDefaultStore(options = {}) {
 }
 
 // ────────────────────────────────────────────────────────────────────────
-// /Users/gael/Documents/GitHub/URLQRCodePrinter/dist/extension-safari/element-ids.js
+// dist/extension-safari/element-ids.js
 // ────────────────────────────────────────────────────────────────────────
 
 /**
@@ -718,6 +1340,8 @@ const ELEMENT_IDS = Object.freeze([
   'table-col-date-time',
   'table-grid',
   'table-hint',
+  'export-table',
+  'panel-actions',
   'label-profile',
   'profile-hint',
   'supply-hint',
@@ -744,6 +1368,7 @@ const ELEMENT_IDS = Object.freeze([
   'label-margin',
   'label-font',
   'label-cut',
+  'export-title',
   'export-date',
   'export-date-time',
   'export-labels',
@@ -762,7 +1387,7 @@ const ELEMENT_IDS = Object.freeze([
 ]);
 
 // ────────────────────────────────────────────────────────────────────────
-// /Users/gael/Documents/GitHub/URLQRCodePrinter/dist/extension-safari/core/exporters.js
+// dist/extension-safari/core/exporters.js
 // ────────────────────────────────────────────────────────────────────────
 
 /**
@@ -1107,7 +1732,7 @@ function exportFilename(base, extension, now = Date.now()) {
 }
 
 // ────────────────────────────────────────────────────────────────────────
-// /Users/gael/Documents/GitHub/URLQRCodePrinter/dist/extension-safari/core/shorten.js
+// dist/extension-safari/core/shorten.js
 // ────────────────────────────────────────────────────────────────────────
 
 /**
@@ -1129,6 +1754,7 @@ function exportFilename(base, extension, now = Date.now()) {
  * de le tester sans sortir de la machine. Aucun service n'est appelé au
  * chargement de la page — uniquement sur action explicite.
  */
+
 
 
 
@@ -1222,11 +1848,18 @@ function excerpt(text) {
  * `spacingMs` est le délai minimal entre deux requêtes : il respecte les limites
  * documentées par les services bénévoles (`is.gd` et `v.gd` refusent au-delà de
  * cinq créations par tranche de dix secondes).
+ *
+ * `label` est le texte montré dans la liste déroulante. Il ne dit pas ce que le
+ * service *est* (`note`, réservé à l'infobulle et à la documentation) mais ce
+ * qu'il **change pour l'utilisateur** : quelqu'un qui veut seulement un lien
+ * plus court doit pouvoir choisir sans connaître ces quatre marques. D'où le
+ * « recommandé » sur le premier, et un différenciateur concret sur les autres.
  */
 const SHORTENERS = Object.freeze([
   {
     id: 'tinyurl',
     name: 'TinyURL',
+    label: 'TinyURL — recommandé',
     site: 'https://tinyurl.com',
     note: 'Sans clé d\'API, HTTPS, liens durables. Service commercial.',
     spacingMs: 500,
@@ -1243,6 +1876,7 @@ const SHORTENERS = Object.freeze([
   {
     id: 'isgd',
     name: 'is.gd',
+    label: 'is.gd — sans statistiques',
     site: 'https://is.gd',
     note: 'Sans clé ni statistiques. Service bénévole, régulièrement indisponible.',
     spacingMs: 2200,
@@ -1255,6 +1889,7 @@ const SHORTENERS = Object.freeze([
   {
     id: 'vgd',
     name: 'v.gd',
+    label: 'v.gd — avertissement avant redirection',
     site: 'https://v.gd',
     note: 'Même infrastructure que is.gd, mais les liens affichent un avertissement avant redirection.',
     spacingMs: 2200,
@@ -1267,6 +1902,7 @@ const SHORTENERS = Object.freeze([
   {
     id: 'spoome',
     name: 'spoo.me',
+    label: 'spoo.me — statistiques de clics',
     site: 'https://spoo.me',
     note: 'Sans clé, statistiques de clics. Répond en HTTP : le lien est ramené en HTTPS.',
     spacingMs: 700,
@@ -1382,10 +2018,10 @@ async function shortenUrl(url, options = {}) {
 
   const shortener = typeof provider === 'string' ? findShortener(provider) : provider;
   if (!shortener) {
-    throw new ShortenError(`Service de raccourcissement inconnu : ${provider}`, 'unknown');
+    throw new ShortenError(t('Service de raccourcissement inconnu : {provider}', { provider }), 'unknown');
   }
   if (typeof fetchImpl !== 'function') {
-    throw new ShortenError('Raccourcissement indisponible : fetch absent', 'unsupported', {
+    throw new ShortenError(t('Raccourcissement indisponible : fetch absent'), 'unsupported', {
       provider: shortener.id,
     });
   }
@@ -1394,7 +2030,7 @@ async function shortenUrl(url, options = {}) {
   try {
     target = normalizeUrl(url);
   } catch (error) {
-    throw new ShortenError(`Lien à raccourcir invalide : ${url}`, 'invalid', {
+    throw new ShortenError(t('Lien à raccourcir invalide : {url}', { url }), 'invalid', {
       provider: shortener.id,
       cause: error,
     });
@@ -1413,7 +2049,7 @@ async function shortenUrl(url, options = {}) {
   if (signal) {
     if (signal.aborted) {
       clearTimeout(timer);
-      throw new ShortenError('Raccourcissement annulé', 'aborted', { provider: shortener.id });
+      throw new ShortenError(t('Raccourcissement annulé'), 'aborted', { provider: shortener.id });
     }
     signal.addEventListener('abort', onAbort, { once: true });
   }
@@ -1434,11 +2070,11 @@ async function shortenUrl(url, options = {}) {
     if (error instanceof ShortenError) throw error;
     if (error?.name === 'AbortError') {
       throw timedOut
-        ? new ShortenError(`${shortener.name} n'a pas répondu en ${Math.round(timeoutMs / 1000)} s`, 'timeout', { provider: shortener.id, cause: error })
-        : new ShortenError('Raccourcissement annulé', 'aborted', { provider: shortener.id, cause: error });
+        ? new ShortenError(t("{name} n'a pas répondu en {seconds} s", { name: shortener.name, seconds: Math.round(timeoutMs / 1000) }), 'timeout', { provider: shortener.id, cause: error })
+        : new ShortenError(t('Raccourcissement annulé'), 'aborted', { provider: shortener.id, cause: error });
     }
     throw new ShortenError(
-      `Impossible de joindre ${shortener.name} : ${error?.message ?? error}`,
+      t('Impossible de joindre {name} : {message}', { name: shortener.name, message: error?.message ?? error }),
       'network',
       { provider: shortener.id, cause: error },
     );
@@ -1495,7 +2131,7 @@ function createShortener(options = {}) {
     ? findShortener(options.provider)
     : options.provider;
   if (!shortener) {
-    throw new ShortenError(`Service de raccourcissement inconnu : ${options.provider}`, 'unknown');
+    throw new ShortenError(t('Service de raccourcissement inconnu : {provider}', { provider: options.provider }), 'unknown');
   }
 
   const fetchImpl = options.fetch ?? globalThis.fetch;
@@ -1616,16 +2252,16 @@ function describeShortenReport(report) {
   const failed = report.failed ?? [];
   const skipped = report.skipped?.filter((item) => item.reason === 'already').length ?? 0;
 
-  parts.push(`${okCount} lien${okCount > 1 ? 's' : ''} raccourci${okCount > 1 ? 's' : ''}`);
-  if (skipped > 0) parts.push(`${skipped} déjà fait${skipped > 1 ? 's' : ''}`);
-  if (failed.length > 0) parts.push(`${failed.length} échec${failed.length > 1 ? 's' : ''}`);
+  parts.push(tpl(okCount, '{count} lien raccourci', '{count} liens raccourcis'));
+  if (skipped > 0) parts.push(tpl(skipped, '{count} déjà fait', '{count} déjà faits'));
+  if (failed.length > 0) parts.push(tpl(failed.length, '{count} échec', '{count} échecs'));
 
   const first = failed[0];
   return first ? `${parts.join(', ')} — ${first.message}` : parts.join(', ');
 }
 
 // ────────────────────────────────────────────────────────────────────────
-// /Users/gael/Documents/GitHub/URLQRCodePrinter/dist/extension-safari/core/settings.js
+// dist/extension-safari/core/settings.js
 // ────────────────────────────────────────────────────────────────────────
 
 /**
@@ -1789,7 +2425,7 @@ function createSettingsStore(options = {}) {
 }
 
 // ────────────────────────────────────────────────────────────────────────
-// /Users/gael/Documents/GitHub/URLQRCodePrinter/node_modules/uqr/dist/index.mjs
+// node_modules/uqr/dist/index.mjs
 // ────────────────────────────────────────────────────────────────────────
 
 var QrCodeDataType = /* @__PURE__ */ ((QrCodeDataType2) => {
@@ -2531,7 +3167,7 @@ function renderSVG(data, options = {}) {
 }
 
 // ────────────────────────────────────────────────────────────────────────
-// /Users/gael/Documents/GitHub/URLQRCodePrinter/dist/extension-safari/core/png.js
+// dist/extension-safari/core/png.js
 // ────────────────────────────────────────────────────────────────────────
 
 /**
@@ -2693,7 +3329,7 @@ function rgbaFromMatrix(pixels, options = {}) {
 }
 
 // ────────────────────────────────────────────────────────────────────────
-// /Users/gael/Documents/GitHub/URLQRCodePrinter/dist/extension-safari/core/qr.js
+// dist/extension-safari/core/qr.js
 // ────────────────────────────────────────────────────────────────────────
 
 /**
@@ -2926,7 +3562,7 @@ async function qrPng(text, options = {}) {
 }
 
 // ────────────────────────────────────────────────────────────────────────
-// /Users/gael/Documents/GitHub/URLQRCodePrinter/dist/extension-safari/core/label.js
+// dist/extension-safari/core/label.js
 // ────────────────────────────────────────────────────────────────────────
 
 /**
@@ -2937,6 +3573,7 @@ async function qrPng(text, options = {}) {
  * (D110, M2) vivent dans `printer/profiles.js`, ce qui permet de tester la mise
  * en page sans matériel.
  */
+
 
 
 
@@ -3991,25 +4628,27 @@ function checkQrLegibility(geometry, options = {}) {
     return {
       ok: false,
       pxPerModule,
-      reason:
-        `URL trop longue : le QR fait ${geometry.qrSize} px pour ${geometry.width} px ` +
-        'de large. Raccourcissez l\'URL ou utilisez une étiquette plus large.',
+      reason: t(
+        "URL trop longue : le QR fait {size} px pour {width} px de large. Raccourcissez l'URL ou utilisez une étiquette plus large.",
+        { size: geometry.qrSize, width: geometry.width },
+      ),
     };
   }
   if (pxPerModule < minPx) {
     return {
       ok: false,
       pxPerModule,
-      reason:
-        `QR trop dense : ${pxPerModule.toFixed(2)} px par module (minimum ${minPx}). ` +
-        'Raccourcissez l\'URL ou augmentez la largeur de l\'étiquette.',
+      reason: t(
+        "QR trop dense : {px} px par module (minimum {min}). Raccourcissez l'URL ou augmentez la largeur de l'étiquette.",
+        { px: pxPerModule.toFixed(2), min: minPx },
+      ),
     };
   }
   return { ok: true, pxPerModule };
 }
 
 // ────────────────────────────────────────────────────────────────────────
-// /Users/gael/Documents/GitHub/URLQRCodePrinter/dist/extension-safari/core/raster.js
+// dist/extension-safari/core/raster.js
 // ────────────────────────────────────────────────────────────────────────
 
 /**
@@ -4232,7 +4871,7 @@ function rotateBitmap(bitmap, turns = 0) {
 }
 
 // ────────────────────────────────────────────────────────────────────────
-// /Users/gael/Documents/GitHub/URLQRCodePrinter/dist/extension-safari/core/sheet.js
+// dist/extension-safari/core/sheet.js
 // ────────────────────────────────────────────────────────────────────────
 
 /**
@@ -5104,7 +5743,7 @@ function presetToGrid(preset, page) {
 }
 
 // ────────────────────────────────────────────────────────────────────────
-// /Users/gael/Documents/GitHub/URLQRCodePrinter/dist/extension-safari/core/printer/profiles.js
+// dist/extension-safari/core/printer/profiles.js
 // ────────────────────────────────────────────────────────────────────────
 
 /**
@@ -5168,8 +5807,37 @@ const M2 = Object.freeze({
   transposed: false,
 });
 
+/**
+ * Profil M3 — 72 mm utiles, 300 dpi, tête 851 px.
+ *
+ * Le M3 appartient à la même famille que le M2 : 300 dpi, sens d'impression
+ * `top`, transfert thermique au ruban. `niimbluelib` lui associe 851 px et le
+ * modelId 6400, mais ne lui donne pas encore de task dédiée : on lui applique
+ * donc la séquence `B1` du M2_H, la seule de la famille validée sur matériel.
+ * À confirmer sur un M3 physique, comme l'a été le M2.
+ *
+ * 851 px à 300 dpi font 72 mm : c'est le « 3 pouces » du fabricant. Les
+ * étiquettes existent jusqu'à 78 mm de large, la tête n'imprimant qu'une bande
+ * de 72 mm et le reste restant blanc — même situation que le D110 avec ses
+ * rouleaux de 15 mm.
+ */
+const M3 = Object.freeze({
+  id: 'M3',
+  modelIds: [6400],
+  dpi: 300,
+  printheadPixels: 851,
+  maxLabelWidthMm: 78,
+  // Fenêtre d'impression alignée sur le M2 : les étiquettes M3 courantes vont
+  // jusqu'à 100 mm de long, et le rouleau continu n'est pas borné ici.
+  maxPrintHeightMm: 240,
+  density: { min: 1, max: 5, default: 3 },
+  printTask: 'B1',
+  namePrefixes: ['M3'],
+  transposed: false,
+});
+
 /** Tous les profils connus, du plus spécifique au plus générique. */
-const PROFILES = Object.freeze([D110, M2]);
+const PROFILES = Object.freeze([D110, M2, M3]);
 
 /** Profil utilisé quand le modèle n'est pas identifié. */
 const DEFAULT_PROFILE = D110;
@@ -5307,6 +5975,17 @@ const SUPPLIES = Object.freeze({
     { id: 'm2-50x50-rond', label: '50 × 50 mm (rond)', widthMm: 50, lengthMm: 50 },
     { id: 'm2-continue', label: 'Rouleau continu 48 mm (longueur libre)', widthMm: 48, lengthMm: null },
   ]),
+  // Collection du M3, telle que listée par le fabricant : les quatre cotes
+  // viennent de la fiche produit, le rouleau continu reprend la largeur de tête
+  // (72 mm). La tête imprime 72 mm ; les étiquettes plus larges gardent une
+  // bande blanche, comme sur le D110.
+  M3: Object.freeze([
+    { id: 'm3-40x20', label: '40 × 20 mm', widthMm: 40, lengthMm: 20 },
+    { id: 'm3-50x30', label: '50 × 30 mm', widthMm: 50, lengthMm: 30 },
+    { id: 'm3-60x100', label: '60 × 100 mm', widthMm: 60, lengthMm: 100 },
+    { id: 'm3-70x50', label: '70 × 50 mm', widthMm: 70, lengthMm: 50 },
+    { id: 'm3-continue', label: 'Rouleau continu 72 mm (longueur libre)', widthMm: 72, lengthMm: null },
+  ]),
 });
 
 /** Longueurs de rouleau les plus courantes, proposées comme suggestions. */
@@ -5369,7 +6048,7 @@ function planPageWidth(profile, labelWidthMm) {
 }
 
 // ────────────────────────────────────────────────────────────────────────
-// /Users/gael/Documents/GitHub/URLQRCodePrinter/dist/extension-safari/core/download.js
+// dist/extension-safari/core/download.js
 // ────────────────────────────────────────────────────────────────────────
 
 /**
@@ -5495,7 +6174,7 @@ async function copyText(text, options = {}) {
 }
 
 // ────────────────────────────────────────────────────────────────────────
-// /Users/gael/Documents/GitHub/URLQRCodePrinter/dist/extension-safari/core/zip.js
+// dist/extension-safari/core/zip.js
 // ────────────────────────────────────────────────────────────────────────
 
 /**
@@ -5682,7 +6361,7 @@ function readStoredZip(bytes) {
 }
 
 // ────────────────────────────────────────────────────────────────────────
-// /Users/gael/Documents/GitHub/URLQRCodePrinter/dist/extension-safari/core/xlsx.js
+// dist/extension-safari/core/xlsx.js
 // ────────────────────────────────────────────────────────────────────────
 
 /**
@@ -5952,7 +6631,7 @@ ${images
 }
 
 // ────────────────────────────────────────────────────────────────────────
-// /Users/gael/Documents/GitHub/URLQRCodePrinter/dist/extension-safari/core/spreadsheet.js
+// dist/extension-safari/core/spreadsheet.js
 // ────────────────────────────────────────────────────────────────────────
 
 /**
@@ -6089,7 +6768,7 @@ async function buildLinkSpreadsheet(links, options = {}) {
 }
 
 // ────────────────────────────────────────────────────────────────────────
-// /Users/gael/Documents/GitHub/URLQRCodePrinter/dist/extension-safari/core/import.js
+// dist/extension-safari/core/import.js
 // ────────────────────────────────────────────────────────────────────────
 
 /**
@@ -6118,6 +6797,7 @@ async function buildLinkSpreadsheet(links, options = {}) {
 
 
 
+
 /** Formes d'archive reconnues. */
 const IMPORT_KINDS = Object.freeze(['links', 'labels', 'csv']);
 
@@ -6127,10 +6807,10 @@ const IMPORT_KINDS = Object.freeze(['links', 'labels', 'csv']);
  * @returns {TypeError}
  */
 function unrecognised(detail) {
-  return new TypeError(
-    `${detail} Formats acceptés : l'archive JSON du bouton « Archive », le ` +
-    'dossier d\'étiquettes (.zip) ou son export.json, ou un CSV exporté d\'ici.',
-  );
+  return new TypeError(t(
+    "{detail} Formats acceptés : l'archive JSON du bouton « Archive », le dossier d'étiquettes (.zip) ou son export.json, ou un CSV exporté d'ici.",
+    { detail },
+  ));
 }
 
 /**
@@ -6144,7 +6824,7 @@ function fromJson(text) {
   try {
     parsed = JSON.parse(text);
   } catch (error) {
-    throw unrecognised(`Fichier illisible : ${error.message}.`);
+    throw unrecognised(t('Fichier illisible : {message}.', { message: error.message }));
   }
 
   if (Array.isArray(parsed)) return { kind: 'links', records: parsed };
@@ -6171,11 +6851,10 @@ function fromJson(text) {
     };
   }
 
-  throw unrecognised(
-    'Archive JSON sans liste de liens'
-    + (parsed?.format ? ` (format « ${parsed.format} »)` : '')
-    + '.',
-  );
+  const detail = parsed?.format
+    ? t('Archive JSON sans liste de liens (format « {format} »)', { format: parsed.format })
+    : t('Archive JSON sans liste de liens');
+  throw unrecognised(detail + '.');
 }
 
 /**
@@ -6285,7 +6964,7 @@ function parseExportedDate(value) {
 function fromCsv(text) {
   const rows = parseCsvRows(text).filter((row) => row.some((cell) => cell.trim() !== ''));
   if (rows.length < 2) {
-    throw unrecognised('CSV sans ligne de données.');
+    throw unrecognised(t('CSV sans ligne de données.'));
   }
 
   const headers = rows[0].map((header) => header.trim().toLowerCase());
@@ -6299,7 +6978,9 @@ function fromCsv(text) {
 
   const urlColumn = column('url', 'adresse', 'lien');
   if (urlColumn === -1) {
-    throw unrecognised(`CSV sans colonne « URL » (colonnes trouvées : ${rows[0].join(', ')}).`);
+    throw unrecognised(t('CSV sans colonne « URL » (colonnes trouvées : {columns}).', {
+      columns: rows[0].join(', '),
+    }));
   }
 
   const titleColumn = column('titre', 'title');
@@ -6407,7 +7088,7 @@ function toImportableLinks(records, options = {}) {
 }
 
 // ────────────────────────────────────────────────────────────────────────
-// /Users/gael/Documents/GitHub/URLQRCodePrinter/dist/extension-safari/core/label-export.js
+// dist/extension-safari/core/label-export.js
 // ────────────────────────────────────────────────────────────────────────
 
 /**
@@ -6456,6 +7137,13 @@ const LABEL_FORMATS = Object.freeze([
     dpi: 300,
   },
   {
+    id: 'niimbot-m3',
+    name: 'Niimbot M3 — 72 mm (300 dpi)',
+    widthMm: 72,
+    heightMm: null,
+    dpi: 300,
+  },
+  {
     id: 'brother-62',
     name: 'Brother QL — 62 mm (300 dpi)',
     widthMm: 62,
@@ -6497,6 +7185,79 @@ const LABEL_FORMATS = Object.freeze([
     heightMm: 33.9,
     dpi: 300,
   },
+  // Formats Brother QL (rouleaux DK, 300 dpi). Les cotes proviennent du
+  // catalogue du fabricant ; ce sont des cibles d'image, pas des profils
+  // d'imprimante — l'export ne parle à aucune étiqueteuse.
+  {
+    id: 'brother-dk11201',
+    name: 'Brother DK-11201 — 29 × 90 mm (300 dpi)',
+    widthMm: 29,
+    heightMm: 90,
+    dpi: 300,
+  },
+  {
+    id: 'brother-dk11202',
+    name: 'Brother DK-11202 — 62 × 100 mm (300 dpi)',
+    widthMm: 62,
+    heightMm: 100,
+    dpi: 300,
+  },
+  {
+    id: 'brother-dk11208',
+    name: 'Brother DK-11208 — 38 × 90 mm (300 dpi)',
+    widthMm: 38,
+    heightMm: 90,
+    dpi: 300,
+  },
+  {
+    id: 'brother-dk11209',
+    name: 'Brother DK-11209 — 29 × 62 mm (300 dpi)',
+    widthMm: 29,
+    heightMm: 62,
+    dpi: 300,
+  },
+  {
+    id: 'brother-dk11218',
+    name: 'Brother DK-11218 — 24 mm rond (300 dpi)',
+    widthMm: 24,
+    heightMm: 24,
+    dpi: 300,
+  },
+  {
+    id: 'brother-dk11219',
+    name: 'Brother DK-11219 — 12 mm rond (300 dpi)',
+    widthMm: 12,
+    heightMm: 12,
+    dpi: 300,
+  },
+  {
+    id: 'brother-dk22205',
+    name: 'Brother DK-22205 — 62 mm continu (300 dpi)',
+    widthMm: 62,
+    heightMm: null,
+    dpi: 300,
+  },
+  {
+    id: 'brother-dk22210',
+    name: 'Brother DK-22210 — 29 mm continu (300 dpi)',
+    widthMm: 29,
+    heightMm: null,
+    dpi: 300,
+  },
+  {
+    id: 'dymo-54x101',
+    name: 'Dymo LabelWriter — 54 × 101 mm (300 dpi)',
+    widthMm: 54,
+    heightMm: 101,
+    dpi: 300,
+  },
+  {
+    id: 'zebra-4x6',
+    name: 'Zebra 4 × 6 po — 104 × 152 mm (203 dpi)',
+    widthMm: 104,
+    heightMm: 152,
+    dpi: 203,
+  },
 ]);
 
 /**
@@ -6521,6 +7282,9 @@ const TEXT_MODES = Object.freeze({
 const DEFAULT_EXPORT_OPTIONS = Object.freeze({
   formatId: 'niimbot-d110',
   textMode: 'url',
+  // Le titre se coche à part dans l'onglet « Étiquette (divers) » : décoché, il
+  // n'apparaît que si le mode de texte le porte déjà.
+  showTitle: false,
   // Aucune date par défaut : chaque ligne de texte prend la place du QR, et une
   // étiquette de 12 mm n'en a pas de reste.
   dateMode: 'none',
@@ -6614,6 +7378,8 @@ function labelFileName(link, index, total) {
  * @param {(text: string) => number} options.measure Mesure de texte, fournie
  *   par l'appelant — lui seul connaît la police réellement utilisée.
  * @param {string} [options.textMode]
+ * @param {boolean} [options.showTitle] Imprime le titre sous le QR, même quand
+ *   le mode de texte ne le demande pas. Sans doublon s'il y figure déjà.
  * @param {number} [options.marginMm]
  * @param {number} [options.qrRatio]
  * @param {number} [options.fontSizePt]
@@ -6627,6 +7393,7 @@ function labelFileName(link, index, total) {
 function planLabel(options) {
   const { link, format, measure } = options;
   const textMode = options.textMode ?? DEFAULT_EXPORT_OPTIONS.textMode;
+  const showTitle = options.showTitle ?? DEFAULT_EXPORT_OPTIONS.showTitle;
   const dateMode = options.dateMode ?? DEFAULT_EXPORT_OPTIONS.dateMode;
   const marginMm = options.marginMm ?? DEFAULT_EXPORT_OPTIONS.marginMm;
   const qrRatio = options.qrRatio ?? DEFAULT_EXPORT_OPTIONS.qrRatio;
@@ -6662,7 +7429,8 @@ function planLabel(options) {
     : [];
   const dateOmitted = dateText !== '' && dateLines.length === 0;
 
-  const body = labelText(link, textMode).join(' ');
+  const bodySource = labelText(link, textMode);
+  const body = bodySource.join(' ');
   // Le texte principal garde son propre plafond : la date s'ajoute à lui au
   // lieu de lui prendre ses lignes. Elle les lui prenait, et l'URL se trouvait
   // tronquée à deux lignes dès qu'on demandait la date.
@@ -6670,7 +7438,16 @@ function planLabel(options) {
     ? wrapText(measure, body, innerWidth, { maxLines })
     : [];
 
-  const lines = [...bodyLines, ...dateLines];
+  // Le titre coché s'ajoute sous le QR, comme la date : il vient avant le
+  // texte principal. Il ne se duplique pas quand le mode de texte le porte
+  // déjà — « Titre puis URL » plus la case « Titre » n'imprime qu'un titre.
+  const title = typeof link.title === 'string' ? link.title.trim() : '';
+  const titleInBody = title !== '' && bodySource.some((line) => line.trim() === title);
+  const titleLines = showTitle && title !== '' && !titleInBody
+    ? wrapText(measure, title, innerWidth, { maxLines })
+    : [];
+
+  const lines = [...titleLines, ...bodyLines, ...dateLines];
   const textHeight = lines.length * lineHeightPx;
 
   // Hauteur fixe (planche) ou déduite du contenu (rouleau continu).
@@ -6869,6 +7646,7 @@ function buildLabelArchive(options) {
           heightMm: format.heightMm,
           dpi: format.dpi,
           textMode: options.settings?.textMode ?? DEFAULT_EXPORT_OPTIONS.textMode,
+          showTitle: options.settings?.showTitle ?? DEFAULT_EXPORT_OPTIONS.showTitle,
           dateMode: options.settings?.dateMode ?? DEFAULT_EXPORT_OPTIONS.dateMode,
           marginMm: options.settings?.marginMm ?? DEFAULT_EXPORT_OPTIONS.marginMm,
           fontSizePt: options.settings?.fontSizePt ?? DEFAULT_EXPORT_OPTIONS.fontSizePt,
@@ -6920,7 +7698,338 @@ function labelArchiveName(now = Date.now(), base = 'etiquettes-qr') {
 }
 
 // ────────────────────────────────────────────────────────────────────────
-// /Users/gael/Documents/GitHub/URLQRCodePrinter/dist/extension-safari/core/printer/packet.js
+// dist/extension-safari/core/table-export.js
+// ────────────────────────────────────────────────────────────────────────
+
+/**
+ * Export du tableau en dossier autonome : un modèle JSON, ses QR codes PNG et
+ * une page HTML prête à l'emploi.
+ *
+ * Le tableau de l'onglet « Tableau » n'avait aucune sortie réutilisable : ses
+ * colonnes et ses QR codes ne quittaient le navigateur que par l'impression.
+ * Ici, on produit un dossier qu'on ouvre, qu'on sert ou qu'on donne à lire à
+ * une application. Chaque ligne porte son image PNG — utilisable telle quelle
+ * dans une page, un traitement de texte ou un CMS, sans exiger du consommateur
+ * qu'il sache rendre un SVG.
+ *
+ * Le PNG est rendu à une échelle **entière** : les modules tombent sur des
+ * pixels nets, si bien qu'une vectorisation ultérieure retrouve le motif sans
+ * lisser les bords. Le modèle conserve l'URL encodée, la correction d'erreur et
+ * la bordure, de sorte qu'une régénération produise exactement le même code.
+ *
+ * Ce module est pur : il reçoit des LinkRecord et assemble l'archive. Le rendu
+ * passe par l'encodeur PNG maison, qui n'utilise que des API présentes dans
+ * Node comme dans le navigateur.
+ */
+
+
+
+
+
+
+/** Identifiant du format, tel qu'il part dans le JSON. */
+const TABLE_EXPORT_FORMAT = 'url-qr-code-printer/table';
+
+/** Version du format, à incrémenter en cas de rupture. */
+const TABLE_EXPORT_VERSION = 1;
+
+/** Dossier des images dans l'archive. */
+const QR_DIRECTORY = 'qr';
+
+/**
+ * Colonnes du tableau, dans l'ordre d'impression de `buildTable`.
+ *
+ * La clé sert d'identifiant dans le JSON ; le libellé n'est employé que par le
+ * rendu HTML, en français, comme les autres exports texte de l'application.
+ */
+const TABLE_COLUMNS = Object.freeze([
+  { key: 'index', label: 'N°' },
+  { key: 'qr', label: 'QR' },
+  { key: 'url', label: 'URL' },
+  { key: 'title', label: 'Titre' },
+  { key: 'date', label: 'Date' },
+  { key: 'tags', label: 'Tags' },
+  { key: 'note', label: 'Note' },
+]);
+
+/**
+ * Réglages d'encodage et de taille des images QR.
+ *
+ * `maxSize` borne la largeur : une URL longue ne doit pas produire une image
+ * démesurée. L'échelle demandée est un plafond ; elle est réduite, jamais
+ * multipliée, pour rester un entier sous la borne.
+ */
+const DEFAULT_TABLE_EXPORT_OPTIONS = Object.freeze({
+  ecc: 'M',
+  border: 2,
+  scale: 10,
+  maxSize: 720,
+});
+
+/**
+ * Clés des colonnes retenues, dans l'ordre du tableau imprimé.
+ *
+ * @param {{ index?: boolean, qr?: boolean, url?: boolean, title?: boolean, date?: boolean, tags?: boolean, note?: boolean }} [columns]
+ * @returns {string[]}
+ */
+function tableColumnKeys(columns = {}) {
+  return TABLE_COLUMNS.filter((column) => columns[column.key]).map((column) => column.key);
+}
+
+/**
+ * Échelle entière qui tient dans la largeur maximale.
+ *
+ * @param {number} moduleCount
+ * @param {number} requested
+ * @param {number} maxSize
+ * @returns {number}
+ */
+function fitScale(moduleCount, requested, maxSize) {
+  const wanted = Math.max(1, Math.floor(Number(requested) || 1));
+  const room = Math.max(1, Math.floor(maxSize / moduleCount));
+  return Math.min(wanted, room);
+}
+
+/**
+ * Nom d'entrée du PNG, garanti ASCII : l'écriture ZIP refuse le reste.
+ *
+ * @param {import('./link.js').LinkRecord} link
+ * @param {number} index
+ * @returns {string}
+ */
+function qrFileName(link, index) {
+  const stem = String(link.id ?? '').replace(/[^A-Za-z0-9_-]+/g, '-').replace(/^-+|-+$/g, '');
+  return `${QR_DIRECTORY}/${stem || `lien-${index + 1}`}.png`;
+}
+
+/**
+ * Construit le modèle du tableau et les matrices QR prêtes à rendre.
+ *
+ * Le modèle est sérialisable tel quel ; les matrices restent en mémoire, car
+ * un tableau de booléens n'a pas sa place dans un JSON destiné à un lecteur
+ * humain. `buildTableArchive` les transforme en PNG et les référence.
+ *
+ * @param {import('./link.js').LinkRecord[]} links Liens déjà résolus par `resolveTargets`.
+ * @param {{
+ *   title?: string,
+ *   columns?: object,
+ *   dateMode?: 'none'|'date'|'datetime',
+ *   rankOf?: (link: import('./link.js').LinkRecord, index: number) => number,
+ *   ecc?: 'L'|'M'|'Q'|'H',
+ *   border?: number,
+ *   scale?: number,
+ *   maxSize?: number,
+ *   now?: number,
+ * }} [options]
+ * @returns {{ model: object, images: Map<string, { matrix: import('./qr.js').QrMatrix, scale: number }> }}
+ */
+function buildTableModel(links, options = {}) {
+  const columns = options.columns ?? {};
+  const ecc = options.ecc ?? DEFAULT_TABLE_EXPORT_OPTIONS.ecc;
+  const border = Number.isInteger(options.border) ? options.border : DEFAULT_TABLE_EXPORT_OPTIONS.border;
+  const requestedScale = options.scale ?? DEFAULT_TABLE_EXPORT_OPTIONS.scale;
+  const maxSize = options.maxSize ?? DEFAULT_TABLE_EXPORT_OPTIONS.maxSize;
+  const dateMode = options.dateMode ?? 'date';
+  const now = options.now ?? Date.now();
+  const rankOf = options.rankOf ?? ((_link, index) => index + 1);
+
+  /** @type {Map<string, { matrix: import('./qr.js').QrMatrix, scale: number }>} */
+  const images = new Map();
+  const selected = tableColumnKeys(columns);
+
+  const rows = links.map((link, index) => {
+    /** @type {Record<string, unknown>} */
+    const row = {};
+
+    if (columns.index) row.index = rankOf(link, index);
+    if (columns.url) row.url = link.url;
+    if (columns.title) row.title = link.title ?? '';
+    if (columns.date) row.date = formatCaptureDate(link.createdAt, dateMode);
+    if (columns.tags) row.tags = Array.isArray(link.tags) ? [...link.tags] : [];
+    if (columns.note) row.note = link.note ?? '';
+
+    // Quand le QR encode un raccourci, l'adresse collectée reste consignée :
+    // aucune sortie ne doit perdre une URL. Elle n'est pas une colonne — le
+    // tableau ne l'affiche pas — mais le modèle la conserve.
+    const original = typeof link.originalUrl === 'string' ? link.originalUrl : '';
+    if (original && original !== link.url) row.sourceUrl = original;
+
+    if (columns.qr) {
+      const file = qrFileName(link, index);
+      const matrix = encodeQr(link.url, { ecc, border });
+      const scale = fitScale(matrix.size, requestedScale, maxSize);
+      row.qr = {
+        file,
+        content: link.url,
+        ecc,
+        border,
+        version: matrix.version,
+        scale,
+        sizePx: matrix.size * scale,
+      };
+      images.set(file, { matrix, scale });
+    }
+
+    return row;
+  });
+
+  return {
+    model: {
+      format: TABLE_EXPORT_FORMAT,
+      version: TABLE_EXPORT_VERSION,
+      exportedAt: new Date(now).toISOString(),
+      title: options.title ?? 'Mes liens',
+      count: links.length,
+      columns: selected,
+      dateMode,
+      qr: { ecc, border, scale: requestedScale, maxSize },
+      rows,
+    },
+    images,
+  };
+}
+
+/**
+ * Échappe un texte pour le HTML.
+ * @param {unknown} value
+ * @returns {string}
+ */
+function escapeTableHtml(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+/**
+ * Construit la page HTML du tableau, images en chemins relatifs.
+ *
+ * C'est le chemin le plus court vers un résultat visible : on ouvre le fichier
+ * dans un navigateur, et le tableau est là, sans écrire une ligne de code. Le
+ * fichier reste lisible à côté de ses images, comme la planche d'étiquettes.
+ *
+ * @param {object} model Modèle produit par `buildTableModel`.
+ * @returns {string}
+ */
+function buildTableHtml(model) {
+  const columns = TABLE_COLUMNS.filter((column) => model.columns.includes(column.key));
+
+  const head = columns.map((column) => `<th>${escapeTableHtml(column.label)}</th>`).join('');
+
+  const rows = model.rows.map((row) => {
+    const cells = columns.map((column) => {
+      if (column.key === 'qr') {
+        const qr = row.qr ?? {};
+        return `<td class="qr"><img src="${escapeTableHtml(qr.file)}" alt="${escapeTableHtml(qr.content)}" width="${qr.sizePx}" height="${qr.sizePx}"></td>`;
+      }
+      if (column.key === 'tags') {
+        return `<td>${escapeTableHtml((row.tags ?? []).join(' '))}</td>`;
+      }
+      return `<td>${escapeTableHtml(String(row[column.key] ?? ''))}</td>`;
+    }).join('');
+    return `      <tr>${cells}</tr>`;
+  }).join('\n');
+
+  const exported = formatDateTime(Date.parse(model.exportedAt));
+
+  return `<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>${escapeTableHtml(model.title)} — tableau</title>
+<style>
+  body { margin: 0; padding: 8mm; font-family: -apple-system, system-ui, sans-serif; background: #f4f4f2; color: #111; }
+  h1 { font-size: 14pt; margin: 0 0 2mm; }
+  p.meta { margin: 0 0 6mm; color: #555; font-size: 9pt; }
+  table { border-collapse: collapse; background: #fff; width: 100%; }
+  th, td { border: 0.2mm solid #bbb; padding: 1.5mm 2mm; text-align: left; vertical-align: middle; font-size: 9pt; }
+  th { background: #eee; }
+  td.qr { width: 0; }
+  td.qr img { display: block; image-rendering: pixelated; }
+  @media print {
+    body { background: #fff; padding: 0; }
+    p.meta { display: none; }
+  }
+</style>
+</head>
+<body>
+<h1>${escapeTableHtml(model.title)}</h1>
+<p class="meta">${model.count} lien${model.count > 1 ? 's' : ''} — exporté le ${escapeTableHtml(exported)}</p>
+<table>
+  <thead>
+    <tr>${head}</tr>
+  </thead>
+  <tbody>
+${rows}
+  </tbody>
+</table>
+</body>
+</html>
+`;
+}
+
+/**
+ * Rend une matrice QR en image RVBA agrandie d'un facteur entier.
+ *
+ * @param {import('./qr.js').QrMatrix} matrix
+ * @param {number} scale
+ * @returns {{ width: number, height: number, data: Uint8Array }}
+ */
+function rgbaFromQr(matrix, scale) {
+  const size = matrix.size * scale;
+  const data = new Uint8Array(size * size * 4);
+
+  for (let y = 0; y < size; y++) {
+    const source = matrix.data[Math.floor(y / scale)];
+    for (let x = 0; x < size; x++) {
+      const dark = source[Math.floor(x / scale)];
+      const offset = (y * size + x) * 4;
+      const value = dark ? 0 : 255;
+      data[offset] = value;
+      data[offset + 1] = value;
+      data[offset + 2] = value;
+      data[offset + 3] = 0xff;
+    }
+  }
+
+  return { width: size, height: size, data };
+}
+
+/**
+ * Assemble le dossier du tableau : `table.json`, `table.html` et `qr/*.png`.
+ *
+ * Le JSON est le contrat — il décrit les colonnes, les lignes et, pour chaque
+ * QR, de quoi le régénérer à l'identique. Les images sont là pour l'usage
+ * direct, et le HTML pour n'avoir rien à coder.
+ *
+ * @param {import('./link.js').LinkRecord[]} links
+ * @param {Parameters<typeof buildTableModel>[1] & { onProgress?: (done: number, total: number) => void }} [options]
+ * @returns {Promise<{ bytes: Uint8Array, model: object }>}
+ */
+async function buildTableArchive(links, options = {}) {
+  const { model, images } = buildTableModel(links, options);
+  const entries = [];
+
+  let done = 0;
+  for (const row of model.rows) {
+    if (!row.qr) continue;
+    const image = images.get(row.qr.file);
+    const png = await encodePng(rgbaFromQr(image.matrix, image.scale));
+    entries.push({ name: row.qr.file, data: png });
+    options.onProgress?.(++done, images.size);
+  }
+
+  entries.push({ name: 'table.json', data: JSON.stringify(model, null, 2) + '\n' });
+  entries.push({ name: 'table.html', data: buildTableHtml(model) });
+
+  const bytes = createZip(entries, { date: new Date(model.exportedAt) });
+  return { bytes, model };
+}
+
+// ────────────────────────────────────────────────────────────────────────
+// dist/extension-safari/core/printer/packet.js
 // ────────────────────────────────────────────────────────────────────────
 
 /**
@@ -7402,7 +8511,7 @@ function parsePrinterInfo(data) {
 }
 
 // ────────────────────────────────────────────────────────────────────────
-// /Users/gael/Documents/GitHub/URLQRCodePrinter/dist/extension-safari/core/printer/transport.js
+// dist/extension-safari/core/printer/transport.js
 // ────────────────────────────────────────────────────────────────────────
 
 /**
@@ -7428,6 +8537,7 @@ function parsePrinterInfo(data) {
  *    trames peuvent être collées, et une trame peut être coupée en deux. Le
  *    `PacketStreamDecoder` s'en charge, mais il faut le brancher correctement.
  */
+
 
 
 
@@ -7501,25 +8611,25 @@ function checkWebBluetoothSupport(env = {}) {
   if (!bluetooth) {
     return {
       ok: false,
-      reason: 'Web Bluetooth n\'est pas disponible dans ce navigateur.',
-      hint: `Safari (macOS et iOS) ne l'implémente pas. ${BRAVE_BLUETOOTH_HINT}`,
+      reason: t('Web Bluetooth n\'est pas disponible dans ce navigateur.'),
+      hint: t("Safari (macOS et iOS) ne l'implémente pas. {brave}", { brave: t(BRAVE_BLUETOOTH_HINT) }),
     };
   }
   if (secure === false) {
     return {
       ok: false,
-      reason: 'Web Bluetooth exige un contexte sécurisé (HTTPS ou localhost).',
-      hint: 'Ouvrez l\'application via https:// ou http://localhost.',
+      reason: t('Web Bluetooth exige un contexte sécurisé (HTTPS ou localhost).'),
+      hint: t('Ouvrez l\'application via https:// ou http://localhost.'),
     };
   }
   // `available === false` : le navigateur a répondu que non.
   if (env.available === false) {
     return {
       ok: false,
-      reason:
-        'Web Bluetooth est désactivé dans ce navigateur — ou le Bluetooth de ' +
-        'cet ordinateur est éteint.',
-      hint: BRAVE_BLUETOOTH_HINT,
+      reason: t(
+        'Web Bluetooth est désactivé dans ce navigateur — ou le Bluetooth de cet ordinateur est éteint.',
+      ),
+      hint: t(BRAVE_BLUETOOTH_HINT),
     };
   }
   return { ok: true };
@@ -7562,15 +8672,15 @@ async function probeWebBluetooth(env = {}) {
 function explainBluetoothFailure(error) {
   const message = String(error?.message ?? error ?? '');
   if (/globally disabled/i.test(message)) {
-    return `Web Bluetooth est désactivé dans ce navigateur. ${BRAVE_BLUETOOTH_HINT}`;
+    return t('Web Bluetooth est désactivé dans ce navigateur. {brave}', { brave: t(BRAVE_BLUETOOTH_HINT) });
   }
   if (/user denied|user cancel|chooser/i.test(message) || error?.name === 'NotFoundError') {
-    return 'Aucun appareil choisi. Réveillez l\'imprimante, puis relancez la connexion.';
+    return t('Aucun appareil choisi. Réveillez l\'imprimante, puis relancez la connexion.');
   }
   if (/permission|not allowed|SecurityError/i.test(message)) {
-    return 'Le navigateur a refusé l\'accès au Bluetooth : autorisez-le pour cette page, puis réessayez.';
+    return t('Le navigateur a refusé l\'accès au Bluetooth : autorisez-le pour cette page, puis réessayez.');
   }
-  return `Connexion impossible : ${message}`;
+  return t('Connexion impossible : {message}', { message });
 }
 
 /**
@@ -7740,7 +8850,7 @@ class NiimbotTransport {
    * @param {Uint8Array} frame
    */
   async write(frame) {
-    if (!this.characteristic) throw new Error('Transport non connecté');
+    if (!this.characteristic) throw new Error(t('Transport non connecté'));
     if (frame.length === 0) return;
 
     // Une trame plus grosse que la limite partirait en une écriture refusée :
@@ -7917,7 +9027,7 @@ async function connectToPrinter(options = {}) {
 }
 
 // ────────────────────────────────────────────────────────────────────────
-// /Users/gael/Documents/GitHub/URLQRCodePrinter/dist/extension-safari/core/printer/printer.js
+// dist/extension-safari/core/printer/printer.js
 // ────────────────────────────────────────────────────────────────────────
 
 /**
@@ -7936,6 +9046,7 @@ async function connectToPrinter(options = {}) {
  *   un D110) sans renvoyer d'erreur. C'est à l'appelant de fournir une image à
  *   la bonne largeur ; `prepareRows` le vérifie et le signale.
  */
+
 
 
 
@@ -8155,7 +9266,7 @@ class NiimbotPrinter {
 
     if (this.info.error !== null) {
       const label = PRINT_ERRORS[this.info.error] ?? `code 0x${this.info.error.toString(16)}`;
-      throw new Error(`L'imprimante a signalé une erreur : ${label}`);
+      throw new Error(t("L'imprimante a signalé une erreur : {label}", { label }));
     }
 
     return { pages: copies, rows: bitmap.height, frames: frames.length };
@@ -8205,10 +9316,10 @@ class NiimbotPrinter {
       await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL_MS));
     }
 
-    throw new Error(
-      `L'impression n'a pas confirmé son achèvement après ${this.printTimeoutMs} ms. ` +
-      'L\'étiquette est peut-être incomplète.',
-    );
+    throw new Error(t(
+      "L'impression n'a pas confirmé son achèvement après {ms} ms. L'étiquette est peut-être incomplète.",
+      { ms: this.printTimeoutMs },
+    ));
   }
 
   /**
@@ -8242,7 +9353,7 @@ class NiimbotPrinter {
 }
 
 // ────────────────────────────────────────────────────────────────────────
-// /Users/gael/Documents/GitHub/URLQRCodePrinter/dist/extension-safari/app.js
+// dist/extension-safari/app.js
 // ────────────────────────────────────────────────────────────────────────
 
 /**
@@ -8256,6 +9367,8 @@ class NiimbotPrinter {
  * Tout ce qui peut être décidé sans navigateur vit dans `core/` et y est testé.
  * Ce fichier ne fait que du DOM et des appels système.
  */
+
+
 
 
 
@@ -8559,32 +9672,30 @@ function updatePrintScope() {
   // fois plus d'étiquettes que ce que la phrase laisse croire.
   const copies = seriesCopies();
   const total = count * copies;
-  const pluriel = (n, mot) => `${n} ${mot}${n > 1 ? 's' : ''}`;
-
   el.printAllLabels.textContent = total === 0
-    ? 'Aucun lien à imprimer'
-    : `Imprimer ${pluriel(total, 'étiquette')}`
-      + (copies > 1 ? ` (${pluriel(count, 'lien')} × ${copies})` : '');
+    ? t('Aucun lien à imprimer')
+    : tpl(total, 'Imprimer {count} étiquette', 'Imprimer {count} étiquettes')
+      + (copies > 1 ? ` (${tpl(count, '{count} lien', '{count} liens')} × ${copies})` : '');
 
   // La phrase dit ce qui est retenu, et pourquoi le bouton est inerte le cas
   // échéant : « Portée » seul ne disait pas ce qui allait sortir.
   el.printAllLabels.title = '';
 
   if (links.length === 0) {
-    el.printScopeHint.textContent = 'Aucun lien dans la collection.';
+    el.printScopeHint.textContent = t('Aucun lien dans la collection.');
     return;
   }
   if (scope === 'selected' && checked === 0) {
-    el.printScopeHint.textContent =
-      'Aucun lien coché : cochez les liens à imprimer dans la liste, '
-      + 'ou choisissez « Toute la collection ».';
+    el.printScopeHint.textContent = t(
+      'Aucun lien coché : cochez les liens à imprimer dans la liste, ou choisissez « Toute la collection ».',
+    );
     return;
   }
   const source = scope === 'selected'
-    ? `${pluriel(checked, 'lien coché')}`
-    : `les ${links.length} liens de la collection`;
+    ? tpl(checked, '{count} lien coché', '{count} liens cochés')
+    : t('les {count} liens de la collection', { count: links.length });
   el.printScopeHint.textContent = copies > 1
-    ? `${source}, ${pluriel(copies, 'exemplaire')} de chacun.`
+    ? tpl(copies, '{source}, {count} exemplaire de chacun.', '{source}, {count} exemplaires de chacun.', { source })
     : `${source}.`;
 }
 
@@ -8629,10 +9740,10 @@ function renderList() {
   el.list.textContent = '';
   el.empty.hidden = visible.length > 0;
   el.empty.textContent = links.length === 0
-    ? 'Aucun lien. Ajoutez-en un ci-dessus, importez une archive, ou utilisez l\'extension navigateur.'
-    : 'Aucun lien ne correspond à la recherche.';
+    ? t('Aucun lien. Ajoutez-en un ci-dessus, importez une archive, ou utilisez l\'extension navigateur.')
+    : t('Aucun lien ne correspond à la recherche.');
 
-  el.count.textContent = `${links.length} lien${links.length > 1 ? 's' : ''}`;
+  el.count.textContent = tpl(links.length, '{count} lien', '{count} liens');
 
   const hasLinks = links.length > 0;
   el.exportXlsx.disabled = !hasLinks;
@@ -8706,9 +9817,9 @@ function linkEditor(link) {
     form.className = 'link__editor-form';
 
     const fields = [
-      { key: 'title', label: 'Titre', value: link.title, placeholder: 'Titre de la page' },
-      { key: 'tags', label: 'Tags', value: link.tags.join(', '), placeholder: 'veille, travail' },
-      { key: 'note', label: 'Note', value: link.note, placeholder: 'Note libre' },
+      { key: 'title', label: t('Titre'), value: link.title, placeholder: t('Titre de la page') },
+      { key: 'tags', label: t('Tags'), value: link.tags.join(', '), placeholder: t('veille, travail') },
+      { key: 'note', label: t('Note'), value: link.note, placeholder: t('Note libre') },
     ];
 
     const inputs = new Map();
@@ -8725,7 +9836,7 @@ function linkEditor(link) {
       input.className = 'input input--compact';
       input.value = field.value ?? '';
       input.placeholder = field.placeholder;
-      input.setAttribute('aria-label', `${field.label} pour ${link.url}`);
+      input.setAttribute('aria-label', t('{label} pour {url}', { label: field.label, url: link.url }));
 
       line.append(caption, input);
       form.appendChild(line);
@@ -8734,7 +9845,7 @@ function linkEditor(link) {
 
     const hint = document.createElement('p');
     hint.className = 'hint hint--tight';
-    hint.textContent = 'Entrée pour enregistrer, Échap pour annuler. Tags séparés par des virgules.';
+    hint.textContent = t('Entrée pour enregistrer, Échap pour annuler. Tags séparés par des virgules.');
     form.appendChild(hint);
 
     const finish = async (save) => {
@@ -8756,7 +9867,7 @@ function linkEditor(link) {
         if (changed) {
           await store.put({ ...link, title: updated.title, note: updated.note, tags: updated.tags });
           await refresh();
-          toast('Lien mis à jour');
+          toast(t('Lien mis à jour'));
           return;
         }
       }
@@ -8779,8 +9890,8 @@ function linkEditor(link) {
     wrap.appendChild(form);
     inputs.get('title')?.focus();
   });
-  open.setAttribute('aria-label', `Modifier titre, tags et note de ${link.title || link.url}`);
-  open.title = 'Modifier le titre, les tags et la note';
+  open.setAttribute('aria-label', t('Modifier titre, tags et note de {title}', { title: link.title || link.url }));
+  open.title = t('Modifier le titre, les tags et la note');
 
   wrap.appendChild(open);
   return wrap;
@@ -8799,7 +9910,7 @@ function renderLink(link) {
   check.type = 'checkbox';
   check.className = 'link__check';
   check.checked = selected.has(link.id);
-  check.setAttribute('aria-label', `Sélectionner ${link.title || link.url}`);
+  check.setAttribute('aria-label', t('Sélectionner {title}', { title: link.title || link.url }));
   check.addEventListener('change', () => {
     if (check.checked) selected.add(link.id);
     else selected.delete(link.id);
@@ -8861,7 +9972,7 @@ function renderLink(link) {
         el.search.value = tag;
         renderList();
       });
-      const action = `Filtrer sur le tag « ${tag} »`;
+      const action = t('Filtrer sur le tag « {tag} »', { tag });
       chip.title = action;
       chip.setAttribute('aria-label', action);
       tags.appendChild(chip);
@@ -8873,14 +9984,14 @@ function renderLink(link) {
     await store.remove(link.id);
     selected.delete(link.id);
     await refresh();
-    toast('Lien supprimé');
+    toast(t('Lien supprimé'));
   });
-  remove.setAttribute('aria-label', `Supprimer ${link.title || link.url}`);
+  remove.setAttribute('aria-label', t('Supprimer {title}', { title: link.title || link.url }));
 
   const rank = document.createElement('span');
   rank.className = 'link__index';
   rank.textContent = String(linkRanks.get(link.id) ?? '');
-  rank.title = 'Rang dans la collection, celui du tableau imprimé';
+  rank.title = t('Rang dans la collection, celui du tableau imprimé');
 
   item.append(check, rank, body, linkEditor(link), remove);
   return item;
@@ -8908,13 +10019,13 @@ function updateSelectionHint() {
     return;
   }
   if (all) {
-    el.selectionHint.textContent = `Les ${links.length} liens sont cochés.`;
+    el.selectionHint.textContent = t('Les {count} liens sont cochés.', { count: links.length });
     return;
   }
   el.selectionHint.textContent = selected.size === 0
-    ? `Aucun lien coché : l'impression portera sur toute la collection (${links.length}).`
-    : `${selected.size} lien${selected.size > 1 ? 's' : ''} coché${selected.size > 1 ? 's' : ''} `
-      + `sur ${links.length}.`;
+    ? t("Aucun lien coché : l'impression portera sur toute la collection ({count}).", { count: links.length })
+    : `${tpl(selected.size, '{count} lien coché', '{count} liens cochés')} `
+      + t('sur {count}.', { count: links.length });
 }
 
 /**
@@ -8924,14 +10035,38 @@ function updateSelectionHint() {
  * @returns {string}
  */
 function printLabel(count) {
-  if (count === 0) return 'Imprimer';
+  if (count === 0) return t('Imprimer');
 
   // Cocher tous les liens revient à imprimer la collection : le dire ainsi est
   // plus clair que « la sélection (33) ».
   const whole = selected.size === 0 || selected.size >= links.length;
-  if (whole) return count === 1 ? 'Imprimer le lien' : `Imprimer les ${count} liens`;
+  if (whole) return count === 1 ? t('Imprimer le lien') : t('Imprimer les {count} liens', { count });
 
-  return `Imprimer la sélection (${count})`;
+  return t('Imprimer la sélection ({count})', { count });
+}
+
+/**
+ * Libellé du bouton d'export d'images, portée comprise.
+ *
+ * Même règle que le bouton d'impression : cocher tous les liens vaut la
+ * collection entière, et le nombre annonce exactement ce qui sortira de
+ * l'archive. « Exporter les images » sans nombre laissait deviner la portée
+ * alors que la sélection, elle, pouvait n'être que partielle.
+ *
+ * @param {number} count
+ * @returns {string}
+ */
+function exportImagesLabel(count) {
+  if (count === 0) return t('Exporter les images (ZIP)');
+
+  const whole = selected.size === 0 || selected.size >= links.length;
+  if (whole) {
+    return count === 1
+      ? t("Exporter l'image (ZIP)")
+      : t('Exporter les {count} images (ZIP)', { count });
+  }
+
+  return t('Exporter la sélection ({count})', { count });
 }
 
 /** L'ensemble des liens actuellement sélectionnés, dans l'ordre d'affichage. */
@@ -8952,7 +10087,7 @@ function selectedLinks() {
  */
 function collectionName() {
   const typed = el.collectionName.value.trim();
-  return typed === '' ? DEFAULT_SETTINGS.collectionName : typed.slice(0, COLLECTION_NAME_MAX);
+  return typed === '' ? t(DEFAULT_SETTINGS.collectionName) : typed.slice(0, COLLECTION_NAME_MAX);
 }
 
 /** Reporte le nom de collection sur le titre de la page. */
@@ -8980,7 +10115,7 @@ async function addFromInput() {
   el.addError.hidden = true;
 
   if (raw === '') {
-    el.addError.textContent = 'Saisissez une URL.';
+    el.addError.textContent = t('Saisissez une URL.');
     el.addError.hidden = false;
     return;
   }
@@ -8997,7 +10132,7 @@ async function addFromInput() {
   el.urlInput.value = '';
   selected.add(link.id);
   await refresh();
-  toast(duplicate ? 'Ce lien est déjà dans la collection' : 'Lien ajouté');
+  toast(duplicate ? t('Ce lien est déjà dans la collection') : t('Lien ajouté'));
 }
 
 /**
@@ -9023,7 +10158,7 @@ function exportAs(format) {
   const filename = exportFilename(name, spec.ext);
 
   const ok = downloadText(filename, spec.text, { mime: spec.mime });
-  toast(ok ? `${filename} enregistré` : 'Téléchargement impossible', ok ? 'info' : 'error');
+  toast(ok ? t('{filename} enregistré', { filename }) : t('Téléchargement impossible'), ok ? 'info' : 'error');
 }
 
 /**
@@ -9033,7 +10168,7 @@ function exportAs(format) {
 async function importArchive(file) {
   const label = el.import.textContent;
   el.import.disabled = true;
-  el.import.textContent = 'Lecture…';
+  el.import.textContent = t('Lecture…');
 
   try {
     // Un ZIP se lit en octets, un texte en texte : le manifeste du dossier
@@ -9046,7 +10181,7 @@ async function importArchive(file) {
     // Un enregistrement illisible n'arrête pas l'import : il est compté.
     const { links: candidates, rejected } = toImportableLinks(parsed.records);
     if (candidates.length === 0) {
-      toast(`Aucun lien exploitable dans ${file.name}`, 'error');
+      toast(t('Aucun lien exploitable dans {file}', { file: file.name }), 'error');
       return;
     }
 
@@ -9061,7 +10196,7 @@ async function importArchive(file) {
     await refresh();
     toast(importReport({ added, duplicates, rejected }));
   } catch (error) {
-    toast(`Import impossible : ${error.message}`, 'error');
+    toast(t('Import impossible : {message}', { message: error.message }), 'error');
   } finally {
     el.import.textContent = label;
     el.import.disabled = false;
@@ -9078,10 +10213,9 @@ async function importArchive(file) {
  * @returns {string}
  */
 function importReport({ added, duplicates, rejected }) {
-  const plural = (count, noun) => `${count} ${noun}${count > 1 ? 's' : ''}`;
-  const parts = [`${plural(added, 'lien')} importé${added > 1 ? 's' : ''}`];
-  if (duplicates > 0) parts.push(`${duplicates} déjà présent${duplicates > 1 ? 's' : ''}`);
-  if (rejected > 0) parts.push(plural(rejected, 'illisible'));
+  const parts = [tpl(added, '{count} lien importé', '{count} liens importés')];
+  if (duplicates > 0) parts.push(tpl(duplicates, '{count} déjà présent', '{count} déjà présents'));
+  if (rejected > 0) parts.push(tpl(rejected, '{count} illisible', '{count} illisibles'));
   return parts.join(', ');
 }
 
@@ -9092,6 +10226,11 @@ function importReport({ added, duplicates, rejected }) {
 /**
  * Remplit la liste des services de raccourcissement.
  *
+ * Le libellé de chaque option dit ce que le service change pour un usage
+ * ordinaire — quelqu'un qui veut seulement un lien plus court n'a pas à
+ * arbitrer entre quatre marques. TinyURL est proposé d'emblée et marqué
+ * « recommandé » ; la note technique reste en infobulle.
+ *
  * L'URL complète est transmise au service choisi : c'est une décision qui
  * appartient à l'utilisateur, donc rien n'est coché ni déclenché d'avance.
  */
@@ -9100,7 +10239,7 @@ function fillShorteners() {
   for (const shortener of SHORTENERS) {
     const option = document.createElement('option');
     option.value = shortener.id;
-    option.textContent = shortener.name;
+    option.textContent = t(shortener.label);
     option.title = shortener.note;
     el.shortener.appendChild(option);
   }
@@ -9126,13 +10265,15 @@ function updateShortenStatus(message = '') {
   }
 
   const scope = selected.size > 0
-    ? `${selected.size} lien${selected.size > 1 ? 's' : ''} coché${selected.size > 1 ? 's' : ''}`
-    : 'toute la collection';
+    ? tpl(selected.size, '{count} lien coché', '{count} liens cochés')
+    : t('toute la collection');
   const done = shortened.length > 0
-    ? ` — ${shortened.length} raccourci${shortened.length > 1 ? 's' : ''} en place`
+    ? tpl(shortened.length, ' — {count} raccourci en place', ' — {count} raccourcis en place')
     : '';
-  el.shortenStatus.textContent =
-    `${currentShortener().name} · ${scope}${done}. L'URL complète est transmise au service.`;
+  el.shortenStatus.textContent = t(
+    "{label} · {scope}{done}. L'URL complète est transmise au service.",
+    { label: t(currentShortener().label), scope, done },
+  );
 }
 
 /**
@@ -9152,7 +10293,7 @@ async function shortenSelection() {
 
   const targets = selectedLinks().filter((link) => !hasShortUrl(link));
   if (targets.length === 0) {
-    updateShortenStatus('Tous les liens visés sont déjà raccourcis.');
+    updateShortenStatus(t('Tous les liens visés sont déjà raccourcis.'));
     return;
   }
 
@@ -9161,14 +10302,14 @@ async function shortenSelection() {
   shortenJob = controller;
 
   el.shorten.disabled = false;
-  el.shorten.textContent = 'Annuler';
-  toast(`Raccourcissement via ${shortener.provider.name}…`);
+  el.shorten.textContent = t('Annuler');
+  toast(t('Raccourcissement via {name}…', { name: shortener.provider.name }));
 
   try {
     const report = await shortener.shortenMany(targets, {
       signal: controller.signal,
       onProgress: (done, total) => {
-        updateShortenStatus(`${shortener.provider.name} · ${done}/${total}…`);
+        updateShortenStatus(t('{name} · {done}/{total}…', { name: shortener.provider.name, done, total }));
       },
     });
 
@@ -9191,11 +10332,11 @@ async function shortenSelection() {
     toast(summary, report.failed.length > 0 ? 'error' : 'info');
     updateShortenStatus(summary);
   } catch (error) {
-    toast(`Raccourcissement impossible : ${error.message}`, 'error');
+    toast(t('Raccourcissement impossible : {message}', { message: error.message }), 'error');
     updateShortenStatus(error.message);
   } finally {
     shortenJob = null;
-    el.shorten.textContent = 'Raccourcir';
+    el.shorten.textContent = t('Raccourcir');
     el.shorten.disabled = links.length === 0;
     updateTargetAvailability();
   }
@@ -9254,7 +10395,7 @@ function updateDateHint() {
   const mode = dateMode();
   const parties = [];
   if (mode === 'none') {
-    parties.push('Aucune date imprimée.');
+    parties.push(t('Aucune date imprimée.'));
   } else {
     const date = new Date();
     const pad = (n) => String(n).padStart(2, '0');
@@ -9262,17 +10403,17 @@ function updateDateHint() {
       ? `${pad(date.getDate())}/${pad(date.getMonth() + 1)}/${date.getFullYear()}`
       : `${pad(date.getDate())}/${pad(date.getMonth() + 1)}/${date.getFullYear()} `
         + `${pad(date.getHours())}:${pad(date.getMinutes())}`;
-    parties.push(`Date de collecte sur sa propre ligne — ${echantillon}.`);
+    parties.push(t('Date de collecte sur sa propre ligne — {sample}.', { sample: echantillon }));
   }
-  if (el.sheetDateIndex.checked) parties.push('Le numéro du lien s\'imprime au-dessus du titre.');
-  parties.push('Chaque ligne de plus réduit la place du QR code.');
+  if (el.sheetDateIndex.checked) parties.push(t('Le numéro du lien s\'imprime au-dessus du titre.'));
+  parties.push(t('Chaque ligne de plus réduit la place du QR code.'));
   el.sheetDateHint.textContent = parties.join(' ');
 }
 
 function fillTargets() {
   const choices = [
-    { value: 'original', label: "L'URL collectée" },
-    { value: 'short', label: 'Le lien raccourci' },
+    { value: 'original', label: t("L'URL collectée") },
+    { value: 'short', label: t('Le lien raccourci') },
   ];
   el.qrTarget.textContent = '';
   targetOptions.clear();
@@ -9303,9 +10444,12 @@ function updateTargetAvailability() {
   }
 
   el.targetHint.textContent = shortened === 0
-    ? "Le QR code encode l'URL collectée."
-    : `${shortened} lien${shortened > 1 ? 's' : ''} raccourci${shortened > 1 ? 's' : ''} : `
-      + 'un QR plus court se scanne plus vite et tient sur une plus petite étiquette.';
+    ? t("Le QR code encode l'URL collectée.")
+    : tpl(
+      shortened,
+      '{count} lien raccourci : un QR plus court se scanne plus vite et tient sur une plus petite étiquette.',
+      '{count} liens raccourcis : un QR plus court se scanne plus vite et tient sur une plus petite étiquette.',
+    );
 }
 
 /** Retire les raccourcis : les URL d'origine n'ont jamais bougé. */
@@ -9317,7 +10461,7 @@ async function clearShortUrls() {
     await store.put({ ...link, shortUrl: '', shortProvider: '', shortenedAt: 0 });
   }
   await refresh();
-  toast(`${shortened.length} raccourci${shortened.length > 1 ? 's' : ''} retiré${shortened.length > 1 ? 's' : ''}`);
+  toast(tpl(shortened.length, '{count} raccourci retiré', '{count} raccourcis retirés'));
 }
 
 // ---------------------------------------------------------------------------
@@ -9477,19 +10621,28 @@ function updateFitHint(state) {
   const size = `${decimal(layout.labelWidthMm)} × ${decimal(layout.labelHeightMm)} mm`;
 
   const parts = [
-    `Taille des étiquettes déduite de ces six valeurs : ${size}, `
-    + `${layout.columns} × ${layout.rows} par feuille.`,
+    t('Taille des étiquettes déduite de ces six valeurs : {size}, {columns} × {rows} par feuille.', {
+      size,
+      columns: layout.columns,
+      rows: layout.rows,
+    }),
   ];
 
   if (offsetXMm !== 0 || offsetYMm !== 0) {
     const moves = [];
     if (offsetXMm !== 0) {
-      moves.push(`${decimal(Math.abs(offsetXMm))} mm vers la ${offsetXMm > 0 ? 'droite' : 'gauche'}`);
+      moves.push(t('{mm} mm vers la {direction}', {
+        mm: decimal(Math.abs(offsetXMm)),
+        direction: offsetXMm > 0 ? t('droite') : t('gauche'),
+      }));
     }
     if (offsetYMm !== 0) {
-      moves.push(`${decimal(Math.abs(offsetYMm))} mm vers le ${offsetYMm > 0 ? 'bas' : 'haut'}`);
+      moves.push(t('{mm} mm vers le {direction}', {
+        mm: decimal(Math.abs(offsetYMm)),
+        direction: offsetYMm > 0 ? t('bas') : t('haut'),
+      }));
     }
-    parts.push(`Décalage appliqué : ${moves.join(' et ')}.`);
+    parts.push(t('Décalage appliqué : {moves}.', { moves: moves.join(t(' et ')) }));
   }
 
   el.sheetFitHint.textContent = parts.join(' ');
@@ -9658,7 +10811,7 @@ function buildSheetPages(items) {
     // Nommer le lien fautif évite de chercher lequel, sur une planche de trente
     // étiquettes, demande trop de place.
     const culprit = densest.item
-      ? ` Le lien le plus dense est « ${densest.item.title || densest.item.url} ».`
+      ? t(' Le lien le plus dense est « {title} ».', { title: densest.item.title || densest.item.url })
       : '';
     warnings.push(bounds.reason + culprit);
   }
@@ -9738,18 +10891,21 @@ function buildSheetPages(items) {
   });
 
   if (omittedDates.size > 0) {
-    warnings.push(
-      `Date non imprimée sur ${omittedDates.size} étiquette`
-      + `${omittedDates.size > 1 ? 's' : ''} : elle ne tient pas sur une ligne à `
-      + 'cette largeur.',
-    );
+    warnings.push(tpl(
+      omittedDates.size,
+      'Date non imprimée sur {count} étiquette : elle ne tient pas sur une ligne à cette largeur.',
+      'Date non imprimée sur {count} étiquettes : elle ne tient pas sur une ligne à cette largeur.',
+    ));
   }
 
   el.sheetInfo.textContent = layout.perPage > 0
-    ? `${layout.columns} × ${layout.rows} = ${layout.perPage} étiquettes par page ` +
-      `de ${decimal(layout.labelWidthMm)} × ${decimal(layout.labelHeightMm)} mm, ` +
-      `${layout.pages} page${layout.pages > 1 ? 's' : ''}` +
-      (warnings.length ? ` — ${warnings.join(' ')}` : '')
+    ? t('{columns} × {rows} = {perPage} de {size} mm, {pages}', {
+      columns: layout.columns,
+      rows: layout.rows,
+      perPage: tpl(layout.perPage, '{count} étiquette par page', '{count} étiquettes par page'),
+      size: `${decimal(layout.labelWidthMm)} × ${decimal(layout.labelHeightMm)}`,
+      pages: tpl(layout.pages, '{count} page', '{count} pages'),
+    }) + (warnings.length ? ` — ${warnings.join(' ')}` : '')
     : layout.warnings.join(' ');
 
   return built;
@@ -9792,11 +10948,20 @@ function updateQrInfo(state) {
     return;
   }
 
-  const range = `${Math.round(bounds.min * 100)} à ${Math.round(bounds.max * 100)} %`;
-  el.sheetQrInfo.textContent =
-    `QR de ${decimal(side)} mm (${decimal(moduleMm, 2)} mm par module, `
-    + `minimum ${decimal(bounds.minModuleMm, 2)} mm) — ` +
-    `réglable de ${range} — ${maxLines} ligne${maxLines > 1 ? 's' : ''} de texte.`;
+  const range = t('{min} à {max} %', {
+    min: Math.round(bounds.min * 100),
+    max: Math.round(bounds.max * 100),
+  });
+  el.sheetQrInfo.textContent = t(
+    'QR de {side} mm ({module} mm par module, minimum {minimum} mm) — réglable de {range} — {lines} de texte.',
+    {
+      side: decimal(side),
+      module: decimal(moduleMm, 2),
+      minimum: decimal(bounds.minModuleMm, 2),
+      range,
+      lines: tpl(maxLines, '{count} ligne', '{count} lignes'),
+    },
+  );
   el.sheetQrInfo.style.color = moduleMm < bounds.minModuleMm ? 'var(--danger)' : '';
 }
 
@@ -9986,8 +11151,8 @@ function hasAnyTableColumn() {
  */
 function updateTableOptions() {
   const options = [
-    { box: el.tableColTags, available: hasAnyTag(links), what: 'tag' },
-    { box: el.tableColNote, available: hasAnyNote(links), what: 'note' },
+    { box: el.tableColTags, available: hasAnyTag(links), what: t('tag') },
+    { box: el.tableColNote, available: hasAnyNote(links), what: t('note') },
   ];
 
   for (const { box, available, what } of options) {
@@ -9996,14 +11161,14 @@ function updateTableOptions() {
     const label = box.parentNode;
     if (label) {
       label.title = available
-        ? `Imprimer la colonne « ${what} »`
-        : `Aucun lien n'a de ${what} : ajoutez-en un avec le bouton ✎ de la liste.`;
+        ? t('Imprimer la colonne « {what} »', { what })
+        : t("Aucun lien n'a de {what} : ajoutez-en un avec le bouton ✎ de la liste.", { what });
     }
   }
 
   el.tableHint.textContent = hasAnyNote(links) || hasAnyTag(links)
-    ? 'Les tags et la note saisis dans la liste (bouton ✎) peuvent être imprimés ici.'
-    : 'Ajoutez un tag ou une note depuis la liste (bouton ✎) pour pouvoir les imprimer.';
+    ? t('Les tags et la note saisis dans la liste (bouton ✎) peuvent être imprimés ici.')
+    : t('Ajoutez un tag ou une note depuis la liste (bouton ✎) pour pouvoir les imprimer.');
 }
 
 /** Redessine l'aperçu selon le mode actif. */
@@ -10012,6 +11177,14 @@ function renderPreview() {
   el.preview.textContent = '';
   el.print.disabled = items.length === 0;
   el.print.textContent = printLabel(items.length);
+  // L'export du tableau suit la même portée que l'impression : la sélection et
+  // les colonnes cochées. Sans colonne, il n'y a rien à exporter. Il ne se
+  // montre que dans l'onglet Tableau, à côté d'« Imprimer ».
+  el.exportTable.hidden = mode !== 'table';
+  el.exportTable.disabled = items.length === 0 || !hasAnyTableColumn();
+  // Niimbot et Étiquette (divers) ont leur propre bouton dans le panneau : la
+  // rangée commune disparaît, sans laisser un blanc entre le mode et l'aperçu.
+  el.panelActions.hidden = mode === 'single' || mode === 'images';
 
   if (mode === 'single') {
     el.print.hidden = true;
@@ -10025,6 +11198,9 @@ function renderPreview() {
     // fichiers, utilisables avec n'importe quelle étiqueteuse.
     el.print.hidden = true;
     el.exportLabels.disabled = items.length === 0;
+    // Le libellé dit la portée et le nombre, comme le bouton d'impression :
+    // « Exporter les images » laissait croire à toute la collection.
+    el.exportLabels.textContent = exportImagesLabel(items.length);
     renderImagePreview(items[0]);
     return;
   }
@@ -10043,7 +11219,7 @@ function renderPreview() {
 
     const note = document.createElement('p');
     note.className = 'hint';
-    note.textContent = 'Ajoutez des liens pour voir un aperçu.';
+    note.textContent = t('Ajoutez des liens pour voir un aperçu.');
     el.preview.appendChild(note);
     return;
   }
@@ -10054,7 +11230,7 @@ function renderPreview() {
       // d'afficher un cadre vide.
       const note = document.createElement('p');
       note.className = 'hint';
-      note.textContent = 'Aucune colonne sélectionnée : cochez au moins une colonne.';
+      note.textContent = t('Aucune colonne sélectionnée : cochez au moins une colonne.');
       el.preview.appendChild(note);
       return;
     }
@@ -10069,6 +11245,35 @@ function renderPreview() {
 }
 
 /**
+ * Largeur utile de l'aperçu, en pixels.
+ *
+ * `clientWidth` inclut le rembourrage de `.preview` : on le retire pour obtenir
+ * la place réellement offerte à une page. Un minimum fixe de 280 px faisait
+ * déborder la page dès que le panneau était plus étroit que lui — fenêtre
+ * rétrécie ou téléphone. Si la mesure est indisponible (DOM de substitution),
+ * on retombe sur une valeur raisonnable.
+ *
+ * @returns {number}
+ */
+function previewViewportWidth() {
+  const node = el.preview;
+  const raw = Number(node?.clientWidth);
+  if (!Number.isFinite(raw) || raw <= 0) return 320;
+
+  let padX = 28;
+  if (typeof getComputedStyle === 'function') {
+    try {
+      const styles = getComputedStyle(node);
+      padX = (Number.parseFloat(styles.paddingLeft) || 0)
+        + (Number.parseFloat(styles.paddingRight) || 0);
+    } catch {
+      // On garde le rembourrage par défaut.
+    }
+  }
+  return Math.max(120, raw - padX);
+}
+
+/**
  * Met une page en millimètres à l'échelle de l'aperçu.
  * @param {HTMLElement} page
  * @returns {HTMLElement}
@@ -10076,7 +11281,7 @@ function renderPreview() {
 function scaleForScreen(page) {
   const widthMm = Number.parseFloat(page.style.width);
   const heightMm = Number.parseFloat(page.style.height);
-  const available = Math.max(280, el.preview.clientWidth - 40);
+  const available = previewViewportWidth();
   const scale = Math.min(0.6, available / (widthMm * PX_PER_MM));
 
   const frame = document.createElement('div');
@@ -10127,7 +11332,7 @@ function renderSingleLabel(link) {
   if (!link) {
     const note = document.createElement('p');
     note.className = 'hint';
-    note.textContent = 'Sélectionnez un lien pour voir l\'étiquette.';
+    note.textContent = t('Sélectionnez un lien pour voir l\'étiquette.');
     el.preview.appendChild(note);
     return;
   }
@@ -10167,16 +11372,23 @@ function renderSingleLabel(link) {
   const shown = rotated ?? source;
 
   const canvas = document.createElement('canvas');
-  // Le rendu écran est agrandi : la tête ne fait que 96 px de large.
-  const zoom = Math.max(1, Math.floor(280 / shown.width));
-  canvas.width = shown.width * zoom;
-  canvas.height = shown.height * zoom;
-  canvas.style.width = `${shown.width * zoom}px`;
-  canvas.style.imageRendering = 'pixelated';
+  // Le rendu écran suit la place disponible : agrandi quand la tête est étroite
+  // (96 px sur un D110), réduit quand elle est large (851 px sur un M3) — un
+  // zoom minimal de 1 faisait déborder ce dernier du panneau.
+  const available = Math.max(1, previewViewportWidth() - 20);
+  const zoom = Math.min(4, available / shown.width);
+  const displayWidth = Math.max(1, Math.round(shown.width * zoom));
+  const displayHeight = Math.max(1, Math.round(shown.height * zoom));
+  canvas.width = displayWidth;
+  canvas.height = displayHeight;
+  canvas.style.width = `${displayWidth}px`;
+  canvas.style.imageRendering = zoom < 1 ? 'auto' : 'pixelated';
 
   const ctx = canvas.getContext('2d');
-  ctx.imageSmoothingEnabled = false;
-  ctx.drawImage(shown, 0, 0, canvas.width, canvas.height);
+  // À la réduction, un lissage garde le QR lisible ; à l'agrandissement, le plus
+  // proche voisin conserve les modules nets.
+  ctx.imageSmoothingEnabled = zoom < 1;
+  ctx.drawImage(shown, 0, 0, displayWidth, displayHeight);
 
   frame.appendChild(canvas);
 
@@ -10185,21 +11397,26 @@ function renderSingleLabel(link) {
   // `composeLabel` sait si la date a été écartée : on le dit, plutôt que de
   // laisser croire que l'option n'a pas d'effet.
   const dateNote = dateTropPetite
-    ? ' — date non imprimée : elle exigerait un texte trop petit pour être lu.'
+    ? t(' — date non imprimée : elle exigerait un texte trop petit pour être lu.')
     : (dateOmitted ? composeDateNote() : '');
   // La taille réellement retenue peut différer de celle demandée : la géométrie
   // réduit plutôt que de tronquer. On le dit, sinon le réglage semble sans effet.
   const tailleObtenue = pxToMm(geometry.fontSize, profile.dpi).toFixed(1);
-  el.labelFontHint.textContent =
-    `Texte de ${tailleObtenue} mm de haut, `
-    + `${geometry.lines.length + (content.titleLines?.length ?? 0)} ligne(s) de texte.`;
+  el.labelFontHint.textContent = t('Texte de {size} mm de haut, {lines} de texte.', {
+    size: tailleObtenue,
+    lines: tpl(geometry.lines.length + (content.titleLines?.length ?? 0), '{count} ligne', '{count} lignes'),
+  });
   const orientationNote = lateralRefused
-    ? ' — texte empilé : le QR laisse trop peu de largeur pour une colonne de texte.'
-    : (turns === 0 ? '' : ` — orientation : ${labelRotation().label}`);
+    ? t(' — texte empilé : le QR laisse trop peu de largeur pour une colonne de texte.')
+    : (turns === 0 ? '' : t(' — orientation : {label}', { label: t(labelRotation().label) }));
   caption.textContent = (verdict.ok
-    ? `${profile.id} — ${geometry.width} × ${geometry.height} px, `
-      + `${decimal(verdict.pxPerModule)} px par module`
-    : `${profile.id} — ${verdict.reason}`) + orientationNote + dateNote;
+    ? t('{profile} — {width} × {height} px, {px} px par module', {
+      profile: profile.id,
+      width: geometry.width,
+      height: geometry.height,
+      px: decimal(verdict.pxPerModule),
+    })
+    : t('{profile} — {reason}', { profile: profile.id, reason: t(verdict.reason) })) + orientationNote + dateNote;
   if (!verdict.ok) caption.style.color = 'var(--danger)';
   frame.appendChild(caption);
 
@@ -10468,12 +11685,13 @@ function cachedTextMeasure(fontSizePx) {
 
 /**
  * Lit les préférences de mise en page du formulaire.
- * @returns {{ format: object, textMode: string, marginMm: number, fontSizePt: number, cutMarks: boolean }}
+ * @returns {{ format: object, textMode: string, showTitle: boolean, dateMode: string, marginMm: number, fontSizePt: number, cutMarks: boolean }}
  */
 function readLabelOptions() {
   return {
     format: findFormat(el.labelFormat.value),
     textMode: el.labelText.value,
+    showTitle: el.exportTitle.checked,
     dateMode: exportDateMode(),
     marginMm: Math.max(0, Number(el.labelMargin.value) || 0),
     fontSizePt: Math.max(4, Number(el.labelFont.value) || 7),
@@ -10548,6 +11766,7 @@ async function renderLabelPng(link, options) {
     format: options.format,
     measure: createTextMeasure(fontSizePx),
     textMode: options.textMode,
+    showTitle: options.showTitle,
     // Sans cette ligne, la date choisie dans l'interface était silencieusement
     // ignorée : les réglages consignés la mentionnaient, mais ni l'aperçu ni
     // les images ne la portaient.
@@ -10565,7 +11784,7 @@ async function renderLabelPng(link, options) {
   drawLabelCanvas(ctx, plan, link.url, { cutMarks: options.cutMarks });
 
   const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/png'));
-  if (!blob) throw new Error('Le navigateur n\'a pas pu encoder l\'image.');
+  if (!blob) throw new Error(t('Le navigateur n\'a pas pu encoder l\'image.'));
   return { png: new Uint8Array(await blob.arrayBuffer()), plan };
 }
 
@@ -10574,7 +11793,7 @@ function renderImagePreview(link) {
   if (!link) {
     const note = document.createElement('p');
     note.className = 'hint';
-    note.textContent = 'Ajoutez des liens pour voir un aperçu.';
+    note.textContent = t('Ajoutez des liens pour voir un aperçu.');
     el.preview.appendChild(note);
     return;
   }
@@ -10586,6 +11805,7 @@ function renderImagePreview(link) {
     format: options.format,
     measure: createTextMeasure(fontSizePx),
     textMode: options.textMode,
+    showTitle: options.showTitle,
     // Sans cette ligne, la date choisie dans l'interface était silencieusement
     // ignorée : les réglages consignés la mentionnaient, mais ni l'aperçu ni
     // les images ne la portaient.
@@ -10601,27 +11821,38 @@ function renderImagePreview(link) {
   ctx.imageSmoothingEnabled = false;
   drawLabelCanvas(ctx, plan, link.url, { cutMarks: options.cutMarks });
 
-  // La largeur réelle va de 12 mm à 70 mm : on met à l'échelle pour l'écran,
-  // en gardant des proportions exactes.
-  const scale = Math.min(6, Math.max(1, Math.floor(260 / plan.widthPx)));
+  // La largeur réelle va de 12 mm à 104 mm : on met à l'échelle pour l'écran,
+  // en gardant des proportions exactes et sans jamais dépasser la place
+  // disponible — un minimum de 1 faisait déborder les formats larges.
+  const available = Math.max(1, previewViewportWidth() - 20);
+  const scale = Math.min(6, available / plan.widthPx);
 
   const frame = document.createElement('div');
   frame.className = 'preview__page';
   frame.style.padding = '10px';
 
   const shown = canvas;
-  shown.style.width = `${plan.widthPx * scale}px`;
-  shown.style.height = `${plan.heightPx * scale}px`;
-  shown.style.imageRendering = 'pixelated';
+  shown.style.width = `${Math.round(plan.widthPx * scale)}px`;
+  shown.style.height = `${Math.round(plan.heightPx * scale)}px`;
+  shown.style.imageRendering = scale < 1 ? 'auto' : 'pixelated';
   frame.appendChild(shown);
 
   const caption = document.createElement('p');
   caption.className = 'hint';
   caption.textContent = (plan.fits
-    ? `${options.format.widthMm} mm × ${plan.heightPx} px — ${plan.widthPx} × ${plan.heightPx} px à ${options.format.dpi} dpi`
-    : `URL trop longue pour ce format : le QR fait ${plan.qrSizePx} px pour ${plan.widthPx} px de large.`)
+    ? t('{width} mm × {height} px — {widthPx} × {heightPx} px à {dpi} dpi', {
+      width: options.format.widthMm,
+      height: plan.heightPx,
+      widthPx: plan.widthPx,
+      heightPx: plan.heightPx,
+      dpi: options.format.dpi,
+    })
+    : t('URL trop longue pour ce format : le QR fait {size} px pour {width} px de large.', {
+      size: plan.qrSizePx,
+      width: plan.widthPx,
+    }))
     + (plan.dateOmitted
-      ? ' — date non imprimée : elle ne tient pas sur ce format, réduisez la taille du texte.'
+      ? t(' — date non imprimée : elle ne tient pas sur ce format, réduisez la taille du texte.')
       : '');
   if (!plan.fits) caption.style.color = 'var(--danger)';
   frame.appendChild(caption);
@@ -10635,13 +11866,13 @@ async function exportLabelImages() {
   if (items.length === 0) return;
 
   const options = readLabelOptions();
-  const label = el.exportLabels.textContent;
   el.exportLabels.disabled = true;
 
   try {
     const planned = planLabels(items, {
       format: options.format,
       textMode: options.textMode,
+      showTitle: options.showTitle,
       dateMode: options.dateMode,
       marginMm: options.marginMm,
       fontSizePt: options.fontSizePt,
@@ -10652,12 +11883,15 @@ async function exportLabelImages() {
 
     const images = new Map();
     for (const [index, entry] of planned.entries()) {
-      el.exportLabels.textContent = `Étiquette ${index + 1}/${planned.length}…`;
+      el.exportLabels.textContent = t('Étiquette {index}/{total}…', {
+        index: index + 1,
+        total: planned.length,
+      });
       const { png } = await renderLabelPng(entry.link, options);
       images.set(entry.fileName, png);
     }
 
-    el.exportLabels.textContent = 'Assemblage…';
+    el.exportLabels.textContent = t('Assemblage…');
     const name = collectionName();
     const archive = buildLabelArchive({
       planned,
@@ -10669,14 +11903,21 @@ async function exportLabelImages() {
     const ok = downloadBytes(filename, archive, { mime: 'application/zip' });
     toast(
       ok
-        ? `${planned.length} étiquette${planned.length > 1 ? 's' : ''} — ${filename} enregistré`
-        : 'Téléchargement impossible',
+        ? tpl(
+          planned.length,
+          '{count} étiquette — {filename} enregistré',
+          '{count} étiquettes — {filename} enregistré',
+          { filename },
+        )
+        : t('Téléchargement impossible'),
       ok ? 'info' : 'error',
     );
   } catch (error) {
-    toast(`Export impossible : ${error.message}`, 'error');
+    toast(t('Export impossible : {message}', { message: error.message }), 'error');
   } finally {
-    el.exportLabels.textContent = label;
+    // Le libellé de repos est recalculé, et non restauré : la portée et le
+    // nombre restent ceux de la collection au moment où l'on regarde.
+    el.exportLabels.textContent = exportImagesLabel(items.length);
     el.exportLabels.disabled = items.length === 0;
   }
 }
@@ -10689,7 +11930,7 @@ async function exportLabelImages() {
 function printSelection() {
   const items = printableLinks();
   if (items.length === 0) {
-    toast('Aucun lien à imprimer', 'error');
+    toast(t('Aucun lien à imprimer'), 'error');
     return;
   }
 
@@ -10734,14 +11975,14 @@ async function reportBluetoothSupport() {
     el.bleSupport.textContent = `${support.reason} ${support.hint}`;
     // Une note manuscrite vaut mieux qu'un texte gris : c'est la cause
     // n° 1 des échecs de connexion, et elle se règle en deux minutes.
-    el.printStatus.textContent = 'Impression directe indisponible — voir le message ci-dessus.';
+    el.printStatus.textContent = t('Impression directe indisponible — voir le message ci-dessus.');
   }
 }
 
 /** Ouvre le sélecteur puis établit la session d'impression. */
 async function connectPrinter() {
   el.connect.disabled = true;
-  el.printStatus.textContent = 'Recherche de l\'imprimante…';
+  el.printStatus.textContent = t('Recherche de l\'imprimante…');
 
   try {
     const device = await requestPrinter();
@@ -10758,11 +11999,11 @@ async function connectPrinter() {
     el.printLabel.disabled = false;
 
     const details = [
-      modelId !== null ? `modèle ${modelId}` : 'modèle non rapporté',
-      `${profile.printheadPixels} px de tête`,
+      modelId !== null ? t('modèle {id}', { id: modelId }) : t('modèle non rapporté'),
+      t('{count} px de tête', { count: profile.printheadPixels }),
     ];
-    if (reportedHeadPixels !== null) details.push(`largeur mesurée ${reportedHeadPixels} px`);
-    el.printStatus.textContent = `Connecté : ${details.join(', ')}.`;
+    if (reportedHeadPixels !== null) details.push(t('largeur mesurée {count} px', { count: reportedHeadPixels }));
+    el.printStatus.textContent = t('Connecté : {details}.', { details: details.join(', ') });
 
     // L'aperçu se cale sur le matériel présent : ce qu'on voit est ce qu'on
     // imprimera. Le sélecteur reste modifiable pour explorer un autre format.
@@ -10786,7 +12027,7 @@ async function connectPrinter() {
 
 /** L'imprimante s'éteint en veille : on remet l'interface en cohérence. */
 function handlePrinterLost() {
-  toast('Imprimante déconnectée', 'error');
+  toast(t('Imprimante déconnectée'), 'error');
   resetPrinter();
   renderPreview();
 }
@@ -10796,7 +12037,7 @@ function resetPrinter() {
   transport = null;
   printer = null;
   el.printerDot.className = 'dot dot--off';
-  el.printerName.textContent = 'Aucune imprimante connectée';
+  el.printerName.textContent = t('Aucune imprimante connectée');
   el.connect.hidden = false;
   el.disconnect.hidden = true;
   el.printLabel.disabled = true;
@@ -10847,7 +12088,7 @@ async function sendLabel(link, options = {}) {
     density,
     copies,
     onProgress: ({ page }) => {
-      el.printStatus.textContent = `Impression ${page}/${copies}…`;
+      el.printStatus.textContent = t('Impression {page}/{copies}…', { page, copies });
     },
   });
 
@@ -10857,27 +12098,29 @@ async function sendLabel(link, options = {}) {
 /** Imprime l'étiquette du lien choisi. */
 async function printOneLabel() {
   if (!printer) {
-    toast('Aucune imprimante connectée', 'error');
+    toast(t('Aucune imprimante connectée'), 'error');
     return;
   }
 
   const link = chosenLabelLink();
   if (!link) {
-    toast('Aucun lien dans la collection', 'error');
+    toast(t('Aucun lien dans la collection'), 'error');
     return;
   }
 
   el.printLabel.disabled = true;
-  el.printStatus.textContent = 'Composition de l\'étiquette…';
+  el.printStatus.textContent = t('Composition de l\'étiquette…');
 
   try {
-    el.printStatus.textContent = 'Envoi en cours…';
+    el.printStatus.textContent = t('Envoi en cours…');
     const result = await sendLabel(link);
-    el.printStatus.textContent =
-      `Étiquette imprimée : ${result.rows} lignes, ${result.frames} trames.`;
+    el.printStatus.textContent = t('Étiquette imprimée : {rows} lignes, {frames} trames.', {
+      rows: result.rows,
+      frames: result.frames,
+    });
   } catch (error) {
     el.printStatus.textContent = '';
-    toast(error.message ?? 'Impression impossible', 'error');
+    toast(error.message ?? t('Impression impossible'), 'error');
   } finally {
     el.printLabel.disabled = false;
   }
@@ -10904,11 +12147,11 @@ let seriesRunning = false;
 
 async function printAllLabels() {
   if (!printer) {
-    toast('Aucune imprimante connectée', 'error');
+    toast(t('Aucune imprimante connectée'), 'error');
     return;
   }
   if (links.length === 0) {
-    toast('Aucun lien dans la collection', 'error');
+    toast(t('Aucun lien dans la collection'), 'error');
     return;
   }
 
@@ -10922,7 +12165,7 @@ async function printAllLabels() {
     : links;
 
   if (items.length === 0) {
-    toast('Aucun lien coché : cochez les étiquettes à imprimer, ou choisissez « toute la collection »', 'error');
+    toast(t('Aucun lien coché : cochez les étiquettes à imprimer, ou choisissez « toute la collection »'), 'error');
     return;
   }
 
@@ -10931,7 +12174,7 @@ async function printAllLabels() {
   el.printAllLabels.disabled = true;
   // Le bouton devient l'arrêt de la série : trente étiquettes lancées par
   // erreur ne doivent pas obliger à couper l'imprimante.
-  el.printAllLabels.textContent = 'Arrêter la série';
+  el.printAllLabels.textContent = t('Arrêter la série');
   seriesRunning = true;
 
   let printed = 0;
@@ -10940,23 +12183,26 @@ async function printAllLabels() {
   try {
     for (const [index, link] of items.entries()) {
       if (!seriesRunning) break;
-      el.printStatus.textContent =
-        `Étiquette ${index + 1}/${items.length} — ${link.title || link.url}`;
+      el.printStatus.textContent = t('Étiquette {index}/{total} — {title}', {
+        index: index + 1,
+        total: items.length,
+        title: link.title || link.url,
+      });
       try {
         // La quantité est un réglage de la série : sans elle, impossible de
         // sortir deux exemplaires de chaque étiquette d'un seul geste.
         await sendLabel(link, { copies });
         printed += copies;
       } catch (error) {
-        failures.push(error.message ?? 'impression impossible');
+        failures.push(error.message ?? t('impression impossible'));
       }
     }
 
     // Le compte porte sur les étiquettes réellement sorties, pas sur les liens
     // parcourus : avec deux exemplaires, dix liens font vingt étiquettes.
-    const parts = [`${printed} étiquette${printed > 1 ? 's' : ''} imprimée${printed > 1 ? 's' : ''}`];
-    if (!seriesRunning) parts.push('série arrêtée');
-    if (failures.length > 0) parts.push(`${failures.length} en échec — ${failures[0]}`);
+    const parts = [tpl(printed, '{count} étiquette imprimée', '{count} étiquettes imprimées')];
+    if (!seriesRunning) parts.push(t('série arrêtée'));
+    if (failures.length > 0) parts.push(t('{count} en échec — {message}', { count: failures.length, message: failures[0] }));
     el.printStatus.textContent = parts.join(', ') + '.';
     toast(parts.join(', '), failures.length > 0 ? 'error' : 'info');
   } finally {
@@ -10981,11 +12227,11 @@ function fillPresets() {
     if (entries.length === 0) continue;
 
     const optgroup = document.createElement('optgroup');
-    optgroup.label = group.label;
+    optgroup.label = t(group.label);
     for (const [key, preset] of entries) {
       const option = document.createElement('option');
       option.value = key;
-      option.textContent = preset.label;
+      option.textContent = t(preset.label);
       optgroup.appendChild(option);
     }
     el.preset.appendChild(optgroup);
@@ -11009,7 +12255,11 @@ function fillProfiles() {
     const option = document.createElement('option');
     option.value = profile.id;
     const printableMm = Math.round((profile.printheadPixels / profile.dpi) * 25.4);
-    option.textContent = `Niimbot ${profile.id} — ${printableMm} mm utiles, ${profile.dpi} dpi`;
+    option.textContent = t('Niimbot {id} — {mm} mm utiles, {dpi} dpi', {
+      id: profile.id,
+      mm: printableMm,
+      dpi: profile.dpi,
+    });
     el.labelProfile.appendChild(option);
   }
   el.labelProfile.value = DEFAULT_PROFILE.id;
@@ -11045,13 +12295,13 @@ function fillSupplies() {
     const option = document.createElement('option');
     option.value = supply.id;
     const length = supply.lengthMm === null
-      ? 'longueur libre'
+      ? t('longueur libre')
       : `${supply.lengthMm} mm`;
     // La raison est affichée dès qu'il y en a une, compatible ou non : un
     // rouleau plus large que la tête imprime avec une marge, et l'utilisateur
     // doit le savoir sans que l'option soit écartée.
-    option.textContent = `${supply.label} — ${length}`
-      + (supply.reason === '' ? '' : ` (${supply.reason})`);
+    option.textContent = `${t(supply.label)} — ${length}`
+      + (supply.reason === '' ? '' : ` (${t(supply.reason)})`);
     // Un consommable que la tête ne peut pas atteindre reste visible, mais ne
     // peut pas être choisi : le faire disparaître ferait croire à une option
     // manquante.
@@ -11085,8 +12335,8 @@ function updateSupplyLength() {
   const supply = chosenSupply();
   const longueur = supply?.lengthMm ?? null;
   el.supplyHint.textContent = longueur === null
-    ? 'Rouleau continu : la longueur suit le contenu.'
-    : `Longueur imposée par le rouleau : ${longueur} mm.`;
+    ? t('Rouleau continu : la longueur suit le contenu.')
+    : t('Longueur imposée par le rouleau : {mm} mm.', { mm: longueur });
 }
 
 /** Propose les dispositions applicables au format retenu. */
@@ -11099,7 +12349,7 @@ function fillLayouts() {
   for (const disposition of disponibles) {
     const option = document.createElement('option');
     option.value = disposition.id;
-    option.textContent = disposition.label;
+    option.textContent = t(disposition.label);
     el.labelRotation.appendChild(option);
   }
 
@@ -11115,7 +12365,7 @@ function fillSupplyChoices() {
   for (const alignment of LABEL_ALIGNMENTS) {
     const option = document.createElement('option');
     option.value = alignment.id;
-    option.textContent = alignment.label;
+    option.textContent = t(alignment.label);
     el.labelAlignment.appendChild(option);
   }
   el.labelAlignment.value = DEFAULT_LABEL_ALIGNMENT;
@@ -11133,7 +12383,7 @@ function fillSupplyChoices() {
  */
 function composeDateNote() {
   if (dateMode() === 'none') return '';
-  return ' — aucune date : elle ne tient pas sur une ligne à cette taille de texte.';
+  return t(' — aucune date : elle ne tient pas sur une ligne à cette taille de texte.');
 }
 
 /**
@@ -11152,7 +12402,7 @@ function fillLabelChoices() {
   for (const [id, label] of [['portrait', 'Portrait'], ['landscape', 'Paysage']]) {
     const option = document.createElement('option');
     option.value = id;
-    option.textContent = label;
+    option.textContent = t(label);
     el.tableOrientation.appendChild(option);
   }
   el.tableOrientation.value = 'portrait';
@@ -11160,7 +12410,7 @@ function fillLabelChoices() {
   for (const scope of PRINT_SCOPES) {
     const option = document.createElement('option');
     option.value = scope.id;
-    option.textContent = scope.label;
+    option.textContent = t(scope.label);
     el.printScope.appendChild(option);
   }
   el.printScope.value = 'all';
@@ -11203,20 +12453,22 @@ function fillLabelLinks() {
 /** Explique ce qui sera imprimé sous le QR, d'après les cases cochées. */
 function updateLabelContentHint() {
   const choisis = [];
-  if (el.labelShowIndex.checked) choisis.push('le numéro du lien');
-  if (el.labelShowTitle.checked) choisis.push('le titre');
-  if (el.labelShowUrl.checked) choisis.push('l\'URL');
-  if (el.labelShowHost.checked) choisis.push('le domaine');
+  if (el.labelShowIndex.checked) choisis.push(t('le numéro du lien'));
+  if (el.labelShowTitle.checked) choisis.push(t('le titre'));
+  if (el.labelShowUrl.checked) choisis.push(t('l\'URL'));
+  if (el.labelShowHost.checked) choisis.push(t('le domaine'));
   if (el.labelShowDate.checked) {
-    choisis.push(el.labelDateTime.checked ? 'la date et l\'heure' : 'la date de collecte');
+    choisis.push(el.labelDateTime.checked ? t('la date et l\'heure') : t('la date de collecte'));
   }
 
   if (choisis.length === 0) {
-    el.labelContentHint.textContent = 'Le QR code seul, sans texte sous lui.';
+    el.labelContentHint.textContent = t('Le QR code seul, sans texte sous lui.');
     return;
   }
-  el.labelContentHint.textContent =
-    `Sous le QR : ${choisis.join(', ')}. Le texte est découpé à la largeur de la tête.`;
+  el.labelContentHint.textContent = t(
+    'Sous le QR : {list}. Le texte est découpé à la largeur de la tête.',
+    { list: choisis.join(', ') },
+  );
 }
 
 /**
@@ -11291,16 +12543,19 @@ function updateProfileHint() {
   const printableMm = ((profile.printheadPixels / profile.dpi) * 25.4).toFixed(1);
 
   if (!printer) {
-    el.profileHint.textContent =
-      `Aperçu composé avec le ${profile.id} (${printableMm} mm utiles, ${profile.dpi} dpi), `
-      + 'sans imprimante connectée : les dimensions et le nombre de modules sont exacts.';
+    el.profileHint.textContent = t(
+      'Aperçu composé avec le {profile} ({mm} mm utiles, {dpi} dpi), sans imprimante connectée : les dimensions et le nombre de modules sont exacts.',
+      { profile: profile.id, mm: printableMm, dpi: profile.dpi },
+    );
     return;
   }
   const connected = printer.profile;
   el.profileHint.textContent = connected.id === profile.id
-    ? `Imprimante connectée : ${connected.id}. Aperçu et impression identiques.`
-    : `Imprimante connectée : ${connected.id}. L'aperçu montre le ${profile.id} choisi ; `
-      + `« Imprimer » se fera au format du ${connected.id}.`;
+    ? t('Imprimante connectée : {id}. Aperçu et impression identiques.', { id: connected.id })
+    : t(
+      "Imprimante connectée : {id}. L'aperçu montre le {profile} choisi ; « Imprimer » se fera au format du {connected}.",
+      { id: connected.id, profile: profile.id, connected: connected.id },
+    );
 }
 
 /** Remplit les listes de formats et de modes de texte. */
@@ -11308,7 +12563,7 @@ function fillLabelForm() {
   for (const format of LABEL_FORMATS) {
     const option = document.createElement('option');
     option.value = format.id;
-    option.textContent = format.name;
+    option.textContent = t(format.name);
     el.labelFormat.appendChild(option);
   }
   el.labelFormat.value = 'niimbot-d110';
@@ -11316,7 +12571,7 @@ function fillLabelForm() {
   for (const [id, label] of Object.entries(TEXT_MODES)) {
     const option = document.createElement('option');
     option.value = id;
-    option.textContent = label;
+    option.textContent = t(label);
     el.labelText.appendChild(option);
   }
   el.labelText.value = 'url';
@@ -11363,7 +12618,7 @@ el.selectAllBox.addEventListener('change', () => {
   if (selected.size === 0) {
     // Une sélection vide signifie « tout » à l'impression : c'est la règle la
     // moins devinable, on la rappelle au moment où elle s'applique.
-    toast('Aucun lien coché : l\'impression portera sur toute la collection');
+    toast(t('Aucun lien coché : l\'impression portera sur toute la collection'));
   }
 });
 
@@ -11378,24 +12633,61 @@ async function exportSpreadsheet() {
 
   const label = el.exportXlsx.textContent;
   el.exportXlsx.disabled = true;
-  el.exportXlsx.textContent = 'Génération…';
+  el.exportXlsx.textContent = t('Génération…');
 
   try {
     const bytes = await buildLinkSpreadsheet(resolveTargets(links, el.qrTarget.value), {
       onProgress: (done, total) => {
-        el.exportXlsx.textContent = `QR ${done}/${total}…`;
+        el.exportXlsx.textContent = t('QR {done}/{total}…', { done, total });
       },
     });
     const filename = exportFilename(collectionName(), 'xlsx');
     const ok = downloadBytes(filename, bytes, {
       mime: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     });
-    toast(ok ? `${filename} enregistré` : 'Téléchargement impossible', ok ? 'info' : 'error');
+    toast(ok ? t('{filename} enregistré', { filename }) : t('Téléchargement impossible'), ok ? 'info' : 'error');
   } catch (error) {
-    toast(`Export impossible : ${error.message}`, 'error');
+    toast(t('Export impossible : {message}', { message: error.message }), 'error');
   } finally {
     el.exportXlsx.textContent = label;
     el.exportXlsx.disabled = links.length === 0;
+  }
+}
+
+/**
+ * Exporte le tableau configuré : un dossier autonome JSON + PNG + HTML.
+ *
+ * Contrairement aux exports de la collection, celui-ci suit la sélection et
+ * les colonnes cochées dans l'onglet, comme l'impression : c'est le même
+ * tableau, avec ses QR codes prêts à l'emploi.
+ */
+async function exportTableArchive() {
+  const items = printableLinks();
+  if (items.length === 0) return;
+
+  const label = el.exportTable.textContent;
+  el.exportTable.disabled = true;
+  el.exportTable.textContent = t('Génération…');
+
+  try {
+    const { bytes } = await buildTableArchive(items, {
+      title: collectionName(),
+      columns: tableColumns(),
+      dateMode: tableDateMode(),
+      // Le rang de la collection, celui que porte le tableau imprimé.
+      rankOf: (link, index) => linkRanks.get(link.id) ?? index + 1,
+      onProgress: (done, total) => {
+        el.exportTable.textContent = t('QR {done}/{total}…', { done, total });
+      },
+    });
+    const filename = exportFilename(collectionName(), 'zip');
+    const ok = downloadBytes(filename, bytes, { mime: 'application/zip' });
+    toast(ok ? t('{filename} enregistré', { filename }) : t('Téléchargement impossible'), ok ? 'info' : 'error');
+  } catch (error) {
+    toast(t('Export impossible : {message}', { message: error.message }), 'error');
+  } finally {
+    el.exportTable.textContent = label;
+    el.exportTable.disabled = items.length === 0 || !hasAnyTableColumn();
   }
 }
 
@@ -11403,6 +12695,7 @@ el.exportXlsx.addEventListener('click', exportSpreadsheet);
 el.exportCsv.addEventListener('click', () => exportAs('csv'));
 el.exportMd.addEventListener('click', () => exportAs('md'));
 el.exportJson.addEventListener('click', () => exportAs('json'));
+el.exportTable.addEventListener('click', exportTableArchive);
 
 el.import.addEventListener('click', () => el.importFile.click());
 el.importFile.addEventListener('change', async () => {
@@ -11415,7 +12708,7 @@ el.clear.addEventListener('click', async () => {
   await store.clear();
   selected = new Set();
   await refresh();
-  toast('Collection vidée');
+  toast(t('Collection vidée'));
 });
 
 for (const tab of document.querySelectorAll('.tab')) {
@@ -11434,7 +12727,7 @@ for (const box of [el.sheetDate, el.sheetDateTime, el.sheetDateIndex]) {
     renderPreview();
   });
 }
-for (const box of [el.exportDate, el.exportDateTime]) {
+for (const box of [el.exportTitle, el.exportDate, el.exportDateTime]) {
   box.addEventListener('change', renderPreview);
 }
 for (const box of [el.tableColDate, el.tableColDateTime]) {
@@ -11525,14 +12818,24 @@ el.printAllLabels.addEventListener('click', () => {
   // seconde par-dessus la première.
   if (seriesRunning) {
     seriesRunning = false;
-    el.printStatus.textContent = 'Arrêt demandé : la série s\'arrête après l\'étiquette en cours.';
+    el.printStatus.textContent = t('Arrêt demandé : la série s\'arrête après l\'étiquette en cours.');
     return;
   }
   // `printAllLabels` attrape ses propres erreurs ; on protège malgré tout
   // l'appel, sans quoi un rejet deviendrait une promesse non traitée.
   printAllLabels().catch((error) => {
-    toast(error.message ?? 'Impression impossible', 'error');
+    toast(error.message ?? t('Impression impossible'), 'error');
   });
+});
+
+// L'échelle des pages est calculée en pixels au moment du rendu : sans ce
+// rappel, une planche composée pour une grande fenêtre débordait après
+// réduction, et gardait une petite échelle après agrandissement. Le délai
+// regroupe les événements d'un redimensionnement continu.
+let previewResizeTimer = null;
+window.addEventListener('resize', () => {
+  clearTimeout(previewResizeTimer);
+  previewResizeTimer = setTimeout(() => renderPreview(), 150);
 });
 
 window.addEventListener('beforeprint', () => {
@@ -11550,7 +12853,30 @@ window.addEventListener('beforeprint', () => {
   }
 });
 
+/**
+ * Branche le sélecteur de langue de la barre supérieure.
+ *
+ * Le changement mémorise la langue puis recharge la page : tout est ainsi
+ * rendu dans la bonne langue, y compris les libellés construits par le code.
+ */
+function wireLocaleSwitcher() {
+  const select = document.getElementById('locale');
+  if (!select) return;
+  select.value = getLocale();
+  select.addEventListener('change', async () => {
+    if (select.value === getLocale()) return;
+    await setLocale(select.value);
+    location.reload();
+  });
+}
+
 // --- Démarrage ---
+
+// La langue doit être connue avant de construire les listes : leurs libellés
+// passent par `t()`.
+await initI18n();
+applyTranslations(document);
+wireLocaleSwitcher();
 
 fillPresets();
 fillLabelForm();
@@ -11565,7 +12891,10 @@ fillLabelChoices();
 const preferences = settings.load();
 el.shortener.value = preferences.shortener;
 el.qrTarget.value = preferences.targetMode;
-el.collectionName.value = preferences.collectionName;
+// Le nom par défaut suit la langue ; un nom saisi par l'utilisateur, non.
+el.collectionName.value = preferences.collectionName === DEFAULT_SETTINGS.collectionName
+  ? t(DEFAULT_SETTINGS.collectionName)
+  : preferences.collectionName;
 applyCollectionName();
 updateDateHint();
 
@@ -11578,7 +12907,7 @@ updateProfileHint();
 if (!stylesheetIsCurrent()) el.staleStyle.hidden = false;
 
 if (storeKind === 'memory') {
-  toast('Stockage temporaire : IndexedDB indisponible, les liens seront perdus', 'error');
+  toast(t('Stockage temporaire : IndexedDB indisponible, les liens seront perdus'), 'error');
 }
 
 await refresh();

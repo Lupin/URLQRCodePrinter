@@ -449,3 +449,85 @@ test('les deux sens occupent la meme bande', () => {
   assert.equal(a.rotatedTextThickness, b.rotatedTextThickness);
   assert.deepEqual(a.lines, b.lines);
 });
+
+// ---------------------------------------------------------------------------
+// La taille de texte demandée
+// ---------------------------------------------------------------------------
+
+/** Mesure proportionnelle à la taille, comme un vrai canvas. */
+const mesureProportionnelle = (size) => (texte) => texte.length * size * 0.52;
+
+test('la taille demandée est honorée quand le format le permet', () => {
+  // Le réglage « Taille du texte » était essayé après un candidat « remplir la
+  // longueur » qui, borné par le plafond de largeur, tenait toujours : de 2 à
+  // 7 mm la même police sortait, et le réglage n'avait aucun effet.
+  // Rouleau de 75 mm : la place ne manque pas, la demande doit donc passer
+  // telle quelle. Sur 30 mm, 32 px ne rentrent pas physiquement — c'est l'objet
+  // du test suivant, qui vérifie qu'on redescend au lieu d'amputer.
+  const url = 'https://exemple.fr/note';
+  for (const demandee of [12, 16, 24, 32]) {
+    const g = computeLabelGeometry({
+      text: url, widthPx: 96, dpi: 203, maxHeightPx: 600,
+      fontSize: demandee, measureFactory: mesureProportionnelle,
+    });
+    assert.equal(g.fontSize, demandee, `taille demandée ${demandee}, obtenue ${g.fontSize}`);
+  }
+});
+
+test('grossir le texte ajoute des lignes quand la longueur du rouleau le permet', () => {
+  // C'est la demande : « autoriser l'affichage sur deux lignes si le format
+  // d'impression le permet ». Sur un rouleau long, la même URL passe de une à
+  // plusieurs lignes à mesure que la police monte.
+  const url = 'https://www.youtube.com/watch?v=jYI8-1dall';
+  const lignesPour = (hauteur, taille) => computeLabelGeometry({
+    text: url, widthPx: 96, dpi: 203, maxHeightPx: hauteur,
+    fontSize: taille, measureFactory: mesureProportionnelle,
+  }).lines.length;
+
+  const court = lignesPour(240, 24);
+  const long = lignesPour(600, 24);
+  assert.ok(long > court, `rouleau long ${long} lignes, court ${court} : le format devrait compter`);
+
+  // Et sur une longueur donnée, grossir la police ajoute bien des lignes.
+  assert.ok(lignesPour(600, 32) > lignesPour(600, 16), 'grossir la police devrait ajouter des lignes');
+});
+
+test('aucune taille demandée n\'ampute le texte', () => {
+  // Une URL coupée après « com/ » est fausse, pas seulement tronquée. C'est la
+  // garantie qui rend le réglage utilisable : si la taille demandée ne permet
+  // pas d'écrire le texte entier, la géométrie redescend au lieu de couper.
+  const url = 'https://www.youtube.com/watch?v=jYI8-1dall';
+  for (const hauteur of [176, 240, 600]) {
+    for (const demandee of [6, 12, 16, 24, 32, 48, 64]) {
+      const g = computeLabelGeometry({
+        text: url, widthPx: 96, dpi: 203, maxHeightPx: hauteur,
+        fontSize: demandee, measureFactory: mesureProportionnelle,
+      });
+      assert.equal(
+        g.lines.join(''),
+        url,
+        `amputé à ${demandee} px sur ${hauteur} px : « ${g.lines.join('|')} »`,
+      );
+    }
+  }
+});
+
+test('une taille demandée échappe au plafond d\'équilibre, le choix automatique non', () => {
+  // Le plafond existe pour que le texte ne domine pas le QR quand la géométrie
+  // choisit seule. Il ne doit pas annuler un réglage explicite.
+  const url = 'https://exemple.fr/note';
+  const mesure = mesureProportionnelle;
+
+  const auto = computeLabelGeometry({
+    text: url, widthPx: 96, dpi: 203, maxHeightPx: 600, measureFactory: mesure,
+  });
+  assert.ok(
+    auto.fontSize <= 96 * MAX_FONT_WIDTH_RATIO,
+    `choix automatique ${auto.fontSize} px, au-dessus du plafond`,
+  );
+
+  const demande = computeLabelGeometry({
+    text: url, widthPx: 96, dpi: 203, maxHeightPx: 600, fontSize: 32, measureFactory: mesure,
+  });
+  assert.equal(demande.fontSize, 32, 'la demande explicite doit passer le plafond');
+});

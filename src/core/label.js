@@ -9,6 +9,7 @@
 
 import { encodeQr, drawQr, pickScale } from './qr.js';
 import { hostOf } from './link.js';
+import { t } from './i18n.js';
 
 /**
  * @typedef {Object} LabelGeometry
@@ -455,22 +456,38 @@ export function computeLabelGeometry(options) {
       // la ferait dépasser ne doit pas être retenu.
       limits.push(Math.floor((target - padding) / height));
     }
+    const lignes = wrapText(mesure, options.text ?? '', innerWidth, {
+      maxLines: Math.max(0, Math.min(...limits)),
+    });
     return {
-      lines: wrapText(mesure, options.text ?? '', innerWidth, {
-        maxLines: Math.max(0, Math.min(...limits)),
-      }),
+      lines: lignes,
       lineHeight: height,
+      // Le texte est-il entier ? Le plafond de lignes peut céder avant la fin
+      // du texte quand la place manque, et `tryFont` refuse alors cette taille :
+      // une URL coupée après « com/ » est fausse, pas seulement tronquée.
+      complete: lignes.length >= complet.length,
     };
   };
 
-  // Le texte dispose de la place que le QR lui laisse ; on retient donc la
-  // police la plus grande qui tienne, en essayant d'abord de remplir la
-  // longueur, puis la taille demandée, puis la lisibilité minimale.
+  // Le texte dispose de la place que le QR lui laisse. L'ordre des candidats
+  // décide de tout :
+  //
+  // 1. **La taille demandée passe en premier.** C'est un réglage de
+  //    l'utilisateur, pas une suggestion. Elle était essayée en second, après
+  //    un candidat « remplir la longueur » qui, borné par le plafond de largeur,
+  //    tenait toujours — si bien que le réglage « Taille du texte » n'avait
+  //    aucun effet : de 2 à 7 mm, la même police sortait. Un réglage sans effet
+  //    est pire que pas de réglage.
+  // 2. À défaut, remplir la longueur du rouleau.
+  // 3. À défaut, la lisibilité minimale.
+  //
+  // Le nombre de lignes n'est pas décidé ici : il découle de la taille retenue
+  // et de la place réellement disponible, un peu plus bas (`lignesPossibles`).
   const requested = Math.floor(options.fontSize ?? 0);
   const candidates = [];
-  if (target > 0) candidates.push(Math.floor((target * 0.22) / lineSpacing));
-  if (requested > 0) candidates.push(requested);
-  candidates.push(fontSize);
+  if (requested > 0) candidates.push({ size: requested, explicit: true });
+  if (target > 0) candidates.push({ size: Math.floor((target * 0.22) / lineSpacing), explicit: false });
+  candidates.push({ size: fontSize, explicit: false });
 
   const textTarget = Math.floor(innerWidth * qrRatio);
   const scale = Math.max(minScale, pickScale(textTarget, matrix.size));
@@ -478,7 +495,9 @@ export function computeLabelGeometry(options) {
   const fits = qrSize <= innerWidth;
 
   // Le texte ne monte pas plus haut que cette part de la largeur de la tête :
-  // au-delà il dominerait le QR au lieu de l'accompagner.
+  // au-delà il dominerait le QR au lieu de l'accompagner. C'est une règle
+  // d'**équilibre**, et elle ne vaut que pour le choix automatique — voir
+  // `tryFont`.
   const fontCeiling = Math.max(6, Math.floor(width * MAX_FONT_WIDTH_RATIO));
 
   /**
@@ -488,9 +507,18 @@ export function computeLabelGeometry(options) {
    * marge basse de l'étiquette, et le QR conserve sa place au-dessus. Ne
    * vérifier que la première laissait passer une taille qui chassait le QR ou
    * qui collait le texte au bord.
+   *
+   * @param {number} size
+   * @param {boolean} [explicit] Taille demandée par l'utilisateur : elle échappe
+   *   au plafond d'équilibre. Le plafond existe pour empêcher le **choix
+   *   automatique** de laisser le texte dominer le QR ; il n'a pas à annuler un
+   *   réglage explicite, sans quoi le réglage n'a aucun effet — c'était le cas,
+   *   et de 2 à 7 mm la même police sortait. La place réellement disponible
+   *   reste vérifiée juste en dessous, et c'est elle qui borne.
    */
-  const tryFont = (size) => {
-    const usable = Math.max(6, Math.min(size, fontCeiling));
+  const tryFont = (size, explicit = false) => {
+    const borné = explicit ? Math.min(size, innerWidth) : Math.min(size, fontCeiling);
+    const usable = Math.max(6, borné);
     const attempt = layoutText(usable);
     const textHeight = (attempt.lines.length + extraLines) * attempt.lineHeight;
     // Hauteur complète : marge haute, QR, écart, texte, **et marge basse**.
@@ -505,14 +533,17 @@ export function computeLabelGeometry(options) {
       lineHeight: attempt.lineHeight,
       textHeight,
       naturalHeight: natural,
-      ok: target === 0 ? true : natural <= target,
+      // Deux conditions, et la seconde est la plus importante : la taille doit
+      // tenir **et** le texte doit être entier. Une taille qui coupe le texte
+      // n'est pas une taille qui tient.
+      ok: (target === 0 ? true : natural <= target) && attempt.complete,
     };
   };
 
   let placed = null;
   let fallback = null;
-  for (const size of candidates) {
-    const attempt = tryFont(size);
+  for (const candidat of candidates) {
+    const attempt = tryFont(candidat.size, candidat.explicit);
     if (attempt.ok) {
       placed = attempt;
       break;
@@ -1030,18 +1061,20 @@ export function checkQrLegibility(geometry, options = {}) {
     return {
       ok: false,
       pxPerModule,
-      reason:
-        `URL trop longue : le QR fait ${geometry.qrSize} px pour ${geometry.width} px ` +
-        'de large. Raccourcissez l\'URL ou utilisez une étiquette plus large.',
+      reason: t(
+        "URL trop longue : le QR fait {size} px pour {width} px de large. Raccourcissez l'URL ou utilisez une étiquette plus large.",
+        { size: geometry.qrSize, width: geometry.width },
+      ),
     };
   }
   if (pxPerModule < minPx) {
     return {
       ok: false,
       pxPerModule,
-      reason:
-        `QR trop dense : ${pxPerModule.toFixed(2)} px par module (minimum ${minPx}). ` +
-        'Raccourcissez l\'URL ou augmentez la largeur de l\'étiquette.',
+      reason: t(
+        "QR trop dense : {px} px par module (minimum {min}). Raccourcissez l'URL ou augmentez la largeur de l'étiquette.",
+        { px: pxPerModule.toFixed(2), min: minPx },
+      ),
     };
   }
   return { ok: true, pxPerModule };

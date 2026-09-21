@@ -23,6 +23,7 @@
 
 import { readStoredZip } from './zip.js';
 import { createLink } from './link.js';
+import { t } from './i18n.js';
 
 /** Formes d'archive reconnues. */
 export const IMPORT_KINDS = Object.freeze(['links', 'labels', 'csv']);
@@ -33,10 +34,10 @@ export const IMPORT_KINDS = Object.freeze(['links', 'labels', 'csv']);
  * @returns {TypeError}
  */
 function unrecognised(detail) {
-  return new TypeError(
-    `${detail} Formats acceptés : l'archive JSON du bouton « Archive », le ` +
-    'dossier d\'étiquettes (.zip) ou son export.json, ou un CSV exporté d\'ici.',
-  );
+  return new TypeError(t(
+    "{detail} Formats acceptés : l'archive JSON du bouton « Archive », le dossier d'étiquettes (.zip) ou son export.json, ou un CSV exporté d'ici.",
+    { detail },
+  ));
 }
 
 /**
@@ -50,7 +51,7 @@ function fromJson(text) {
   try {
     parsed = JSON.parse(text);
   } catch (error) {
-    throw unrecognised(`Fichier illisible : ${error.message}.`);
+    throw unrecognised(t('Fichier illisible : {message}.', { message: error.message }));
   }
 
   if (Array.isArray(parsed)) return { kind: 'links', records: parsed };
@@ -77,11 +78,10 @@ function fromJson(text) {
     };
   }
 
-  throw unrecognised(
-    'Archive JSON sans liste de liens'
-    + (parsed?.format ? ` (format « ${parsed.format} »)` : '')
-    + '.',
-  );
+  const detail = parsed?.format
+    ? t('Archive JSON sans liste de liens (format « {format} »)', { format: parsed.format })
+    : t('Archive JSON sans liste de liens');
+  throw unrecognised(detail + '.');
 }
 
 /**
@@ -191,7 +191,7 @@ export function parseExportedDate(value) {
 function fromCsv(text) {
   const rows = parseCsvRows(text).filter((row) => row.some((cell) => cell.trim() !== ''));
   if (rows.length < 2) {
-    throw unrecognised('CSV sans ligne de données.');
+    throw unrecognised(t('CSV sans ligne de données.'));
   }
 
   const headers = rows[0].map((header) => header.trim().toLowerCase());
@@ -205,7 +205,9 @@ function fromCsv(text) {
 
   const urlColumn = column('url', 'adresse', 'lien');
   if (urlColumn === -1) {
-    throw unrecognised(`CSV sans colonne « URL » (colonnes trouvées : ${rows[0].join(', ')}).`);
+    throw unrecognised(t('CSV sans colonne « URL » (colonnes trouvées : {columns}).', {
+      columns: rows[0].join(', '),
+    }));
   }
 
   const titleColumn = column('titre', 'title');
