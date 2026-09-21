@@ -1,0 +1,11 @@
+{
+  "name": {
+    "message": "URLQRCodePrinter"
+  },
+  "description": {
+    "message": "Collecte les URL de vos onglets et imprime-les en étiquettes QR (Niimbot D110 / M2)."
+  },
+  "action_title": {
+    "message": "URLQRCodePrinter"
+  }
+}

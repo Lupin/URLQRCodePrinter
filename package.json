@@ -1,10 +1,18 @@
 {
   "name": "url-qr-code-printer",
   "version": "0.1.0",
-  "private": true,
   "type": "module",
-  "description": "Collecte d'URL (clic droit / extension), base locale, export CSV-Markdown et impression d'étiquettes QR (tableau, PDF, Niimbot D110 / M2).",
+  "description": "Collect URLs from the browser, keep them in a local database, and print them as QR labels — sheet, CSV/Markdown export, or direct Niimbot D110 / M2 printing.",
+  "keywords": [
+    "qr-code",
+    "label-printer",
+    "niimbot",
+    "browser-extension",
+    "web-bluetooth",
+    "safari-extension"
+  ],
   "license": "MIT",
+  "author": "Gaël Abegg-Gauthey <abegg.gauthey@gmail.com>",
   "engines": {
     "node": ">=20"
   },
@@ -18,6 +26,7 @@
     "build:extension": "node scripts/build.mjs --only=extension",
     "icons": "node scripts/make-icons.mjs",
     "package:safari": "node scripts/package-safari.mjs",
+    "sync:safari": "node scripts/sync-safari-resources.mjs",
     "install:safari": "node scripts/install-safari.mjs",
     "open:extension": "node scripts/open-extension.mjs",
     "open:safari": "node scripts/open-extension.mjs --safari",

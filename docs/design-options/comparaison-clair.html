@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>URLQRCodePrinter — accents, comparaison en thème clair</title>
+<style>
+/* ═══════════════════════════════════════════════════════════════════════
+   Comparaison en thème clair uniquement.
+   Les trois variantes sont rendues à taille réelle (380 px) et côte à côte,
+   avec sous chacune le duel qui décide : l'accent posé juste à côté du rouge
+   de destruction. C'est le seul jugement que la page demande.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+:root {
+  --page: #f1f1f4;
+  --card: #ffffff;
+  --ink: #14161a;
+  --ink-2: #555b64;
+  --ink-3: #767c85;
+  --line: #e1e2e7;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  padding: 36px clamp(16px, 3vw, 40px) 64px;
+  background: var(--page);
+  color: var(--ink);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+h1 { margin: 0 0 8px; font-size: 28px; font-weight: 700; letter-spacing: -0.02em; }
+h2 { margin: 0; font-size: 17px; font-weight: 680; letter-spacing: -0.012em; }
+p { margin: 0 0 10px; max-width: 80ch; color: var(--ink-2); }
+
+.lead { max-width: 92ch; }
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 26px;
+  margin-top: 30px;
+  align-items: flex-start;
+}
+
+/* --- Une variante --- */
+
+.case { margin: 0; width: 380px; }
+
+.case__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid var(--ink);
+}
+
+.case__swatch {
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  border: 1px solid rgba(0, 0, 0, 0.25);
+  background: var(--accent);
+}
+
+.case__hex {
+  color: var(--ink-3);
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 11.5px;
+  white-space: nowrap;
+}
+
+.stage {
+  padding: 16px;
+  border-radius: 14px;
+  background: #9aa0a8;
+}
+
+.case__note {
+  margin: 12px 0 0;
+  color: var(--ink-3);
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+
+/* --- Le duel accent / rouge --- */
+
+.duel {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--card);
+}
+
+.duel__label {
+  flex: none;
+  width: 100%;
+  margin: 0 0 6px;
+  color: var(--ink-3);
+  font-size: 10.5px;
+  font-weight: 680;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.duel__box { flex: 1; min-width: 0; }
+
+.chip {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 32px;
+  border: 1px solid transparent;
+  font-size: 12px;
+  font-weight: 600;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.chip--accent { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.chip--danger { background: var(--surface-2); color: var(--danger); border-color: var(--danger); }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   Structure de la fenêtre — identique dans les trois cas, thème clair
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.pop {
+  display: flex;
+  flex-direction: column;
+  width: 380px;
+  height: 470px;
+  overflow: hidden;
+  border: 1px solid var(--border-strong);
+  background: var(--bg);
+  color: var(--text);
+  font-size: 0.8125rem;
+  line-height: 1.45;
+}
+.pop * { box-sizing: border-box; }
+.pop :where(h1, h2, h3, p, ul) { margin: 0; max-width: none; }
+
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+
+.pop__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+  border-bottom: 3px solid var(--header-rule);
+  background: var(--surface);
+}
+.pop__title { font-size: 0.875rem; font-weight: 650; }
+.pop__count {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
+  padding: 3px 10px;
+  background: var(--count-bg);
+  color: var(--count-ink);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.pop__main { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+
+.capture { display: flex; flex-direction: column; gap: 6px; padding: 10px 12px; border-bottom: 1px solid var(--border-line); }
+.capture__page { overflow: hidden; color: var(--text-2); font-size: 0.75rem; text-overflow: ellipsis; white-space: nowrap; }
+
+.collection { flex: 1; min-height: 0; display: flex; flex-direction: column; padding: 10px 12px 0; }
+.section-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+  color: var(--text-3);
+  font-size: 0.6875rem;
+  font-weight: 680;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.section-title::after { content: ""; flex: 1; height: 1px; background: var(--border-strong); }
+
+.list { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 4px; padding: 0 0 8px; overflow: hidden; list-style: none; }
+
+.item { flex: none; display: flex; align-items: center; gap: 8px; padding: 7px 8px; border: 1px solid var(--border-strong); background: var(--surface); }
+.item__body { flex: 1; min-width: 0; }
+.item__title { display: block; overflow: hidden; color: inherit; font-weight: 600; text-decoration: none; text-overflow: ellipsis; white-space: nowrap; }
+.item__url { display: block; overflow: hidden; color: var(--text-3); font-size: 0.6875rem; text-overflow: ellipsis; white-space: nowrap; }
+.item__remove {
+  flex: none; display: inline-flex; align-items: center; justify-content: center;
+  width: 28px; height: 28px; padding: 0; border: 1px solid transparent; background: transparent;
+  color: var(--text-3); cursor: pointer;
+}
+.icon { display: block; width: 16px; height: 16px; }
+/* État de survol montré d'office sur la dernière ligne : c'est le moment où
+   l'accent et le rouge se retrouvent à l'écran en même temps. */
+.item--hover { border-color: var(--danger); background: var(--surface-2); }
+.item--hover .item__remove { border-color: var(--danger); background: var(--surface-2); color: var(--danger); }
+
+.pop__footer { display: flex; flex-direction: column; gap: 6px; padding: 10px 12px; border-top: 1px solid var(--border-line); background: var(--surface); }
+.pop__footer-row { display: flex; gap: 6px; }
+
+.btn {
+  min-height: 32px; padding: 6px 12px; border: 1px solid transparent; background: transparent;
+  color: var(--text); font-family: inherit; font-size: 0.75rem; cursor: pointer;
+}
+.btn--primary { width: 100%; border-color: var(--accent); background: var(--accent); color: var(--accent-ink); font-weight: 620; }
+.btn--ghost { flex: 1; border-color: var(--border-strong); background: var(--surface); }
+.btn--danger-on { border-color: var(--danger); background: var(--surface-2); color: var(--danger); }
+
+/* --- Jetons par variante (thème clair) --- */
+
+.case[data-accent] .pop,
+.case[data-accent] .duel {
+  --bg: #ffffff; --surface: #f4f4f4; --surface-2: #e8e8e8;
+  --text: #161616; --text-2: #393939; --text-3: #5c5c5c;
+  /* Pas de fond teinté de danger : un rouge très clair vire au rose, troisième
+     teinte chaude coincée entre l'orange et le rouge. Le danger est porté par
+     la bordure, l'icône et le libellé, sur un fond neutre. */
+  --danger: #b3122b;
+  --border-line: #e0e0e0; --border-strong: #8d8d8d;
+}
+
+/* Graphite : aucune chroma. Le filet, le compteur et les deux boutons remplis
+   sont à l'encre ; le rouge est la seule couleur de la fenêtre. */
+.case[data-accent="graphite"] { --accent: #1a1a1a; --accent-ink: #ffffff; --header-rule: #1a1a1a; --count-bg: #1a1a1a; --count-ink: #ffffff; }
+
+/* Orange brûlé et ambre : l'accent est rationné. Seul « Ajouter cette page »
+   porte la couleur ; le reste passe à l'encre neutre. */
+.case[data-accent="orange"] { --accent: #c2410c; --accent-ink: #ffffff; --header-rule: #1a1a1a; --count-bg: #c2410c; --count-ink: #ffffff; --ink: #1a1a1a; --ink-ink: #ffffff; }
+.case[data-accent="ambre"]  { --accent: #b45309; --accent-ink: #ffffff; --header-rule: #1a1a1a; --count-bg: #b45309; --count-ink: #ffffff; --ink: #1a1a1a; --ink-ink: #ffffff; }
+
+.case[data-accent="orange"] .pop__footer .btn--primary,
+.case[data-accent="ambre"] .pop__footer .btn--primary {
+  border-color: var(--ink);
+  background: var(--ink);
+  color: var(--ink-ink);
+}
+
+/* --- Bandeau de mesures --- */
+
+table { border-collapse: collapse; width: 100%; margin-top: 34px; background: var(--card); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+th, td { padding: 9px 12px; border-bottom: 1px solid var(--line); text-align: left; font-size: 13.5px; }
+th { color: var(--ink-3); font-size: 11px; font-weight: 680; letter-spacing: 0.06em; text-transform: uppercase; }
+td.num { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-variant-numeric: tabular-nums; white-space: nowrap; font-weight: 620; }
+tr:last-child td { border-bottom: 0; }
+.ok { color: #1c7c4a; }
+.warn { color: #b45309; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Orange brûlé, en thème clair — décision</h1>
+  <p class="lead">
+    Même structure Console, même contenu, taille réelle. La dernière ligne de
+    chaque fenêtre est montrée <strong>au survol de la suppression</strong> :
+    c'est le seul moment où l'accent et le rouge se retrouvent ensemble à
+    l'écran.
+  </p>
+  <p class="lead">
+    <strong>Décision prise.</strong> Les deux autres teintes sont conservées
+    ci-dessous comme trace du raisonnement, pas comme alternatives ouvertes.
+  </p>
+  <p class="lead">
+    Le fond rose a disparu. Un rouge très clair vire au rose, et ce rose était
+    une <strong>troisième teinte chaude</strong> coincée entre l'orange de
+    l'accent et le rouge de destruction — trois teintes voisines ne s'ordonnent
+    plus à l'œil. Le danger est désormais porté par la bordure, l'icône et le
+    libellé, sur un fond neutre : trois signaux, aucune teinte ajoutée.
+  </p>
+</header>
+
+<div class="row" id="row"></div>
+
+<table>
+  <thead>
+    <tr>
+      <th>Variante</th>
+      <th>Libellé sur accent</th>
+      <th>Anneau de focus / fond</th>
+      <th>Danger sur survol</th>
+      <th>Écart de teinte avec le rouge</th>
+      <th>Usages visibles de l'accent</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>Orange brûlé</strong> — retenu</td>
+      <td class="num ok">5,18:1</td>
+      <td class="num ok">5,18:1</td>
+      <td class="num ok">5,65:1</td>
+      <td class="num warn">26°</td>
+      <td>2 — puce du compteur + bouton d'ajout</td>
+    </tr>
+    <tr>
+      <td><strong>Ambre</strong></td>
+      <td class="num ok">5,02:1</td>
+      <td class="num ok">5,02:1</td>
+      <td class="num ok">5,65:1</td>
+      <td class="num ok">35°</td>
+      <td>2 — puce du compteur + bouton d'ajout</td>
+    </tr>
+    <tr>
+      <td><strong>Graphite</strong></td>
+      <td class="num ok">17,40:1</td>
+      <td class="num ok">17,40:1</td>
+      <td class="num ok">5,65:1</td>
+      <td class="num">— (sans chroma)</td>
+      <td>0 — le rouge est la seule couleur</td>
+    </tr>
+  </tbody>
+</table>
+
+<p style="margin-top:14px;font-size:13px;color:var(--ink-3)">
+  Le rouge est désormais posé sur <code>#e8e8e8</code> et non plus sur un rose
+  teinté : la marge passe de 5,91:1 à 5,65:1, et la palette perd une teinte.
+  C'est un bon échange — la lisibilité reste large, et l'œil n'a plus trois
+  oranges-rouges à ordonner.
+</p>
+
+<script>
+const LINKS = [
+  { title: 'Protocole Niimbot BLE', url: 'https://exemple.fr/a', display: 'github.com/gael/…/note-protocole-niimbot-ble.md' },
+  { title: 'Niimbot D110 — étiquettes 50 × 30 mm', url: 'https://exemple.fr/b', display: 'niimbot.com/fr/products/d110' },
+  { title: "Guide d'utilisation — impression d'étiquettes", url: 'https://exemple.fr/c', display: 'github.com/gael/…/guide-utilisation.md' },
+];
+
+const SVG_NS = 'http://www.w3.org/2000/svg';
+const PHOSPHOR_X = 'M205.66,194.34a8,8,0,0,1-11.32,11.32L128,139.31,61.66,205.66a8,8,0,0,1-11.32-11.32L116.69,128,50.34,61.66A8,8,0,0,1,61.66,50.34L128,116.69l66.34-66.35a8,8,0,0,1,11.32,11.32L139.31,128Z';
+
+const node = (tag, className, text) => {
+  const element = document.createElement(tag);
+  if (className) element.className = className;
+  if (text !== undefined) element.textContent = text;
+  return element;
+};
+
+const srOnly = (text) => node('span', 'sr-only', text);
+
+function removeIcon() {
+  const svg = document.createElementNS(SVG_NS, 'svg');
+  svg.setAttribute('viewBox', '0 0 256 256');
+  svg.setAttribute('fill', 'currentColor');
+  svg.setAttribute('aria-hidden', 'true');
+  svg.setAttribute('focusable', 'false');
+  svg.classList.add('icon');
+  const path = document.createElementNS(SVG_NS, 'path');
+  path.setAttribute('d', PHOSPHOR_X);
+  svg.appendChild(path);
+  return svg;
+}
+
+function buildPopup() {
+  const pop = node('div', 'pop');
+
+  const header = node('header', 'pop__header');
+  header.append(node('h1', 'pop__title', 'URLQRCodePrinter'));
+  const count = node('p', 'pop__count');
+  count.append(srOnly('Liens enregistrés : '), node('span', 'pop__count-value', '3'), node('span', null, 'liens'));
+  header.append(count);
+
+  const main = node('main', 'pop__main');
+  const capture = node('section', 'capture');
+  capture.append(
+    node('p', 'capture__page', "Guide d'utilisation — impression d'étiquettes"),
+    (() => { const b = node('button', 'btn btn--primary', 'Ajouter cette page'); b.type = 'button'; return b; })(),
+  );
+
+  const collection = node('section', 'collection');
+  collection.append(node('h2', 'section-title', 'Liens enregistrés'));
+  const list = node('ul', 'list');
+  LINKS.forEach((link, index) => {
+    // La dernière ligne est figée dans l'état « survol de la suppression ».
+    const hovered = index === LINKS.length - 1;
+    const item = node('li', hovered ? 'item item--hover' : 'item');
+    const body = node('div', 'item__body');
+    body.append(node('a', 'item__title', link.title), node('span', 'item__url', link.display));
+    const remove = node('button', 'item__remove');
+    remove.type = 'button';
+    remove.append(removeIcon());
+    item.append(body, remove);
+    list.append(item);
+  });
+  collection.append(list);
+
+  main.append(capture, collection);
+
+  const footer = node('footer', 'pop__footer');
+  const open = node('button', 'btn btn--primary', 'Voir les QR codes');
+  open.type = 'button';
+  const row = node('div', 'pop__footer-row');
+  for (const [label, extra] of [['CSV', ''], ['Markdown', ''], ['Tout effacer', ' btn--danger-on']]) {
+    const button = node('button', `btn btn--ghost${extra}`, label);
+    button.type = 'button';
+    row.append(button);
+  }
+  footer.append(open, row);
+
+  pop.append(header, main, footer);
+  return pop;
+}
+
+const CASES = [
+  {
+    accent: 'orange',
+    name: 'Orange brûlé',
+    hex: '#c2410c',
+    note: "Retenu. Teinte à 26° du rouge. L'accent est rationné : le bouton d'ajout est le seul élément coloré. Marge sur le bouton : 5,18:1. Le survol de la suppression pose le rouge sur un fond neutre, sans rose.",
+  },
+  {
+    accent: 'ambre',
+    name: 'Ambre — écarté',
+    hex: '#b45309',
+    note: "Écarté : en thème sombre il tire vers le jaune et se lit comme un avertissement. Marge sur le bouton : 5,02:1.",
+  },
+  {
+    accent: 'graphite',
+    name: 'Graphite — écarté',
+    hex: '#1a1a1a',
+    note: "Écarté : la meilleure marge des trois (17,40:1), mais aucune identité — et la marque de la barre d'outils reste invisible sur une barre sombre à 1,08:1.",
+  },
+];
+
+const row = document.getElementById('row');
+
+for (const item of CASES) {
+  const figure = node('figure', 'case');
+  figure.dataset.accent = item.accent;
+
+  const head = node('div', 'case__head');
+  const left = node('div');
+  left.style.display = 'flex';
+  left.style.alignItems = 'center';
+  left.style.gap = '8px';
+  left.append(node('span', 'case__swatch'), node('h2', null, item.name));
+  head.append(left, node('span', 'case__hex', item.hex));
+  figure.append(head);
+
+  const stage = node('div', 'stage');
+  stage.append(buildPopup());
+  figure.append(stage);
+
+  // Le duel : l'accent et le rouge côte à côte, dans les couleurs réelles.
+  const duel = node('div', 'duel');
+  const accentBox = node('div', 'duel__box');
+  accentBox.append(node('p', 'duel__label', 'Accent'));
+  accentBox.append(node('span', 'chip chip--accent', 'Ajouter cette page'));
+  const dangerBox = node('div', 'duel__box');
+  dangerBox.append(node('p', 'duel__label', 'Destruction, au survol'));
+  dangerBox.append(node('span', 'chip chip--danger', 'Tout effacer'));
+  duel.append(accentBox, dangerBox);
+  figure.append(duel);
+
+  figure.append(node('p', 'case__note', item.note));
+  row.append(figure);
+}
+</script>
+</body>
+</html>

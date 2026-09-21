@@ -12,16 +12,22 @@ npm-debug.log*
 xcuserdata/
 DerivedData/
 build/
+native/niimbot-kit/.build/
 *.xcworkspace/xcshareddata/IDEWorkspaceChecks.plist
 
-# Secrets / local
+# Secrets et réglages locaux
 .env
 .env.local
+# Le .npmrc ne sert qu'à déplacer le cache npm dans les environnements
+# contraints : il n'a rien à faire dans le dépôt.
+.npmrc
+.npm-cache/
 
-# Profils navigateur de test
+# Profils navigateur, captures et fichiers temporaires des vérifications
 .brave-test/
 .verify-brave/
-.npm-cache/
+.verify-brave-captures/
+.tmpm/
 
 # Sondes de mesure ponctuelles
 .probe-*/

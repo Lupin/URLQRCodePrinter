@@ -1,0 +1,1258 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>URLQRCodePrinter — options de design de l'extension</title>
+<style>
+/* ═══════════════════════════════════════════════════════════════════════
+   1. Habillage du document de revue (hors fenêtre d'extension)
+   ═══════════════════════════════════════════════════════════════════════ */
+
+:root {
+  --deck-bg: #f1f1f4;
+  --deck-surface: #ffffff;
+  --deck-text: #14161a;
+  --deck-text-2: #555b64;
+  --deck-text-3: #767c85;
+  --deck-line: #e1e2e7;
+  --deck-accent: #3b4bd8;
+  --deck-code: #f5f5f8;
+  --deck-ok: #1c7c4a;
+  --deck-fail: #b3122b;
+  --stage: #9aa0a8;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --deck-bg: #0b0c0f;
+    --deck-surface: #14161b;
+    --deck-text: #eceef2;
+    --deck-text-2: #a5acb7;
+    --deck-text-3: #878e99;
+    --deck-line: #262930;
+    --deck-accent: #9aa4ff;
+    --deck-code: #1a1d22;
+    --deck-ok: #6cd39a;
+    --deck-fail: #ff8a80;
+    --stage: #33373e;
+  }
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--deck-bg);
+  color: var(--deck-text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+  font-size: 15px;
+  line-height: 1.55;
+  color-scheme: light dark;
+}
+
+.deck { max-width: 1320px; margin: 0 auto; padding: 40px clamp(16px, 4vw, 48px) 80px; }
+
+.deck__eyebrow {
+  margin: 0 0 6px;
+  color: var(--deck-text-3);
+  font-size: 12px;
+  font-weight: 650;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+h1 { margin: 0 0 10px; font-size: clamp(26px, 3vw, 36px); font-weight: 700; letter-spacing: -0.022em; text-wrap: balance; }
+h2 { margin: 0 0 6px; font-size: 22px; font-weight: 680; letter-spacing: -0.018em; }
+h3 { margin: 0 0 8px; font-size: 13px; font-weight: 680; letter-spacing: 0.08em; text-transform: uppercase; color: var(--deck-text-3); }
+p { margin: 0 0 12px; max-width: 78ch; text-wrap: pretty; }
+.lead { color: var(--deck-text-2); font-size: 16px; }
+
+/* Enfant direct uniquement : un sélecteur `section` nu atteindrait aussi les
+   <section> internes de la fenêtre d'extension et lui imposerait une marge de
+   document. C'est exactement le genre de fuite qu'un composant ne doit pas
+   subir. */
+.deck > section { margin-top: 56px; }
+.deck > section > header { margin-bottom: 20px; }
+
+.card {
+  padding: 20px;
+  border: 1px solid var(--deck-line);
+  border-radius: 14px;
+  background: var(--deck-surface);
+}
+
+.split { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 18px; }
+
+ul.plain { margin: 0; padding-left: 20px; }
+ul.plain li { margin-bottom: 6px; }
+ul.plain li::marker { color: var(--deck-text-3); }
+
+table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+th, td { padding: 8px 10px; border-bottom: 1px solid var(--deck-line); text-align: left; vertical-align: top; }
+th { color: var(--deck-text-3); font-size: 11.5px; font-weight: 680; letter-spacing: 0.06em; text-transform: uppercase; }
+td.num { font-variant-numeric: tabular-nums; font-family: ui-monospace, "SF Mono", Menlo, monospace; white-space: nowrap; }
+.ok { color: var(--deck-ok); font-weight: 620; }
+.fail { color: var(--deck-fail); font-weight: 620; }
+code, .mono { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 0.88em; }
+code { padding: 1px 5px; border-radius: 5px; background: var(--deck-code); }
+
+/* --- Mise en scène des fenêtres --- */
+
+.frames { display: flex; flex-wrap: wrap; gap: 22px; }
+
+.frame { width: 380px; }
+
+.frame__caption {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+  color: var(--deck-text-3);
+  font-size: 11.5px;
+  font-weight: 650;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.stage {
+  padding: 18px;
+  border-radius: 16px;
+  background: var(--stage);
+}
+
+.opt__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 0 14px;
+  padding: 0;
+  list-style: none;
+}
+
+.tag {
+  padding: 3px 9px;
+  border: 1px solid var(--deck-line);
+  border-radius: 999px;
+  color: var(--deck-text-2);
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.notes { margin: 22px 0 0; padding: 0; list-style: none; display: grid; gap: 10px; }
+/* `flex`, pas `grid` : en grille, chaque enfant du <li> devient un élément de
+   grille — un <code> en milieu de phrase se retrouvait seul dans la colonne de
+   20 px, d'où un chevauchement. En flex, le contenu en ligne est regroupé dans
+   un seul élément anonyme et le texte reste d'un bloc. */
+.notes li { display: flex; gap: 10px; color: var(--deck-text-2); font-size: 14px; }
+.notes li::before { content: "→"; flex: none; color: var(--deck-accent); font-weight: 700; }
+
+.opt { padding-top: 34px; border-top: 1px solid var(--deck-line); }
+.opt__head { display: flex; flex-wrap: wrap; gap: 16px; align-items: baseline; justify-content: space-between; margin-bottom: 14px; }
+.opt__head p { margin: 0; color: var(--deck-text-2); max-width: 70ch; }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   2. Structure commune de la fenêtre d'extension (identique aux 3 options)
+      Seule la couche de jetons change d'une option à l'autre.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.pop {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 380px;
+  height: 540px;
+  overflow: hidden;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-lg);
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-ui);
+  font-size: var(--type-base);
+  line-height: 1.45;
+  color-scheme: light dark;
+}
+.pop *, .pop *::before, .pop *::after { box-sizing: border-box; }
+
+/* Le volet est un composant autonome : il ne doit rien hériter de la
+   typographie du document qui le présente — ni marges de titre, ni largeur de
+   paragraphe. `:where()` garde une spécificité nulle : une remise à zéro plus
+   forte battrait les classes du volet lui-même. */
+.pop :where(h1, h2, h3, p, ul) { margin: 0; max-width: none; text-wrap: initial; }
+
+.sr-only {
+  position: absolute;
+  width: 1px; height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* --- En-tête --- */
+
+.pop__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: var(--pad-y) var(--pad-x);
+  border-bottom: 1px solid var(--border-soft);
+  background: var(--surface);
+}
+
+.pop__title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--type-md);
+  font-weight: 650;
+  letter-spacing: var(--track-title);
+}
+
+/* Le compteur porte l'unité : « 3 liens », pas « 3 ». Une région live qui
+   n'annonce qu'un nombre oblige l'utilisateur à deviner de quoi on parle. */
+.pop__count {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
+  margin: 0;
+  padding: 3px 10px;
+  border-radius: var(--radius-pill);
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-size: var(--type-xs);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.pop__count-value { font-family: var(--font-mono); }
+
+/* --- Corps --- */
+
+.pop__main { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+
+.capture {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-2);
+  padding: var(--pad-y) var(--pad-x);
+  border-bottom: 1px solid var(--border-soft);
+}
+
+/* Tronqué visuellement, mais le texte complet reste dans le DOM : les
+   lecteurs d'écran lisent la totalité, la souris a l'infobulle. */
+.capture__page {
+  margin: 0;
+  overflow: hidden;
+  color: var(--text-2);
+  font-size: var(--type-sm);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.collection {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding: var(--pad-y) var(--pad-x) 0;
+}
+
+.section-title {
+  margin: 0 0 var(--gap-2);
+  color: var(--text-3);
+  font-size: var(--type-xs);
+  font-weight: 680;
+  letter-spacing: var(--track-label);
+  text-transform: var(--label-case);
+}
+
+.list {
+  flex: 1;
+  min-height: 0;
+  margin: 0;
+  padding: var(--list-pad);
+  overflow-y: auto;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+}
+
+.item { display: flex; align-items: center; gap: 8px; }
+
+.item__body { flex: 1; min-width: 0; }
+
+/* Un seul lien par ligne : deux liens vers la même destination faisaient
+   deux arrêts de tabulation et deux annonces pour une seule action. */
+.item__title {
+  display: block;
+  overflow: hidden;
+  color: inherit;
+  font-weight: var(--row-title-weight);
+  text-decoration: none;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.item__title:hover { text-decoration: underline; }
+
+.item__url,
+.item__short-url {
+  display: block;
+  overflow: hidden;
+  color: var(--text-3);
+  font-family: var(--font-mono);
+  font-size: var(--type-xs);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.item__short { display: flex; align-items: baseline; gap: 4px; min-width: 0; }
+.item__short-mark { flex: none; color: var(--text-3); }
+
+/* 28 × 28 px : au-dessus du minimum AA de 24 × 24 (2.5.8) avec une marge
+   qui absorbe les arrondis de rendu, sans épaissir la ligne. */
+.item__remove {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-3);
+  font-family: var(--font-ui);
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background-color 140ms ease, color 140ms ease, border-color 140ms ease;
+}
+.item__remove:hover { border-color: var(--danger); background: var(--surface-2); color: var(--danger); }
+
+.empty { margin: 10px 0; color: var(--text-3); font-size: var(--type-sm); text-align: center; }
+
+/* --- Pied --- */
+
+.pop__footer {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-2);
+  padding: var(--pad-y) var(--pad-x);
+  border-top: 1px solid var(--border-soft);
+  background: var(--surface);
+}
+.pop__footer-row { display: flex; gap: var(--gap-2); }
+
+/* --- Boutons --- */
+
+.btn {
+  min-height: 32px;
+  padding: 6px 12px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text);
+  font-family: inherit;
+  font-size: var(--type-sm);
+  cursor: pointer;
+  transition: background-color 140ms ease, border-color 140ms ease, color 140ms ease;
+}
+.btn--primary { width: 100%; border-color: var(--accent); background: var(--accent); color: var(--accent-ink); font-weight: 620; }
+.btn--primary:not(:disabled):hover { border-color: var(--accent-hover); background: var(--accent-hover); }
+.btn--ghost { flex: 1; border-color: var(--border-strong); background: var(--surface); }
+.btn--ghost:not(:disabled):hover { background: var(--surface-2); }
+.btn--danger:not(:disabled):hover { border-color: var(--danger); background: var(--surface-2); color: var(--danger); }
+.btn:active:not(:disabled) { transform: translateY(1px); }
+
+/* Désactivation par jetons plutôt que par opacité : un libellé à 45 %
+   d'opacité ne se lit plus, alors que « inactif » n'a jamais voulu dire
+   « illisible ». */
+.btn:disabled { border-color: var(--border-soft); background: var(--surface-2); color: var(--text-3); cursor: default; }
+
+.btn:focus-visible, .item__remove:focus-visible, .item__title:focus-visible, .list:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+/* La liste n'est focalisable que par programme — `tabindex` posé à
+   l'exécution, quand la dernière ligne vient d'être supprimée. Sur elle,
+   `:focus` suffit et ne dépend pas de l'heuristique de `:focus-visible`.
+   Anneau rentré de 2 px, sinon le défilement le rogne sur la première et la
+   dernière ligne. */
+.list:focus { outline: 2px solid var(--focus); outline-offset: -2px; }
+.item__remove:focus-visible, .item__title:focus-visible { outline-offset: -2px; }
+
+/* --- Message transitoire --- */
+
+.toast {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  left: 12px;
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--text);
+  color: var(--bg);
+  font-size: var(--type-sm);
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(6px);
+  transition: opacity 160ms ease, transform 160ms ease;
+}
+.toast[data-visible] { opacity: 1; transform: none; }
+
+/* --- Garde-fous globaux --- */
+
+@media (prefers-reduced-motion: reduce) {
+  .pop *, .pop *::before, .pop *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}
+
+@media (prefers-contrast: more) {
+  .pop { --text-3: var(--text-2); --border-soft: var(--border-strong); }
+}
+
+/* En contraste forcé, les bordures rgba() disparaissent : on repasse par les
+   couleurs système, seules couleurs que le mode respecte. */
+@media (forced-colors: active) {
+  .pop, .pop__header, .pop__footer, .capture { border-color: CanvasText; }
+  .btn { border-color: ButtonBorder; }
+  .item__remove { border-color: ButtonBorder; }
+  .pop__count { background: Highlight; color: HighlightText; }
+  .item__remove:hover { background: Highlight; color: HighlightText; }
+  .toast { background: Canvas; color: CanvasText; border: 1px solid CanvasText; }
+  .pop :focus-visible { outline: 3px solid Highlight; }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   3. Option A — Précision   (source OpenDesign : linear-app)
+      Noir natif, échelle achromatique, un seul accent indigo.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.opt[data-option="a"] .frame[data-theme="light"] .pop {
+  --bg: #fbfbfc; --surface: #ffffff; --surface-2: #f3f4f6;
+  --text: #08090a; --text-2: #4b5158; --text-3: #6a7078;
+  --accent: #4f5ac4; --accent-ink: #ffffff; --accent-hover: #434eb0;
+  --danger: #b3122b;
+  --border-soft: #e3e4e8; --border-strong: #767b83; --focus: #4f5ac4;
+}
+.opt[data-option="a"] .frame[data-theme="dark"] .pop {
+  --bg: #08090a; --surface: #16171a; --surface-2: #1d1f24;
+  --text: #f7f8f8; --text-2: #c2c8d0; --text-3: #9aa1ab;
+  --accent: #7d88f0; --accent-ink: #0b0c12; --accent-hover: #98a1f5;
+  --danger: #ff8a80;
+  --border-soft: #26282c; --border-strong: #646a74; --focus: #7d88f0;
+}
+.opt[data-option="a"] .pop {
+  --font-ui: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+  --font-display: var(--font-ui);
+  --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --type-base: 0.8125rem; --type-sm: 0.75rem; --type-xs: 0.6875rem; --type-md: 0.84375rem;
+  --track-label: 0.09em; --track-title: -0.012em; --label-case: uppercase;
+  --radius-sm: 5px; --radius-lg: 10px; --radius-pill: 4px;
+  --pad-x: 12px; --pad-y: 10px; --gap-2: 6px; --list-pad: 0; --row-title-weight: 560;
+}
+.opt[data-option="a"] .item {
+  padding: 8px 6px 8px 9px;
+  border-bottom: 1px solid var(--border-soft);
+  border-left: 2px solid transparent;
+  transition: background-color 120ms ease, border-left-color 120ms ease;
+}
+.opt[data-option="a"] .item:hover,
+.opt[data-option="a"] .item:focus-within { background: var(--surface-2); border-left-color: var(--accent); }
+.opt[data-option="a"] .item:last-child { border-bottom: 0; }
+.opt[data-option="a"] .pop__count-value { font-weight: 700; letter-spacing: 0.02em; }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   4. Option B — Console   (source OpenDesign : ibm / Carbon, pour la structure)
+      Angles vifs, contours pleins, hiérarchie par règles. Seule la structure
+      vient de Carbon. L'accent est l'orange brûlé du bouton d'ajout ; le rouge
+      signale la destruction. Rien d'autre n'est coloré : filet, compteur,
+      action secondaire remplie et bordures de survol sont à l'encre neutre.
+      Aucun fond teinté de danger — un rouge clair vire au rose, troisième
+      teinte chaude coincée entre l'orange et le rouge.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.opt[data-option="b"] .frame[data-theme="light"] .pop {
+  --bg: #ffffff; --surface: #f4f4f4; --surface-2: #e8e8e8;
+  --text: #161616; --text-2: #393939; --text-3: #5c5c5c;
+  --accent: #c2410c; --accent-ink: #ffffff; --accent-hover: #9a3412;
+  --ink: #1a1a1a; --ink-ink: #ffffff; --ink-hover: #000000;
+  --danger: #b3122b;
+  --border-soft: #e0e0e0; --border-strong: #8d8d8d; --focus: #c2410c;
+}
+.opt[data-option="b"] .frame[data-theme="dark"] .pop {
+  --bg: #161616; --surface: #262626; --surface-2: #333333;
+  --text: #f4f4f4; --text-2: #c6c6c6; --text-3: #a8a8a8;
+  --accent: #fdba74; --accent-ink: #2a1204; --accent-hover: #fecda0;
+  --ink: #f4f4f4; --ink-ink: #161616; --ink-hover: #ffffff;
+  --danger: #ff9d94;
+  --border-soft: #393939; --border-strong: #6f6f6f; --focus: #fdba74;
+}
+.opt[data-option="b"] .pop {
+  --font-ui: "IBM Plex Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-display: var(--font-ui);
+  --font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --type-base: 0.8125rem; --type-sm: 0.75rem; --type-xs: 0.6875rem; --type-md: 0.875rem;
+  --track-label: 0.1em; --track-title: 0; --label-case: uppercase;
+  --radius-sm: 0px; --radius-lg: 0px; --radius-pill: 0px;
+  --pad-x: 12px; --pad-y: 10px; --gap-2: 6px; --list-pad: 0; --row-title-weight: 600;
+}
+.opt[data-option="b"] .pop__header { border-bottom: 3px solid var(--accent); }
+.opt[data-option="b"] .section-title { display: flex; align-items: center; gap: 8px; }
+.opt[data-option="b"] .section-title::after { content: ""; flex: 1; height: 1px; background: var(--border-strong); }
+.opt[data-option="b"] .list { gap: 4px; padding-bottom: 8px; }
+.opt[data-option="b"] .item {
+  padding: 7px 8px;
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
+}
+.opt[data-option="b"] .item:hover,
+.opt[data-option="b"] .item:focus-within { border-color: var(--accent); }
+.opt[data-option="b"] .item:last-child { border-bottom: 1px solid var(--border-strong); }
+.opt[data-option="b"] .btn--ghost { background: var(--surface); }
+.opt[data-option="b"] .pop__count { font-family: var(--font-mono); letter-spacing: 0.04em; }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   5. Option C — Papier   (sources OpenDesign : notion, arc)
+      Neutres chauds, air, rayon doux, teal conservé de l'identité actuelle.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.opt[data-option="c"] .frame[data-theme="light"] .pop {
+  --bg: #faf7f2; --surface: #ffffff; --surface-2: #f3ede4;
+  --text: #221f1b; --text-2: #57514a; --text-3: #6d655c;
+  --accent: #0f6b76; --accent-ink: #ffffff; --accent-hover: #0c5a63;
+  --danger: #a8132a;
+  --border-soft: #e8e1d7; --border-strong: #8a8078; --focus: #0f6b76;
+  --shadow: 0 1px 2px rgba(74, 58, 38, 0.07), 0 6px 16px rgba(74, 58, 38, 0.05);
+}
+.opt[data-option="c"] .frame[data-theme="dark"] .pop {
+  --bg: #14161a; --surface: #1d2026; --surface-2: #262a31;
+  --text: #f2f0ec; --text-2: #cfc9c1; --text-3: #a9a29a;
+  --accent: #6fd3dd; --accent-ink: #0d1417; --accent-hover: #8fe0e8;
+  --danger: #ff9aa2;
+  --border-soft: #2b3038; --border-strong: #6b7078; --focus: #6fd3dd;
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 6px 16px rgba(0, 0, 0, 0.28);
+}
+.opt[data-option="c"] .pop {
+  --font-ui: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+  --font-display: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+  --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --type-base: 0.84375rem; --type-sm: 0.78125rem; --type-xs: 0.6875rem; --type-md: 1rem;
+  --track-label: 0.05em; --track-title: -0.01em; --label-case: none;
+  --radius-sm: 10px; --radius-lg: 16px; --radius-pill: 999px;
+  --pad-x: 14px; --pad-y: 13px; --gap-2: 8px; --list-pad: 0 0 10px; --row-title-weight: 600;
+}
+.opt[data-option="c"] .pop__title { font-size: var(--type-md); font-weight: 620; }
+.opt[data-option="c"] .section-title { font-style: italic; font-weight: 560; }
+.opt[data-option="c"] .list { gap: 8px; }
+.opt[data-option="c"] .item {
+  padding: 10px 10px 10px 12px;
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+.opt[data-option="c"] .item:last-child { border-bottom: 1px solid var(--border-soft); }
+.opt[data-option="c"] .item:hover { border-color: var(--border-strong); }
+.opt[data-option="c"] .pop__count { padding: 4px 11px; }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   5 bis. Variantes d'accent pour la structure Console
+      Un accent coloré impose de rationner : `craft/color.md` plafonne à
+      « au plus 2 usages visibles de --accent par écran », et rappelle que la
+      surutilisation de l'accent est la première cause d'illisibilité des
+      interfaces générées. On n'en garde donc qu'un seul — le bouton d'ajout —
+      et tout le reste (filet d'en-tête, compteur, bouton du pied, bordure de
+      survol) passe à l'encre neutre. Les anneaux de focus comptent comme
+      accent, mais ils sont transitoires.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.opt[data-option="b"] .pop { --ink: #1a1a1a; --ink-ink: #ffffff; }
+.opt[data-option="b"] .frame[data-theme="dark"] .pop { --ink: #f4f4f4; --ink-ink: #161616; }
+
+.opt[data-option="b"] .pop__header { border-bottom-color: var(--ink); }
+/* L'accent est porté par un couple — la puce du compteur et l'action
+   principale — et non par la seule action : celle-ci est désactivée sur toute
+   page non capturable, et la fenêtre perdait alors toute couleur. */
+.opt[data-option="b"] .pop__count { background: var(--accent); color: var(--accent-ink); }
+.opt[data-option="b"] .item:hover,
+.opt[data-option="b"] .item:focus-within { border-color: var(--ink); }
+
+.opt[data-option="b"] .pop__footer .btn--primary,
+.opt[data-option="b"] .pop__footer .btn--primary:not(:disabled):hover {
+  border-color: var(--ink);
+  background: var(--ink);
+  color: var(--ink-ink);
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════════
+   6. Reproduction de l'état actuel, pour la comparaison
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.avant[data-theme="light"] .pop {
+  --bg: #fcfcf9; --surface: #fffffd; --text: #13343b; --text-2: #626c71;
+  --primary: #21808d; --border: #dcdad4; --danger: #c0152f; --danger-soft: #f9e8e8;
+}
+.avant[data-theme="dark"] .pop {
+  --bg: #101c1f; --surface: #16262a; --text: #eef4f4; --text-2: #9fb0b3;
+  --primary: #21808d; --border: #313d40; --danger: #c0152f; --danger-soft: #3b222b;
+}
+.avant .pop {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 380px;
+  height: 540px;
+  overflow: hidden;
+  border-radius: 10px;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-size: 13px;
+}
+.avant .pop * { box-sizing: border-box; }
+.avant .pop__header { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 12px 14px; border-bottom: 1px solid var(--border); }
+.avant .pop__title { margin: 0; font-size: 14px; font-weight: 600; letter-spacing: -0.01em; }
+.avant .badge { min-width: 22px; padding: 2px 7px; border-radius: 999px; background: var(--primary); color: #fcfcf9; font-size: 11px; font-variant-numeric: tabular-nums; text-align: center; }
+.avant .capture { padding: 12px 14px; border-bottom: 1px solid var(--border); }
+.avant .capture__page { margin: 0 0 8px; overflow: hidden; color: var(--text-2); font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+.avant .collection { flex: 1; min-height: 0; display: flex; flex-direction: column; padding: 12px 14px 4px; }
+.avant .section-title { margin: 0 0 8px; color: var(--text-2); font-size: 11px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; }
+.avant .list { flex: 1; min-height: 0; margin: 0; padding: 0; overflow-y: auto; list-style: none; }
+.avant .item { display: flex; align-items: baseline; gap: 8px; padding: 7px 0; border-bottom: 1px solid var(--border); }
+.avant .item:last-child { border-bottom: 0; }
+.avant .item__body { flex: 1; min-width: 0; }
+.avant .item__title { display: block; overflow: hidden; color: inherit; text-decoration: none; text-overflow: ellipsis; white-space: nowrap; }
+.avant .item__title:hover, .avant .item__title:focus-visible { text-decoration: underline; }
+.avant .item__url, .avant .item__short-url { display: block; overflow: hidden; color: var(--text-2); font-size: 11px; text-decoration: none; text-overflow: ellipsis; white-space: nowrap; }
+.avant .item__short { display: flex; align-items: baseline; gap: 4px; color: var(--text-2); font-size: 10.5px; white-space: nowrap; }
+.avant .item__remove { flex: none; padding: 2px 6px; border: 0; border-radius: 4px; background: transparent; color: var(--text-2); cursor: pointer; font-size: 15px; line-height: 1; }
+.avant .item__remove:hover { background: var(--danger-soft); color: var(--danger); }
+.avant .pop__footer { display: flex; gap: 6px; padding: 10px 14px; border-top: 1px solid var(--border); }
+.avant .btn { padding: 7px 12px; border: 1px solid transparent; border-radius: 8px; background: transparent; color: var(--text); font-family: inherit; font-size: 12px; cursor: pointer; }
+.avant .btn--primary { width: 100%; background: var(--primary); color: #fcfcf9; font-weight: 500; }
+.avant .btn--ghost { flex: 1; border-color: var(--border); background: var(--surface); }
+.avant .btn--danger:hover { border-color: var(--danger); color: var(--danger); background: var(--danger-soft); }
+.avant .btn:disabled, .avant .item__remove:disabled { cursor: default; opacity: 0.45; }
+.avant .btn:focus-visible, .avant .item__remove:focus-visible { outline: 2px solid var(--primary); outline-offset: 1px; }
+</style>
+</head>
+<body>
+<div class="deck">
+
+<header>
+  <p class="deck__eyebrow">OpenDesign · revue de design</p>
+  <h1>Trois options pour la fenêtre de l'extension</h1>
+  <p class="lead">
+    Même structure, même niveau d'accessibilité, trois personnalités visuelles.
+    Chaque option est rendue en clair et en sombre, avec les contrastes mesurés
+    sur ses propres jetons. L'état actuel est reproduit en premier pour la
+    comparaison.
+  </p>
+  <ul class="opt__meta">
+    <li class="tag">WCAG 2.2 AA</li>
+    <li class="tag">Thème clair + sombre</li>
+    <li class="tag">Focus visible unifié</li>
+    <li class="tag">Cibles ≥ 28 px</li>
+    <li class="tag">Contraste forcé</li>
+    <li class="tag">Mouvement réduit</li>
+    <li class="tag">Échelle en rem</li>
+  </ul>
+</header>
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<section id="audit">
+  <header>
+    <h2>Ce que l'audit a trouvé</h2>
+    <p>
+      Relevé sur <code>src/extension-src/popup.html</code>, <code>popup.css</code>
+      et <code>popup.js</code>. Rapports mesurés (luminance relative sRGB, seuils
+      inclusifs). Les dix-sept constats détaillés et leurs correctifs sont dans
+      <code>audit-accessibilite.md</code>.
+    </p>
+  </header>
+
+  <div class="split">
+    <div class="card">
+      <h3>Échecs mesurés</h3>
+      <table>
+        <thead>
+          <tr><th>Élément</th><th>Mesure</th><th>Minimum</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Contour des boutons discrets, thème clair</td><td class="num fail">1,36:1</td><td class="num">3:1</td></tr>
+          <tr><td>Contour des boutons discrets, thème sombre</td><td class="num fail">1,55:1</td><td class="num">3:1</td></tr>
+          <tr><td>« Tout effacer » au survol, thème sombre</td><td class="num fail">2,34:1</td><td class="num">4,5:1</td></tr>
+          <tr><td>Bouton de suppression d'une ligne</td><td class="num fail">19 × 19 px</td><td class="num">24 × 24</td></tr>
+          <tr><td>Badge sur l'accent <code>#21808d</code></td><td class="num">4,50:1</td><td class="num">4,5:1</td></tr>
+        </tbody>
+      </table>
+      <p style="margin-top:12px;color:var(--deck-text-3);font-size:13px">
+        Le badge passe, mais sans aucune marge : la moindre retouche de teinte le
+        fait basculer. C'est une fragilité, pas un succès.
+      </p>
+    </div>
+
+    <div class="card">
+      <h3>Structure et comportement</h3>
+      <ul class="plain">
+        <li>Deux <code>&lt;footer&gt;</code> de premier niveau — donc deux repères <code>contentinfo</code> concurrents.</li>
+        <li>Aucun <code>&lt;main&gt;</code> : pas de repère principal pour la navigation par repères.</li>
+        <li><code>aria-live</code> posé sur un nombre nu : « 3 », sans unité ni contexte.</li>
+        <li>L'échec au démarrage s'écrit dans la zone « liste vide », sans <code>role="alert"</code>.</li>
+        <li>Supprimer une ligne détruit le bouton focalisé : le focus retombe sur le document.</li>
+        <li>Deux liens par ligne vers la même adresse : deux arrêts de tabulation pour une action.</li>
+        <li>L'ouverture dans un nouvel onglet n'est annoncée nulle part.</li>
+        <li><code>prefers-reduced-motion</code> et <code>forced-colors</code> ignorés.</li>
+        <li>Tailles en <code>px</code> : insensibles au réglage de taille de police.</li>
+        <li><code>:disabled { opacity: .45 }</code> : les libellés inactifs deviennent illisibles.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<section class="opt" id="avant">
+  <div class="opt__head">
+    <div>
+      <p class="deck__eyebrow">Point de départ</p>
+      <h2>État actuel</h2>
+    </div>
+    <p>
+      Reproduction fidèle, jetons d'origine. À regarder en sombre : c'est là que
+      les deux échecs de contraste sont les plus visibles.
+    </p>
+  </div>
+  <div class="frames">
+    <div class="frame avant" data-theme="light">
+      <div class="frame__caption"><span>Clair</span><span>jetons actuels</span></div>
+      <div class="stage"><div class="slot" data-build="avant"></div></div>
+    </div>
+    <div class="frame avant" data-theme="dark">
+      <div class="frame__caption"><span>Sombre</span><span>jetons actuels</span></div>
+      <div class="stage"><div class="slot" data-build="avant"></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<section class="opt" data-option="a">
+  <div class="opt__head">
+    <div>
+      <p class="deck__eyebrow">Option A · source OpenDesign : <code>linear-app</code></p>
+      <h2>Précision</h2>
+    </div>
+    <p>
+      Noir natif, échelle presque entièrement achromatique, un seul accent indigo
+      réservé à l'action. La densité est gérée par paliers de luminance plutôt
+      que par des bordures. Chiffres tabulaires, micro-libellés en capitales.
+    </p>
+  </div>
+  <div class="frames">
+    <div class="frame" data-theme="light">
+      <div class="frame__caption"><span>Clair</span><span>19,3:1 · 5,9:1 · 4,1:1</span></div>
+      <div class="stage"><div class="slot" data-build="pop"></div></div>
+    </div>
+    <div class="frame" data-theme="dark">
+      <div class="frame__caption"><span>Sombre</span><span>18,7:1 · 6,2:1 · 3,7:1</span></div>
+      <div class="stage"><div class="slot" data-build="pop"></div></div>
+    </div>
+  </div>
+
+  <ul class="notes">
+    <li>La ligne survolée ou focalisée reçoit un liseré d'accent : l'état est porté par deux signaux, pas seulement par la couleur de fond.</li>
+    <li>Le fond du bouton inactif est un palier de luminance, jamais une opacité.</li>
+    <li>Le compteur est en chasse fixe : il ne fait plus sauter la mise en page quand il passe de 9 à 10.</li>
+    <li>Angle le plus vif des trois (5 px / 10 px) : la fenêtre paraît plus dense qu'elle ne l'est.</li>
+  </ul>
+
+  <div class="card" style="margin-top:18px">
+    <h3>Contrastes mesurés</h3>
+    <table>
+      <thead><tr><th>Paire</th><th>Clair</th><th>Sombre</th><th>Minimum</th></tr></thead>
+      <tbody>
+        <tr><td>Texte principal sur fond</td><td class="num ok">19,27:1</td><td class="num ok">18,73:1</td><td class="num">4,5:1</td></tr>
+        <tr><td>Texte secondaire sur fond</td><td class="num ok">7,76:1</td><td class="num ok">11,83:1</td><td class="num">4,5:1</td></tr>
+        <tr><td>Texte tertiaire sur fond</td><td class="num ok">4,83:1</td><td class="num ok">7,65:1</td><td class="num">4,5:1</td></tr>
+        <tr><td>Libellé du bouton principal sur accent</td><td class="num ok">5,85:1</td><td class="num ok">6,18:1</td><td class="num">4,5:1</td></tr>
+        <tr><td>Danger sur fond de survol teinté</td><td class="num ok">5,80:1</td><td class="num ok">6,70:1</td><td class="num">4,5:1</td></tr>
+        <tr><td>Contour de composant (pire cas)</td><td class="num ok">4,12:1</td><td class="num ok">3,29:1</td><td class="num">3:1</td></tr>
+        <tr><td>Anneau de focus sur fond</td><td class="num ok">5,65:1</td><td class="num ok">6,31:1</td><td class="num">3:1</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<section class="opt" data-option="b">
+  <div class="opt__head">
+    <div>
+      <p class="deck__eyebrow">Option B · structure OpenDesign : <code>ibm</code> (Carbon) · accent : orange brûlé</p>
+      <h2>Console</h2>
+    </div>
+    <p>
+      Angles vifs, contours pleins à 3:1, hiérarchie portée par des règles.
+      Chaque bouton a une limite visible, y compris au repos. C'est l'option la
+      plus lisible en plein soleil et la plus proche d'un outil technique.
+      <strong>Retenue</strong> — l'accent est l'orange brûlé du bouton
+      d'ajout, seul élément coloré de la fenêtre avec le rouge de destruction.
+    </p>
+  </div>
+  <div class="frames">
+    <div class="frame" data-theme="light">
+      <div class="frame__caption"><span>Clair</span><span>18,1:1 · 5,2:1 · 3,0:1</span></div>
+      <div class="stage"><div class="slot" data-build="pop"></div></div>
+    </div>
+    <div class="frame" data-theme="dark">
+      <div class="frame__caption"><span>Sombre</span><span>16,5:1 · 10,5:1 · 3,6:1</span></div>
+      <div class="stage"><div class="slot" data-build="pop"></div></div>
+    </div>
+  </div>
+
+  <ul class="notes">
+    <li>Chaque ligne est un bloc contourné : la zone de survol est explicite, sans dépendre d'un changement de fond.</li>
+    <li>Le filet d'en-tête est à l'encre, pas à l'accent : un accent répété devient un ornement au lieu d'un signal.</li>
+    <li>L'accent est porté par un <strong>couple</strong> — la puce du compteur et le bouton d'ajout. Le compteur est toujours affiché : la fenêtre garde donc son identité même quand l'action principale est désactivée.</li>
+    <li>Rayon nul partout : le plus honnête des trois sur un écran non Retina, aucune courbe à créneler.</li>
+    <li>Le survol de la suppression est <strong>neutre</strong> : le rouge tient sur la bordure, l'icône et le libellé. Aucun fond teinté, donc aucun rose.</li>
+    <li>Deux teintes seulement dans toute la fenêtre — l'orange et le rouge. Les neutres font le reste.</li>
+  </ul>
+
+  <div class="card" style="margin-top:18px">
+    <h3>Contrastes mesurés</h3>
+    <table>
+      <thead><tr><th>Paire</th><th>Clair</th><th>Sombre</th><th>Minimum</th></tr></thead>
+      <tbody>
+        <tr><td>Texte principal sur fond</td><td class="num ok">18,10:1</td><td class="num ok">16,45:1</td><td class="num">4,5:1</td></tr>
+        <tr><td>Texte secondaire sur fond</td><td class="num ok">11,55:1</td><td class="num ok">10,59:1</td><td class="num">4,5:1</td></tr>
+        <tr><td>Texte tertiaire sur fond</td><td class="num ok">6,69:1</td><td class="num ok">7,61:1</td><td class="num">4,5:1</td></tr>
+        <tr><td>Libellé du bouton principal sur accent</td><td class="num ok">5,18:1</td><td class="num ok">10,49:1</td><td class="num">4,5:1</td></tr>
+        <tr><td>Libellé du bouton neutre sur encre</td><td class="num ok">17,40:1</td><td class="num ok">16,45:1</td><td class="num">4,5:1</td></tr>
+        <tr><td>Libellé du compteur sur l'accent</td><td class="num ok">5,18:1</td><td class="num ok">10,49:1</td><td class="num">4,5:1</td></tr>
+        <tr><td>Danger sur fond de survol neutre</td><td class="num ok">5,65:1</td><td class="num ok">6,32:1</td><td class="num">4,5:1</td></tr>
+        <tr><td>Texte tertiaire sur bouton inactif</td><td class="num ok">5,46:1</td><td class="num ok">5,31:1</td><td class="num">4,5:1</td></tr>
+        <tr><td>Contour de composant (pire cas)</td><td class="num ok">3,02:1</td><td class="num ok">3,01:1</td><td class="num">3:1</td></tr>
+        <tr><td>Anneau de focus sur fond</td><td class="num ok">5,18:1</td><td class="num ok">10,73:1</td><td class="num">3:1</td></tr>
+      </tbody>
+    </table>
+    <p style="margin-top:12px;color:var(--deck-text-3);font-size:13px">
+      Les contours frôlent le seuil (3,01:1). C'est volontaire et sans risque :
+      le seuil est inclusif, et ces seize paires sont recalculées à chaque
+      exécution des tests, directement depuis les jetons écrits dans
+      <code>popup.css</code>.
+    </p>
+  </div>
+
+  <div class="card" style="margin-top:18px">
+    <h3>Accents écartés, et sur quel critère</h3>
+    <p style="color:var(--deck-text-2);font-size:14px">
+      Le bleu Carbon <code>#0f62fe</code> lit « Windows » ; le teal est la
+      teinte sur laquelle convergent les interfaces générées ; la rouille est
+      quasi confondue avec le rouge. L'orange brûlé et l'ambre passent : leur
+      teinte est à 26° et 35° du rouge, et surtout — c'est le point qui a
+      tranché — l'action destructrice porte aussi un libellé et une bordure, si
+      bien que la couleur n'y est jamais la seule information. Sans ce
+      libellé, aucune des deux ne serait acceptable : c'est la paire que
+      confondent les daltonismes rouge-vert.
+    </p>
+    <table style="margin-top:12px">
+      <thead><tr><th>Candidat</th><th>Libellé sur accent (clair)</th><th>Écart avec le rouge</th><th>Verdict</th></tr></thead>
+      <tbody>
+        <tr><td>Bleu Carbon <code>#0f62fe</code></td><td class="num ok">5,00:1</td><td class="num fail">1,38:1</td><td>écarté — lit « Windows »</td></tr>
+        <tr><td>Teal <code>#0f6b76</code></td><td class="num ok">6,20:1</td><td class="num fail">1,11:1</td><td>écarté — registre des interfaces générées</td></tr>
+        <tr><td>Rouille <code>#a03a12</code></td><td class="num ok">6,76:1</td><td class="num fail">1,02:1</td><td>écarté — quasi confondu avec le rouge</td></tr>
+        <tr><td>Graphite <code>#1a1a1a</code></td><td class="num ok">17,40:1</td><td class="num ok">2,52:1</td><td>écarté — la meilleure marge, mais aucune identité</td></tr>
+        <tr><td>Ambre <code>#b45309</code></td><td class="num ok">5,02:1</td><td class="num ok">1,17:1</td><td>écarté — en sombre, il tire vers le jaune</td></tr>
+        <tr><td><strong>Orange brûlé <code>#c2410c</code></strong></td><td class="num ok">5,18:1</td><td class="num ok">1,33:1</td><td><strong>retenu</strong> — marge la plus large des teintes chaudes</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<section class="opt" data-option="c">
+  <div class="opt__head">
+    <div>
+      <p class="deck__eyebrow">Option C · sources OpenDesign : <code>notion</code>, <code>arc</code></p>
+      <h2>Papier</h2>
+    </div>
+    <p>
+      Neutres chauds, air généreux, rayon doux, titre serif. Le teal de
+      l'identité actuelle est conservé, mais recalibré pour tenir le seuil avec
+      de la marge. C'est l'option qui pardonne le plus les titres de page longs.
+    </p>
+  </div>
+  <div class="frames">
+    <div class="frame" data-theme="light">
+      <div class="frame__caption"><span>Clair</span><span>15,4:1 · 6,2:1 · 3,9:1</span></div>
+      <div class="stage"><div class="slot" data-build="pop"></div></div>
+    </div>
+    <div class="frame" data-theme="dark">
+      <div class="frame__caption"><span>Sombre</span><span>15,9:1 · 10,7:1 · 3,6:1</span></div>
+      <div class="stage"><div class="slot" data-build="pop"></div></div>
+    </div>
+  </div>
+
+  <ul class="notes">
+    <li>Chaque ligne est une carte : la séparation vient de l'espace et d'une ombre teintée, pas d'un trait.</li>
+    <li>Base typographique la plus large des trois : la fenêtre se lit sans zoom, ce qui compte sur un écran d'appoint.</li>
+    <li>Le titre serif crée une rupture nette avec l'outil — utile si l'extension doit cohabiter avec des pages éditoriales.</li>
+    <li>Le teal actuel survit, mais assombri : <code>#0f6b76</code> au lieu de <code>#21808d</code>, ce qui fait passer la marge de 4,50:1 à 6,20:1.</li>
+  </ul>
+
+  <div class="card" style="margin-top:18px">
+    <h3>Contrastes mesurés</h3>
+    <table>
+      <thead><tr><th>Paire</th><th>Clair</th><th>Sombre</th><th>Minimum</th></tr></thead>
+      <tbody>
+        <tr><td>Texte principal sur fond</td><td class="num ok">15,35:1</td><td class="num ok">15,91:1</td><td class="num">4,5:1</td></tr>
+        <tr><td>Texte secondaire sur fond</td><td class="num ok">7,33:1</td><td class="num ok">11,02:1</td><td class="num">4,5:1</td></tr>
+        <tr><td>Texte tertiaire sur fond</td><td class="num ok">5,36:1</td><td class="num ok">7,18:1</td><td class="num">4,5:1</td></tr>
+        <tr><td>Libellé du bouton principal sur accent</td><td class="num ok">6,20:1</td><td class="num ok">10,66:1</td><td class="num">4,5:1</td></tr>
+        <tr><td>Danger sur fond de survol teinté</td><td class="num ok">6,30:1</td><td class="num ok">6,69:1</td><td class="num">4,5:1</td></tr>
+        <tr><td>Contour de composant (pire cas)</td><td class="num ok">3,61:1</td><td class="num ok">3,27:1</td><td class="num">3:1</td></tr>
+        <tr><td>Anneau de focus sur fond</td><td class="num ok">5,81:1</td><td class="num ok">10,38:1</td><td class="num">3:1</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section id="choix">
+  <header>
+    <h2>Décision</h2>
+    <p>
+      <strong>Option B — Console, accent orange brûlé.</strong> La structure
+      Carbon est conservée (angles vifs, contours pleins, hiérarchie par règles) ;
+      l'accent est <code>#c2410c</code> en thème clair, <code>#fdba74</code> en
+      thème sombre. Il est <strong>rationné</strong> : le filet d'en-tête, le
+      compteur, l'action secondaire remplie et les bordures de survol sont à
+      l'encre neutre, si bien que l'orange ne désigne qu'une chose. Et le rouge
+      de destruction n'est plus posé sur un fond teinté — le rose disparaît de
+      la palette.
+    </p>
+  </header>
+  <div class="split">
+    <div class="card">
+      <h3>Appliqué</h3>
+      <ul class="plain">
+        <li><code>src/extension-src/popup.html</code> — repères <code>header</code> / <code>main</code> / <code>footer</code>, compteur avec unité, région d'alerte dédiée.</li>
+        <li><code>src/extension-src/popup.css</code> — jetons Console + accent orange brûlé, aucun fond teinté de danger, échelle en <code>rem</code>, anneau de focus unifié, mouvement réduit, contraste forcé, contraste renforcé.</li>
+        <li><code>src/extension-src/popup.js</code> — un seul lien par ligne, annonce du nouvel onglet, reprise du focus après suppression, erreur annoncée, et l'icône de suppression en tracé Phosphor.</li>
+        <li><code>scripts/make-icons.mjs</code> — icônes de la barre d'outils en <strong>orange <code>#e8590c</code> sur fond transparent</strong>. Le graphite y était inutilisable : 1,08:1 sur une barre sombre.</li>
+        <li><code>test/popup-a11y.test.js</code> — 25 garde-fous : les seize paires de contraste sont recalculées depuis les jetons du CSS, jamais recopiées.</li>
+        <li><code>docs/design-options/icones.md</code> — comparatif des bibliothèques d'icônes et le critère de choix.</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>Étendu à l'application</h3>
+      <ul class="plain">
+        <li><code>src/web/style.css</code> — même socle de jetons, mêmes neutres, même accent. Les deux feuilles déclarent les mêmes valeurs et un test le vérifie.</li>
+        <li>Mêmes correctifs : bordures de composants à 3:1, désactivation sans opacité, plus aucun fond teinté sous du texte rouge, anneau de focus à pleine opacité.</li>
+        <li>Deux défauts trouvés au passage : le compteur occupait la colonne large de la grille (un élément à ligne définie est placé avant les éléments automatiques) et les cases et curseurs natifs restaient bleus — <code>accent-color</code> les rattache à l'accent.</li>
+        <li>Reste à confirmer en rendu réel : charger l'extension dans Brave et parcourir la fenêtre au clavier.</li>
+      </ul>
+    </div>
+  </div>
+  <p style="margin-top:22px;color:var(--deck-text-2)">
+    Décision prise : <strong>Console, accent orange brûlé</strong>, dans la
+    fenêtre comme dans l'application. Les options A et C restent dans ce document
+    comme trace du raisonnement, pas comme directions ouvertes. Les accents
+    écartés le sont pour des raisons mesurées, reportées ci-dessus.
+  </p>
+</section>
+
+</div>
+
+<script>
+/* ═══════════════════════════════════════════════════════════════════════
+   Rendu des maquettes.
+   Tout le DOM est construit par createElement/textContent : c'est la même
+   règle que dans popup.js — aucun innerHTML, même dans un aperçu, parce
+   qu'un aperçu finit toujours par être copié dans le produit.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+const LINKS = [
+  {
+    title: 'Protocole Niimbot BLE',
+    url: 'https://github.com/gael/URLQRCodePrinter/blob/main/note-protocole-niimbot-ble.md',
+    display: 'github.com/gael/…/note-protocole-niimbot-ble.md',
+    short: 'https://lnk.to/niimbot-ble',
+    shortDisplay: 'lnk.to/niimbot-ble',
+  },
+  {
+    title: 'Niimbot D110 — étiquettes 50 × 30 mm',
+    url: 'https://niimbot.com/fr/products/d110',
+    display: 'niimbot.com/fr/products/d110',
+    short: '',
+    shortDisplay: '',
+  },
+  {
+    title: "Guide d'utilisation — impression d'étiquettes",
+    url: 'https://github.com/gael/URLQRCodePrinter/blob/main/guide-utilisation.md',
+    display: 'github.com/gael/…/guide-utilisation.md',
+    short: '',
+    shortDisplay: '',
+  },
+];
+
+const node = (tag, className, text) => {
+  const element = document.createElement(tag);
+  if (className) element.className = className;
+  if (text !== undefined) element.textContent = text;
+  return element;
+};
+
+/** Texte réservé aux lecteurs d'écran, invisible à l'œil. */
+const srOnly = (text) => node('span', 'sr-only', text);
+
+/**
+ * Un lien externe annonce qu'il ouvre un onglet : sans cela, le changement de
+ * contexte n'est jamais annoncé (3.2.5).
+ */
+function externalLink(url, className, label) {
+  const anchor = node('a', className, label);
+  anchor.href = url;
+  anchor.target = '_blank';
+  anchor.rel = 'noopener noreferrer';
+  anchor.title = url;
+  anchor.append(srOnly(' (ouvre un nouvel onglet)'));
+  return anchor;
+}
+
+function buildItem(link) {
+  const item = node('li', 'item');
+  const body = node('div', 'item__body');
+
+  // L'adresse n'est plus un second lien : elle redevient du texte, ce qui
+  // supprime un arrêt de tabulation redondant par ligne.
+  const url = node('span', 'item__url', link.display);
+  url.title = link.url;
+
+  body.append(externalLink(link.url, 'item__title', link.title), url);
+
+  if (link.short) {
+    const short = node('div', 'item__short');
+    const mark = node('span', 'item__short-mark', '↳');
+    mark.setAttribute('aria-hidden', 'true');
+    const shortUrl = node('span', 'item__short-url', link.shortDisplay);
+    shortUrl.title = link.short;
+    short.append(mark, shortUrl);
+    body.append(short);
+  }
+
+  const remove = node('button', 'item__remove', '✕');
+  remove.type = 'button';
+  remove.title = 'Supprimer';
+  remove.setAttribute('aria-label', `Supprimer « ${link.title} »`);
+
+  item.append(body, remove);
+  return item;
+}
+
+/** Fenêtre de l'extension, structure cible commune aux trois options. */
+function buildPopup() {
+  const pop = node('div', 'pop');
+
+  // --- En-tête : bannière implicite, un seul <h1> ---
+  const header = node('header', 'pop__header');
+  header.append(node('h1', 'pop__title', 'URLQRCodePrinter'));
+
+  const count = node('p', 'pop__count');
+  count.setAttribute('role', 'status');
+  count.setAttribute('aria-live', 'polite');
+  count.setAttribute('aria-atomic', 'true');
+  count.append(
+    srOnly('Liens enregistrés : '),
+    node('span', 'pop__count-value', '3'),
+    node('span', 'pop__count-unit', 'liens'),
+  );
+  header.append(count);
+
+  // --- Corps : un seul repère principal ---
+  const main = node('main', 'pop__main');
+
+  const capture = node('section', 'capture');
+  const captureHeading = node('h2', 'sr-only', 'Ajouter la page courante');
+  captureHeading.id = uniqueId('capture-title');
+  capture.setAttribute('aria-labelledby', captureHeading.id);
+  const page = node('p', 'capture__page', LINKS[2].title);
+  page.title = LINKS[2].url;
+  const addButton = node('button', 'btn btn--primary', 'Ajouter cette page');
+  addButton.type = 'button';
+  capture.append(captureHeading, page, addButton);
+
+  const collection = node('section', 'collection');
+  const listHeading = node('h2', 'section-title', 'Liens enregistrés');
+  listHeading.id = uniqueId('list-title');
+  collection.setAttribute('aria-labelledby', listHeading.id);
+  const list = node('ul', 'list');
+  list.setAttribute('aria-labelledby', listHeading.id);
+  for (const link of LINKS) list.append(buildItem(link));
+  const empty = node('p', 'empty', "Aucun lien pour l'instant.");
+  empty.hidden = true;
+  collection.append(listHeading, list, empty);
+
+  main.append(capture, collection);
+
+  // --- Pied : un seul <footer>, deux rangées ---
+  const footer = node('footer', 'pop__footer');
+  const openApp = node('button', 'btn btn--primary', 'Voir les QR codes');
+  openApp.type = 'button';
+  openApp.dataset.needsLinks = '';
+
+  const row = node('div', 'pop__footer-row');
+  for (const [label, extra] of [['CSV', ''], ['Markdown', ''], ['Tout effacer', ' btn--danger']]) {
+    const button = node('button', `btn btn--ghost${extra}`, label);
+    button.type = 'button';
+    button.dataset.needsLinks = '';
+    row.append(button);
+  }
+  footer.append(openApp, row);
+
+  const toast = node('div', 'toast');
+  toast.setAttribute('role', 'status');
+  toast.setAttribute('aria-live', 'polite');
+  toast.setAttribute('aria-atomic', 'true');
+
+  pop.append(header, main, footer, toast);
+  return pop;
+}
+
+/** État actuel, pour la comparaison : deux pieds, deux liens par ligne. */
+function buildAvant() {
+  const pop = node('div', 'pop');
+
+  const header = node('header', 'pop__header');
+  const badge = node('span', 'badge', '3');
+  badge.setAttribute('aria-live', 'polite');
+  header.append(node('h1', 'pop__title', 'URLQRCodePrinter'), badge);
+
+  const capture = node('section', 'capture');
+  const page = node('p', 'capture__page', LINKS[2].title);
+  const addButton = node('button', 'btn btn--primary', 'Ajouter cette page');
+  addButton.type = 'button';
+  capture.append(page, addButton);
+
+  const collection = node('section', 'collection');
+  collection.append(node('h2', 'section-title', 'Liens enregistrés'));
+  const list = node('ul', 'list');
+  for (const link of LINKS) {
+    const item = node('li', 'item');
+    const body = node('div', 'item__body');
+    const title = node('a', 'item__title', link.title);
+    title.href = link.url;
+    const url = node('a', 'item__url', link.display);
+    url.href = link.url;
+    body.append(title, url);
+    if (link.short) {
+      const short = node('div', 'item__short');
+      const mark = node('span', 'item__short-mark', '↳');
+      const shortUrl = node('a', 'item__short-url', link.shortDisplay);
+      shortUrl.href = link.short;
+      short.append(mark, shortUrl);
+      body.append(short);
+    }
+    const remove = node('button', 'item__remove', '×');
+    remove.type = 'button';
+    remove.setAttribute('aria-label', `Supprimer ${link.title}`);
+    item.append(body, remove);
+    list.append(item);
+  }
+  collection.append(list);
+
+  const footerOne = node('footer', 'pop__footer');
+  const openApp = node('button', 'btn btn--primary', 'Voir les QR codes');
+  openApp.type = 'button';
+  footerOne.append(openApp);
+
+  const footerTwo = node('footer', 'pop__footer');
+  for (const label of ['CSV', 'Markdown', 'Tout effacer']) {
+    const button = node('button', 'btn btn--ghost', label);
+    button.type = 'button';
+    footerTwo.append(button);
+  }
+
+  pop.append(header, capture, collection, footerOne, footerTwo);
+  return pop;
+}
+
+let idCounter = 0;
+function uniqueId(prefix) {
+  idCounter += 1;
+  return `${prefix}-${idCounter}`;
+}
+
+/* --- Comportements : les mêmes que ceux à porter dans popup.js --- */
+
+const plural = (n) => (n === 1 ? 'lien' : 'liens');
+
+function refresh(pop) {
+  const list = pop.querySelector('.list');
+  if (!list) return;
+  const items = list.querySelectorAll('.item');
+  const value = pop.querySelector('.pop__count-value');
+  const unit = pop.querySelector('.pop__count-unit');
+  if (value) value.textContent = String(items.length);
+  if (unit) unit.textContent = plural(items.length);
+  const empty = pop.querySelector('.empty');
+  if (empty) empty.hidden = items.length > 0;
+  for (const button of pop.querySelectorAll('[data-needs-links]')) {
+    button.disabled = items.length === 0;
+  }
+}
+
+function flash(pop, message) {
+  const toast = pop.querySelector('.toast');
+  if (!toast) return;
+  toast.textContent = message;
+  toast.dataset.visible = '';
+  clearTimeout(toast._timer);
+  toast._timer = setTimeout(() => { delete toast.dataset.visible; }, 2200);
+}
+
+for (const slot of document.querySelectorAll('.slot')) {
+  const pop = slot.dataset.build === 'avant' ? buildAvant() : buildPopup();
+  slot.append(pop);
+  refresh(pop);
+
+  pop.addEventListener('click', (event) => {
+    const remove = event.target.closest('.item__remove');
+    if (remove) {
+      const item = remove.closest('.item');
+      const list = item.parentElement;
+      const index = Array.prototype.indexOf.call(list.children, item);
+      item.remove();
+      refresh(pop);
+      // Le focus doit survivre à la disparition de l'élément qui le portait :
+      // sans cela il retombe sur <body> et l'utilisateur au clavier est perdu.
+      const remaining = list.querySelectorAll('.item__remove');
+      if (remaining.length === 0) {
+        list.tabIndex = -1;
+        list.focus();
+      } else {
+        remaining[Math.min(index, remaining.length - 1)].focus();
+      }
+      flash(pop, 'Lien supprimé');
+      return;
+    }
+
+    if (event.target.closest('.item__title, .item__url, .item__short-url')) {
+      event.preventDefault();
+      flash(pop, 'Aperçu : la navigation est désactivée');
+      return;
+    }
+
+    const button = event.target.closest('.btn');
+    if (button && !button.disabled) {
+      flash(pop, `Aperçu : « ${button.textContent.trim()} »`);
+    }
+  });
+}
+</script>
+</body>
+</html>

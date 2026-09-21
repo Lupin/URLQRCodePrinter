@@ -115,10 +115,15 @@ Formats acceptés : l'archive JSON du bouton « Archive », le dossier d'étique
 
 ## Raccourcir, en option
 
-Le bloc « Raccourcir » se trouve sous la barre de recherche.
+Le bloc « Raccourcir les liens » se trouve sous la barre de recherche. Le champ
+« Service » ne sert qu'à choisir **qui** raccourcit : pour obtenir un lien plus
+court, le bouton « Raccourcir » suffit, sans rien régler.
 
-1. Choisissez le service : **TinyURL** (défaut), is.gd, v.gd ou spoo.me. Aucun ne
-   demande de clé d'API.
+1. Laissez le service sur **TinyURL — recommandé**, le choix proposé d'emblée.
+   Les autres disent en clair ce qu'ils changent — *is.gd — sans statistiques*,
+   *v.gd — avertissement avant redirection*, *spoo.me — statistiques de clics*.
+   Aucun ne demande de clé d'API ; on peut en changer plus tard, le prochain
+   raccourcissement repartira du service retenu.
 2. Cochez les liens voulus — sans rien cocher, le bouton porte sur toute la
    collection.
 3. Cliquez « Raccourcir ». Un second clic annule le lot en cours.
@@ -261,12 +266,16 @@ papier.
   collection elle vient.
 - **Colonnes** — N°, QR, URL, Titre, Tags, Note, Date. Les tags et la note ne
   sont proposés que si la collection en contient.
+- **Exporter le tableau (ZIP)** — un dossier autonome : `table.json` (le
+  modèle), `qr/*.png` (les QR en images prêtes à l'emploi) et `table.html`
+  (le tableau affichable tel quel). La sélection et les colonnes cochées
+  s'appliquent, comme à l'impression.
 
 ### Étiquette Niimbot
 
-Pour l'impression directe sur une D110 ou une M2. Voir la section suivante.
+Pour l'impression directe sur une D110, une M2 ou une M3. Voir la section suivante.
 
-### Images à imprimer
+### Étiquette (divers)
 
 Un dossier d'images prêtes à imprimer, **sans aucune imprimante**. Voir
 « Exporter sans Niimbot ».
@@ -278,7 +287,8 @@ Un dossier d'images prêtes à imprimer, **sans aucune imprimante**. Voir
 Le sélecteur **Format d'étiquette** propose :
 
 - **Niimbot D110** — 12 mm utiles, 203 dpi ;
-- **Niimbot M2** — 48 mm utiles, 300 dpi (576 px de tête).
+- **Niimbot M2** — 48 mm utiles, 300 dpi (576 px de tête) ;
+- **Niimbot M3** — 72 mm utiles, 300 dpi (851 px de tête).
 
 L'aperçu est composé **même sans imprimante connectée** : dimensions, nombre de
 modules et lisibilité sont exacts. C'est ce qui permet de juger un rendu, ou de
@@ -321,7 +331,9 @@ relevés chez le fabricant, pas devinés :
 - **M2** (tête 48,8 mm) — 25 × 9,5, 36,5 × 9,5, 40 × 20, 40 × 40, 50 × 30,
   50 × 50, 50 × 70, 50 × 80, 30 × 70, 25 × 78, 35,25 × 50 mm, plusieurs ronds
   (20 × 20, 24 × 13, 28 × 14, 28 × 15, 31 × 31, 34 × 17, 50 × 50) et le rouleau
-  continu.
+  continu ;
+- **M3** (tête 72 mm) — 40 × 20, 50 × 30, 70 × 50, 60 × 100 mm, et le rouleau
+  continu 72 mm.
 
 Un rouleau **plus large que la tête** reste sélectionnable : le contenu fait la
 largeur de la tête et le reste de l'étiquette demeure blanc. L'application le
@@ -381,17 +393,21 @@ intervention :
 
 ## Exporter sans Niimbot
 
-### Dossier d'images (onglet « Images à imprimer »)
+### Dossier d'images (onglet « Étiquette (divers) »)
 
 Le chemin le plus court vers n'importe quelle étiqueteuse. Choisissez :
 
-- **Format d'étiquette** — Niimbot D110 / M2, Brother QL 62 mm, Dymo LabelWriter
-  54 mm, Zebra 2 pouces, génériques 50 × 30 et 70 × 40 mm, planche A4 3 × 8 ;
+- **Format d'étiquette** — Niimbot D110 / M2 / M3 ; Brother QL DK-11201,
+  DK-11202, DK-11208, DK-11209, DK-11218, DK-11219, DK-22205, DK-22210 ;
+  Dymo LabelWriter 54 × 32 et 54 × 101 mm ; Zebra 2 et 4 × 6 pouces ; génériques
+  50 × 30 et 70 × 40 mm ; planche A4 3 × 8 ;
 - **Texte imprimé** — titre + URL, URL seule, titre seul, domaine seul, ou rien ;
 - **Marge**, **taille du texte**, **traits de coupe** ;
-- **Sous le QR** — la date de collecte, avec l'heure si vous la demandez. Ces
-  cases sont propres à cet onglet : une date cochée pour la planche ne
-  s'imprime pas ici, et réciproquement.
+- **Sous le QR** — le titre, puis la date de collecte, avec l'heure si vous la
+  demandez. La case « Titre » ajoute le titre même quand « Texte imprimé » ne le
+  porte pas, et sans le doubler s'il y figure déjà. Ces cases sont propres à cet
+  onglet : une date cochée pour la planche ne s'imprime pas ici, et
+  réciproquement.
 
 Le curseur **Largeur du QR** n'est pas libre : ses bornes sont calculées pour la
 disposition choisie. En dessous, un module imprimé ne serait plus lisible (0,4 mm
@@ -402,8 +418,9 @@ disponibles. Si une URL est trop dense pour le format — un lien long sur une
 étiquette de 12 mm — le message nomme le lien fautif : raccourcissez-le, ou prenez
 une étiquette plus grande.
 
-L'aperçu se met à jour à chaque changement. « Exporter les images (ZIP) »
-produit une archive autonome :
+L'aperçu se met à jour à chaque changement. Le bouton d'export dit la portée et
+le nombre — « Exporter les 12 images (ZIP) », ou « Exporter la sélection (3) »
+quand seuls quelques liens sont cochés — puis produit une archive autonome :
 
 ```
 etiquettes/1-un-article.png     un PNG par lien, à la résolution du format
@@ -423,6 +440,23 @@ tout l'intérêt de cet export.
 
 Quand un lien est raccourci, le classeur suit la cible imprimée et ajoute l'URL
 d'origine en fin de tableau.
+
+### Dossier du tableau (ZIP)
+
+Le bouton **« Exporter le tableau (ZIP) »** se trouve juste avant l'aperçu,
+visible dans le seul onglet Tableau, à côté d'« Imprimer ». Il produit un dossier
+autonome qui reflète la sélection et les colonnes cochées :
+
+| Fichier | Contenu |
+|---|---|
+| `table.json` | le modèle : colonnes, lignes, et pour chaque QR l'URL encodée, la correction d'erreur et la bordure |
+| `qr/<id>.png` | le QR de chaque ligne, à une échelle entière — vectorisable sans perte |
+| `table.html` | le tableau rendu, à ouvrir dans un navigateur |
+
+C'est le seul export qui suit la mise en forme du tableau : les exports de la
+collection (CSV, Markdown, Archive) portent les données, pas la mise en page. Le
+PNG est volontairement préféré au SVG : il s'ouvre partout, de la page web au
+traitement de texte, sans exiger que le destinataire sache rendre du vecteur.
 
 ### CSV, Markdown, archive JSON
 

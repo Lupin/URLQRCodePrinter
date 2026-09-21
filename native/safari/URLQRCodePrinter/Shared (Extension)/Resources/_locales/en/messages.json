@@ -1,0 +1,11 @@
+{
+  "name": {
+    "message": "URLQRCodePrinter"
+  },
+  "description": {
+    "message": "Collects the URLs of your tabs and prints them as QR labels (Niimbot D110 / M2)."
+  },
+  "action_title": {
+    "message": "URLQRCodePrinter"
+  }
+}

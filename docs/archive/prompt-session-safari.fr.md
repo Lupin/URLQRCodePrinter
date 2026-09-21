@@ -6,7 +6,7 @@
 
 ## Reprise du projet URLQRCodePrinter — volet Safari
 
-Dépôt : `/Users/gael/Documents/GitHub/URLQRCodePrinter` (macOS, Node 22, pas de
+Dépôt : le répertoire du dépôt (macOS, Node 22, pas de
 pnpm ni Rust). Application de collecte d'URL → QR codes imprimés : extension
 Brave/Chrome (MV3) + application web autonome partageant le même cœur, et
 impression directe sur étiqueteuse Niimbot (D110 réelle chez l'utilisateur) via

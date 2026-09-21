@@ -1,702 +1,740 @@
 # URLQRCodePrinter
 
-Collecter des URL depuis le navigateur (clic droit ou bouton), les garder dans
-une base locale, puis les imprimer en étiquettes QR — tableau, export CSV ou
-Markdown, ou envoi direct à une imprimante Niimbot.
+**English** · [Français](README.fr.md) · [User guide](docs/guide.md)
 
-## Où en est le projet
+Collect URLs from the browser (right-click or button), keep them in a local
+database, then print them as QR labels — table, CSV or Markdown export, or send
+them straight to a Niimbot printer.
 
-| Étape | État |
+## Where the project stands
+
+| Step | Status |
 |---|---|
-| Cœur métier (liens, QR, étiquettes, stockage, exports) | fait, testé |
-| Protocole Niimbot (trames, profils D110 / M2) | fait, testé |
-| Transport Web Bluetooth + session d'impression D110 | fait, testé |
-| Extension Brave / Chrome (clic droit, popup, liens cliquables) | fait, vérifié dans Brave |
-| Application web autonome (liste, exports, mises en page) | fait, vérifié dans Brave |
-| Raccourcissement d'URL en option (TinyURL, is.gd, v.gd, spoo.me) | fait, vérifié dans Brave |
-| Planches Avery A4 et Letter, calibrage d'impression | fait, géométrie confrontée aux cotes publiées |
-| Aperçu d'étiquette Niimbot sans imprimante connectée | fait, vérifié dans Brave |
-| Extension Safari — projet Xcode multiplateforme | généré, **compile pour macOS** |
-| Extension Safari — page `app.html` éprouvée dans Safari | fait, `npm run verify:safari` (37 vérifications) |
-| Extension Safari — chargement de l'extension par Safari | réglage manuel unique, voir « Safari » |
-| Socle natif Swift (protocole, session, CoreBluetooth) | fait, testé |
-| Application iOS qui utilise ce socle | à faire |
+| Core business logic (links, QR, labels, storage, exports) | done, tested |
+| Niimbot protocol (frames, D110 / M2 / M3 profiles) | done, tested |
+| Web Bluetooth transport + D110 / M2 / M3 print session | done, tested |
+| Brave / Chrome extension (right-click, popup, clickable links) | done, verified in Brave |
+| Standalone web app (list, exports, layouts) | done, verified in Brave |
+| Optional URL shortening (TinyURL, is.gd, v.gd, spoo.me) | done, verified in Brave |
+| Avery A4 and Letter sheets, print calibration | done, geometry checked against published dimensions |
+| Niimbot label preview with no printer connected | done, verified in Brave |
+| Safari extension — multiplatform Xcode project | generated, **compiles for macOS** |
+| Safari extension — `app.html` page verified in Safari | done, `npm run verify:safari` (37 checks) |
+| Safari extension — loading of the extension by Safari | one-time manual setting, see "Safari" |
+| Native Swift core (protocol, session, CoreBluetooth) | done, tested |
+| iOS app that uses that core | to do |
 
-**620 tests, tous verts** — 516 en JavaScript et 104 en Swift — dont :
+**720 tests, all green** — 616 in JavaScript and 104 in Swift — including:
 
-- la validation **octet à octet** des trames Niimbot contre les relevés
-  documentés, **dans les deux langages** : deux implémentations indépendantes
-  qui se confirment mutuellement ;
-- l'exécution réelle du démarrage de l'application web ;
-- la vérification des icônes PNG par décompression ;
-- le raccourcissement d'URL, réseau simulé : les pannes réelles des services
-  (texte d'erreur renvoyé avec un statut 200, réponse JSON, lien refusé) sont
-  reproduites pour être traitées, pas devinées ;
-- une **matrice de mise en page** sur les treize dispositions d'étiquettes et
-  leurs cas limites — aucune superposition, aucune étiquette hors feuille, pas
-  de dérive cumulée — doublée d'une mesure du rendu réel dans Brave ;
-- le **calcul inverse** « remplir la feuille » : la grille demandée est
-  exactement celle qui sort, sur plus de 400 combinaisons de colonnes, rangées,
-  marges et écarts, pour le A4 comme pour le Letter ;
-- les **bornes du QR** par type d'impression : la taille du curseur est calculée
-  avant le rendu, et la découpe du texte qui en découle est vérifiée ligne à
-  ligne.
+- **byte-for-byte** validation of the Niimbot frames against the documented
+  records, **in both languages**: two independent implementations that
+  confirm each other;
+- the real execution of the web app's startup;
+- verification of the PNG icons by decompression;
+- URL shortening, simulated network: the services' real failures (error text
+  returned with a 200 status, JSON response, link refused) are reproduced so
+  they can be handled, not guessed at;
+- a **layout matrix** over the thirteen label layouts and their edge cases —
+  no overlap, no label off the sheet, no cumulative drift — paired with a
+  measurement of the real rendering in Brave;
+- the **inverse calculation** "fill the sheet": the requested grid is exactly
+  the one that comes out, over more than 400 combinations of columns, rows,
+  margins and gaps, for A4 as well as for Letter;
+- the **QR bounds** per print type: the slider value is computed before
+  rendering, and the text wrapping that follows from it is verified line by
+  line.
 
-**L'application est vérifiée dans un vrai navigateur** : `npm run verify:brave`
-lance Brave sur un profil isolé, collecte un lien, le raccourcit, exporte le CSV
-et l'archive d'étiquettes, puis contrôle les fichiers réellement écrits sur le
-disque (signature ZIP, `unzip -t`, contenu du CSV). 131 vérifications, dont le
-rendu des liens cliquables dans l'application *et* dans la fenêtre de
-l'extension, la grille réellement calculée pour quatre références Avery, et
-l'aperçu d'étiquette composé sans aucune imprimante connectée.
+**The app is verified in a real browser**: `npm run verify:brave` launches
+Brave on an isolated profile, collects a link, shortens it, exports the CSV and
+the label archive, then checks the files actually written to disk (ZIP
+signature, `unzip -t`, CSV contents). 131 checks, including the rendering of
+clickable links in the app *and* in the extension popup, the grid actually
+computed for four Avery references, and the label preview composed with no
+printer connected.
 
-**La page de l'extension est vérifiée dans Safari** : `npm run verify:safari`
-pilote le Safari réel par WebDriver, charge `app.html`, et compare ses sorties au
-cœur exécuté hors navigateur. 37 vérifications — le CSV exporté par Safari est
-**identique octet pour octet** à celui du cœur, et le QR dessiné est **identique
-module pour module** (31 × 31, 436 modules, zéro écart). Le relevé complet, ce
-qui n'a pas pu être vérifié et pourquoi : `docs/safari-extension-verification.md`.
+**The extension page is verified in Safari**: `npm run verify:safari` drives
+the real Safari through WebDriver, loads `app.html`, and compares its outputs
+with the core run outside the browser. 37 checks — the CSV exported by Safari
+is **identical byte for byte** to the core's, and the QR drawn is **identical
+module for module** (31 × 31, 436 modules, zero gap). The full record, what
+could not be verified and why: `docs/safari-extension-verification.md`.
 
-Ce qui reste à éprouver : le chargement de l'extension par Safari lui-même
-(étape manuelle, voir ci-dessous), et l'impression sur une imprimante physique.
+What remains to be verified: the loading of the extension by Safari itself
+(manual step, see below), and printing on a physical printer.
 
-**La cible iOS du projet Xcode ne se compile pas dans un environnement
-restreint.** Xcode a besoin d'écrire dans `~/Library/Developer/CoreSimulator`
-pour lancer `IBAgent-iOS`, et clang dans un cache de modules système. Les deux
-échouent hors d'un accès complet. Le projet généré est correct : la cible macOS,
-qui n'a besoin d'aucun simulateur, compile. Le socle Swift, lui, se compile et
-se teste sans réserve (`npm run test:swift`).
+**The iOS target of the Xcode project does not compile in a restricted
+environment.** Xcode needs to write to `~/Library/Developer/CoreSimulator` to
+launch `IBAgent-iOS`, and clang to a system module cache. Both fail without
+full access. The generated project is correct: the macOS target, which needs no
+simulator, compiles. The Swift core itself compiles and is tested without
+reservation (`npm run test:swift`).
 
-Le dossier `qr-niimbot-printer/` est un prototype antérieur. **Son code
-Bluetooth ne peut pas fonctionner** : les UUID sont des valeurs d'exemple et
-les commandes envoyées sont du protocole ESC/POS, pas du Niimbot. Il sera
-remplacé.
+The `docs/archive/qr-niimbot-printer/` folder is an earlier prototype, kept as
+a record of the design. **Its Bluetooth code cannot work**: the UUIDs are
+example values and the commands sent are ESC/POS protocol, not Niimbot. It is
+replaced by `src/` and `native/niimbot-kit/`.
 
 ## Architecture
 
-Un cœur JavaScript unique, sans dépendance au DOM hors rendu canvas, consommé
-par toutes les surfaces :
+A single JavaScript core, with no DOM dependency outside canvas rendering,
+consumed by all the surfaces:
 
 ```
 src/core/
-  link.js              modèle de lien, normalisation, cible du QR, href sûr
-  capture.js           décision de capture depuis un clic contextuel
-  qr.js                encodage QR → matrice → bitmap 1 bit/pixel, PNG
-  label.js             géométrie d'étiquette, découpe de texte, lisibilité
-  raster.js            ImageData → bitmap monochrome pour tête thermique
-  sheet.js             planches d'impression : cotes, pagination, calibrage
-  store.js             IndexedDB / chrome.storage / mémoire, même interface
+  link.js              link model, normalization, QR target, safe href
+  capture.js           capture decision from a context click
+  qr.js                QR encoding → matrix → 1 bit/pixel bitmap, PNG
+  label.js             label geometry, text wrapping, legibility
+  raster.js            ImageData → monochrome bitmap for the thermal head
+  sheet.js             print sheets: dimensions, pagination, calibration
+  store.js             IndexedDB / chrome.storage / memory, same interface
   exporters.js         CSV (RFC 4180), Markdown, JSON
-  spreadsheet.js       classeur .xlsx avec les QR codes intégrés
-  label-export.js      formats d'étiquettes, planche HTML, archive ZIP
-  shorten.js           raccourcissement d'URL : services, pannes, rythme
-  settings.js          préférences retenues (service, cible du QR)
-  png.js               encodeur PNG (CompressionStream), CRC et déflate
-  zip.js               écriture ZIP sans compression
-  xlsx.js              écriture OOXML, images ancrées aux cellules
-  download.js          enregistrement de fichier et presse-papiers
+  spreadsheet.js       .xlsx workbook with embedded QR codes
+  label-export.js      label formats, HTML sheet, ZIP archive
+  table-export.js      table folder: JSON model, QR PNG, HTML page
+  shorten.js           URL shortening: services, failures, pacing
+  settings.js          remembered preferences (service, QR target)
+  i18n.js              fr → en interface messages, language resolution
+  locales/en.js        English translation table
+  png.js               PNG encoder (CompressionStream), CRC and deflate
+  zip.js               uncompressed ZIP writing
+  xlsx.js              OOXML writing, images anchored to cells
+  download.js          file saving and clipboard
   printer/
-    packet.js          trames Niimbot, checksum, décodeur de flux
-    profiles.js        profils d'imprimantes (largeur de tête, task, densité)
-    transport.js       Web Bluetooth : filtrage, groupage, notifications
-    printer.js         session d'impression, séquence et acquittements
+    packet.js          Niimbot frames, checksum, stream decoder
+    profiles.js        printer profiles (head width, task, density)
+    transport.js       Web Bluetooth: filtering, batching, notifications
+    printer.js         print session, sequence and acknowledgements
 
-src/extension-src/     extension MV3 (Brave, Chrome, Edge, Safari)
-src/web/               application autonome
-scripts/build.mjs      assemble dist/extension et dist/web
-scripts/serve.mjs      serveur statique de développement
-scripts/make-icons.mjs génère les icônes PNG (encodeur maison, sans dépendance)
-scripts/verify-brave.mjs  parcours complet dans Brave, sur un profil isolé
-scripts/verify-safari.mjs parcours de la page d'extension dans le Safari réel
-scripts/webdriver-safari.mjs  client WebDriver minimal, sans dépendance
-scripts/package-safari.mjs  produit le projet Xcode Safari
-scripts/test-swift.mjs lance les tests du socle natif
-native/safari/         projet Xcode généré (macOS + iOS)
-native/niimbot-kit/    socle Swift : protocole, session, CoreBluetooth
+src/extension-src/     MV3 extension (Brave, Chrome, Edge, Safari)
+src/web/               standalone app
+scripts/build.mjs      assembles dist/extension and dist/web
+scripts/serve.mjs      static development server
+scripts/make-icons.mjs generates the PNG icons (homegrown encoder, no dependency)
+scripts/verify-brave.mjs  full run in Brave, on an isolated profile
+scripts/verify-safari.mjs run of the extension page in the real Safari
+scripts/webdriver-safari.mjs  minimal WebDriver client, no dependency
+scripts/package-safari.mjs  produces the Safari Xcode project
+scripts/test-swift.mjs runs the native core tests
+native/safari/         generated Xcode project (macOS + iOS)
+native/niimbot-kit/    Swift core: protocol, session, CoreBluetooth
 ```
 
-`src/extension-src/` ne contient **pas** de `manifest.json` : le manifeste est un
-gabarit (`manifest.template.json`) que la construction décline en deux variantes.
-Ce dossier n'est donc pas chargeable tel quel par un navigateur, ce qui évite la
-confusion avec `dist/extension`.
+`src/extension-src/` does **not** contain a `manifest.json`: the manifest is a
+template (`manifest.template.json`) that the build turns into two variants.
+That folder therefore cannot be loaded as is by a browser, which avoids
+confusion with `dist/extension`.
 
-Le cœur ne dépend que de `uqr` (ESM pur, sans dépendance). Aucun bundler : tout
-est en modules ES natifs.
+The core depends only on `uqr` (pure ESM, no dependency). No bundler:
+everything is in native ES modules.
 
-### Pourquoi un second socle en Swift
+### Why a second core, in Swift
 
-Aucun navigateur iOS n'expose Web Bluetooth — Apple impose WebKit, qui ne
-l'implémente pas. Imprimer depuis un iPhone passe donc forcément par
-CoreBluetooth, donc par du code natif. `native/niimbot-kit/` est ce socle : le
-même protocole, la même séquence d'impression, les mêmes vecteurs de test que
-l'implémentation JavaScript. Il est indépendant de toute interface, donc
-réutilisable aussi bien par une app iOS que par un compagnon macOS.
+No iOS browser exposes Web Bluetooth — Apple imposes WebKit, which does not
+implement it. Printing from an iPhone therefore necessarily goes through
+CoreBluetooth, and thus through native code. `native/niimbot-kit/` is that
+core: the same protocol, the same print sequence, the same test vectors as the
+JavaScript implementation. It is independent of any interface, so it can be
+reused by an iOS app as well as by a macOS companion.
 
-## Utilisation
+## Usage
 
 ```bash
 npm run build
-npm run serve      # puis ouvrez http://127.0.0.1:4173/
+npm run serve      # then open http://127.0.0.1:4173/
 ```
 
-`localhost` est obligatoire : Web Bluetooth exige un contexte sécurisé, et le
-protocole `file://` refuse de charger des modules ES.
+`localhost` is mandatory: Web Bluetooth requires a secure context, and the
+`file://` protocol refuses to load ES modules.
 
-Pour l'extension dans Brave, Chrome ou Edge :
+For the extension in Brave, Chrome or Edge:
 
 ```bash
-npm run open:extension        # assemble et ouvre le dossier dans le Finder
+npm run open:extension        # assembles and opens the folder in the Finder
 ```
 
-Puis `brave://extensions` (ou `chrome://extensions`) → **Mode développeur** →
-glissez le dossier `extension` depuis le Finder, ou cliquez « Charger
-l'extension non empaquetée » et désignez `dist/extension`.
+Then `brave://extensions` (or `chrome://extensions`) → **Developer mode** →
+drag the `extension` folder from the Finder, or click "Load unpacked" and
+select `dist/extension`.
 
-**Pour imprimer depuis Brave**, Web Bluetooth doit être activé :
-`brave://flags#brave-web-bluetooth-api`. Chrome et Edge n'ont pas cette
-contrainte. Safari ne l'implémente pas du tout.
+**To print from Brave**, Web Bluetooth must be enabled:
+`brave://flags#brave-web-bluetooth-api`. Chrome and Edge do not have this
+constraint. Safari does not implement it at all.
 
-> Aucun de ces navigateurs n'accepte d'installation locale en un clic : un
-> fichier `.crx` téléchargé hors du Chrome Web Store est refusé. Seule une
-> publication sur le magasin donnerait ce confort.
+> None of these browsers accepts a one-click local installation: a `.crx` file
+> downloaded outside the Chrome Web Store is refused. Only a store
+> publication would give that convenience.
 
 ### Safari
 
 ```bash
-npm run install:safari        # génère, compile l'app macOS et la lance
-npm run verify:safari         # éprouve la page de l'extension dans Safari
+npm run install:safari        # generates, compiles and runs the macOS app
+npm run verify:safari         # verifies the extension page in Safari
 ```
 
-C'est la voie la plus directe : une extension Safari **est** une application
-macOS, et l'exécuter est le seul moyen de l'enregistrer. Le script enchaîne
-tout, puis affiche les deux réglages qui restent à faire une fois.
+This is the most direct route: a Safari extension **is** a macOS application,
+and running it is the only way to register it. The script chains everything,
+then displays the two settings that remain to be done once.
 
-**Ce qui reste à faire une fois, à la main, dans Safari**, dans cet ordre :
+**What remains to be done once, by hand, in Safari**, in this order:
 
-1. Réglages → **Avancé** → « Afficher le menu Développeur » ;
-2. menu **Développeur** → « Autoriser les extensions non signées » ;
-3. Réglages → **Extensions** → cocher « URLQRCodePrinter ».
+1. Settings → **Advanced** → "Show Developer menu";
+2. **Developer** menu → "Allow unsigned extensions";
+3. Settings → **Extensions** → check "URLQRCodePrinter".
 
-Ces réglages ne peuvent pas être automatisés, et Safari macOS est le seul
-navigateur du projet dans ce cas : `safaridriver` **ne connaît pas** de commande
-d'installation d'extension, et l'état des extensions n'est pas lisible depuis un
-script. Le relevé complet, avec ce qui a été constaté et ce qui ne peut pas
-l'être, est dans `docs/safari-extension-verification.md`.
+These settings cannot be automated, and Safari macOS is the only browser in the
+project in that situation: `safaridriver` **does not know** any extension
+installation command, and the extension state cannot be read from a script. The
+full record, with what was observed and what cannot be, is in
+`docs/safari-extension-verification.md`.
 
-> `verify:safari` a par ailleurs besoin que Safari accepte WebDriver :
-> menu Développeur → « Autoriser l'automatisation à distance », ou
-> `sudo safaridriver --enable` — qui demande le mot de passe administrateur,
-> donc une fois, à la main.
+> `verify:safari` also needs Safari to accept WebDriver:
+> Developer menu → "Allow Remote Automation", or
+> `sudo safaridriver --enable` — which asks for the administrator password,
+> so once, by hand.
 
-Pour aller pas à pas :
+To go step by step:
 
 ```bash
-npm run package:safari        # assemble, génère les icônes, convertit, aligne
+npm run package:safari        # assembles, generates the icons, converts, aligns
+npm run sync:safari           # copies only the appex resources
 ```
 
-Le projet apparaît dans `native/safari/`. Ouvrez-le dans Xcode et lancez le
-schéma **URLQRCodePrinter (macOS)**.
+The project appears in `native/safari/`. Open it in Xcode and run the
+**URLQRCodePrinter (macOS)** scheme.
 
-Le script fait aussi deux choses non évidentes.
+`native/safari/…/Resources/` is versioned because the Xcode project references
+it, but it is only a **copy** of `dist/extension-safari`: the same one that
+Apple's converter produces with `--copy-resources`. `npm run package:safari`
+remakes it by regenerating the whole project; `npm run sync:safari` only does
+the copy, without Xcode. Without one of the two, Xcode compiles an `app.js`
+older than `src/`.
 
-**Il relève les cibles de déploiement** du projet généré : le convertisseur
-d'Apple produit des cibles iOS 15.0 / macOS 10.14, alors que notre manifeste
-déclare `strict_min_version: "16.4"`.
+The script also does two non-obvious things.
 
-**Il corrige la fenêtre de l'application conteneur.** Le modèle d'Apple contient
-deux impasses silencieuses : quand Safari refuse d'ouvrir ses réglages — ce qui
-arrive sur une compilation non signée — le bouton « Quit and Open Safari
-Extensions Preferences… » sort de sa closure **sans rien faire**. Ni réglages,
-ni fermeture, ni message. `scripts/safari-container-app.mjs` remplace ces
-méthodes par des versions qui expliquent la marche à suivre, et ajoute un
-bouton « Quitter » pour ne jamais rester bloqué.
+**It raises the deployment targets** of the generated project: Apple's
+converter produces iOS 15.0 / macOS 10.14 targets, whereas our manifest
+declares `strict_min_version: "16.4"`.
 
-## L'extension est assemblée en fichiers uniques
+**It fixes the container app's window.** Apple's template contains two silent
+dead ends: when Safari refuses to open its settings — which happens with an
+unsigned build — the "Quit and Open Safari Extensions Preferences…" button
+leaves its closure **without doing anything**. No settings, no quit, no
+message. `scripts/safari-container-app.mjs` replaces those methods with
+versions that explain what to do, and adds a "Quit" button so you never get
+stuck.
 
-`npm run build` produit deux points d'entrée sans **aucun** `import` :
+## The extension is assembled into single files
+
+`npm run build` produces two entry points with **no** `import` at all:
 
 ```
 dist/extension/
-  background.js    ← service worker assemblé
-  popup.js         ← fenêtre assemblée
+  background.js    ← assembled service worker
+  popup.js         ← assembled popup
   popup.html  popup.css  manifest.json  icons/
 ```
 
-Ce n'est pas une optimisation, c'est une nécessité. **Safari ne résout pas les
-imports de modules situés dans un sous-dossier d'une extension** : il répond
+This is not an optimization, it is a necessity. **Safari does not resolve
+module imports located in a subfolder of an extension**: it answers
 
 ```
 Unable to find "core/store.js" in the extension's resources. It is an invalid path.
 ```
 
-alors que le fichier est bel et bien dans le paquet — vérifié. Deux fils de
-discussion Apple documentent ce défaut des modules ES dans les extensions
-Safari, et plusieurs rapports de portage depuis Chrome le confirment.
+even though the file really is in the bundle — verified. Two Apple discussion
+threads document this ES modules defect in Safari extensions, and several
+reports of ports from Chrome confirm it.
 
-Plutôt que d'aplatir l'arborescence pour contourner le symptôme, on supprime la
-cause : `scripts/bundle.mjs` concatène les modules dans l'ordre des dépendances.
-Le résultat fonctionne à l'identique sur Chrome, Brave et Safari, et l'on peut
-retirer `"type": "module"` du manifeste — ce qui fait disparaître au passage
-l'avertissement du convertisseur Apple.
+Rather than flattening the tree to work around the symptom, we remove the
+cause: `scripts/bundle.mjs` concatenates the modules in dependency order. The
+result works identically on Chrome, Brave and Safari, and `"type": "module"`
+can be removed from the manifest — which also makes Apple's converter warning
+disappear.
 
-L'assembleur **refuse de produire** si deux modules déclarent le même nom au
-premier niveau : une collision se masquerait silencieusement, et le fichier
-produit ne se comporterait pas comme les sources. Il n'est pas minifié, chaque
-module garde son en-tête, et l'extension reste donc lisible dans l'inspecteur.
+The assembler **refuses to produce output** if two modules declare the same
+top-level name: a collision would be masked silently, and the produced file
+would not behave like the sources. It is not minified, each module keeps its
+header, and the extension therefore remains readable in the inspector.
 
-## Deux variantes du manifeste
+## Two manifest variants
 
-`npm run build` produit deux dossiers :
+`npm run build` produces two folders:
 
-| Dossier | Pour | Particularité |
+| Folder | For | Particularity |
 |---|---|---|
-| `dist/extension` | Brave, Chrome, Edge | sans `browser_specific_settings` |
-| `dist/extension-safari` | Safari | conserve cette clé, dont le convertisseur d'Apple a besoin |
+| `dist/extension` | Brave, Chrome, Edge | without `browser_specific_settings` |
+| `dist/extension-safari` | Safari | keeps that key, which Apple's converter needs |
 
-`browser_specific_settings` est une clé Firefox/Safari **inconnue de Chrome et
-de Brave**. Ceux-ci l'affichent comme un avertissement de manifeste, en
-surlignant le fichier avec ses numéros de ligne — de quoi croire à une erreur
-bloquante alors que l'extension fonctionne. La construction la retire donc de
-la variante Chromium.
+`browser_specific_settings` is a Firefox/Safari key **unknown to Chrome and
+Brave**. They display it as a manifest warning, highlighting the file with its
+line numbers — enough to make you believe in a blocking error while the
+extension works. The build therefore removes it from the Chromium variant.
 
-**Chargez toujours un dossier de `dist/`, jamais `src/extension`.** Le dossier
-source ne contient pas `core/`, qui n'y est recopié qu'à la construction : le
-service worker échouerait au chargement.
+**Always load a folder from `dist/`, never `src/extension`.** The source folder
+does not contain `core/`, which is only copied there at build time: the service
+worker would fail to load.
 
-Safari n'expose pas `chrome` mais `browser`, et **ne fournit pas `contextMenus`
-sur iOS**. L'extension détecte les deux : le menu contextuel n'est branché que
-s'il existe, et l'URL de l'onglet est lue par injection quand `tab.url` manque.
+Safari does not expose `chrome` but `browser`, and **does not provide
+`contextMenus` on iOS**. The extension detects both: the context menu is only
+wired up if it exists, and the tab URL is read by injection when `tab.url` is
+missing.
 
-## Deux chiffres à ne pas confondre
+## Two numbers not to be confused
 
-- **La largeur de tête n'est pas la largeur d'étiquette.** Un D110 accepte des
-  rouleaux de 15 mm mais sa tête ne fait que **96 px = 12 mm** à 203 dpi. Envoyer
-  120 colonnes ne provoque aucune erreur : l'imprimante rogne en silence.
-- **Le dialogue d'impression dépend du modèle.** Un D110 attend un `SetPageSize`
-  de 4 octets ; le format « v4 » (13 octets) le fait répondre une erreur
-  `DataError` au lieu d'imprimer.
+- **Head width is not label width.** A D110 accepts 15 mm rolls but its head is
+  only **96 px = 12 mm** at 203 dpi. Sending 120 columns causes no error: the
+  printer crops in silence.
+- **The print dialog depends on the model.** A D110 expects a `SetPageSize` of
+  4 bytes; the "v4" format (13 bytes) makes it return a `DataError` error
+  instead of printing.
 
-## Ce qui est imprimable est calculé avant, pas signalé après
+## What is printable is computed in advance, not reported afterwards
 
-Un QR code a deux limites physiques, et elles dépendent du **type d'impression** :
+A QR code has two physical limits, and they depend on the **print type**:
 
-| Support | Contrainte | Sur une D110 (203 dpi) | Sur papier |
+| Medium | Constraint | On a D110 (203 dpi) | On paper |
 |---|---|---|---|
-| Tête thermique | 2 px par module, sinon la tête fusionne les points | 0,25 mm par module | — |
-| Papier (laser, jet d'encre) | 0,4 mm par module, sinon le module n'est plus résolu et l'appareil photo ne fait pas la mise au point | — | 0,4 mm |
+| Thermal head | 2 px per module, otherwise the head fuses the dots | 0.25 mm per module | — |
+| Paper (laser, inkjet) | 0.4 mm per module, otherwise the module is no longer resolved and the camera does not focus | — | 0.4 mm |
 
-`qrRatioBounds` (dans `core/sheet.js`) croise ces contraintes avec la géométrie
-de l'étiquette pour produire l'intervalle **autorisé** de la largeur du QR :
+`qrRatioBounds` (in `core/sheet.js`) crosses these constraints with the label
+geometry to produce the **allowed** range of the QR width:
 
-- **borne basse** : `qrModules × minModuleMm` — un QR plus petit serait illisible
-  une fois imprimé, et la densité de la matrice dépend de la longueur de l'URL :
-  sur une L7160, une URL courte laisse régler de 30 à 86 %, une URL de 49 modules
-  impose au moins 58 % ;
-- **borne haute** : le QR est carré, il doit tenir dans la largeur **et** laisser
-  au moins une ligne de texte sous lui.
+- **lower bound**: `qrModules × minModuleMm` — a smaller QR would be illegible
+  once printed, and the matrix density depends on the URL length: on an L7160, a
+  short URL leaves 30 to 86 % adjustable, a 49-module URL requires at least
+  58 %;
+- **upper bound**: the QR is square, it must fit within the width **and** leave
+  at least one line of text below it.
 
-**Une seule présentation, six valeurs.** Colonnes, rangées, marge
-gauche/droite, marge haut/bas, écart entre colonnes, écart entre rangées : la
-taille des étiquettes en découle, et une phrase sous les champs l'annonce avec
-les dimensions réelles — et rappelle le décalage quand il est actif.
+**A single presentation, six values.** Columns, rows, left/right margin,
+top/bottom margin, gap between columns, gap between rows: the label size
+follows from them, and a sentence under the fields announces it with the real
+dimensions — and recalls the offset when it is active.
 
-Il y a eu deux modes avant celui-ci, et les deux étaient incompréhensibles pour
-une raison différente. « Cotes de la disposition » / « Remplir la feuille »
-n'indiquait pas laquelle des deux grandeurs commandait l'autre. Puis « Cotes de
-la référence » **masquait les champs** : rien ne disait comment la planche était
-remplie. Les champs sont maintenant toujours visibles, et changer de planche
-réécrit leurs six valeurs (`presetToGrid`).
+There were two modes before this one, and both were incomprehensible for a
+different reason. "Layout dimensions" / "Fill the sheet" did not say which of
+the two quantities commanded the other. Then "Reference dimensions" **hid the
+fields**: nothing said how the sheet was filled. The fields are now always
+visible, and changing sheet rewrites their six values (`presetToGrid`).
 
-Cette conversion mérite d'être comprise : une planche du commerce a une marge
-gauche différente de sa marge droite, ce qu'une grille à marge symétrique ne peut
-pas reproduire. `presetToGrid` répartit donc également ce qui reste, de sorte que
-la **taille d'étiquette et le pas soient exacts** — les colonnes tombent en face
-de leurs cases — au prix d'un décalage constant de quelques dixièmes de
-millimètre, que les champs de décalage rattrapent. Une erreur de pas, elle,
-s'accumulerait d'une colonne à l'autre. Le test de propriété le vérifie pour les
-treize dispositions du catalogue.
+This conversion deserves to be understood: a commercial sheet has a left margin
+different from its right margin, which a grid with symmetric margins cannot
+reproduce. `presetToGrid` therefore distributes the remainder evenly, so that
+the **label size and pitch are exact** — the columns land opposite their cells
+— at the cost of a constant offset of a few tenths of a millimeter, which the
+offset fields make up for. A pitch error, by contrast, would accumulate from
+one column to the next. The property test verifies this for the thirteen
+layouts in the catalog.
 
-Le curseur reçoit ces bornes : **il ne peut plus demander un QR impossible**, au
-lieu d'afficher un avertissement une fois le réglage fautif choisi. Quand les deux
-bornes se croisent — 57 modules sur une tête de 12 mm demandent 14,3 mm — le
-message le dit, nomme le lien le plus dense, et propose la seule vraie sortie :
-raccourcir l'URL, ce que fait le raccourcisseur.
+The slider receives these bounds: **it can no longer request an impossible
+QR**, instead of displaying a warning once the faulty setting has been chosen.
+When the two bounds cross — 57 modules on a 12 mm head require 14.3 mm — the
+message says so, names the densest link, and offers the only real way out:
+shorten the URL, which the shortener does.
 
-Le texte suit la même logique : il est découpé en lignes par le script
-(`sheetCellLines`), borné au nombre de lignes qui tiennent réellement, et tronqué
-avec des points de suspension s'il est trop long. Taille de police et interligne
-sont posées en ligne à partir du même calcul que la découpe, donc la hauteur
-occupée est exactement la hauteur réservée — un test dans Brave compare les deux.
-Auparavant, le texte était laissé au retour à la ligne du navigateur et pouvait
-déborder de l'étiquette sans que rien ne le signale.
+The text follows the same logic: it is broken into lines by the script
+(`sheetCellLines`), capped at the number of lines that actually fit, and
+truncated with an ellipsis if it is too long. Font size and line height are set
+inline from the same calculation as the wrapping, so the height occupied is
+exactly the height reserved — a test in Brave compares the two. Previously, the
+text was left to the browser's line wrapping and could overflow the label
+without anything signaling it.
 
-## Ce qui sera imprimé est écrit, pas à deviner
+## What will be printed is written, not to be guessed
 
-Deux boutons « Tout » et « Rien » étaient collés au champ de recherche, et ils
-cochent en réalité les liens à imprimer. Pire : **les deux aboutissaient au même
-résultat**, puisqu'une sélection vide vaut « toute la collection » pour
-l'impression. De quoi ne rien comprendre, à juste titre.
+Two buttons, "All" and "None", were stuck to the search field, and they
+actually check the links to be printed. Worse: **both led to the same result**,
+since an empty selection means "the whole collection" for printing. Enough to
+understand nothing, rightly so.
 
-Trois corrections :
+Three fixes:
 
-1. **les deux groupes sont séparés** — la recherche d'un côté, puis un groupe
-   intitulé « Sélection » avec « Tout cocher » et « Tout décocher » ;
-2. **la portée est écrite sous les boutons** : « Aucun lien coché : l'impression
-   portera sur toute la collection (31). » ou « 3 liens cochés sur 31. » ;
-3. **le bouton d'impression annonce ce qu'il imprime** : « Imprimer les 31 liens »
-   ou « Imprimer la sélection (3) ». La règle la moins devinable de l'application
-   — pas de sélection = tout — devient visible sans cliquer.
+1. **the two groups are separated** — search on one side, then a group titled
+   "Selection" with "Check all" and "Uncheck all";
+2. **the scope is written under the buttons**: "No link checked: printing will
+   cover the whole collection (31)." or "3 links checked out of 31.";
+3. **the print button announces what it prints**: "Print the 31 links" or
+   "Print the selection (3)". The least guessable rule in the app — no
+   selection = all — becomes visible without clicking.
 
-Le libellé suit chaque case cochée, pas seulement les boutons de groupe : la
-vérification dans Brave a justement montré qu'il restait figé sur un état
-antérieur quand on cochait une ligne à la main.
+The label follows every checked box, not just the group buttons: the
+verification in Brave showed precisely that it stayed frozen on an earlier
+state when a row was checked by hand.
 
-## Le classeur : un QR par ligne
+## The workbook: one QR per row
 
-Deux défauts réels dans l'export `.xlsx`, trouvés en examinant un fichier
-réellement produit :
+Two real defects in the `.xlsx` export, found by examining a file actually
+produced:
 
-**L'ancrage n'était pas celui d'Excel.** J'émettais un `oneCellAnchor` — licite,
-et lu correctement par deux analyseurs indépendants (le mien et `openpyxl`) — mais
-qu'Excel n'écrit jamais. Excel écrit `twoCellAnchor` avec `editAs="oneCell"` et
-les marqueurs `from` **et** `to` pour chaque image insérée. On écrit désormais
-cette forme-là, avec `to` sur la cellule suivante : l'image est liée à une seule
-cellule, celle de son QR.
+**The anchoring was not Excel's.** I was emitting a `oneCellAnchor` — legal,
+and read correctly by two independent parsers (mine and `openpyxl`) — but one
+that Excel never writes. Excel writes `twoCellAnchor` with `editAs="oneCell"`
+and the `from` **and** `to` markers for each inserted image. We now write that
+form, with `to` on the next cell: the image is bound to a single cell, the one
+holding its QR.
 
-**Le tableau ne tenait pas sur une page en largeur.** Sept colonnes font environ
-309 mm pour du A4 portrait (210 mm) : à l'impression, Excel répartissait les
-colonnes sur plusieurs feuilles, et un QR code pouvait sortir sur une autre page
-que son URL — exactement « pas un QR par ligne ». La feuille porte maintenant
-`fitToPage` + `fitToWidth="1"` et l'orientation paysage, ce qui ramène le tableau
-à une largeur de page.
+**The table did not fit on one page in width.** Seven columns make about
+309 mm for A4 portrait (210 mm): when printing, Excel spread the columns over
+several sheets, and a QR code could come out on a different page than its URL —
+exactly "not one QR per row". The sheet now carries `fitToPage` +
+`fitToWidth="1"` and landscape orientation, which brings the table back to one
+page width.
 
-**Et l'image tient dans sa cellule** : QR de 96 px (25,4 mm, un pouce) au lieu de
-128, colonne de 19 unités (≈ 138 px), ligne de 76 points. Une image plus large
-que sa colonne déborde sur la voisine, et une ligne de 100 points faisait sortir
-le tableau de la page.
+**And the image fits in its cell**: a QR of 96 px (25.4 mm, one inch) instead
+of 128, a column of 19 units (≈ 138 px), a row of 76 points. An image wider
+than its column overflows onto the neighbor, and a 100-point row pushed the
+table off the page.
 
-> Ce qui n'a **pas** pu être vérifié ici : le rendu visuel du classeur. Quick Look
-> empile les images flottantes au coin de la feuille quel que soit le balisage —
-> je l'ai constaté en changeant la forme de l'ancrage (rendu identique) et en
-> comparant avec un classeur produit par `openpyxl` (aucune image affichée). Excel,
-> lui, ouvre le fichier et voit bien les dix images, mais son API de script refuse
-> les propriétés de géométrie. Les tests vérifient donc ce qui est mesurable :
-> un ancrage par ligne, `editAs="oneCell"`, marqueurs consécutifs, largeur de
-> colonne et hauteur de ligne suffisantes, mise en page ajustée.
+> What could **not** be verified here: the visual rendering of the workbook.
+> Quick Look stacks floating images in the corner of the sheet whatever the
+> markup — I observed it by changing the anchoring form (identical rendering)
+> and by comparing with a workbook produced by `openpyxl` (no image displayed).
+> Excel, for its part, opens the file and does see the ten images, but its
+> scripting API refuses the geometry properties. The tests therefore verify
+> what is measurable: one anchor per row, `editAs="oneCell"`, consecutive
+> markers, sufficient column width and row height, adjusted page setup.
 
-## Brave et Web Bluetooth : détecter, pas espérer
+## Brave and Web Bluetooth: detect, do not hope
 
-Brave expose `navigator.bluetooth` **et** refuse de s'en servir quand son
-drapeau est éteint. Un contrôle qui se contente de regarder si l'objet existe
-conclut donc « tout va bien » : le bouton « Connecter » reste actif, et l'échec
-n'arrive qu'après le clic, en anglais — `NotFoundError: Web Bluetooth API
-globally disabled.` C'est exactement ce qui se passait.
+Brave exposes `navigator.bluetooth` **and** refuses to use it when its flag is
+off. A check that merely looks at whether the object exists therefore concludes
+"all is well": the "Connect" button stays active, and the failure only arrives
+after the click, in English — `NotFoundError: Web Bluetooth API globally
+disabled.` That is exactly what was happening.
 
-`navigator.bluetooth.getAvailability()` répond `false` dans ce cas, sans rien
-demander à l'utilisateur. `probeWebBluetooth` (dans `core/printer/transport.js`)
-l'interroge donc au démarrage : le bouton est désactivé, et la marche à suivre
-s'affiche **avant** le clic, en français. La réponse `false` couvre deux causes
-qu'il ne faut pas confondre dans le message : le drapeau de Brave éteint, et le
-Bluetooth de la machine éteint.
+`navigator.bluetooth.getAvailability()` answers `false` in that case, without
+asking the user anything. `probeWebBluetooth` (in
+`core/printer/transport.js`) therefore queries it at startup: the button is
+disabled, and the procedure is displayed **before** the click, in French. The
+`false` answer covers two causes that must not be confused in the message: the
+Brave flag being off, and the machine's Bluetooth being off.
 
-| Situation | Ce que dit l'application |
+| Situation | What the app says |
 |---|---|
-| `navigator.bluetooth` absent | « Web Bluetooth n'est pas disponible dans ce navigateur » + Safari n'en a pas |
-| API présente, `getAvailability()` faux | « désactivé dans ce navigateur — ou le Bluetooth de cet ordinateur est éteint » + marche à suivre |
-| Contexte non sécurisé | « exige un contexte sécurisé » + passer par https ou localhost |
-| Échec après le clic | le message anglais est traduit (`explainBluetoothFailure`) |
+| `navigator.bluetooth` absent | "Web Bluetooth is not available in this browser" + Safari does not have it |
+| API present, `getAvailability()` false | "disabled in this browser — or this computer's Bluetooth is off" + procedure |
+| Insecure context | "requires a secure context" + use https or localhost |
+| Failure after the click | the English message is translated (`explainBluetoothFailure`) |
 
-La marche à suivre est écrite une seule fois (`BRAVE_BLUETOOTH_HINT`), et le nom
-du drapeau vient des sources de Brave (`browser/about_flags.cc`) :
-`brave-web-bluetooth-api`, à activer puis à **relancer** le navigateur.
+The procedure is written once (`BRAVE_BLUETOOTH_HINT`), and the flag name comes
+from Brave's sources (`browser/about_flags.cc`): `brave-web-bluetooth-api`, to
+be enabled and then the browser **restarted**.
 
-## L'import relit tout ce que l'export produit
+## Import reads back everything the export produces
 
-L'import n'acceptait qu'**une seule** des formes que l'application sait écrire :
-l'archive JSON du bouton « Archive ». Le CSV exporté, le dossier d'étiquettes
-`.zip` et le `export.json` qu'il contient étaient refusés. Autrement dit, on ne
-pouvait pas réimporter ce qu'on venait d'exporter — ce qui rendait la fonction
-incompréhensible, et c'était le principal malentendu.
+Import accepted only **one** of the forms the app knows how to write: the JSON
+archive from the "Archive" button. The exported CSV, the `.zip` label folder
+and the `export.json` it contains were refused. In other words, you could not
+re-import what you had just exported — which made the feature
+incomprehensible, and that was the main misunderstanding.
 
-`core/import.js` accepte maintenant les trois formes, en s'appuyant sur ce qu'on
-écrit :
+`core/import.js` now accepts the three forms, relying on what we write:
 
-| Fichier fourni | Ce qui est relu |
+| File provided | What is read back |
 |---|---|
-| `liens-qr-….json` (bouton « Archive ») | tout le modèle : URL, titre, tags, note, date de collecte, raccourci, identifiant |
-| `etiquettes-qr-….zip` (dossier d'étiquettes) | les liens de son `export.json` — l'URL d'origine est préférée à la cible imprimée, qui reste comme raccourci |
-| `export.json` extrait à la main | les mêmes |
-| `….csv` (bouton « CSV ») | URL, titre, tags, note, date — colonnes repérées par leur en-tête, donc un tableur qui les réordonne reste importable |
+| `liens-qr-….json` ("Archive" button) | the whole model: URL, title, tags, note, collection date, short URL, identifier |
+| `etiquettes-qr-….zip` (label folder) | the links from its `export.json` — the original URL is preferred over the printed target, which stays as the short URL |
+| `export.json` extracted by hand | the same |
+| `….csv` ("CSV" button) | URL, title, tags, note, date — columns located by their header, so a spreadsheet that reorders them remains importable |
 
-Le ZIP est relu par `readStoredZip` : nos archives sont écrites sans compression
-(`method: 0`), donc un lecteur d'en-têtes locaux suffit, et une entrée compressée
-est signalée plutôt que rendue de travers.
+The ZIP is read back by `readStoredZip`: our archives are written without
+compression (`method: 0`), so a reader of local headers is enough, and a
+compressed entry is reported rather than rendered wrongly.
 
-Trois règles, décidées pour que l'import ne fasse jamais de dégât :
+Three rules, decided so that import never does damage:
 
-1. **il ajoute, il ne remplace pas** — la collection courante est conservée ;
-2. **un doublon est ignoré**, pas fusionné : réimporter deux fois la même archive
-   ne crée rien, et le message distingue « déjà présent » de « illisible » plutôt
-   que d'annoncer un échec ;
-3. **une ligne illisible ne fait pas échouer le reste** : elle est comptée.
+1. **it adds, it does not replace** — the current collection is kept;
+2. **a duplicate is ignored**, not merged: re-importing the same archive twice
+   creates nothing, and the message distinguishes "already present" from
+   "unreadable" rather than announcing a failure;
+3. **an unreadable row does not fail the rest**: it is counted.
 
-Un garde-fou de test accompagne cela : `test/web.test.js` vérifie que **chaque nom
-importé par `app.js` est bien exporté par le module visé**. Il est né d'une erreur
-réelle — `parseImportFile` appelé sans avoir été importé — qu'aucun test de
-démarrage ne pouvait voir, puisque le corps de la fonction n'est jamais exécuté
-au chargement.
+A test safeguard accompanies this: `test/web.test.js` verifies that **every
+name imported by `app.js` is indeed exported by the target module**. It was
+born from a real error — `parseImportFile` called without having been imported
+— that no startup test could see, since the function body is never executed at
+load time.
 
-## Dater une étiquette : une option, jamais un fragment
+## Dating a label: an option, never a fragment
 
-La date de collecte peut être imprimée sous le QR code — `Aucune`, `Date de
-collecte`, `Date et heure de collecte`. Aucune par défaut : chaque ligne sous le
-QR se paie en place disponible, et une étiquette de 12 mm n'en a pas de reste.
-Le choix vaut pour les quatre mises en forme : planche, tableau (une colonne
-« Date »), étiquette Niimbot, et archive d'images.
+The collection date can be printed under the QR code — `None`, `Collection
+date`, `Collection date and time`. None by default: every line under the QR is
+paid for in available space, and a 12 mm label has none to spare. The choice
+applies to the four output formats: sheet, table (a "Date" column), Niimbot
+label, and image archive.
 
-**Une date est complète ou absente.** C'est la règle, et elle vient d'un défaut
-constaté en vérifiant : sur une étiquette de 12 mm, le plafond de lignes amputait
-la date à « 15/09/ » — le millésime perdu, donc une date **fausse**, ce qui est
-pire que pas de date. Désormais :
+**A date is complete or absent.** That is the rule, and it comes from a defect
+observed while verifying: on a 12 mm label, the line cap truncated the date to
+"15/09/" — the year lost, so a **false** date, which is worse than no date.
+From now on:
 
-- les lignes de la date sont réservées **avant** celles du texte principal, et
-  jamais coupées par le plafond ;
-- au-delà de deux lignes (`DATE_MAX_LINES`), la date est abandonnée entièrement
-  plutôt qu'imprimée en partie ;
-- sur la planche, où la date tient sur une seule ligne, elle est écartée si la
-  colonne est trop étroite, et le message le dit ;
-- sur l'étiquette Niimbot, `drawLabel` ne découpe pas cette ligne : elle n'est
-  demandée à la géométrie (`extraLines`) que si elle tient, ce qui évite un
-  dépassement horizontal ;
-- l'archive consigne `datesOmitted`, et les aperçus affichent la raison — sans
-  quoi l'option semblerait sans effet.
+- the date's lines are reserved **before** those of the main text, and never
+  cut by the cap;
+- beyond two lines (`DATE_MAX_LINES`), the date is abandoned entirely rather
+  than printed in part;
+- on the sheet, where the date fits on a single line, it is discarded if the
+  column is too narrow, and the message says so;
+- on the Niimbot label, `drawLabel` does not wrap this line: it is only
+  requested from the geometry (`extraLines`) if it fits, which avoids a
+  horizontal overflow;
+- the archive records `datesOmitted`, and the previews display the reason —
+  without which the option would seem to have no effect.
 
-Le calcul des bornes du QR compte la date comme une ligne de plus : activer la
-date fait baisser la borne haute du curseur (86 % → 79 % sur une L7160), parce
-que le QR doit laisser la place de deux lignes au lieu d'une.
+The QR bounds calculation counts the date as one more line: enabling the date
+lowers the slider's upper bound (86 % → 79 % on an L7160), because the QR must
+leave room for two lines instead of one.
 
-## Un export ne doit rien contenir d'insaisissable
+## An export must contain nothing that cannot be entered
 
-Règle du projet, née de deux remarques justes : le Markdown portait un titre
-choisi par le programme (« Mes liens QR »), et une colonne « Tags » qu'aucune
-interface ne permettait de remplir. Un export qui transporte des colonnes vides,
-ou un titre qui n'est pas celui de l'utilisateur, est un export faux.
+Project rule, born from two fair remarks: the Markdown carried a title chosen
+by the program ("Mes liens QR"), and a "Tags" column that no interface allowed
+you to fill in. An export that carries empty columns, or a title that is not
+the user's, is a false export.
 
-Ce qui a été mis en cohérence :
+What has been made consistent:
 
-| Champ | Saisie | Sorties |
+| Field | Input | Outputs |
 |---|---|---|
-| URL | champ « Ajouter », extension | toutes |
-| Titre | éditeur de la ligne (✎) | CSV, Markdown, classeur, nom des fichiers d'étiquettes |
-| Tags | éditeur de la ligne (✎), virgules | CSV, Markdown, classeur |
-| Note | éditeur de la ligne (✎) | CSV, Markdown, classeur, tableau imprimé |
-| Nom de collection | champ « Nom de la collection » | titre du Markdown, titre de la planche HTML, nom des fichiers exportés |
+| URL | "Add" field, extension | all |
+| Title | row editor (✎) | CSV, Markdown, workbook, table folder, label file names |
+| Tags | row editor (✎), commas | CSV, Markdown, workbook, table folder |
+| Note | row editor (✎) | CSV, Markdown, workbook, printed table, table folder |
+| Collection name | "Collection name" field | Markdown title, HTML sheet title, exported file names, HTML table title |
 
-Deux choix méritent d'être connus :
+Two choices deserve to be known:
 
-**Les colonnes facultatives n'apparaissent que si elles servent.** « Note » (dans
-le Markdown et le classeur), « URL courte » (CSV) et « URL d'origine » (dans les
-exports d'une collection raccourcie) ne sont ajoutées que si au moins un lien a
-la valeur correspondante. Sans cela, un tableau à sept colonnes dont une vide sur
-toute la hauteur, et les tests existants auraient dû changer à chaque ajout.
+**Optional columns appear only if they serve a purpose.** "Note" (in the
+Markdown and the workbook), "Short URL" (CSV) and "Original URL" (in the
+exports of a shortened collection) are only added if at least one link has the
+corresponding value. Without that, a seven-column table with one of them empty
+over its whole height, and the existing tests would have had to change on every
+addition.
 
-**Dans le classeur, la note se place avant la colonne des QR codes**, dont
-l'index est donc recalculé (`spreadsheetLayout`) : une image ancrée sur la
-mauvaise colonne serait tout simplement invisible. Les tags y sont écrits sans
-« # », comme dans le CSV : dans un tableur, le dièse gêne le filtrage.
+**In the workbook, the note is placed before the QR code column**, whose index
+is therefore recomputed (`spreadsheetLayout`): an image anchored to the wrong
+column would simply be invisible. The tags there are written without "#", as in
+the CSV: in a spreadsheet, the hash sign hinders filtering.
 
-Les tags ne s'impriment pas sur les étiquettes : ils classent la collection, et
-les étiquettes portent le QR et le texte choisi. Ils ressortent en revanche dans
-tous les exports de données.
+Tags are not printed on labels: they classify the collection, and the labels
+carry the QR and the chosen text. They do appear, however, in all data exports.
 
-## Planches d'étiquettes
+## Label sheets
 
-Les dispositions sont rangées en deux familles : des **grilles génériques**, à
-régler soi-même, et des **références commerciales** dont les cotes sont
-reproduites telles que les fabricants les publient — Avery L7160, L7159, L7162,
-L7163, Zweckform 3475 sur A4, et 5160 / 5162 / 5163 / 6871 sur Letter.
+The layouts are arranged in two families: **generic grids**, to be set up
+yourself, and **commercial references** whose dimensions are reproduced as the
+manufacturers publish them — Avery L7160, L7159, L7162, L7163, Zweckform 3475
+on A4, and 5160 / 5162 / 5163 / 6871 on Letter.
 
-Deux points de conception méritent d'être connus avant de toucher à ce code.
+Two design points deserve to be known before touching this code.
 
-**Les marges situent le coin de la première étiquette**, elles ne sont pas
-symétriques. Sur une L7160 il y a 8,6 mm à gauche et 5,1 mm à droite ; un modèle
-à marges symétriques ne placerait que deux colonnes sur trois. `marginXMm` et
-`marginYMm` sont donc des décalages depuis le bord gauche et le bord haut, et la
-marge de droite est ce qui reste.
+**Margins locate the corner of the first label**, they are not symmetric. On an
+L7160 there are 8.6 mm on the left and 5.1 mm on the right; a model with
+symmetric margins would place only two columns out of three. `marginXMm` and
+`marginYMm` are therefore offsets from the left edge and the top edge, and the
+right margin is what remains.
 
-**La géométrie de la planche vit hors de `@media print`.** L'aperçu à l'écran et
-la feuille imprimée partagent les mêmes règles, donc la même mise en page. Ça
-n'a pas toujours été le cas : tant que `.print-cell` n'était positionné que dans
-le bloc d'impression, l'aperçu empilait les étiquettes en une seule colonne, le
-texte d'une étiquette débordait sur sa voisine, et le curseur de largeur du QR
-n'avait aucun effet — le SVG gardait sa taille intrinsèque dans une boîte que
-personne ne contraignait. La leçon est dans les tests : `test/sheet-matrix.test.js`
-couvre la géométrie pure sur tous les formats, et `npm run verify:brave` mesure
-le DOM réellement calculé par le navigateur (colonnes distinctes, aucune
-superposition, QR contenu dans sa boîte, effet du curseur). Un test de géométrie
-seul n'aurait jamais vu ce défaut.
+**Sheet geometry lives outside `@media print`.** The on-screen preview and the
+printed sheet share the same rules, hence the same layout. That has not always
+been the case: as long as `.print-cell` was positioned only in the print block,
+the preview stacked the labels into a single column, the text of one label
+overflowed onto its neighbor, and the QR width slider had no effect — the SVG
+kept its intrinsic size in a box that nobody constrained. The lesson is in the
+tests: `test/sheet-matrix.test.js` covers pure geometry on all formats, and
+`npm run verify:brave` measures the DOM actually computed by the browser
+(distinct columns, no overlap, QR contained in its box, effect of the slider).
+A geometry test alone would never have seen this defect.
 
-**Le nombre de colonnes peut devenir une consigne.** Par défaut, la géométrie
-déduit la grille des cotes ; c'est ce qu'il faut pour une planche commerciale.
-En mode « remplir la feuille », l'utilisateur choisit au contraire colonnes,
-rangées, marge globale et écart, et la taille des étiquettes en découle
-(`fitGrid`). Ces deux sens de calcul ne peuvent pas cohabiter sur les mêmes
-noms : les préréglages portent donc `declaredColumns` / `declaredRows`, que
-`computeSheet` **ne lit pas**. Les nommer `columns` / `rows` aurait été un piège
-— `computeSheet` y aurait vu une grille explicite à honorer, et le test qui
-confronte la géométrie au nombre d'étiquettes annoncé serait devenu circulaire.
-`test/sheet-matrix.test.js` vérifie explicitement que ce piège reste désamorcé.
+**The number of columns can become an instruction.** By default, the geometry
+deduces the grid from the dimensions; that is what a commercial sheet needs. In
+"fill the sheet" mode, the user instead chooses columns, rows, overall margin
+and gap, and the label size follows from them (`fitGrid`). These two directions
+of calculation cannot coexist under the same names: the presets therefore carry
+`declaredColumns` / `declaredRows`, which `computeSheet` **does not read**.
+Naming them `columns` / `rows` would have been a trap — `computeSheet` would
+have seen an explicit grid to honor, and the test that confronts the geometry
+with the announced label count would have become circular.
+`test/sheet-matrix.test.js` explicitly verifies that this trap remains defused.
 
-**Les ressources construites portent une empreinte de leur contenu.** Sans elle,
-un navigateur peut servir un `style.css` du build précédent alors que le HTML et
-les scripts sont à jour : les nouveaux réglages apparaissent, mais la mise en
-page reste l'ancienne. C'est arrivé, et le diagnostic a été long — la planche
-s'affichait en une seule colonne, curseur de largeur du QR sans effet, alors que
-le correctif était bien sur le disque. Deux parades : l'URL porte une empreinte
-(`style.css?v=…`), et l'application **détecte** une feuille de style périmée en
-lisant une propriété que seule la feuille définit, puis l'annonce dans un bandeau
-persistant — `test/web-stale-css.test.js` couvre les deux branches.
+**Built resources carry a fingerprint of their content.** Without it, a browser
+can serve a `style.css` from the previous build while the HTML and scripts are
+up to date: the new settings appear, but the layout remains the old one. This
+happened, and the diagnosis took a long time — the sheet displayed in a single
+column, QR width slider without effect, while the fix was indeed on disk. Two
+safeguards: the URL carries a fingerprint (`style.css?v=…`), and the app
+**detects** a stale stylesheet by reading a property that only the stylesheet
+defines, then announces it in a persistent banner —
+`test/web-stale-css.test.js` covers both branches.
 
-**Calibrer reste nécessaire.** Aucune cote de fabricant ne prévoit l'entraînement
-d'une imprimante donnée : les champs « Décalage horizontal / vertical » déplacent
-toute la grille, sans la modifier. Et la taille du papier est posée
-dynamiquement (`@page`), sans quoi une planche Letter partirait sur du A4, donc
-réduite et décalée.
+**Calibration remains necessary.** No manufacturer dimension accounts for the
+feed of a given printer: the "Horizontal / vertical offset" fields move the
+whole grid, without modifying it. And the paper size is set dynamically
+(`@page`), without which a Letter sheet would go out on A4, hence scaled down
+and offset.
 
-## Raccourcir les URL, et ouvrir les liens collectés
+## Shortening URLs, and opening the collected links
 
-Deux fonctions qui se répondent, autour de la même question : quelle adresse
-finit sur l'étiquette ?
+Two features that answer each other, around the same question: which address
+ends up on the label?
 
-**Ouvrir un lien depuis la liste.** Le titre et l'URL de chaque ligne de la
-collection sont des hyperliens (`target="_blank"`, `rel="noopener noreferrer"`),
-dans l'application comme dans la fenêtre de l'extension. On peut donc vérifier
-un lien collecté sans le rechercher à la main. L'attribut `href` ne reçoit jamais
-qu'une URL http(s) : le contenu de la liste peut venir d'un import ou d'une page
-web, et un `javascript:` n'a rien à y faire.
+**Opening a link from the list.** The title and URL of each row of the
+collection are hyperlinks (`target="_blank"`, `rel="noopener noreferrer"`), in
+the app as well as in the extension popup. You can therefore check a collected
+link without looking it up by hand. The `href` attribute never receives
+anything but an http(s) URL: the list content can come from an import or a web
+page, and a `javascript:` has no business there.
 
-**Raccourcir, en option.** Le bouton « Raccourcir » transmet les liens visés —
-la sélection, ou toute la collection si rien n'est coché — à un service tiers,
-et enregistre le résultat à côté de l'URL d'origine.
+**Shortening, optional.** The "Shorten" button sends the targeted links — the
+selection, or the whole collection if nothing is checked — to a third-party
+service, and stores the result next to the original URL.
 
-| Service | Clé d'API | Remarque |
-|---|---|---|
-| TinyURL | aucune | défaut ; HTTPS, liens durables |
-| is.gd | aucune | service bénévole, régulièrement indisponible |
-| v.gd | aucune | même infrastructure que is.gd, avec page d'avertissement |
-| spoo.me | aucune | statistiques de clics ; répond en HTTP, ramené en HTTPS |
+The "Service" field does not ask you to arbitrate between four brands: its
+label says what each service changes for ordinary use, and **TinyURL —
+recommended** is offered from the start. Anyone who just wants a shorter link
+clicks "Shorten" without touching the setting.
 
-Aucun de ces services n'exige d'autorisation d'hôte supplémentaire : leur réponse
-porte un en-tête CORS permissif. C'est délibéré — un outil qui lit les URL de
-tous vos onglets ne devrait pas demander plus de permissions que nécessaire.
+| Service | Displayed label | API key | Note |
+|---|---|---|---|
+| TinyURL | TinyURL — recommended | none | default; HTTPS, durable links |
+| is.gd | is.gd — no statistics | none | volunteer service, regularly unavailable |
+| v.gd | v.gd — warning before redirect | none | same infrastructure as is.gd, with a warning page |
+| spoo.me | spoo.me — click statistics | none | answers over HTTP, brought back to HTTPS |
 
-Trois garde-fous, parce qu'un lien imprimé engage dans la durée :
+None of these services requires an additional host permission: their response
+carries a permissive CORS header. That is deliberate — a tool that reads the
+URLs of all your tabs should not ask for more permissions than necessary.
 
-1. **Rien n'est automatique.** Aucun service n'est contacté au chargement, ni à
-   la collecte : uniquement sur un clic, et le lot est annulable.
-2. **L'URL d'origine n'est jamais remplacée.** Le raccourci vit dans son propre
-   champ ; l'URL collectée reste la source de vérité, et un bouton « Retirer »
-   efface tous les raccourcis d'un coup.
-3. **Le choix se fait au moment de l'impression.** Le sélecteur « Le QR code
-   pointe vers » vaut pour toutes les sorties imprimées — aperçu, planche,
-   tableau, étiquettes, ZIP d'images, impression Niimbot. Les exports de
-   *données* (CSV, JSON) conservent l'URL d'origine et ajoutent le raccourci dans
-   une colonne « URL courte » ; le classeur `.xlsx` suit la cible imprimée et
-   ajoute l'URL d'origine. Aucune sortie ne perd une adresse.
+Three safeguards, because a printed link commits you over time:
 
-Raccourcir a un intérêt concret sur une étiquette de 12 mm : moins de caractères
-donnent une matrice plus petite, donc un QR plus lisible et imprimable plus
-petit. La contrepartie est réelle et affichée dans l'interface : un lien
-raccourci dépend de la survie du service. Pour un usage durable, gardez la cible
-« URL collectée ».
+1. **Nothing is automatic.** No service is contacted at load time, nor at
+   collection time: only on a click, and the batch is cancellable.
+2. **The original URL is never replaced.** The short URL lives in its own
+   field; the collected URL remains the source of truth, and a "Remove" button
+   clears all short URLs at once.
+3. **The choice is made at print time.** The "The QR code points to" selector
+   applies to all printed outputs — preview, sheet, table, labels, image ZIP,
+   table folder, Niimbot print. The *data* exports (CSV, JSON) keep the
+   original URL and add the short URL in a "Short URL" column; the `.xlsx`
+   workbook follows the printed target and adds the original URL, and the table
+   model keeps the collected address in `sourceUrl`. No output loses an
+   address.
 
-## Développement
+Shortening has a concrete benefit on a 12 mm label: fewer characters give a
+smaller matrix, hence a more legible QR that can be printed smaller. The
+trade-off is real and displayed in the interface: a shortened link depends on
+the service surviving. For durable use, keep the "Collected URL" target.
+
+## Development
 
 ```bash
 npm install
-npm test           # cœur JavaScript et surfaces web
-npm run test:swift # socle natif NiimbotKit
-npm run test:all   # les deux
+npm test           # JavaScript core and web surfaces
+npm run test:swift # native NiimbotKit core
+npm run test:all   # both
 
-npm run verify:brave  # parcours complet dans Brave, sur un profil isolé
-npm run verify:safari # parcours de la page d'extension dans le Safari réel
+npm run verify:brave  # full run in Brave, on an isolated profile
+npm run verify:safari # run of the extension page in the real Safari
 ```
 
-`verify:brave` exige Brave et un accès réseau (le raccourcissement interroge
-TinyURL). Il travaille dans `.verify-brave/`, redirige les téléchargements pour
-ne jamais toucher à vos Téléchargements, tourne hors écran et supprime tout en
-sortant.
+`verify:brave` requires Brave and network access (shortening queries TinyURL).
+It works in `.verify-brave/`, redirects downloads so as never to touch your
+Downloads, runs off-screen and deletes everything on exit.
 
-`verify:safari` exige Safari et `safaridriver`. Il n'existe pas de profil isolé
-pour Safari : le script pilote le Safari réel, c'est pourquoi il ne modifie
-aucun réglage, intercepte les exports au lieu de les enregistrer, et ferme ses
-fenêtres en sortant. Il dit à la fin ce qu'il n'a **pas** pu vérifier.
+`verify:safari` requires Safari and `safaridriver`. There is no isolated profile
+for Safari: the script drives the real Safari, which is why it modifies no
+setting, intercepts exports instead of saving them, and closes its windows on
+exit. It says at the end what it could **not** verify.
 
-`npm test` construit d'abord `dist/` (script `pretest`), car plusieurs tests
-portent sur l'artefact assemblé. Lancer `node --test` directement sans avoir
-construit échoue avec un message explicite.
+`npm test` first builds `dist/` (the `pretest` script), because several tests
+bear on the assembled artifact. Running `node --test` directly without having
+built fails with an explicit message.
 
-### Environnement
+### Environment
 
-- **Cache npm local.** Le `.npmrc` rapatrie le cache dans le projet
-  (`.npm-cache/`). Si votre environnement exporte déjà `npm_config_cache`, il a
-  la priorité sur le `.npmrc` — neutralisez-le :
+- **Local npm cache.** Some constrained environments cannot write to `~/.npm`.
+  A local `.npmrc` — not tracked by git — can then bring the cache back into
+  the project (`.npm-cache/`). If your environment already exports
+  `npm_config_cache`, it takes priority over `.npmrc` — neutralize it:
   `env -u npm_config_cache npm install`.
-- **Xcode.** `xcode-select` pointe sur les Command Line Tools. Les outils
-  Xcode restent utilisables sans `sudo` en préfixant les commandes :
+- **Xcode.** `xcode-select` points to the Command Line Tools. The Xcode tools
+  remain usable without `sudo` by prefixing the commands:
   `DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcrun …`
 
-## Documents de référence
+## Reference documents
 
-- `note-protocole-niimbot-ble.md` — protocole BLE Niimbot : UUID, format de
-  trame, séquences d'impression, contraintes Web Bluetooth et CoreBluetooth,
-  et les points restant à vérifier sur matériel.
-- `docs/note-capacites-capture-url-safari-brave.md` — matrice de capacités des
-  extensions navigateur sur Safari macOS, Safari iOS et Brave.
-- `guide-utilisation.md` — le parcours complet, de la collecte à l'impression :
-  raccourcissement, planches Avery et leur calibrage, aperçu Niimbot hors ligne,
-  exports sans imprimante, dépannage.
+- [docs/guide.md](docs/guide.md) — the complete path, from collection to
+  printing: shortening, Avery sheets and their calibration, offline Niimbot
+  preview, exports without a printer, troubleshooting.
+- [docs/protocole-niimbot-ble.fr.md](docs/protocole-niimbot-ble.fr.md) —
+  Niimbot BLE protocol: UUIDs, frame format, print sequences, Web Bluetooth and
+  CoreBluetooth constraints, and the points still to be verified on hardware.
+- [docs/note-capacites-capture-url-safari-brave.md](docs/note-capacites-capture-url-safari-brave.md)
+  — capability matrix of the browser extensions on Safari macOS, Safari iOS and
+  Brave.
+- [docs/safari-extension-verification.md](docs/safari-extension-verification.md)
+  — what was verified in the real Safari, and what cannot be.
+- [docs/README.md](docs/README.md) — index of all the documentation.
 
-## Incertitudes assumées
+## Acknowledged uncertainties
 
-### Un défaut corrigé dans le composeur natif
+### A defect fixed in the native composer
 
-Deux tests de `LabelComposerTests` échouaient, et l'analyse a montré qu'ils ne
-relevaient pas de la même cause :
+Two tests in `LabelComposerTests` were failing, and the analysis showed that
+they did not stem from the same cause:
 
-- **Un vrai défaut, corrigé.** Activer le titre ne changeait pas la hauteur du
-  rendu : le titre était dessiné *par-dessus* la première ligne d'URL, et la
-  dernière ligne d'URL sortait du bas de l'image — rognée en silence. La
-  géométrie réserve désormais la ligne du titre (`reservedLines`), et le plafond
-  de lignes porte sur le total, titre compris.
-- **Un test faux.** `testTopRowsContainTheQrCode` cherchait de l'encre dans les
-  dix premières lignes. C'était impossible par construction : les deux modules
-  de blanc qui entourent le QR — sa zone de silence, sans laquelle aucun lecteur
-  n'accroche — occupent exactement cette bande. Le test vérifie maintenant la
-  position du premier pixel encré, `marge + 2 × échelle`, ce qui est plus précis
-  que ce qu'il vérifiait avant.
+- **A real defect, fixed.** Enabling the title did not change the height of the
+  rendering: the title was drawn *on top of* the first URL line, and the last
+  URL line went off the bottom of the image — cropped in silence. The geometry
+  now reserves the title line (`reservedLines`), and the line cap applies to
+  the total, title included.
+- **A false test.** `testTopRowsContainTheQrCode` looked for ink in the first
+  ten lines. That was impossible by construction: the two modules of white that
+  surround the QR — its quiet zone, without which no reader latches on — occupy
+  exactly that band. The test now verifies the position of the first inked
+  pixel, `margin + 2 × scale`, which is more precise than what it verified
+  before.
 
-Ce composeur sert le socle Swift, pas le chemin Brave / web, qui compose ses
-étiquettes en JavaScript.
+This composer serves the Swift core, not the Brave / web path, which composes
+its labels in JavaScript.
 
-### Ce qui ne peut pas être vérifié ici
+### What cannot be verified here
 
-Ces points ne peuvent pas être tranchés sans matériel ni appareil :
+These points cannot be settled without hardware or a device:
 
-- **Orientation de la matrice.** Le profil D110 porte `transposed: true`, fondé
-  sur la convention des implémentations de référence. Si la première étiquette
-  sort pivotée de 90°, c'est ce booléen qu'il faut basculer.
-- **Groupage des écritures Bluetooth.** Les groupes de 240 octets ont été validés
-  sur B1 et M2-H, jamais sur D110. La limite est réglable.
-- **« D110A » n'existe dans aucune source** — ni le wiki Niimbot, ni l'API
-  constructeur, ni les bibliothèques. Le `modelId` réel est lu à la connexion et
-  journalisé.
-- **`contextMenus` sur Safari iOS.** MDN l'annonce non supporté, le code source
-  de WebKit suggère le contraire. L'extension ne dépend plus de la réponse : le
-  menu n'est branché que s'il existe, et tout reste accessible depuis la fenêtre
-  de la barre d'outils. La question n'est donc plus bloquante, seulement
-  informative.
-- **Compilation iOS.** `IBAgent-iOS` doit écrire dans
-  `~/Library/Developer/CoreSimulator` et clang dans un cache de modules système.
-  Les deux échouent hors d'un accès complet. À relancer sur une machine sans
-  restriction : `xcodebuild -scheme "URLQRCodePrinter (iOS)"`.
+- **Matrix orientation.** The D110 profile carries `transposed: true`, based on
+  the convention of the reference implementations. If the first label comes out
+  rotated by 90°, it is this boolean that must be flipped.
+- **Batching of Bluetooth writes.** The 240-byte groups were validated on B1
+  and M2-H, never on D110. The limit is adjustable.
+- **"D110A" does not exist in any source** — neither the Niimbot wiki, nor the
+  manufacturer API, nor the libraries. The real `modelId` is read at connection
+  time and logged.
+- **`contextMenus` on Safari iOS.** MDN announces it as unsupported, WebKit's
+  source code suggests the opposite. The extension no longer depends on the
+  answer: the menu is only wired up if it exists, and everything remains
+  accessible from the toolbar popup. The question is therefore no longer
+  blocking, only informative.
+- **iOS compilation.** `IBAgent-iOS` must write to
+  `~/Library/Developer/CoreSimulator` and clang to a system module cache. Both
+  fail without full access. To be re-run on a machine without restriction:
+  `xcodebuild -scheme "URLQRCodePrinter (iOS)"`.
+
+## License
+
+MIT — see [LICENSE](LICENSE). The project can be used, modified and
+redistributed, including commercially, provided the copyright notice is kept.
+
+## Contributing
+
+The code, comments, error messages and commits are in French; the documentation
+exists in French and English. Before opening a pull request:
+
+```bash
+npm install
+npm run test:all   # 616 JavaScript tests + 104 Swift tests
+```
+
+The repository conventions — a core with no DOM and no implicit network, zero
+dependencies, comments that explain *why* — are detailed in
+[CONTRIBUTING.md](CONTRIBUTING.md).
