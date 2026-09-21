@@ -40,6 +40,18 @@ async function main() {
   }
 
   const entries = await readdir(SOURCE);
+
+  // Les ressources doivent refléter la source **exactement**. Une copie macOS
+  // (« app 2.js »), un fichier renommé à la main ou une entrée retirée de la
+  // construction survivraient sinon en silence, et Xcode embarquerait un
+  // fichier que plus personne ne produit.
+  const supprimes = [];
+  for (const present of await readdir(TARGET)) {
+    if (entries.includes(present)) continue;
+    await rm(join(TARGET, present), { recursive: true, force: true });
+    supprimes.push(present);
+  }
+
   for (const entry of entries) {
     // On remplace l'entrée entière : un fichier supprimé de la source ne doit
     // pas survivre dans les ressources.
@@ -47,6 +59,7 @@ async function main() {
     await cp(join(SOURCE, entry), join(TARGET, entry), { recursive: true });
   }
 
+  for (const nom of supprimes) console.log(`  supprimé : ${nom} (absent de la source)`);
   console.log(`✓ ${entries.length} entrées copiées vers ${TARGET.slice(ROOT.length + 1)}`);
 }
 

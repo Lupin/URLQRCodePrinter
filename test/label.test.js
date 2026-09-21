@@ -17,6 +17,7 @@ import {
   wrapDate,
   fontSizeForDate,
   layoutLabelRotated,
+  drawLabel,
 } from '../src/core/label.js';
 
 /** Mesure factice : chaque caractère vaut 10 px. */
@@ -448,6 +449,164 @@ test('les deux sens occupent la meme bande', () => {
   assert.equal(a.textLeft, b.textLeft);
   assert.equal(a.rotatedTextThickness, b.rotatedTextThickness);
   assert.deepEqual(a.lines, b.lines);
+});
+
+// ---------------------------------------------------------------------------
+// Ce qui est réellement dessiné dans la disposition tournée
+// ---------------------------------------------------------------------------
+
+/**
+ * Contexte 2D qui ne peint pas : il retient la matrice courante et la boîte de
+ * chaque `fillText`. Seul moyen de vérifier la position réellement calculée
+ * sans navigateur — la géométrie, elle, ne dit pas où le texte est écrit.
+ */
+function contexteInstrumente() {
+  let etat = { a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 };
+  const pile = [];
+  const boites = [];
+  const multiplier = (m, n) => ({
+    a: m.a * n.a + m.c * n.b,
+    b: m.b * n.a + m.d * n.b,
+    c: m.a * n.c + m.c * n.d,
+    d: m.b * n.c + m.d * n.d,
+    e: m.a * n.e + m.c * n.f + m.e,
+    f: m.b * n.e + m.d * n.f + m.f,
+  });
+  const appliquer = (x, y) => ({
+    x: etat.a * x + etat.c * y + etat.e,
+    y: etat.b * x + etat.d * y + etat.f,
+  });
+  const taillePolice = () => {
+    const trouve = /(\d+(?:\.\d+)?)px/.exec(ctx.font ?? '');
+    return trouve ? Number(trouve[1]) : 0;
+  };
+  const ctx = {
+    fillStyle: '',
+    font: '',
+    textAlign: 'left',
+    textBaseline: 'top',
+    imageSmoothingEnabled: false,
+    save() { pile.push({ ...etat }); },
+    restore() { etat = pile.pop() ?? { a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 }; },
+    translate(tx, ty) { etat = multiplier(etat, { a: 1, b: 0, c: 0, d: 1, e: tx, f: ty }); },
+    rotate(angle) {
+      const cos = Math.cos(angle);
+      const sin = Math.sin(angle);
+      etat = multiplier(etat, { a: cos, b: sin, c: -sin, d: cos, e: 0, f: 0 });
+    },
+    setTransform(a, b, c, d, e, f) { etat = { a, b, c, d, e, f }; },
+    fillRect() {},
+    drawImage() {},
+    measureText: (texte) => ({ width: texte.length * taillePolice() * 0.55 }),
+    getImageData: () => ({ width: 1, height: 1, data: new Uint8ClampedArray(4) }),
+    fillText(texte, x, y, maxWidth) {
+      const taille = taillePolice();
+      const mesure = texte.length * taille * 0.55;
+      const largeur = maxWidth === undefined ? mesure : Math.min(mesure, maxWidth);
+      const coins = [appliquer(x, y), appliquer(x + largeur, y), appliquer(x, y + taille), appliquer(x + largeur, y + taille)];
+      boites.push({
+        texte,
+        x0: Math.min(...coins.map((p) => p.x)),
+        x1: Math.max(...coins.map((p) => p.x)),
+        y0: Math.min(...coins.map((p) => p.y)),
+        y1: Math.max(...coins.map((p) => p.y)),
+      });
+    },
+  };
+  return { ctx, boites };
+}
+
+/** Boîte englobante de tout le texte écrit. */
+function enveloppe(boites) {
+  return {
+    x0: Math.min(...boites.map((b) => b.x0)),
+    x1: Math.max(...boites.map((b) => b.x1)),
+    y0: Math.min(...boites.map((b) => b.y0)),
+    y1: Math.max(...boites.map((b) => b.y1)),
+  };
+}
+
+/** Compose une étiquette tournée et relève ce qui est réellement dessiné. */
+function dessineEtMesure(sens, { titre = [], date = [] } = {}) {
+  const measureFactory = (size) => (texte) => texte.length * size * 0.55;
+  const url = 'https://exemple.fr/un-article-assez-long-pour-tester';
+  const extraLines = (titre.length > 0 ? 1 : 0) + date.length;
+  const g0 = computeLabelGeometry({
+    text: url,
+    qrText: url,
+    widthPx: 96,
+    dpi: 203,
+    extraLines,
+    maxHeightPx: 240,
+    measureFactory,
+  });
+  const geometry = layoutLabelRotated(g0, {
+    measure: measureFactory(13),
+    measureFactory,
+    text: url,
+    sens,
+    titleLines: titre,
+  });
+  const { ctx, boites } = contexteInstrumente();
+  drawLabel(ctx, geometry, {
+    titleLines: titre,
+    showTitle: titre.length > 0,
+    url,
+    extraText: date,
+  });
+  return { geometry, boites, boite: enveloppe(boites) };
+}
+
+test('les deux sens écrivent le texte exactement au même endroit', () => {
+  // Le défaut constaté à l'impression : un sens rognait le texte, l'autre non.
+  // Les deux doivent produire la même boîte, au pixel près. La comparaison est
+  // numérique et non `deepEqual` : les deux ancrages sont calculés par des
+  // additions différentes, donc égaux à la virgule flottante près.
+  const options = { titre: ['Mes liens'], date: ['15/09/2026 21:07'] };
+  const horaire = dessineEtMesure('horaire', options);
+  const antihoraire = dessineEtMesure('antihoraire', options);
+
+  for (const bord of ['x0', 'x1', 'y0', 'y1']) {
+    assert.ok(
+      Math.abs(horaire.boite[bord] - antihoraire.boite[bord]) < 1e-9,
+      `${bord} : ${horaire.boite[bord]} contre ${antihoraire.boite[bord]}`,
+    );
+  }
+});
+
+test('le texte tourné est centré dans sa bande, dans les deux sens', () => {
+  for (const sens of ['horaire', 'antihoraire']) {
+    for (const options of [{}, { titre: ['Mes liens'] }, { date: ['15/09/2026 21:07'] }]) {
+      const { geometry, boite, boites } = dessineEtMesure(sens, options);
+      const libelle = `${sens} ${JSON.stringify(options)}`;
+
+      // Centré sur l'épaisseur de la bande…
+      const centreBande = geometry.textLeft + geometry.rotatedTextThickness / 2;
+      const centreTexte = (boite.x0 + boite.x1) / 2;
+      assert.ok(
+        Math.abs(centreTexte - centreBande) <= 1,
+        `${libelle} : centre ${centreTexte} contre ${centreBande}`,
+      );
+
+      // …et à l'intérieur du canevas : rien n'est rogné.
+      assert.ok(boite.x0 >= 0, `${libelle} : déborde à gauche (${boite.x0})`);
+      assert.ok(boite.x1 <= geometry.width, `${libelle} : déborde à droite (${boite.x1})`);
+      assert.ok(boite.y0 >= 0, `${libelle} : déborde en haut (${boite.y0})`);
+      assert.ok(boite.y1 <= geometry.height, `${libelle} : déborde en bas (${boite.y1})`);
+      assert.ok(boites.length > 0);
+    }
+  }
+});
+
+test('l\'épaisseur réservée compte chaque rangée une seule fois', () => {
+  // Le titre était compté deux fois — une fois par `titleLines`, une fois par
+  // `extraLines` — ce qui réservait une rangée de trop et décalait le bloc.
+  const titre = ['Mes liens'];
+  const date = ['15/09/2026 21:07'];
+  const { geometry } = dessineEtMesure('horaire', { titre, date });
+  const rangees = titre.length + geometry.lines.length + date.length;
+
+  assert.equal(geometry.rotatedTextThickness, rangees * geometry.lineHeight);
 });
 
 // ---------------------------------------------------------------------------

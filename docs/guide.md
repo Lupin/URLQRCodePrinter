@@ -376,9 +376,11 @@ top, the text at the bottom).
   "15/09/2026 21:07" wraps cleanly onto two lines; the text size is reduced just
   enough for it to fit, never below 1.6 mm — below that, it would no longer be
   legible.
-- **Orientation**: Normal (« Normale »), 90°, 180°, 270°. The preview shows the
-  rotation, hence what will come out. On a real D110, **90° crops the text and
-  270° does not**: prefer 270° until that defect is fixed.
+- **Text layout** (« Disposition du texte »): *Text upright, below the QR*, *Text
+  upright, above the QR*, *Rotated text, read bottom to top*, *Rotated text, read
+  top to bottom*, and *Text to the right of the QR* — the last one only appears on
+  a head wide enough to leave a real column. The two rotation directions are
+  equivalent: the text is centred in its band in both cases.
 - **Layout** (« Disposition »): see above.
 
 Printing refuses a bitmap wider than the printhead rather than letting it be
@@ -512,10 +514,6 @@ before clicking "Connect" (« Connecter »).
 also be dirty: clean it with a cotton swab soaked in isopropyl alcohol, with the
 printer turned off.
 
-**Rotated text is cropped.** At orientation 90°, the text comes out cropped on a
-real D110; at 270° it does not. The two rotation directions therefore do not
-behave symmetrically: use 270° until the defect is fixed.
-
 **A label comes out rotated by 90°.** The D110 profile carries a `transposed`
 boolean based on the convention of the reference implementations; it was not
 explicitly recorded during the test on a real D110. Report it: that boolean is
@@ -524,9 +522,8 @@ what needs to be flipped.
 ## Known limitations
 
 - **Niimbot printing has been validated on a real Niimbot D110.** A complete
-  label came out, and the printer identifies itself correctly on connection. Two
-  reservations: **text rotated by 90° is cropped, whereas at 270° it is not**, and
-  the rendering remains sensitive to the chosen density and text size. The other
+  label came out, and the printer identifies itself correctly on connection. The
+  rendering remains sensitive to the chosen density and text size. The other
   models in the catalogue (M2, M3) have not been exercised on hardware.
 - **Safari** does not implement Web Bluetooth. The Safari extension works for
   collecting, not for direct printing: use the image folder.

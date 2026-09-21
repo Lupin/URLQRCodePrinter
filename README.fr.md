@@ -24,7 +24,7 @@ Markdown, ou envoi direct à une imprimante Niimbot.
 | Socle natif Swift (protocole, session, CoreBluetooth) | fait, testé |
 | Application iOS qui utilise ce socle | à faire |
 
-**720 tests, tous verts** — 616 en JavaScript et 104 en Swift — dont :
+**723 tests, tous verts** — 619 en JavaScript et 104 en Swift — dont :
 
 - la validation **octet à octet** des trames Niimbot contre les relevés
   documentés, **dans les deux langages** : deux implémentations indépendantes
@@ -713,10 +713,11 @@ Une étiquette complète est sortie d'une **Niimbot D110 réelle**. Trois consta
   bien celui d'une D110 ;
 - le contenu imprimé est correct **pour la densité et la taille de texte
   choisies** — ces deux réglages restent ceux qui commandent la lisibilité ;
-- **le texte tourné à 90° est rogné, alors qu'à 270° il ne l'est pas.** Les deux
-  sens de rotation ne se comportent donc pas symétriquement : c'est le défaut
-  connu de cette version, et la raison pour laquelle 270° est le sens à préférer
-  tant qu'il n'est pas corrigé.
+- **le texte tourné était rogné dans un sens et pas dans l'autre.** Le défaut
+  venait de la composition, pas du protocole : le titre était compté deux fois
+  dans l'épaisseur réservée, et chaque sens ancrait le texte d'un côté différent.
+  Le bloc est maintenant **centré dans sa bande**, dans les deux directions, et
+  trois tests le vérifient sur les positions réellement dessinées.
 
 ### Ce qui ne peut pas être vérifié ici
 
@@ -758,7 +759,7 @@ pull request :
 
 ```bash
 npm install
-npm run test:all   # 616 tests JavaScript + 104 tests Swift
+npm run test:all   # 619 tests JavaScript + 104 tests Swift
 ```
 
 Les conventions du dépôt — cœur sans DOM ni réseau implicite, zéro dépendance,

@@ -24,7 +24,7 @@ them straight to a Niimbot printer.
 | Native Swift core (protocol, session, CoreBluetooth) | done, tested |
 | iOS app that uses that core | to do |
 
-**720 tests, all green** — 616 in JavaScript and 104 in Swift — including:
+**723 tests, all green** — 619 in JavaScript and 104 in Swift — including:
 
 - **byte-for-byte** validation of the Niimbot frames against the documented
   records, **in both languages**: two independent implementations that
@@ -707,10 +707,11 @@ A complete label came out of a **real Niimbot D110**. Three findings:
   is indeed that of a D110;
 - the printed content is correct **for the chosen density and text size** — those
   two settings remain the ones that govern legibility;
-- **text rotated by 90° is cropped, whereas at 270° it is not.** The two
-  rotation directions therefore do not behave symmetrically: this is the known
-  defect in this version, and the reason 270° is the direction to prefer until it
-  is fixed.
+- **rotated text was cropped in one direction and not in the other.** The defect
+  came from the composition, not the protocol: the title was counted twice in the
+  reserved thickness, and each direction anchored the text on a different side.
+  The block is now **centred in its band**, in both directions, and three tests
+  check it against the positions actually drawn.
 
 ### What cannot be verified here
 
@@ -749,7 +750,7 @@ exists in French and English. Before opening a pull request:
 
 ```bash
 npm install
-npm run test:all   # 616 JavaScript tests + 104 Swift tests
+npm run test:all   # 619 JavaScript tests + 104 Swift tests
 ```
 
 The repository conventions — a core with no DOM and no implicit network, zero

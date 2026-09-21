@@ -12,7 +12,7 @@ follows that convention is easier to review.
 npm install          # one runtime dependency: uqr
 npm run build        # assembles dist/web and dist/extension*
 npm run serve        # http://127.0.0.1:4173/ — localhost is required
-npm test             # 616 JavaScript tests (rebuilds dist/ first)
+npm test             # 619 JavaScript tests (rebuilds dist/ first)
 npm run test:swift   # 104 Swift tests for the native core
 npm run test:all     # both
 ```

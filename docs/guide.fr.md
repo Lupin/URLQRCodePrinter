@@ -368,9 +368,11 @@ bouton **Libre** revient au rouleau continu, où la hauteur découle du contenu.
 - **Date et heure** : sur une tête de 12 mm, « 15/09/2026 21:07 » se coupe
   proprement sur deux lignes ; la taille du texte est réduite juste assez pour
   qu'elle entre, jamais sous 1,6 mm — en dessous, elle ne serait plus lisible.
-- **Orientation** : Normale, 90°, 180°, 270°. L'aperçu montre la rotation, donc
-  ce qui sortira. Sur une D110 réelle, **90° rogne le texte et 270° non** :
-  préférez 270° tant que ce défaut n'est pas corrigé.
+- **Disposition du texte** : *Texte droit, sous le QR*, *Texte droit, au-dessus
+  du QR*, *Texte tourné, se lit de bas en haut*, *Texte tourné, se lit de haut en
+  bas*, et *Texte à droite du QR* — cette dernière n'apparaît que sur une tête
+  assez large pour laisser une vraie colonne. Les deux sens de rotation du texte
+  tourné sont équivalents : le texte est centré dans sa bande dans les deux cas.
 - **Disposition** : voir plus haut.
 
 L'impression refuse un bitmap plus large que la tête plutôt que de le laisser
@@ -498,10 +500,6 @@ et réveillez-la avant de cliquer « Connecter ».
 aussi être encrassée : nettoyez-la avec un coton-tige imbibé d'alcool isopropylique,
 imprimante éteinte.
 
-**Le texte tourné est rogné.** En orientation 90°, le texte sort rogné sur une
-D110 réelle ; en 270° il ne l'est pas. Les deux sens de rotation ne se comportent
-donc pas symétriquement : utilisez 270° tant que le défaut n'est pas corrigé.
-
 **Une étiquette sort pivotée de 90°.** Le profil D110 porte un booléen
 `transposed` fondé sur la convention des implémentations de référence ; il n'a pas
 été relevé explicitement lors de l'essai sur une D110 réelle. Signalez-le : c'est
@@ -511,8 +509,7 @@ ce booléen qu'il faut basculer.
 
 - **L'impression Niimbot a été validée sur une Niimbot D110 réelle.** Une
   étiquette complète est sortie, et l'imprimante s'identifie correctement à la
-  connexion. Deux réserves : **le texte tourné à 90° est rogné, alors qu'à 270° il
-  ne l'est pas**, et le rendu reste sensible à la densité et à la taille de texte
+  connexion. Le rendu reste sensible à la densité et à la taille de texte
   choisies. Les autres modèles du catalogue (M2, M3) n'ont pas été éprouvés sur
   matériel.
 - **Safari** n'implémente pas Web Bluetooth. L'extension Safari fonctionne pour

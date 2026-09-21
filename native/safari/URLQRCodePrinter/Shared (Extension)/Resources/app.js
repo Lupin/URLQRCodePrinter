@@ -4357,13 +4357,19 @@ function layoutLabelRotated(geometry, options) {
     // texte prend ce qui reste. Sans cette réservation, le corps occupait toute
     // la bande et la date — écrite en dernier — débordait et se faisait rogner.
     const rangees = Math.max(1, Math.floor(bandWidth / height));
-    const reservees = titleLines.length + geometry.extraLines;
+    // `geometry.extraLines` compte déjà le titre (0 ou 1) et les lignes de date.
+    // L'ajouter de nouveau à `titleLines.length` comptait le titre deux fois :
+    // la bande réservait une rangée de trop et le bloc se retrouvait décalé d'un
+    // demi-interligne — d'un bord dans un sens, de l'autre dans l'autre sens.
+    const titreRangees = titleLines.length;
+    const dateRangees = Math.max(0, geometry.extraLines - (titreRangees > 0 ? 1 : 0));
+    const reservees = titreRangees + dateRangees;
     const essai = wrapText(mesure, options.text ?? '', available, {
       maxLines: Math.max(1, rangees - reservees),
     });
     // L'épaisseur compte les lignes du titre et de la date, pas seulement le
     // corps : ce sont elles qui décident si la bande déborde.
-    const epaisseur = (essai.length + titleLines.length + geometry.extraLines) * height;
+    const epaisseur = (essai.length + reservees) * height;
     const complet = essai.join('').replace(/\s/g, '') === (options.text ?? '').replace(/\s/g, '');
     last = { lines: essai, lineHeight: height, fontSize: size, thickness: epaisseur };
     if (epaisseur <= bandWidth && (complet || options.text === '')) {
@@ -4499,26 +4505,43 @@ function drawLabel(ctx, geometry, options = {}) {
 
   // Texte tourné d'un quart de tour, dans sa bande sous le QR.
   //
-  // Le repère : on se place au coin **bas-gauche** de la bande, puis on tourne
-  // de -90°. Un point écrit vers +x part alors vers le haut, et les lignes
-  // s'empilent vers la droite. Se tromper d'angle envoie le texte hors de
-  // l'étiquette ; se tromper d'ancrage le fait remonter sur le QR.
+  // Le bloc est **centré** dans sa bande, sur l'épaisseur comme sur la longueur.
+  // Auparavant chaque sens s'ancrait d'un côté différent — l'un au bord du QR,
+  // l'autre au bord de l'étiquette — et le titre, compté deux fois dans
+  // l'épaisseur réservée, décalait encore le bloc d'un demi-interligne. Résultat
+  // visible à l'impression : un sens rognait le texte, l'autre non.
   if (geometry.textRotated === true) {
     const blockLeft = geometry.textLeft ?? geometry.padding;
     const thickness = geometry.rotatedTextThickness ?? geometry.lineHeight;
+    const bandLength = geometry.textWidth ?? 0;
+    const lineHeight = geometry.lineHeight;
+
+    // Les rangées réellement écrites, dans l'ordre de lecture.
+    const rangees = [
+      ...(geometry.titleLines ?? (showTitle && title ? [title] : []))
+        .filter(Boolean).map((contenu) => ({ contenu, gras: true })),
+      ...geometry.lines.filter(Boolean).map((contenu) => ({ contenu, gras: false })),
+      ...extraText.filter(Boolean).map((contenu) => ({ contenu, gras: false })),
+    ];
+
+    // L'épaisseur occupée n'est pas l'épaisseur réservée : la dernière rangée
+    // descend d'une hauteur de police sous son origine, pas d'un interligne.
+    // Centrer sur la valeur réservée décalait le bloc d'un demi-interligne.
+    const occupee = rangees.length > 0
+      ? (rangees.length - 1) * lineHeight + geometry.fontSize
+      : 0;
+    const travers = Math.max(0, (thickness - occupee) / 2);
 
     ctx.save();
     if (geometry.textSens === 'antihoraire') {
-      // Sens inverse : on part du **haut** de la bande, et le texte descend.
-      // Après une rotation de +90°, (x, y) devient (-y, x) : les rangées
-      // s'empilent vers la gauche, d'où l'ancrage au bord droit du bloc.
-      ctx.translate(blockLeft + thickness, geometry.textTop);
+      // Sens inverse : après une rotation de +90°, (x, y) devient (-y, x). Les
+      // rangées s'empilent vers la gauche, d'où l'ancrage au bord droit du bloc.
+      ctx.translate(blockLeft + thickness - travers, geometry.textTop);
       ctx.rotate(Math.PI / 2);
     } else {
-      // Sens ordinaire : on part du **bas** de la bande, et le texte monte.
-      // Après une rotation de -90°, (x, y) devient (y, -x) : les rangées
-      // s'empilent vers la droite, et le texte va vers le haut.
-      ctx.translate(blockLeft, geometry.textTop + geometry.textWidth);
+      // Sens ordinaire : après une rotation de -90°, (x, y) devient (y, -x).
+      // Les rangées s'empilent vers la droite, et le texte va vers le haut.
+      ctx.translate(blockLeft + travers, geometry.textTop + bandLength);
       ctx.rotate(-Math.PI / 2);
     }
     ctx.textAlign = 'left';
@@ -4529,21 +4552,20 @@ function drawLabel(ctx, geometry, options = {}) {
     // un même `x` cumulait leurs longueurs et faisait dépasser le texte, qui
     // remontait alors par-dessus le QR.
     let rangee = 0;
-    const ecrire = (contenu, gras) => {
-      if (!contenu) return;
+    for (const { contenu, gras } of rangees) {
       ctx.font = `${gras ? 'bold ' : ''}${geometry.fontSize}px ${fontFamily}`;
-      ctx.fillText(contenu, 0, rangee * geometry.lineHeight, geometry.textWidth);
+      // La longueur occupée est mesurée, jamais supposée : `fillText` condense
+      // un texte trop long, et centrer sur une longueur fausse décalerait le
+      // bloc dans un sens sans décaler l'autre.
+      const largeur = Math.min(ctx.measureText(contenu).width, bandLength);
+      ctx.fillText(
+        contenu,
+        Math.max(0, (bandLength - largeur) / 2),
+        rangee * lineHeight,
+        bandLength,
+      );
       rangee += 1;
-    };
-
-    // Le titre peut occuper plusieurs lignes : ce sont celles-ci qu'il faut
-    // écrire. Utiliser `title` (la chaîne entière) faisait disparaître le titre
-    // dès qu'il était découpé — le mode tourné n'imprimait alors plus rien.
-    for (const ligne of geometry.titleLines ?? (showTitle && title ? [title] : [])) {
-      ecrire(ligne, true);
     }
-    for (const contenu of geometry.lines) ecrire(contenu, false);
-    for (const contenu of extraText) ecrire(contenu, false);
 
     ctx.restore();
     return geometry;

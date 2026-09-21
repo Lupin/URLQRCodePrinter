@@ -420,7 +420,7 @@ Sur M2-H : 50 trames en 287 ms (5,7 ms/trame) contre 11,5 ms/trame sans bundling
 
 ## 6. Incertitudes et points à vérifier expérimentalement
 
-**Statut de vérification matérielle.** Une étiquette complète est sortie d'une **Niimbot D110 réelle**, imprimée par la session d'impression de l'application. Deux points relevés : l'imprimante **s'identifie correctement à la connexion** (le `modelId` lu est celui d'une D110), et le contenu est correct pour la densité et la taille de texte choisies. Un défaut observé, qui ne relève pas du protocole : **le texte tourné à 90° est rogné, alors qu'à 270° il ne l'est pas**. Les points ci-dessous restent ouverts dans la mesure où cet essai ne les tranche pas.
+**Statut de vérification matérielle.** Une étiquette complète est sortie d'une **Niimbot D110 réelle**, imprimée par la session d'impression de l'application. Deux points relevés : l'imprimante **s'identifie correctement à la connexion** (le `modelId` lu est celui d'une D110), et le contenu est correct pour la densité et la taille de texte choisies. Un défaut avait été observé, sans rapport avec le protocole : le texte tourné était rogné dans un sens et pas dans l'autre. C'était un défaut de composition — le titre compté deux fois dans l'épaisseur réservée, et un ancrage différent par sens — corrigé dans `src/core/label.js`. Les points ci-dessous restent ouverts dans la mesure où cet essai ne les tranche pas.
 
 **Contradictions / incertitudes ouvertes — à ne pas trancher sans mesure :**
 
