@@ -214,6 +214,19 @@ h2 {
   text-decoration: underline;
 }
 
+/* --- Signature du récit --- */
+
+/*
+ * Une signature, pas un titre : couleur discrète, corps plus petit, et un peu
+ * d'air au-dessus. Elle ferme le paragraphe d'origine sans concurrencer le
+ * texte.
+ */
+.signature {
+  margin-top: 1.5rem;
+  color: var(--muted);
+  font-size: 0.9375rem;
+}
+
 /* --- Pied --- */
 
 footer {

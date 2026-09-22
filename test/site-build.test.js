@@ -317,5 +317,8 @@ test('les deux pages racontent la même origine', () => {
     const html = readFileSync(file, 'utf8');
     assert.ok(html.includes(`<h2>${titre}</h2>`), `section d'origine absente : ${file}`);
     assert.match(html, /Niimbot/, `le récit doit garder le détail concret : ${file}`);
+    // Signé dans les deux langues : un nom ne se traduit pas.
+    assert.match(html, /<p class="signature">- Gaël A\.G\. -<\/p>/, `signature absente : ${file}`);
+    assert.ok(html.includes('<link rel="stylesheet" href="style.css') || html.includes('href="../style.css'), 'styles absents');
   }
 });
