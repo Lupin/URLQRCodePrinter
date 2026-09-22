@@ -304,3 +304,18 @@ test('la prose publiée n\'utilise pas de tiret cadratin', () => {
     );
   }
 });
+
+test('les deux pages racontent la même origine', () => {
+  // Le récit de départ est ce qui donne un auteur à l'outil. Si une seule des
+  // deux langues le portait, la page anglaise aurait l'air d'un produit sans
+  // personne derrière.
+  const pages = [
+    { file: join(SITE, 'index.html'), titre: 'Pourquoi cette extension' },
+    { file: join(SITE, 'en', 'index.html'), titre: 'Why I built it' },
+  ];
+  for (const { file, titre } of pages) {
+    const html = readFileSync(file, 'utf8');
+    assert.ok(html.includes(`<h2>${titre}</h2>`), `section d'origine absente : ${file}`);
+    assert.match(html, /Niimbot/, `le récit doit garder le détail concret : ${file}`);
+  }
+});
