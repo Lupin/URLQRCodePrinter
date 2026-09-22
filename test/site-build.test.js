@@ -256,3 +256,51 @@ test('le lien vers l\'autre langue est en tête de page', () => {
     );
   }
 });
+
+// ---------------------------------------------------------------------------
+// Texte publié
+// ---------------------------------------------------------------------------
+
+test('les pages n\'affirment pas que tout reste sur l\'appareil', () => {
+  // Le raccourcissement envoie l'adresse au service choisi. « Tout reste sur
+  // votre appareil » était donc inexact, et contredisait la déclaration de
+  // données du magasin, qui mentionne ce transfert. La section « Vie privée »
+  // nomme l'exception ; ces formules absolues n'ont leur place nulle part.
+  const absolues = [
+    /tout reste sur votre appareil/i,
+    /rien ne quitte votre appareil/i,
+    /everything stays on your device/i,
+    /nothing leaves your device/i,
+  ];
+  for (const page of [join(SITE, 'index.html'), join(SITE, 'en', 'index.html')]) {
+    const html = readFileSync(page, 'utf8');
+    for (const motif of absolues) {
+      assert.doesNotMatch(html, motif, `promesse absolue dans ${page} : ${motif}`);
+    }
+  }
+});
+
+test('la section confidentialité nomme le seul envoi réseau', () => {
+  // Une page qui tairait le raccourcissement contredirait PRIVACY.md et la
+  // déclaration de données du magasin.
+  for (const page of [join(SITE, 'index.html'), join(SITE, 'en', 'index.html')]) {
+    const html = readFileSync(page, 'utf8');
+    assert.match(html, /raccourciss|shorten/i, `transfert tiers non nommé : ${page}`);
+  }
+});
+
+test('la prose publiée n\'utilise pas de tiret cadratin', () => {
+  // Règle éditoriale : le tiret cadratin est le signe d'écriture automatique le
+  // plus reconnaissable. Le séparateur du <title> est toléré, c'est une
+  // convention de titre, pas de la prose.
+  for (const page of [join(SITE, 'index.html'), join(SITE, 'en', 'index.html')]) {
+    const prose = readFileSync(page, 'utf8')
+      .split('\n')
+      .filter((line) => !line.includes('<title>'))
+      .join('\n');
+    assert.ok(
+      !prose.includes('—') && !prose.includes('–'),
+      `tiret cadratin dans la prose de ${page}`,
+    );
+  }
+});
