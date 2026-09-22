@@ -6,6 +6,20 @@ Collect URLs from the browser (right-click or button), keep them in a local
 database, then print them as QR labels — table, CSV or Markdown export, or send
 them straight to a Niimbot printer.
 
+## Why this exists
+
+I built this extension for my own notebook. I keep my research and my finds on
+paper, and I used to copy the addresses into it by hand. Writing them took time,
+and finding them again took just as long. I started by printing the QR codes one
+at a time on a small Niimbot, then decided it could all be done automatically.
+
+It matters most for what you want to keep within reach: a research paper, a
+product page, a video that stayed with you. You scan the label, and when you come
+back to the notebook, whatever caught your attention is there to find and to
+share.
+
+- Gaël A.G. -
+
 ## Where the project stands
 
 | Step | Status |
@@ -24,7 +38,7 @@ them straight to a Niimbot printer.
 | Native Swift core (protocol, session, CoreBluetooth) | done, tested |
 | iOS app that uses that core | to do |
 
-**723 tests, all green** — 619 in JavaScript and 104 in Swift — including:
+**782 tests, all green** — 678 in JavaScript and 104 in Swift — including:
 
 - **byte-for-byte** validation of the Niimbot frames against the documented
   records, **in both languages**: two independent implementations that
@@ -750,7 +764,7 @@ exists in French and English. Before opening a pull request:
 
 ```bash
 npm install
-npm run test:all   # 619 JavaScript tests + 104 Swift tests
+npm run test:all   # 678 JavaScript tests + 104 Swift tests
 ```
 
 The repository conventions — a core with no DOM and no implicit network, zero

@@ -6,6 +6,21 @@ Collecter des URL depuis le navigateur (clic droit ou bouton), les garder dans
 une base locale, puis les imprimer en étiquettes QR — tableau, export CSV ou
 Markdown, ou envoi direct à une imprimante Niimbot.
 
+## Pourquoi ce projet
+
+J'ai créé cette extension pour mon carnet. J'y note mes recherches et mes
+trouvailles sur papier, et j'y recopiais les adresses à la main. Les écrire
+prenait du temps, et les retrouver aussi. J'ai d'abord imprimé les QR codes un
+par un sur une petite Niimbot, puis je me suis dit que tout cela pouvait se faire
+tout seul.
+
+C'est surtout utile pour ce qu'on veut garder sous la main : un article de
+recherche, la page d'un produit, une vidéo qui nous a marqué. On scanne
+l'étiquette, et quand on rouvre le carnet, ce qui avait retenu l'attention se
+retrouve et se partage facilement.
+
+- Gaël A.G. -
+
 ## Où en est le projet
 
 | Étape | État |
@@ -24,7 +39,7 @@ Markdown, ou envoi direct à une imprimante Niimbot.
 | Socle natif Swift (protocole, session, CoreBluetooth) | fait, testé |
 | Application iOS qui utilise ce socle | à faire |
 
-**723 tests, tous verts** — 619 en JavaScript et 104 en Swift — dont :
+**782 tests, tous verts** — 678 en JavaScript et 104 en Swift — dont :
 
 - la validation **octet à octet** des trames Niimbot contre les relevés
   documentés, **dans les deux langages** : deux implémentations indépendantes
@@ -759,7 +774,7 @@ pull request :
 
 ```bash
 npm install
-npm run test:all   # 619 tests JavaScript + 104 tests Swift
+npm run test:all   # 678 tests JavaScript + 104 tests Swift
 ```
 
 Les conventions du dépôt — cœur sans DOM ni réseau implicite, zéro dépendance,
