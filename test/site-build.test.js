@@ -322,3 +322,15 @@ test('les deux pages racontent la même origine', () => {
     assert.ok(html.includes('<link rel="stylesheet" href="style.css') || html.includes('href="../style.css'), 'styles absents');
   }
 });
+
+test('les deux pages mènent au dépôt', () => {
+  // C'est l'un des deux appels à l'action de l'en-tête. Le libellé peut changer,
+  // la cible non.
+  for (const page of [join(SITE, 'index.html'), join(SITE, 'en', 'index.html')]) {
+    assert.match(
+      readFileSync(page, 'utf8'),
+      /<a class="btn" href="https:\/\/github\.com\/Lupin\/URLQRCodePrinter">/,
+      `bouton vers le dépôt absent : ${page}`,
+    );
+  }
+});
