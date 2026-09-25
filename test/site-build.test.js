@@ -334,3 +334,50 @@ test('les deux pages mènent au dépôt', () => {
     );
   }
 });
+
+/**
+ * Fiche publiée de l'extension.
+ *
+ * L'identifiant est repris de `store/listing.json`, qui est la source du dépôt
+ * pour la fiche du magasin. Un caractère de travers dans cette adresse mène à
+ * « élément introuvable » : une page morte que rien ne signale avant le clic,
+ * et que seul un test peut retenir.
+ */
+const STORE_URL =
+  'https://chromewebstore.google.com/detail/urlqrcodeprinter/fmfbpjekpbopeijaobdffbhhnfgjjbmi';
+
+test('les deux pages mènent à la fiche Chrome Web Store', () => {
+  // C'est l'appel à l'action principal depuis que l'extension est publiée.
+  // Il vaut pour les deux langues : une page anglaise sans le lien d'installation
+  // enverrait un visiteur chercher dans le magasin ce qu'on lui a déjà décrit.
+  for (const page of [join(SITE, 'index.html'), join(SITE, 'en', 'index.html')]) {
+    const html = readFileSync(page, 'utf8');
+    assert.ok(
+      html.includes(`href="${STORE_URL}"`),
+      `lien vers la fiche du magasin absent : ${page}`,
+    );
+    assert.ok(
+      html.includes(`class="btn btn--primary" href="${STORE_URL}"`),
+      `le lien du magasin doit rester le bouton principal : ${page}`,
+    );
+  }
+});
+
+test('les pages ne disent plus que l\'extension attend le magasin', () => {
+  // Les deux pages annonçaient « pas encore publiée » et renvoyaient à une
+  // installation depuis les sources. Le fait a changé ; la formule, elle, se
+  // serait contentée de vieillir sur la page d'accueil, sous les yeux des
+  // visiteurs et sans qu'aucun test ne s'en aperçoive.
+  const perimees = [
+    /pas encore publiée/i,
+    /not published yet/i,
+    /en attendant le Chrome Web Store/i,
+    /waiting for the Chrome Web Store/i,
+  ];
+  for (const page of [join(SITE, 'index.html'), join(SITE, 'en', 'index.html')]) {
+    const html = readFileSync(page, 'utf8');
+    for (const motif of perimees) {
+      assert.doesNotMatch(html, motif, `formule périmée dans ${page} : ${motif}`);
+    }
+  }
+});
