@@ -556,3 +556,74 @@ test('les deux groupes se voient sans être lus', () => {
   assert.match(regle[1], /flex-direction:\s*column/);
   assert.ok(css.match(/\.sheet-group\s*>\s*legend\s*\{/), 'aucune légende pour les groupes');
 });
+
+// ---------------------------------------------------------------------------
+// Un couple unique dans l'onglet Niimbot
+//
+// Il y en avait deux : « Lien à imprimer » et « Copies » d'un côté, « Quels
+// liens » et « Exemplaires de chacun » de l'autre, plus deux boutons. Quatre
+// champs répondaient à deux questions, et rien ne disait lesquels allaient avec
+// quel bouton.
+// ---------------------------------------------------------------------------
+
+test("l'onglet Niimbot n'a plus qu'un sélecteur, un compteur et un bouton", () => {
+  const panneau = html.slice(
+    html.indexOf('data-mode-panel="single"'),
+    html.indexOf('data-mode-panel="images"'),
+  );
+
+  // Ce qui doit exister.
+  assert.match(panneau, /<select id="label-link"/);
+  assert.match(panneau, /<input id="copies"/);
+  assert.match(panneau, /<button id="print-label"/);
+
+  // Ce qui ne doit plus : les doublons de la série.
+  for (const disparu of ['print-scope', 'print-copies', 'print-all-labels']) {
+    assert.doesNotMatch(panneau, new RegExp(`id="${disparu}"`), `${disparu} est encore là`);
+  }
+});
+
+test('le couple est sur une même ligne, et le libellé dit ce qu\'il fait', () => {
+  // C'était la demande : « mettre sur la même ligne le dropdown Lien à imprimer
+  // et dropdown imprimer en série et exemplaires de chacun ».
+  const panneau = html.slice(
+    html.indexOf('data-mode-panel="single"'),
+    html.indexOf('data-mode-panel="images"'),
+  );
+  const ligne = panneau.match(/<div class="fields">\s*<label class="field">\s*<span class="field__label" data-i18n="Ce qu'on imprime"[\s\S]*?<\/div>/);
+  assert.ok(ligne, 'les deux champs ne sont pas sur la même ligne');
+  assert.match(ligne[0], /id="label-link"/);
+  assert.match(ligne[0], /id="copies"/);
+  assert.match(ligne[0], /data-i18n="Exemplaires"/);
+});
+
+test('le sélecteur range un lien à la fois et les portées multiples', () => {
+  const app = readFileSync(join(WEB, 'app.js'), 'utf8');
+  // Deux groupes dans une seule liste : la séparation se voit, et une seule
+  // réponse est attendue.
+  assert.match(app, /document\.createElement\('optgroup'\)/);
+  assert.match(app, /un\.label = t\('Un seul lien'\)/);
+  assert.match(app, /plusieurs\.label = t\('Plusieurs'\)/);
+});
+
+test('une seule fonction résout ce qui sera imprimé', () => {
+  // La série et l'étiquette unique passent par le même chemin : deux
+  // résolutions séparées auraient fini par répondre différemment à la même
+  // question.
+  const app = readFileSync(join(WEB, 'app.js'), 'utf8');
+  assert.match(app, /function impressionChoisie\(\)/);
+  assert.match(app, /function chosenLabelLink\(\) \{\s*return impressionChoisie\(\)\.items\[0\]/);
+  // Un seul gestionnaire de bouton.
+  assert.match(app, /el\.printLabel\.addEventListener\('click'/);
+  assert.doesNotMatch(app, /addEventListener\('click', printOneLabel\)/);
+  assert.doesNotMatch(app, /addEventListener\('click', printAllLabels\)/);
+});
+
+test('le bouton unique porte le libellé de ce qui sortira', () => {
+  const app = readFileSync(join(WEB, 'app.js'), 'utf8');
+  assert.match(app, /el\.printLabel\.textContent = total === 0/);
+  assert.match(app, /'Imprimer \{count\} étiquette', 'Imprimer \{count\} étiquettes'/);
+  // Et il devient l'arrêt pendant une série : il n'y a plus deux boutons dont
+  // l'un devient l'autre.
+  assert.match(app, /el\.printLabel\.textContent = t\('Arrêter'\)/);
+});

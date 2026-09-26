@@ -461,21 +461,36 @@ bouton **Libre** revient au rouleau continu, où la hauteur découle du contenu.
 L'impression refuse un bitmap plus large que la tête plutôt que de le laisser
 rogner en silence.
 
-### Imprimer en série
+### Imprimer : un couple, un bouton
 
-Le cadre **Imprimer en série** imprime une étiquette après l'autre, sans
-intervention :
+**Un seul sélecteur dit ce qu'on imprime**, et **un seul champ dit combien de
+fois** — les deux sur la même ligne, suivis d'**un seul bouton**. Il y avait
+auparavant deux listes déroulantes et deux compteurs : « Lien à imprimer » et
+« Copies » d'un côté, « Quels liens » et « Exemplaires de chacun » de l'autre,
+plus deux boutons. Quatre champs répondaient à deux questions, et rien ne disait
+lesquels allaient avec quel bouton.
 
-- **Portée** — *Toute la collection*, ou *La sélection cochée* dans la liste. Le
-  bouton dit toujours ce qu'il fera (« Imprimer la sélection (3) ») ; une
-  sélection vide avec « la sélection cochée » n'imprime rien et le signale,
-  plutôt que de sortir toute la collection.
-- **Exemplaires par lien** — 1 à 20. Avec 10 liens et 2 exemplaires, 20
-  étiquettes sortent.
-- Le bouton devient **Arrêter la série** pendant l'impression : une série lancée
-  par erreur s'interrompt après l'étiquette en cours, sans couper l'imprimante.
-- Une étiquette qui échoue n'interrompt pas la série ; le bilan final dit combien
-  sont sorties et pourquoi les autres ont raté.
+Le sélecteur **« Ce qu'on imprime »** range ses réponses en deux groupes :
+
+- **Un seul lien** — l'un de ceux de la collection, par son numéro et son titre.
+  L'aperçu montre celui-là.
+- **Plusieurs** — *Toute la collection*, ou *Seulement ceux que je coche* dans la
+  liste. L'aperçu montre le premier des étiquettes qui sortiront.
+
+Le champ **Exemplaires** va de 1 à 20, et vaut dans les deux cas : dix liens à
+deux exemplaires font vingt étiquettes, et un seul lien à trois exemplaires en
+fait trois. C'est ce qui manquait — on ne pouvait pas demander plusieurs
+exemplaires d'une étiquette choisie.
+
+Le bouton dit toujours ce qu'il fera : « Imprimer 1 étiquette »,
+« Imprimer 20 étiquettes (10 liens × 2) ». Pendant une série il devient
+**Arrêter** : une série lancée par erreur s'interrompt après l'étiquette en
+cours, sans couper l'imprimante. Une étiquette qui échoue n'interrompt pas la
+série ; le bilan final dit combien sont sorties et pourquoi les autres ont raté.
+
+> **Aucun lien coché.** L'option correspondante est alors grisée dans le
+> sélecteur, et la phrase sous le bouton dit quoi faire, plutôt que de laisser un
+> bouton inerte sans explication.
 
 ## Exporter sans Niimbot
 

@@ -39,7 +39,7 @@ retrouve et se partage facilement.
 | Socle natif Swift (protocole, session, CoreBluetooth) | fait, testé |
 | Application iOS qui utilise ce socle | à faire |
 
-**860 tests, tous verts** — 756 en JavaScript et 104 en Swift — dont :
+**865 tests, tous verts** — 761 en JavaScript et 104 en Swift — dont :
 
 - la validation **octet à octet** des trames Niimbot contre les relevés
   documentés, **dans les deux langages** : deux implémentations indépendantes
@@ -817,7 +817,7 @@ pull request :
 
 ```bash
 npm install
-npm run test:all   # 756 tests JavaScript + 104 tests Swift
+npm run test:all   # 761 tests JavaScript + 104 tests Swift
 ```
 
 Les conventions du dépôt — cœur sans DOM ni réseau implicite, zéro dépendance,

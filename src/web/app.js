@@ -219,10 +219,16 @@ function layoutsFor(profile) {
  * cochée existait déjà pour l'impression papier : on ne pouvait pas imprimer
  * les trois étiquettes qu'on venait de cocher sans sortir les trente autres.
  */
-const PRINT_SCOPES = Object.freeze([
-  { id: 'all', label: 'Toute la collection' },
-  { id: 'selected', label: 'Seulement ceux que je coche' },
-]);
+/**
+ * Les deux portées **multiples**, valeurs du sélecteur unique.
+ *
+ * Elles cohabitent avec un lien à la fois dans le même sélecteur : « ce qu'on
+ * imprime » est une seule question, et deux listes déroulantes y répondaient.
+ * Le préfixe à double souligné les distingue des identifiants de liens, qui
+ * commencent tous par `id-`.
+ */
+const PORTEE_TOUT = '__all';
+const PORTEE_COCHEE = '__selected';
 
 
 /** Libellés des modes de date, dans l'ordre d'affichage. */
@@ -375,40 +381,37 @@ function qrSvg(matrix, { scale = 4 } = {}) {
  * étiquettes.
  */
 function updatePrintScope() {
-  const scope = el.printScope.value;
-  const checked = links.filter((link) => selected.has(link.id)).length;
-  const count = scope === 'selected' ? checked : links.length;
+  const { kind, items } = impressionChoisie();
+  const copies = copiesCount();
   const ready = links.length > 0 && Boolean(printer);
 
-  el.printAllLabels.disabled = !ready || (scope === 'selected' && count === 0);
-
-  // Le libellé dit toujours le nombre de liens **et** le nombre d'exemplaires :
-  // « Imprimer la collection » alors que la quantité est à 2 ferait sortir deux
-  // fois plus d'étiquettes que ce que la phrase laisse croire.
-  const copies = seriesCopies();
-  const total = count * copies;
-  el.printAllLabels.textContent = total === 0
+  // Le libellé dit toujours le nombre d'étiquettes **et** le nombre
+  // d'exemplaires : « Imprimer la collection » alors que la quantité est à 2
+  // ferait sortir deux fois plus d'étiquettes que ce que la phrase laisse croire.
+  const total = items.length * copies;
+  el.printLabel.disabled = !ready || total === 0;
+  el.printLabel.textContent = total === 0
     ? t('Aucun lien à imprimer')
     : tpl(total, 'Imprimer {count} étiquette', 'Imprimer {count} étiquettes')
-      + (copies > 1 ? ` (${tpl(count, '{count} lien', '{count} liens')} × ${copies})` : '');
+      + (copies > 1 ? ` (${tpl(items.length, '{count} lien', '{count} liens')} × ${copies})` : '');
 
   // La phrase dit ce qui est retenu, et pourquoi le bouton est inerte le cas
-  // échéant : « Portée » seul ne disait pas ce qui allait sortir.
-  el.printAllLabels.title = '';
-
+  // échéant : « Ce qu'on imprime » seul ne disait pas ce qui allait sortir.
   if (links.length === 0) {
     el.printScopeHint.textContent = t('Aucun lien dans la collection.');
     return;
   }
-  if (scope === 'selected' && checked === 0) {
+  if (items.length === 0) {
     el.printScopeHint.textContent = t(
       'Aucun lien coché : cochez les liens à imprimer dans la liste, ou choisissez « Toute la collection ».',
     );
     return;
   }
-  const source = scope === 'selected'
-    ? tpl(checked, '{count} lien coché', '{count} liens cochés')
-    : t('les {count} liens de la collection', { count: links.length });
+  const source = kind === 'one'
+    ? t('le lien affiché')
+    : (kind === 'selected'
+      ? tpl(items.length, '{count} lien coché', '{count} liens cochés', { count: items.length })
+      : t('les {count} liens de la collection', { count: items.length }));
   el.printScopeHint.textContent = copies > 1
     ? tpl(copies, '{source}, {count} exemplaire de chacun.', '{source}, {count} exemplaires de chacun.', { source })
     : `${source}.`;
@@ -422,8 +425,8 @@ function updatePrintScope() {
  *
  * @returns {number}
  */
-function seriesCopies() {
-  const typed = Math.trunc(Number(el.printCopies.value));
+function copiesCount() {
+  const typed = Math.trunc(Number(el.copies.value));
   if (!Number.isFinite(typed) || typed < 1) return 1;
   return Math.min(typed, 20);
 }
@@ -2981,7 +2984,8 @@ async function disconnectPrinter() {
 /**
  * Compose et envoie une étiquette à l'imprimante connectée.
  *
- * Extrait de `printOneLabel` pour que l'impression en série s'en serve aussi :
+ * Extrait pour que l'impression d'une étiquette et celle d'une série suivent le
+ * même chemin :
  * une seule séquence d'envoi, donc une seule à corriger si le dialogue avec
  * l'imprimante change.
  *
@@ -3015,36 +3019,6 @@ async function sendLabel(link, options = {}) {
 }
 
 /** Imprime l'étiquette du lien choisi. */
-async function printOneLabel() {
-  if (!printer) {
-    toast(t('Aucune imprimante connectée'), 'error');
-    return;
-  }
-
-  const link = chosenLabelLink();
-  if (!link) {
-    toast(t('Aucun lien dans la collection'), 'error');
-    return;
-  }
-
-  el.printLabel.disabled = true;
-  el.printStatus.textContent = t('Composition de l\'étiquette…');
-
-  try {
-    el.printStatus.textContent = t('Envoi en cours…');
-    const result = await sendLabel(link);
-    el.printStatus.textContent = t('Étiquette imprimée : {rows} lignes, {frames} trames.', {
-      rows: result.rows,
-      frames: result.frames,
-    });
-  } catch (error) {
-    el.printStatus.textContent = '';
-    toast(error.message ?? t('Impression impossible'), 'error');
-  } finally {
-    el.printLabel.disabled = false;
-  }
-}
-
 /**
  * Imprime toute la collection, une étiquette après l'autre.
  *
@@ -3064,36 +3038,46 @@ const DATE_LINES_MAX = 2;
 /** Vrai pendant une série : le bouton sert alors à l'interrompre. */
 let seriesRunning = false;
 
-async function printAllLabels() {
+async function printLabels() {
   if (!printer) {
     toast(t('Aucune imprimante connectée'), 'error');
     return;
   }
-  if (links.length === 0) {
-    toast(t('Aucun lien dans la collection'), 'error');
-    return;
-  }
 
-  // La sélection vide vaut « tout » ailleurs dans l'application ; ici, la
-  // portée est un choix explicite. Une sélection vide avec « la sélection
-  // cochée » ne doit donc rien imprimer, et le dire, plutôt que de sortir
-  // trente étiquettes que personne n'a demandées.
-  const scope = el.printScope.value;
-  const items = scope === 'selected'
-    ? links.filter((link) => selected.has(link.id))
-    : links;
-
+  const { kind, items } = impressionChoisie();
   if (items.length === 0) {
-    toast(t('Aucun lien coché : cochez les étiquettes à imprimer, ou choisissez « toute la collection »'), 'error');
+    toast(kind === 'one'
+      ? t('Aucun lien dans la collection')
+      : t('Aucun lien coché : cochez les étiquettes à imprimer, ou choisissez « toute la collection »'), 'error');
     return;
   }
 
-  const copies = seriesCopies();
+  const copies = copiesCount();
   el.printLabel.disabled = true;
-  el.printAllLabels.disabled = true;
-  // Le bouton devient l'arrêt de la série : trente étiquettes lancées par
-  // erreur ne doivent pas obliger à couper l'imprimante.
-  el.printAllLabels.textContent = t('Arrêter la série');
+
+  // Une seule étiquette ne mérite pas la mécanique d'une série : pas de
+  // compteur de progression, pas de bouton d'arrêt, et un bilan qui parle
+  // d'étiquettes plutôt que de liens parcourus.
+  if (kind === 'one' && copies === 1) {
+    el.printStatus.textContent = t('Envoi en cours…');
+    try {
+      const result = await sendLabel(items[0]);
+      el.printStatus.textContent = t('Étiquette imprimée : {rows} lignes, {frames} trames.', {
+        rows: result.rows,
+        frames: result.frames,
+      });
+    } catch (error) {
+      el.printStatus.textContent = '';
+      toast(error.message ?? t('Impression impossible'), 'error');
+    } finally {
+      updatePrintScope();
+    }
+    return;
+  }
+
+  // Le bouton devient l'arrêt de la série : trente étiquettes lancées par erreur
+  // ne doivent pas obliger à couper l'imprimante.
+  el.printLabel.textContent = t('Arrêter');
   seriesRunning = true;
 
   let printed = 0;
@@ -3108,8 +3092,6 @@ async function printAllLabels() {
         title: link.title || link.url,
       });
       try {
-        // La quantité est un réglage de la série : sans elle, impossible de
-        // sortir deux exemplaires de chaque étiquette d'un seul geste.
         await sendLabel(link, { copies });
         printed += copies;
       } catch (error) {
@@ -3126,8 +3108,6 @@ async function printAllLabels() {
     toast(parts.join(', '), failures.length > 0 ? 'error' : 'info');
   } finally {
     seriesRunning = false;
-    el.printLabel.disabled = false;
-    el.printAllLabels.disabled = false;
     // Le libellé revient à la portée courante : le remettre à la main pourrait
     // annoncer autre chose que ce que le clic suivant fera.
     updatePrintScope();
@@ -3326,13 +3306,6 @@ function fillLabelChoices() {
   }
   el.tableOrientation.value = 'portrait';
 
-  for (const scope of PRINT_SCOPES) {
-    const option = document.createElement('option');
-    option.value = scope.id;
-    option.textContent = t(scope.label);
-    el.printScope.appendChild(option);
-  }
-  el.printScope.value = 'all';
 }
 
 /** Vocabulaire de l'étiquette, plus explicite que celui de l'export. */
@@ -3354,6 +3327,11 @@ function fillLabelLinks() {
   const previous = el.labelLink.value;
   el.labelLink.textContent = '';
 
+  // Deux groupes dans **une** liste : un lien à la fois, ou plusieurs. Le
+  // séparateur visuel suffit à faire comprendre qu'une seule réponse est
+  // attendue, là où deux listes déroulantes laissaient croire à deux réglages.
+  const un = document.createElement('optgroup');
+  un.label = t('Un seul lien');
   for (const link of links) {
     const option = document.createElement('option');
     option.value = link.id;
@@ -3361,10 +3339,33 @@ function fillLabelLinks() {
     option.textContent = `${linkRanks.get(link.id) ?? '?'}. `
       + (link.title || hostOf(link.url) || link.url);
     option.title = link.url;
-    el.labelLink.appendChild(option);
+    un.appendChild(option);
   }
+  el.labelLink.appendChild(un);
 
-  if (links.some((link) => link.id === previous)) el.labelLink.value = previous;
+  const plusieurs = document.createElement('optgroup');
+  plusieurs.label = t('Plusieurs');
+  const coches = links.filter((link) => selected.has(link.id)).length;
+  for (const [valeur, libelle] of [
+    [PORTEE_TOUT, tpl(links.length, 'Toute la collection ({count} lien)',
+      'Toute la collection ({count} liens)', { count: links.length })],
+    [PORTEE_COCHEE, tpl(coches, 'Seulement ceux que je coche ({count} lien coché)',
+      'Seulement ceux que je coche ({count} liens cochés)', { count: coches })],
+  ]) {
+    const option = document.createElement('option');
+    option.value = valeur;
+    option.textContent = libelle;
+    // Une sélection vide ne peut pas être imprimée : l'option le dit plutôt que
+    // de laisser le bouton inerte sans explication.
+    if (valeur === PORTEE_COCHEE && coches === 0) option.disabled = true;
+    plusieurs.appendChild(option);
+  }
+  el.labelLink.appendChild(plusieurs);
+
+  const encoreValable = links.some((link) => link.id === previous)
+    || previous === PORTEE_TOUT
+    || (previous === PORTEE_COCHEE && coches > 0);
+  if (encoreValable) el.labelLink.value = previous;
   el.labelLink.disabled = links.length === 0;
   updateLabelContentHint();
 }
@@ -3440,10 +3441,30 @@ function labelRotation() {
   return { turns: labelTurns(), label: labelLayout().label };
 }
 
-/** Le lien choisi pour l'impression d'une étiquette. */
+/**
+ * Ce que le sélecteur unique désigne, et les liens que cela représente.
+ *
+ * Une seule question — « ce qu'on imprime » — pour trois réponses possibles :
+ * un lien, toute la collection, ou la sélection cochée. La série et
+ * l'impression d'une étiquette passent donc par le même chemin, ce qui était
+ * l'objet du regroupement : un couple de champs et un bouton.
+ *
+ * @returns {{ kind: 'one'|'all'|'selected', items: import('./core/link.js').LinkRecord[] }}
+ */
+function impressionChoisie() {
+  if (links.length === 0) return { kind: 'one', items: [] };
+  const choix = el.labelLink.value;
+  if (choix === PORTEE_TOUT) return { kind: 'all', items: [...links] };
+  if (choix === PORTEE_COCHEE) {
+    return { kind: 'selected', items: links.filter((link) => selected.has(link.id)) };
+  }
+  const link = links.find((entree) => entree.id === choix) ?? links[0];
+  return { kind: 'one', items: link ? [link] : [] };
+}
+
+/** Le lien montré dans l'aperçu : le premier de ce qui sera imprimé. */
 function chosenLabelLink() {
-  if (links.length === 0) return undefined;
-  return links.find((link) => link.id === el.labelLink.value) ?? links[0];
+  return impressionChoisie().items[0];
 }
 
 /** Le profil retenu pour l'aperçu : celui du matériel, ou celui choisi. */
@@ -3808,9 +3829,14 @@ for (const node of [
 for (const box of [el.tableTitle, el.tableTitleDate]) {
   box.addEventListener('change', renderPreview);
 }
-el.printScope.addEventListener('change', updatePrintScope);
-el.printCopies.addEventListener('input', updatePrintScope);
-el.labelLink.addEventListener('change', renderPreview);
+
+el.labelLink.addEventListener('change', () => {
+  // Le sélecteur unique décide à la fois de ce que montre l'aperçu et de ce qui
+  // sortira : les deux se rafraîchissent ensemble.
+  updatePrintScope();
+  renderPreview();
+});
+el.copies.addEventListener('input', updatePrintScope);
 el.labelFormat.addEventListener('change', renderPreview);
 el.labelText.addEventListener('change', renderPreview);
 el.labelMargin.addEventListener('input', renderPreview);
@@ -3820,18 +3846,18 @@ el.exportLabels.addEventListener('click', exportLabelImages);
 el.print.addEventListener('click', printSelection);
 el.connect.addEventListener('click', connectPrinter);
 el.disconnect.addEventListener('click', disconnectPrinter);
-el.printLabel.addEventListener('click', printOneLabel);
-el.printAllLabels.addEventListener('click', () => {
+el.printLabel.addEventListener('click', () => {
   // Pendant une série, le même bouton arrête : on ne peut pas en lancer une
-  // seconde par-dessus la première.
+  // seconde par-dessus la première. C'était l'objet du regroupement — il n'y a
+  // plus deux boutons dont l'un devient l'autre.
   if (seriesRunning) {
     seriesRunning = false;
     el.printStatus.textContent = t('Arrêt demandé : la série s\'arrête après l\'étiquette en cours.');
     return;
   }
-  // `printAllLabels` attrape ses propres erreurs ; on protège malgré tout
-  // l'appel, sans quoi un rejet deviendrait une promesse non traitée.
-  printAllLabels().catch((error) => {
+  // `printLabels` attrape ses propres erreurs ; on protège malgré tout l'appel,
+  // sans quoi un rejet deviendrait une promesse non traitée.
+  printLabels().catch((error) => {
     toast(error.message ?? t('Impression impossible'), 'error');
   });
 });

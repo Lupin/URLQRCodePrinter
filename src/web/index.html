@@ -436,10 +436,6 @@
             <span class="field__label" data-i18n="Densité">Densité</span>
             <input id="density" class="input" type="number" min="1" max="3" value="2">
           </label>
-          <label class="field">
-            <span class="field__label" data-i18n="Copies">Copies</span>
-            <input id="copies" class="input" type="number" min="1" max="20" value="1">
-          </label>
           <!-- Ce n'est pas une orientation du support : l'étiquette garde sa
                taille et son sens. Seule la composition change, pour que le
                texte reste lisible selon la forme du rouleau. -->
@@ -449,11 +445,23 @@
           </label>
         </div>
 
+        <!-- Un seul couple pour ce qu'on imprime et combien de fois.
+             Il y en avait deux : « Lien à imprimer » et « Copies » d'un côté,
+             « Quels liens » et « Exemplaires de chacun » de l'autre, plus deux
+             boutons. Les quatre champs répondaient à deux questions, et rien
+             ne disait lesquels allaient avec quel bouton. -->
         <div class="fields">
           <label class="field">
-            <span class="field__label" data-i18n="Lien à imprimer">Lien à imprimer</span>
+            <span class="field__label" data-i18n="Ce qu'on imprime">Ce qu'on imprime</span>
             <select id="label-link" class="input"></select>
           </label>
+          <label class="field">
+            <span class="field__label" data-i18n="Exemplaires">Exemplaires</span>
+            <input id="copies" class="input" type="number" min="1" max="20" value="1">
+          </label>
+        </div>
+
+        <div class="fields">
           <!-- Le consommable porte ses deux cotes. Demander la longueur à côté
                du format était redondant : un rouleau 12 × 30 mm impose 30 mm,
                on ne devrait pas avoir à le ressaisir — ni le contredire. Seul
@@ -535,27 +543,13 @@
         <p id="supply-hint" class="hint hint--tight"></p>
         <p id="profile-hint" class="hint hint--tight"></p>
         <p id="ble-support" class="hint" hidden></p>
-        <button id="print-label" class="btn btn--primary btn--wide" type="button" disabled data-i18n="Imprimer cette étiquette">
-          Imprimer cette étiquette
+        <button id="print-label" class="btn btn--primary btn--wide" type="button" disabled data-i18n="Imprimer">
+          Imprimer
         </button>
 
-        <!-- L'impression en série. Le libellé du bouton dit exactement ce qui
-             va sortir — nombre de liens et nombre d'exemplaires — pour qu'aucun
-             clic ne surprenne. -->
-        <fieldset class="series">
-          <legend class="field__label" data-i18n="Imprimer en série">Imprimer en série</legend>
-          <label class="field">
-            <span class="field__label" data-i18n="Quels liens">Quels liens</span>
-            <select id="print-scope" class="input"></select>
-          </label>
-          <label class="field">
-            <span class="field__label" data-i18n="Exemplaires de chacun">Exemplaires de chacun</span>
-            <input id="print-copies" class="input" type="number" min="1" max="20" value="1">
-          </label>
-        </fieldset>
-        <button id="print-all-labels" class="btn btn--ghost btn--wide" type="button" disabled data-i18n="Imprimer la collection">
-          Imprimer la collection
-        </button>
+        <!-- Un seul bouton. Son libellé dit exactement ce qui va sortir —
+             nombre d'étiquettes et nombre d'exemplaires — pour qu'aucun clic ne
+             surprenne. Pendant une série, il devient l'arrêt. -->
         <p id="print-scope-hint" class="hint hint--tight"></p>
         <p id="print-status" class="hint" aria-live="polite"></p>
       </div>

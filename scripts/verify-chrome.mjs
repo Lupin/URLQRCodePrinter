@@ -1409,41 +1409,53 @@ async function main() {
         : 'tous les champs sont rangés',
     );
 
-    // --- Les deux sélecteurs qui se ressemblent --------------------------
+    // --- Un couple unique dans l'onglet Niimbot ---------------------------
     //
-    // « Lien à imprimer » et « Quels liens » répondent à la même question, à
-    // deux endroits du même onglet, comme les deux compteurs d'exemplaires.
+    // Il y en avait deux : « Lien à imprimer » et « Copies » d'un côté,
+    // « Quels liens » et « Exemplaires de chacun » de l'autre, plus deux
+    // boutons. Quatre champs répondaient à deux questions, et rien ne disait
+    // lesquels allaient avec quel bouton. Le contrôle porte donc sur ce qui
+    // **doit** exister, et sur ce qui ne doit plus.
     const doublons = await evalApp(`(() => {
-      const libelle = (id) => {
+      const lire = (id) => {
         const node = document.getElementById(id);
         if (!node) return null;
-        const champ = node.closest('.field');
+        const champ = node.closest('.field') ?? node.parentElement;
         return {
           libelle: champ?.querySelector('.field__label')?.textContent?.trim() ?? '',
-          valeurParDefaut: node.value,
           options: node.options ? node.options.length : null,
-          y: Math.round(node.getBoundingClientRect().y),
+          groupes: node.querySelectorAll
+            ? [...node.querySelectorAll('optgroup')].map((g) => g.label)
+            : [],
         };
       };
       return {
-        lien: libelle('label-link'),
-        portee: libelle('print-scope'),
-        exemplairesEtiquette: libelle('copies'),
-        exemplairesSerie: libelle('print-copies'),
+        choix: lire('label-link'),
+        exemplaires: lire('copies'),
+        restes: document.querySelectorAll(
+          '#print-label, #print-all-labels, #print-copies, #print-scope',
+        ).length,
       };
     })()`);
 
     record(
-      'deux sélecteurs répondent à « quel lien »',
-      Boolean(doublons?.lien && doublons?.portee),
-      `« ${doublons?.lien?.libelle} » et « ${doublons?.portee?.libelle} » `
-        + `(${doublons?.lien?.options} / ${doublons?.portee?.options} options)`,
+      'un seul selecteur dit ce qu\'on imprime',
+      doublons?.choix !== null && doublons?.choix?.libelle === 'Ce qu\'on imprime'
+        && doublons.choix.groupes.length === 2,
+      `« ${doublons?.choix?.libelle} » — ${doublons?.choix?.options} options en `
+        + `${doublons?.choix?.groupes?.length} groupes : ${(doublons?.choix?.groupes ?? []).join(' / ')}`,
     );
     record(
-      'deux champs répondent à « combien d\'exemplaires »',
-      Boolean(doublons?.exemplairesEtiquette && doublons?.exemplairesSerie),
-      `« ${doublons?.exemplairesEtiquette?.libelle} » et « ${doublons?.exemplairesSerie?.libelle} »`,
+      'un seul compteur dit combien d\'exemplaires',
+      doublons?.exemplaires?.libelle === 'Exemplaires',
+      `« ${doublons?.exemplaires?.libelle} », a cote du selecteur`,
     );
+    record(
+      'un seul bouton imprime, et rien ne reste des doublons',
+      doublons?.restes === 1,
+      `${doublons?.restes} element(s) d'impression dans l'onglet`,
+    );
+
 
     // --- Le service worker, le badge et le menu contextuel ----------------
     //

@@ -454,6 +454,37 @@ top, the text at the bottom).
 Printing refuses a bitmap wider than the printhead rather than letting it be
 clipped in silence.
 
+### Printing: one pair, one button
+
+**A single selector says what gets printed**, and **a single field says how many
+times** — both on the same line, followed by **one button**. There used to be two
+dropdowns and two counts: "Link to print" and "Copies" on one side, "Which links"
+and "Copies of each" on the other, plus two buttons. Four fields answered two
+questions, and nothing said which belonged with which button.
+
+The **"What gets printed" (« Ce qu'on imprime »)** selector groups its answers in
+two:
+
+- **A single link** (« Un seul lien ») — one of the collection's, by number and
+  title. The preview shows that one.
+- **Several** (« Plusieurs ») — *The whole collection*, or *Only the ones I tick*
+  in the list. The preview shows the first of the labels that will come out.
+
+The **Copies** (« Exemplaires ») field runs from 1 to 20 and applies in both
+cases: ten links at two copies make twenty labels, and a single link at three
+copies makes three. That was the missing piece — there was no way to ask for
+several copies of one chosen label.
+
+The button always says what it will do: "Print 1 label", "Print 20 labels
+(10 links × 2)". During a batch it becomes **Stop**: a batch started by mistake
+stops after the current label, without cutting the printer. A label that fails
+does not interrupt the batch; the final report says how many came out and why the
+others failed.
+
+> **No link ticked.** The matching option is then greyed out in the selector, and
+> the sentence under the button says what to do, rather than leaving an inert
+> button unexplained.
+
 ### Batch printing
 
 The **Batch printing** (« Imprimer en série ») box prints one label after the
