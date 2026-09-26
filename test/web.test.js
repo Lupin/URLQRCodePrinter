@@ -441,6 +441,85 @@ test('la case de bordure agit sur le rendu, pas seulement sur le formulaire', ()
 });
 
 // ---------------------------------------------------------------------------
+// Le rangement de la collection
+//
+// C'est un **mode**, et non deux flèches posées sur chaque ligne : elles
+// encombraient la liste en permanence pour une action qu'on fait une fois. Le
+// geste est le chemin naturel ; les flèches restent l'alternative exigée par le
+// critère 2.5.7 pour qui ne peut pas glisser.
+// ---------------------------------------------------------------------------
+
+test('la collection offre un bouton de rangement, inactif par défaut', () => {
+  const bouton = html.match(/<button id="reorder"[^>]*>/);
+  assert.ok(bouton, 'aucun bouton de rangement');
+  assert.match(bouton[0], /aria-pressed="false"/, 'l\'état doit être annoncé, pas seulement dessiné');
+  assert.doesNotMatch(bouton[0], /disabled/, 'la liste part en ordre manuel : le rangement est possible');
+});
+
+test('les flèches n\'existent qu\'en mode rangement, et à gauche de la ligne', () => {
+  const app = readFileSync(join(WEB, 'app.js'), 'utf8');
+  // Le seul appel qui ajoute le bloc de rangement est gardé par le mode.
+  assert.match(app, /if \(reorderMode\) \{\s*\n\s*item\.append\(moveControls\(link\), check, rank/);
+  assert.doesNotMatch(app, /item\.append\(check, rank, body, linkEditor\(link\), remove, moveControls/);
+});
+
+test('le rangement se quitte au clavier', () => {
+  const app = readFileSync(join(WEB, 'app.js'), 'utf8');
+  assert.match(app, /event\.key !== 'Escape'/, 'Échap doit refermer le mode');
+  assert.match(app, /el\.reorder\.focus\(\)/, 'le focus doit revenir au bouton, pas se perdre');
+});
+
+test('le glissement suit le pointeur, et relit l\'ordre du document', () => {
+  const app = readFileSync(join(WEB, 'app.js'), 'utf8');
+  assert.match(app, /pointerdown/, 'le geste se prend au pointeur');
+  assert.match(app, /setPointerCapture/, 'sans capture, la ligne est lâchée au premier pixel');
+  assert.match(app, /pointermove/);
+  // L'ordre écrit est celui du document : un état intermédiaire à tenir à jour
+  // finirait par diverger de ce que l'utilisateur voit.
+  assert.match(app, /applyOrder\(\[\.\.\.el\.list\.querySelectorAll\('\.link'\)\]\.map\(\(n\) => n\.dataset\.id\)\)/);
+});
+
+test('les flèches restent, comme alternative au geste', () => {
+  const app = readFileSync(join(WEB, 'app.js'), 'utf8');
+  assert.match(app, /bloc\.append\(grip, up, down\)/, 'le geste ne peut pas être le seul chemin');
+  // La poignée ne se présente pas à l'assistance : on ne glisse pas à la voix,
+  // et un bouton focalisable caché aux lecteurs d'écran serait un piège.
+  assert.match(app, /grip\.setAttribute\('aria-hidden', 'true'\)/);
+});
+
+test('ranger est impossible sous un tri, et le bouton le dit', () => {
+  const app = readFileSync(join(WEB, 'app.js'), 'utf8');
+  assert.match(app, /const peutRanger = preferences\.sortMode === 'manual' && links\.length > 1/);
+  assert.match(app, /el\.reorder\.disabled = !peutRanger/);
+});
+
+test('aucun champ ne s\'étire dans une colonne', () => {
+  // `flex: 1 1 160px` sur `.field` était pensé pour une **rangée** : dans une
+  // colonne, la base devenait une hauteur, chaque champ montait à 160 px et
+  // laissait ~105 px de vide sous son libellé. Trois champs concernés, 315 px
+  // perdus, et une note de collection repoussée vers le bas sans raison.
+  const css = readFileSync(join(WEB, 'style.css'), 'utf8');
+  const base = css.match(/\n\.field\s*\{([\s\S]*?)\}/)[1];
+  assert.doesNotMatch(base, /flex:/, 'la base d\'un champ ne vaut que dans une rangée');
+  assert.match(css, /\.fields > \.field\s*\{[^}]*flex:\s*1 1 160px/);
+});
+
+test('les commandes de rangement atteignent la cible de 24 px', () => {
+  // Deux flèches serrées à 2 px : l'exception d'espacement du critère 2.5.8 ne
+  // s'applique pas, leurs cercles de 24 px se recoupant. C'est donc la taille
+  // du contrôle qui doit tenir le seuil, et elle le tient.
+  const css = readFileSync(join(WEB, 'style.css'), 'utf8');
+  for (const selecteur of ['.link__move', '.link__grip']) {
+    const regle = css.match(new RegExp(`\\${selecteur}\\s*\\{([\\s\\S]*?)\\}`));
+    assert.ok(regle, `aucune règle pour ${selecteur}`);
+    assert.match(regle[1], /width:\s*24px/, `${selecteur} : largeur`);
+    assert.match(regle[1], /height:\s*24px/, `${selecteur} : hauteur`);
+  }
+  const bloc = css.match(/\.link__rank\s*\{([\s\S]*?)\}/)[1];
+  assert.match(bloc, /gap:\s*2px/, 'les deux flèches forment un objet, pas deux commandes séparées');
+});
+
+// ---------------------------------------------------------------------------
 // En-tête de page de la planche
 // ---------------------------------------------------------------------------
 

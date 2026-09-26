@@ -99,6 +99,12 @@
           <span class="sr-only" data-i18n="Tout sélectionner">Tout sélectionner</span>
         </label>
         <p id="selection-hint" class="hint hint--tight" aria-live="polite"></p>
+        <!-- Le rangement est un **mode**, et non deux flèches posées sur chaque
+             ligne : elles encombraient la liste en permanence, pour une action
+             qu'on fait une fois puis qu'on quitte. Le bouton entre dans le mode,
+             Échap en sort. -->
+        <button id="reorder" class="btn btn--ghost btn--small" type="button"
+                aria-pressed="false" data-i18n="Réorganiser">Réorganiser</button>
       </div>
 
       <ul id="list" class="links"></ul>

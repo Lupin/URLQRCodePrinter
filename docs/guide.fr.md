@@ -280,10 +280,17 @@ librement, et la taille des étiquettes est recalculée :
 
 **Réordonner, ou trier.** Deux choses différentes, au même endroit.
 
-Les flèches **▲ ▼** de chaque ligne déplacent un lien dans la collection. Le rang
+Le bouton **« Réorganiser »**, au-dessus de la liste, ouvre le rangement. Chaque
+ligne montre alors, **à sa gauche**, une poignée et deux flèches **▲ ▼** : on
+saisit la poignée pour faire glisser la ligne où l'on veut, ou l'on clique les
+flèches — utile au clavier, et nécessaire pour qui ne peut pas glisser. Le rang
 affiché à gauche du titre — celui du tableau imprimé — suit, et l'ordre est
-mémorisé : on le retrouve à la réouverture. Ces flèches n'apparaissent qu'en
-**ordre manuel**.
+mémorisé : on le retrouve à la réouverture. **Échap** referme le rangement, comme
+un second clic sur le bouton.
+
+Ces commandes n'existent **qu'en mode rangement, et qu'en ordre manuel** : au
+repos, la liste ne porte que ses liens. Sous un tri, le bouton est inactif et
+l'indice au-dessus de la liste dit pourquoi.
 
 Le sélecteur **« Trier »**, à côté de la recherche, propose neuf tris : l'ordre
 manuel, le titre, le domaine et le tag — chacun ascendant ou descendant — et la
@@ -294,7 +301,7 @@ et non en tête comme le ferait une chaîne vide.
 > manuel » retrouve la collection telle qu'on l'avait laissée. Mais le tri change
 > l'ordre affiché, donc le **« N° » du tableau imprimé** le suit — ce numéro sert
 > à retrouver la ligne dans la liste qu'on a sous les yeux, et un numéro qui
-> désignerait une autre ligne ne servirait à rien. Les flèches disparaissent
+> désignerait une autre ligne ne servirait à rien. Le rangement disparaît
 > pendant un tri : un déplacement y serait annulé au rendu suivant, et
 > l'utilisateur croirait à une panne.
 

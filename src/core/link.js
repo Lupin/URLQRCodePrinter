@@ -265,6 +265,34 @@ export function sortByManualOrder(links) {
 }
 
 /**
+ * Replace dans l'ordre manuel les seuls liens dont on donne la suite.
+ *
+ * Une recherche peut filtrer la liste : les lignes déplacées à l'écran ne sont
+ * alors qu'une partie de la collection. Elles reprennent donc les **places**
+ * qu'elles occupaient, dans l'ordre où on les a mises, et les liens invisibles
+ * gardent la leur — sans quoi ranger deux lignes filtrées bouleverserait toute
+ * la collection.
+ *
+ * @param {LinkRecord[]} links
+ * @param {string[]} orderedIds - Les identifiants dans leur nouvel ordre.
+ * @returns {LinkRecord[]} La collection entière, dans son nouvel ordre manuel.
+ */
+export function applyVisibleOrder(links, orderedIds) {
+  const ordre = sortByManualOrder(links);
+  const places = [];
+  for (let index = 0; index < ordre.length; index += 1) {
+    if (orderedIds.includes(ordre[index].id)) places.push(index);
+  }
+
+  const suite = [...ordre];
+  orderedIds.forEach((id, rang) => {
+    const lien = ordre.find((candidat) => candidat.id === id);
+    if (lien && places[rang] !== undefined) suite[places[rang]] = lien;
+  });
+  return suite;
+}
+
+/**
  * Comparaison de texte pour les tris : insensible à la casse et aux accents, et
  * numérique sur les chiffres, pour que « article 2 » précède « article 10 ».
  * @param {string} a

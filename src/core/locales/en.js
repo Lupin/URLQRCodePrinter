@@ -40,8 +40,12 @@ export const EN_MESSAGES = {
     "{label} did not respond just now: {message} Try {autre}.",
   "{label} n'a pas répondu à l'instant : {message} Aucun autre service n'est proposé.":
     "{label} did not respond just now: {message} No other service is offered.",
-  "Les flèches déplacent un lien dans la collection, et le tableau imprimé suit cet ordre.":
-    "The arrows move a link within the collection, and the printed table follows that order.",
+  "Réorganiser": "Reorder",
+  "Terminer le rangement": "Finish reordering",
+  "Le rangement déplace un lien dans la collection, et le tableau imprimé suit cet ordre. Un tri le renumérote.":
+    "Reordering moves a link within the collection, and the printed table follows that order. Sorting renumbers it instead.",
+  "Faites glisser une ligne par sa poignée, ou servez-vous des flèches. Échap referme le rangement.":
+    "Drag a row by its handle, or use the arrows. Escape closes reordering.",
   "Ordre manuel": "Manual order",
   "Titre, A → Z": "Title, A → Z",
   "Titre, Z → A": "Title, Z → A",
@@ -55,8 +59,8 @@ export const EN_MESSAGES = {
   "Descendre": "Move down",
   "Déplacer {title} vers le haut": "Move {title} up",
   "Déplacer {title} vers le bas": "Move {title} down",
-  "Le tri range la liste et renumérote le tableau imprimé. Les flèches n'apparaissent qu'en ordre manuel : on ne réordonne pas une liste triée.":
-    "Sorting orders the list and renumbers the printed table. The arrows appear only in manual order: you do not reorder a sorted list.",
+  "Le tri range la liste et renumérote le tableau imprimé. Le rangement n'existe qu'en ordre manuel : on ne réordonne pas une liste triée.":
+    "Sorting orders the list and renumbers the printed table. Reordering exists only in manual order: you do not reorder a sorted list.",
   "Note de la collection (facultative)": "Collection note (optional)",
   "À quoi sert cette collection…": "What this collection is for…",
   "Exporter ces étiquettes (ZIP)": "Export these labels (ZIP)",

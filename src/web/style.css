@@ -343,9 +343,19 @@ body {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  flex: 1 1 160px;
   min-width: 0;
 }
+
+/* Le dimensionnement ne vaut que dans une **rangee** : dans `.fields`, la base
+   de 160 px est une largeur, et c'est bien ce qu'on veut.
+ *
+ * Posee sur `.field` lui-meme, elle s'appliquait aussi aux champs enfants
+ * directs d'un panneau — une colonne — ou la base devient une hauteur : chaque
+ * champ s'etirait a 160 px et laissait 94 a 109 px de vide sous son libelle.
+ * Trois champs concernes, 315 px perdus dans les deux panneaux, et une note de
+ * collection repoussee vers le bas sans raison. La mesure est dans
+ * `docs/verification-chrome.md`. */
+.fields > .field { flex: 1 1 160px; }
 
 /* Un libelle ne doit jamais elargir sa colonne ni deborder sur la voisine. */
 .field__label {
@@ -478,6 +488,10 @@ body {
 
 .btn--ghost { border-color: var(--border-strong); }
 .btn--ghost:not(:disabled):hover { border-color: var(--accent); }
+
+/* Un bouton de barre d'outils : même cible de 24 px de haut, moins de largeur
+   perdue. Il reste au-dessus du minimum de 24 × 24 px, qui est ce qui compte. */
+.btn--small { min-height: 26px; padding: 3px 9px; font-size: 12px; }
 
 /* Au survol, le contour devient un aplat d'accent. Réservé aux boutons
    d'export : l'appliquer à tous les boutons discrets ferait clignoter
@@ -651,10 +665,22 @@ body {
 
 .link__remove:hover { background: var(--surface-2); color: var(--danger); }
 
-/* Les flèches de déplacement. Elles n'existent qu'en ordre manuel : un tri actif
-   les fait disparaître, parce qu'un déplacement serait annulé au rendu suivant.
-   24 × 24 px, la cible minimale : deux flèches voisines ne peuvent pas se
-   contenter de l'exception d'espacement, leurs cercles de 24 px se recoupant. */
+/* Le bloc de rangement, à **gauche** de la ligne, et seulement en mode
+   réorganisation.
+ *
+ * Il occupe le bord par lequel une liste se range : l'œil suit la marge, et la
+ * souris y arrive sans traverser le texte. Les deux flèches y sont serrées à
+ * 2 px — elles forment un objet, pas deux commandes séparées. Cette proximité
+ * est permise parce que chaque case fait 24 × 24 px : le critère 2.5.8 (AA) est
+ * tenu par la taille même du contrôle, sans avoir à invoquer l'exception
+ * d'espacement, qui aurait échoué ici. */
+.link__rank {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
 .link__move {
   flex: none;
   width: 24px;
@@ -671,6 +697,44 @@ body {
 
 .link__move:not(:disabled):hover { background: var(--surface-2); color: var(--text); }
 .link__move:disabled { color: var(--text-3); cursor: default; }
+
+/* La poignée : on la saisit, on la fait glisser, la ligne suit. `touch-action`
+   à `none` est ce qui permet au doigt de déplacer sans faire défiler la liste —
+   sans lui, le navigateur reprend la main au premier mouvement. */
+.link__grip {
+  flex: none;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--text-3);
+  cursor: grab;
+  font-size: 13px;
+  line-height: 1;
+  touch-action: none;
+}
+
+.link__grip:hover { background: var(--surface-2); color: var(--text); }
+.link__grip:active { cursor: grabbing; }
+
+/* La ligne saisie suit le doigt : elle sort du flux visuel sans quitter le
+   flux du document, sinon la liste se refermerait pendant le geste et les
+   positions mesurées sauteraient. */
+.link--dragging {
+  position: relative;
+  z-index: 1;
+  border-radius: var(--radius);
+  background: var(--surface-2);
+  box-shadow: 0 2px 10px rgb(0 0 0 / 18%);
+  opacity: 0.92;
+}
+
+/* En mode réorganisation, la ligne entière est une cible de geste : le texte
+   ne doit pas être sélectionné au passage, ce qui laisserait un surlignage
+   bleu derrière le doigt. */
+.links--reorder .link { user-select: none; }
 
 .empty {
   margin: 8px 0;

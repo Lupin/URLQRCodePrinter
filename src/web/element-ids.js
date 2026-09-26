@@ -20,6 +20,7 @@ export const ELEMENT_IDS = Object.freeze([
   'sort-hint',
   'select-all-box',
   'selection-hint',
+  'reorder',
   'shortener',
   'shorten',
   'shorten-clear',

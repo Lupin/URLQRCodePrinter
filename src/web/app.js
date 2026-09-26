@@ -12,7 +12,7 @@
 
 import {
   createLink, hostOf, hasShortUrl, safeHref, resolveTarget, resolveTargets,
-  sortLinks, sortByManualOrder, SORT_MODES,
+  sortLinks, sortByManualOrder, applyVisibleOrder, SORT_MODES,
 } from './core/link.js';
 import { resolveDefaultStore } from './core/store.js';
 import { ELEMENT_IDS } from './element-ids.js';
@@ -186,6 +186,17 @@ const targetOptions = new Map();
  * @type {Map<string, number>}
  */
 let linkRanks = new Map();
+
+/**
+ * Le mode réorganisation est-il ouvert ?
+ *
+ * Il ne survit pas au rechargement, et c'est voulu : c'est un geste de
+ * rangement, pas un réglage. Le laisser ouvert au retour donnerait une liste
+ * couverte de poignées sans qu'on sache pourquoi.
+ *
+ * @type {boolean}
+ */
+let reorderMode = false;
 
 /**
  * Orientations proposées à l'impression.
@@ -531,6 +542,17 @@ function renderList() {
 
   el.list.textContent = '';
   el.empty.hidden = visible.length > 0;
+
+  // Ranger n'a de sens qu'en ordre manuel : sous un tri, un déplacement serait
+  // annulé au rendu suivant. Le bouton le dit en étant inactif, et l'explication
+  // est dans l'indice juste au-dessus — plutôt que deux flèches inertes sur
+  // chaque ligne, qui laisseraient croire à une panne.
+  const peutRanger = preferences.sortMode === 'manual' && links.length > 1;
+  if (!peutRanger) reorderMode = false;
+  el.reorder.disabled = !peutRanger;
+  el.reorder.setAttribute('aria-pressed', reorderMode ? 'true' : 'false');
+  el.reorder.textContent = reorderMode ? t('Terminer le rangement') : t('Réorganiser');
+  el.list.classList.toggle('links--reorder', reorderMode);
   el.empty.textContent = links.length === 0
     ? t('Aucun lien. Ajoutez-en un ci-dessus, importez une archive, ou utilisez l\'extension navigateur.')
     : t('Aucun lien ne correspond à la recherche.');
@@ -712,6 +734,9 @@ function linkEditor(link) {
 function renderLink(link) {
   const item = document.createElement('li');
   item.className = 'link';
+  // L'identifiant sur la ligne, et non seulement dans la fermeture : c'est ce
+  // qui permet de relire l'ordre obtenu par un geste, à la fin du glissement.
+  item.dataset.id = link.id;
 
   const check = document.createElement('input');
   check.type = 'checkbox';
@@ -837,23 +862,128 @@ function renderLink(link) {
   // boutons inertes.
   if (cible) body.appendChild(cible);
 
-  if (preferences.sortMode === 'manual' && linkRanks.size > 1) {
-    const up = button('▲', 'link__move', () => moveLink(link.id, -1));
-    up.setAttribute('aria-label', t('Déplacer {title} vers le haut', { title: link.title || link.url }));
-    up.title = t('Monter');
-    up.disabled = rank.textContent === '1';
-
-    const down = button('▼', 'link__move', () => moveLink(link.id, 1));
-    down.setAttribute('aria-label', t('Déplacer {title} vers le bas', { title: link.title || link.url }));
-    down.title = t('Descendre');
-    down.disabled = rank.textContent === String(linkRanks.size);
-
-    item.append(check, rank, body, up, down, linkEditor(link), remove);
+  // Le rangement n'existe qu'en **mode** réorganisation, et il se pose à gauche
+  // de la ligne. Deux flèches permanentes sur chaque ligne encombraient la liste
+  // pour une action qu'on fait une fois, puis qu'on quitte.
+  if (reorderMode) {
+    item.append(moveControls(link), check, rank, body, linkEditor(link), remove);
     return item;
   }
 
   item.append(check, rank, body, linkEditor(link), remove);
   return item;
+}
+
+/**
+ * Le bloc de rangement d'une ligne : une poignée, et les deux flèches.
+ *
+ * Les flèches ne sont pas un doublon du geste, elles en sont **l'alternative** :
+ * le critère 2.5.7 (AA) exige qu'une action faisable par glissement le soit
+ * aussi sans glisser. La poignée, elle, ne dit rien à l'assistance vocale — on
+ * ne peut pas glisser à la voix — et elle reste donc décorative, sans être
+ * focalisable : un bouton caché aux lecteurs d'écran mais atteignable au clavier
+ * serait un piège.
+ *
+ * @param {import('./core/link.js').LinkRecord} link
+ * @returns {HTMLDivElement}
+ */
+function moveControls(link) {
+  const bloc = document.createElement('div');
+  bloc.className = 'link__rank';
+
+  const grip = document.createElement('span');
+  grip.className = 'link__grip';
+  grip.setAttribute('aria-hidden', 'true');
+  grip.textContent = '⠿';
+
+  const rang = linkRanks.get(link.id) ?? 1;
+  const nom = link.title || link.url;
+  const up = button('▲', 'link__move', () => moveLink(link.id, -1));
+  up.setAttribute('aria-label', t('Déplacer {title} vers le haut', { title: nom }));
+  up.title = t('Monter');
+  up.disabled = rang <= 1;
+
+  const down = button('▼', 'link__move', () => moveLink(link.id, 1));
+  down.setAttribute('aria-label', t('Déplacer {title} vers le bas', { title: nom }));
+  down.title = t('Descendre');
+  down.disabled = rang >= linkRanks.size;
+
+  bloc.append(grip, up, down);
+  wireDrag(grip);
+  return bloc;
+}
+
+/**
+ * Fait suivre la ligne au doigt qui tient la poignée.
+ *
+ * Les événements de pointeur plutôt que l'API de glisser-déposer du navigateur :
+ * celle-ci impose une image fantôme, ignore le tactile sur beaucoup de
+ * systèmes, et ne dit rien de la position réelle. Ici, la ligne **se déplace
+ * dans le document** pendant le geste, et l'ordre du document à la fin est
+ * l'ordre obtenu — sans état intermédiaire à tenir à jour.
+ *
+ * @param {HTMLElement} grip
+ */
+function wireDrag(grip) {
+  grip.addEventListener('pointerdown', (event) => {
+    if (event.button !== 0) return;
+    const ligne = grip.closest('.link');
+    if (!ligne || !el.list.contains(ligne)) return;
+    // Sans cela, le navigateur commence une sélection de texte et le geste
+    // n'atteint jamais la ligne suivante.
+    event.preventDefault();
+
+    // **La capture se prend sur la liste, jamais sur la poignée.**
+    //
+    // Ranger une ligne, c'est la retirer du document pour la réinsérer plus
+    // loin : ses descendants sont donc détachés, et le navigateur relâche
+    // aussitôt la capture que porterait l'un d'eux. Le relâchement du doigt
+    // n'arrivait alors nulle part, la ligne restait marquée comme saisie, et
+    // rien n'était écrit — constaté au compteur d'événements du relevé Chrome
+    // (relache à 0, perdu à 1), puis corrigé ici.
+    el.list.setPointerCapture(event.pointerId);
+    ligne.classList.add('link--dragging');
+
+    let saisi = false;
+
+    const suivre = (suite) => {
+      saisi = true;
+      const autres = [...el.list.querySelectorAll('.link')].filter((n) => n !== ligne);
+      for (const autre of autres) {
+        const boite = autre.getBoundingClientRect();
+        if (suite.clientY < boite.top + boite.height / 2) {
+          if (autre.previousElementSibling !== ligne) el.list.insertBefore(ligne, autre);
+          return;
+        }
+      }
+      if (el.list.lastElementChild !== ligne) el.list.appendChild(ligne);
+    };
+
+    const lacher = async () => {
+      el.list.removeEventListener('pointermove', suivre);
+      el.list.removeEventListener('pointerup', lacher);
+      el.list.removeEventListener('pointercancel', lacher);
+      ligne.classList.remove('link--dragging');
+      // Un appui sans mouvement n'est pas un rangement : on ne réécrit pas la
+      // collection pour rien.
+      if (saisi) await applyOrder([...el.list.querySelectorAll('.link')].map((n) => n.dataset.id));
+    };
+
+    el.list.addEventListener('pointermove', suivre);
+    el.list.addEventListener('pointerup', lacher);
+    el.list.addEventListener('pointercancel', lacher);
+  });
+}
+
+/**
+ * Enregistre l'ordre des identifiants affichés, tel qu'il vient du document.
+ * @param {string[]} ids
+ * @returns {Promise<void>}
+ */
+async function applyOrder(ids) {
+  const suite = applyVisibleOrder(links, ids);
+  await store.putMany(suite.map((link, rang) => ({ ...link, order: rang })));
+  await refresh();
 }
 
 /**
@@ -874,15 +1004,27 @@ function renderLink(link) {
  */
 function updateSortHint() {
   if (!el.sortHint) return;
-  if (preferences.sortMode === 'manual') {
-    el.sortHint.textContent = links.length > 1
-      ? t('Les flèches déplacent un lien dans la collection, et le tableau imprimé suit cet ordre.')
-      : '';
+  if (preferences.sortMode !== 'manual') {
+    el.sortHint.textContent = t(
+      "Le tri range la liste et renumérote le tableau imprimé. Le rangement n'existe qu'en ordre manuel : on ne réordonne pas une liste triée.",
+    );
     return;
   }
-  el.sortHint.textContent = t(
-    "Le tri range la liste et renumérote le tableau imprimé. Les flèches n'apparaissent qu'en ordre manuel : on ne réordonne pas une liste triée.",
-  );
+  if (links.length < 2) {
+    el.sortHint.textContent = '';
+    return;
+  }
+  el.sortHint.textContent = reorderMode
+    ? t('Faites glisser une ligne par sa poignée, ou servez-vous des flèches. Échap referme le rangement.')
+    : t("Le rangement déplace un lien dans la collection, et le tableau imprimé suit cet ordre. Un tri le renumérote.");
+}
+
+/** Ouvre ou referme le mode réorganisation, et dit ce qu'il en est. */
+function setReorderMode(ouvert) {
+  const possible = preferences.sortMode === 'manual' && links.length > 1;
+  reorderMode = Boolean(ouvert) && possible;
+  renderList();
+  updateSortHint();
 }
 
 /**
@@ -3798,6 +3940,20 @@ el.sortMode.addEventListener('change', async () => {
   preferences = settings.save({ sortMode: el.sortMode.value });
   await refresh();
   updateSortHint();
+});
+
+// Le rangement s'ouvre, se referme, et se quitte au clavier. Échap est le
+// pendant de ce qui se fait à la souris : sans lui, on ne sortirait du mode
+// qu'en visant le bouton.
+el.reorder.addEventListener('click', () => {
+  setReorderMode(!reorderMode);
+  el.reorder.focus();
+});
+
+el.list.addEventListener('keydown', (event) => {
+  if (event.key !== 'Escape' || !reorderMode) return;
+  setReorderMode(false);
+  el.reorder.focus();
 });
 
 el.collectionName.addEventListener('input', () => {

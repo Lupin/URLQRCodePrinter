@@ -21,6 +21,7 @@ import {
   resolveTargets,
   sortLinks,
   sortByManualOrder,
+  applyVisibleOrder,
   isSortMode,
 } from '../src/core/link.js';
 
@@ -566,6 +567,31 @@ test('un tri inconnu retombe sur l\'ordre manuel', () => {
   assert.equal(ordre(sortLinks(LIENS, 'par-la-couleur')), 'abc');
   assert.equal(isSortMode('par-la-couleur'), false);
   assert.equal(isSortMode('title-asc'), true);
+});
+
+test('un glissement réordonne toute la liste quand elle est entière', () => {
+  // L'application ne transmet que l'ordre du document ; c'est ici que la
+  // collection entière en découle.
+  assert.equal(ordre(applyVisibleOrder(LIENS, ['c', 'a', 'b'])), 'cab');
+  assert.equal(ordre(applyVisibleOrder(LIENS, ['b', 'c', 'a'])), 'bca');
+});
+
+test('sous une recherche, seules les lignes déplacées changent de place', () => {
+  // Les places des lignes visibles sont celles qu'elles occupaient : « c » était
+  // troisième, « a » premier. Échanger les deux laisse « b » au milieu, au lieu
+  // de bouleverser la collection sur un geste qui ne concernait que deux lignes.
+  assert.equal(ordre(applyVisibleOrder(LIENS, ['c', 'a'])), 'cba');
+  // Deux lignes voisines échangées : les autres ne bougent pas d'un rang.
+  assert.equal(ordre(applyVisibleOrder(LIENS, ['c', 'b'])), 'acb');
+  // Un identifiant que la collection ne connaît pas est ignoré, sans décaler
+  // les suivants.
+  assert.equal(ordre(applyVisibleOrder(LIENS, ['b', 'inconnu', 'c'])), 'abc');
+});
+
+test('un ordre vide ou inconnu ne touche à rien', () => {
+  assert.equal(ordre(applyVisibleOrder(LIENS, [])), 'abc');
+  assert.equal(ordre(applyVisibleOrder(LIENS, ['inconnu'])), 'abc');
+  assert.equal(ordre(applyVisibleOrder([], ['a'])), '');
 });
 
 test('le tri ne modifie pas la collection reçue', () => {

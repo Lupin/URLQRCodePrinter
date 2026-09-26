@@ -76,7 +76,8 @@ protocole : elle répond.
 
 Les quatre constats sont désormais traités : le contour des boutons était une
 fausse accusation, les deux cibles satisfont l'exception d'espacement, et les
-deux aperçus ont été repris. Le relevé passe à **72 constats sur 72**.
+deux aperçus ont été repris. Le relevé passe à **72 constats sur 72**, et à
+**92 sur 92** après les lots suivants.
 
 ### Le constat 1 : la fenêtre la plus courante est la plus mal servie
 
@@ -285,7 +286,7 @@ l'heuristique du navigateur. Il les distingue maintenant, en interrogeant
 - `:focus-visible` **vrai** et anneau absent → **c'est notre règle**. Le contrôle
   échoue, et il nomme l'élément.
 
-Trois passages consécutifs donnent 80 constats satisfaits sur 80, le troisième
+Trois passages consécutifs donnent 92 constats satisfaits sur 92, le troisième
 relevant l'artefact et le nommant. Un contrôle qui échoue au hasard finit par être
 ignoré ; celui-ci dit ce qu'il a vu et pourquoi il ne conclut pas à un défaut.
 
@@ -314,6 +315,97 @@ quand elle n'a jamais été touchée, et si un réglage abandonné doit être
 ressuscité. Le contrôle automatique porte donc sur la borne, pas sur la taille
 dessinée — mesurer la seconde reviendrait à mesurer l'écrêtage et à l'appeler un
 défaut.
+
+---
+
+## Le vide sous les champs, ou 315 px perdus
+
+Un défaut signalé à l'œil — « la note de collection est trop bas, il y a trop
+d'espace » — et mesuré avant d'être corrigé. La feuille portait :
+
+```css
+.field { display: flex; flex-direction: column; flex: 1 1 160px; }
+```
+
+`flex-basis: 160px` était pensé pour une **rangée** (`.fields`), où la base est
+une largeur. Mais la règle visait `.field` lui-même, donc aussi les champs
+enfants directs d'un panneau — une **colonne**, où la base devient une hauteur.
+
+Rendu réel, avant correction (1280 × 900, `deviceScaleFactor: 2`) :
+
+| Conteneur | Champ | Hauteur | Vide sous le libellé |
+|---|---|---|---|
+| panneau collection | Nom de la collection | 160 px | 109 px |
+| panneau collection | Note de la collection | 160 px | 94 px |
+| panneau mise en forme | Le QR Code pointe vers | 160 px | 107 px |
+
+Trois champs, 310 px de vide, et un panneau de 1099 px dans une fenêtre de
+900 px — la note repoussée de 109 px vers le bas, les boutons d'export hors de
+vue. Après correction (`.fields > .field` porte désormais la base) : 51, 66 et
+53 px, **zéro** vide, panneau de 896 px, qui tient dans la fenêtre.
+
+Aucun test ne pouvait l'attraper : c'est une mesure de rendu, pas une
+déclaration. Le contrôle est donc dans le relevé Chrome (hauteur des champs
+nuls) et non dans la suite Node, qui ne mesure pas la mise en page.
+
+---
+
+## Un constat de service qui échouait au hasard
+
+Le contrôle du raccourcissement bloquait `*tinyurl.com*` puis dormait 2500 ms.
+Or le service **espace ses requêtes** de 800 ms (`spacingMs`), et la collection
+en compte trois : le lot demandait à peu près exactement le délai fixé, et le
+constat passait ou échouait selon quelques centaines de millisecondes. Il est
+tombé rouge deux fois sur trois après un changement sans rapport.
+
+Un constat qui dépend du hasard ne prouve rien. Le relevé **attend maintenant
+la fin du lot** — l'indice cesse d'annoncer « n/3… » — avec un plafond de 30 s,
+puis lit l'état final. Même chose pour le glissement : il attend que l'ordre
+soit réécrit, puis recharge la page pour le relire à l'affichage.
+
+---
+
+## Le glissement, éprouvé avec de vrais événements souris
+
+Le rangement a été vérifié par `Input.dispatchMouseEvent` : appui sur la
+poignée, six mouvements, relâchement. Pas des `PointerEvent` fabriqués en
+script — un événement synthétique ne peut pas capturer de pointeur, et
+`setPointerCapture` lève alors une exception : le chemin de capture serait
+resté non vérifié, ce qui est précisément la partie fragile du geste.
+
+Relevé : l'ordre affiché change, les rangs se renumérotent (1 → 3), et un
+**rechargement complet** rend le même ordre — l'écriture est donc bien en
+base. Comparer au tableau stocké, lui, ne prouve rien : le magasin garde ses
+entrées en place et ne met à jour que le champ `order`.
+
+---
+
+## Capturer le pointeur sur la ligne qu'on déplace, et perdre le geste
+
+Le premier relevé du glissement a échoué, et deux détails ont désigné la cause
+sans ambiguïté :
+
+```
+rangs 2,1,3 · 1 ligne(s) encore saisie(s)
+événements {"appui":1,"bouge":5,"relache":0,"annule":0,"perdu":1}
+```
+
+`relache: 0` — le relâchement du doigt n'est **jamais arrivé**. `perdu: 1` —
+`lostpointercapture` a été émis en plein geste. Et les rangs inchangés disent
+que rien n'a été écrit, alors que la ligne avait bel et bien bougé à l'écran.
+
+La cause est structurelle : ranger une ligne, c'est la **retirer du document**
+(`insertBefore`) pour la réinsérer plus loin. Ses descendants sont détachés au
+passage, et le navigateur relâche aussitôt la capture de pointeur que porte la
+poignée. Les mouvements continuaient d'atteindre l'élément sous le curseur — ce
+qui donnait l'illusion que le geste suivait — mais le relâchement, lui, n'avait
+plus de destinataire.
+
+La capture se prend donc sur **la liste**, qui ne quitte jamais le document.
+C'est une correction d'une ligne, mais elle ne se déduit pas : elle se mesure.
+Le contrôle porte maintenant, en plus de l'ordre, le nombre de lignes restées
+marquées « en cours de glissement » — un geste interrompu se distingue ainsi
+d'une écriture refusée.
 
 ---
 
@@ -391,6 +483,18 @@ reprises de `verify-brave.mjs`, apprises d'un incident où des vérifications
 
 Le relevé complet est écrit dans `.verify-chrome/releve.json` et les captures
 d'écran dans `.verify-chrome-captures/`.
+
+Pour **regarder** l'interface plutôt que la mesurer, quand un défaut se signale à
+l'œil sans qu'on sache où :
+
+```bash
+node scripts/shot-app.mjs 1280 /tmp/captures
+```
+
+Le script ouvre l'application embarquée dans un profil à part, capture la fenêtre
+et imprime la position et la hauteur réelles de chaque bloc du panneau de
+collection — c'est ainsi qu'un champ de 160 px pour 51 px de contenu a été
+trouvé. Il ne porte aucun verdict : il rend des images et des nombres.
 
 Deux règles d'écriture pour quiconque étend ce script, et toutes deux ont coûté
 une fausse accusation ou une heure perdue :

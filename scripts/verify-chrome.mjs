@@ -1330,13 +1330,8 @@ async function main() {
     await app.session.call('Network.enable');
     await app.session.call('Network.setBlockedURLs', { urls: ['*tinyurl.com*'] });
 
-    const serviceEnPanne = await evalApp(`(async () => {
-      const pause = (ms) => new Promise((r) => setTimeout(r, ms));
+    const lireService = `(() => {
       const select = document.getElementById('shortener');
-      select.value = 'tinyurl';
-      select.dispatchEvent(new Event('change', { bubbles: true }));
-      document.getElementById('shorten').click();
-      await pause(2500);
       const option = [...select.options].find((o) => o.value === 'tinyurl');
       return {
         libelle: option?.textContent.trim(),
@@ -1346,7 +1341,32 @@ async function main() {
         // interdire de réessayer.
         desactivee: option?.disabled,
       };
+    })()`;
+
+    // On **attend la fin du lot** au lieu de dormir un temps fixe. Le service
+    // espace ses requêtes (800 ms) et la collection en compte trois : un délai
+    // en dur passait ou échouait selon quelques centaines de millisecondes, ce
+    // qui est la définition d'un constat qui ne prouve rien.
+    await evalApp(`(() => {
+      const select = document.getElementById('shortener');
+      select.value = 'tinyurl';
+      select.dispatchEvent(new Event('change', { bubbles: true }));
+      document.getElementById('shorten').click();
+      return true;
     })()`);
+
+    await waitFor(
+      async () => {
+        const etat = await evalApp(lireService);
+        // Le lot en cours l'annonce dans l'indice (« 2/3… ») et laisse le
+        // bouton inactif. Les deux doivent avoir cédé.
+        return !/…/.test(etat?.statut ?? '') && etat?.libelle !== undefined;
+      },
+      { label: 'le lot de raccourcissement se termine', timeout: 30000 },
+    ).catch(() => null);
+    await new Promise((r) => setTimeout(r, 300));
+
+    const serviceEnPanne = await evalApp(lireService);
 
     record(
       'un service qui ne répond pas le dit, là où on le choisit',
@@ -1363,11 +1383,13 @@ async function main() {
     await app.session.call('Network.setBlockedURLs', { urls: [] });
     await app.session.call('Network.disable');
 
-    // --- Le tri et le déplacement -----------------------------------------
+    // --- Le tri et le rangement -------------------------------------------
     //
     // Le tri est une **vue** : la liste change, le tableau imprimé se renumérote,
-    // et les flèches de déplacement disparaissent — on ne réordonne pas une liste
-    // triée. C'est ce qui se vérifie ici, dans cet ordre.
+    // et le rangement devient impossible — on ne réordonne pas une liste triée.
+    // Le rangement, lui, est un **mode** : rien sur les lignes au repos, des
+    // commandes à gauche une fois ouvert, et un geste qui déplace pour de vrai.
+    // C'est ce qui se vérifie ici, dans cet ordre.
     const tri = await evalApp(`(async () => {
       const pause = (ms) => new Promise((r) => setTimeout(r, ms));
       const rangs = () => [...document.querySelectorAll('#list .link__index')]
@@ -1376,30 +1398,69 @@ async function main() {
         .map((n) => n.textContent.trim());
       const fleches = () => document.querySelectorAll('#list .link__move').length;
       const select = document.getElementById('sort-mode');
+      const bouton = document.getElementById('reorder');
+      const range = () => {
+        bouton.click();
+        return bouton.getAttribute('aria-pressed') === 'true';
+      };
 
       const indice = () => document.getElementById('sort-hint').textContent.trim();
       const manuel = { noms: noms(), rangs: rangs(), fleches: fleches(), indice: indice() };
+
+      // Au repos : le bouton existe, aucune commande sur les lignes.
+      const repos = {
+        fleches: fleches(),
+        libelle: bouton.textContent.trim(),
+        appuye: bouton.getAttribute('aria-pressed'),
+        inactif: bouton.disabled,
+      };
 
       select.value = 'title-asc';
       select.dispatchEvent(new Event('change', { bubbles: true }));
       await pause(800);
       const parTitre = { noms: noms(), rangs: rangs(), fleches: fleches(), indice: indice() };
 
-      // Les flèches déplacent, en ordre manuel seulement : on y revient d'abord.
+      // Sous un tri, le rangement est refusé : le bouton le dit.
+      const sousTri = { inactif: bouton.disabled, indice: indice() };
+
       select.value = 'manual';
       select.dispatchEvent(new Event('change', { bubbles: true }));
       await pause(800);
+
+      // Le mode s'ouvre : les commandes arrivent, et se placent avant la case.
+      const ouvert = range();
+      await pause(400);
+      const premiere = document.querySelector('#list .link');
+      const enfants = [...(premiere?.children ?? [])].map((n) => n.className);
+      const enMode = {
+        ouvert,
+        fleches: fleches(),
+        poignees: document.querySelectorAll('#list .link__grip').length,
+        libelle: bouton.textContent.trim(),
+        appuye: bouton.getAttribute('aria-pressed'),
+        ordreDesEnfants: enfants,
+        indice: indice(),
+      };
+
       const avant = noms();
-      const seconde = document.querySelectorAll('#list .link__move')[0];
-      const versLeBas = document.querySelectorAll('#list .link__move')[1];
-      versLeBas?.click();
+      document.querySelectorAll('#list .link__rank')[0]
+        ?.querySelectorAll('.link__move')[1]?.click();
       await pause(900);
       const apres = noms();
 
+      // Échap referme le mode.
+      document.querySelector('#list .link')?.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+      await pause(500);
+      const referme = {
+        fleches: fleches(),
+        appuye: bouton.getAttribute('aria-pressed'),
+        libelle: bouton.textContent.trim(),
+      };
+
       return {
-        manuel, parTitre, avant, apres,
+        manuel, parTitre, repos, sousTri, enMode, avant, apres, referme,
         options: [...select.options].map((o) => o.value),
-        secondeExiste: Boolean(seconde),
       };
     })()`);
 
@@ -1416,31 +1477,153 @@ async function main() {
         + `trié ${JSON.stringify(tri?.parTitre?.noms)}, rangs ${tri?.parTitre?.rangs?.join(',')}`,
     );
     record(
-      'les flèches n\'existent qu\'en ordre manuel, et le disent',
-      tri?.manuel?.fleches > 0 && tri?.parTitre?.fleches === 0
-        && /ordre manuel/.test(tri?.parTitre?.indice ?? ''),
-      `${tri?.manuel?.fleches} flèche(s) en manuel, ${tri?.parTitre?.fleches} en trié `
-        + `— « ${tri?.parTitre?.indice?.slice(0, 90)} »`,
+      'au repos, aucune commande de rangement sur les lignes',
+      tri?.repos?.fleches === 0 && tri?.repos?.appuye === 'false'
+        && tri?.repos?.inactif === false && /Réorganiser/.test(tri?.repos?.libelle ?? ''),
+      `${tri?.repos?.fleches} commande(s) sur les lignes, bouton « ${tri?.repos?.libelle} » `
+        + `appuyé : ${tri?.repos?.appuye}`,
+    );
+    record(
+      'le mode rangement place ses commandes à gauche de la ligne',
+      tri?.enMode?.ouvert === true && tri?.enMode?.fleches > 0
+        && tri?.enMode?.poignees > 0
+        && (tri?.enMode?.ordreDesEnfants ?? [])[0] === 'link__rank'
+        && (tri?.enMode?.ordreDesEnfants ?? [])[1] === 'link__check',
+      `enfants de la ligne : ${(tri?.enMode?.ordreDesEnfants ?? []).join(' · ')}`,
+    );
+    record(
+      'le bouton annonce le mode, et l\'indice dit comment en sortir',
+      tri?.enMode?.appuye === 'true' && /Échap/.test(tri?.enMode?.indice ?? '')
+        && tri?.enMode?.libelle !== tri?.repos?.libelle,
+      `« ${tri?.enMode?.libelle} », appuyé : ${tri?.enMode?.appuye} `
+        + `— « ${tri?.enMode?.indice?.slice(0, 110)} »`,
     );
     record(
       'une flèche déplace réellement le lien',
       JSON.stringify(tri?.avant) !== JSON.stringify(tri?.apres),
       `${JSON.stringify(tri?.avant)} → ${JSON.stringify(tri?.apres)}`,
     );
+    record(
+      'Échap referme le rangement',
+      tri?.referme?.fleches === 0 && tri?.referme?.appuye === 'false'
+        && tri?.referme?.libelle === tri?.repos?.libelle,
+      `${tri?.referme?.fleches} commande(s) après Échap, bouton « ${tri?.referme?.libelle} »`,
+    );
+    record(
+      'sous un tri, le rangement est refusé et expliqué',
+      tri?.sousTri?.inactif === true && /ordre manuel/.test(tri?.sousTri?.indice ?? ''),
+      `bouton inactif : ${tri?.sousTri?.inactif} — « ${tri?.sousTri?.indice?.slice(0, 110)} »`,
+    );
 
-    // Remise en état : le parcours qui suit compte sur l'ordre de départ.
-    const ordreInitial = tri?.manuel?.noms ?? [];
-    const ordreCourant = tri?.apres ?? [];
-    if (JSON.stringify(ordreInitial) !== JSON.stringify(ordreCourant)) {
-      await evalApp(`(async () => {
-        const pause = (ms) => new Promise((r) => setTimeout(r, ms));
-        document.querySelectorAll('#list .link__move')[1]?.click();
-        await pause(700);
-        // On remet aussi le premier en place, si le déplacement l'a croisé.
-        const noms = [...document.querySelectorAll('#list .link__title')].map((n) => n.textContent.trim());
-        return noms;
-      })()`);
+    // Le geste, pour de vrai : des événements souris **réels** dans le
+    // navigateur, et non des `PointerEvent` fabriqués en script — un événement
+    // synthétique ne peut pas capturer un pointeur, et le chemin de capture
+    // resterait alors non vérifié.
+    const glissement = await evalApp(`(async () => {
+      const pause = (ms) => new Promise((r) => setTimeout(r, ms));
+      const bouton = document.getElementById('reorder');
+      if (bouton.getAttribute('aria-pressed') !== 'true') bouton.click();
+      await pause(500);
+      const noms = () => [...document.querySelectorAll('#list .link__title')].map((n) => n.textContent.trim());
+      const avant = noms();
+      const poignees = [...document.querySelectorAll('#list .link__grip')];
+      poignees[0]?.scrollIntoView({ block: 'center' });
+      await pause(300);
+
+      const depart = poignees[0]?.getBoundingClientRect();
+      const arrivee = poignees[1]?.getBoundingClientRect();
+      if (!depart || !arrivee) return null;
+      return {
+        avant,
+        graine: {
+          x: Math.round(depart.left + depart.width / 2),
+          y: Math.round(depart.top + depart.height / 2),
+        },
+        cible: {
+          x: Math.round(arrivee.left + arrivee.width / 2),
+          y: Math.round(arrivee.bottom + arrivee.height / 2),
+        },
+        fenetre: { largeur: window.innerWidth, hauteur: window.innerHeight },
+        // Le nombre de lignes, pour verifier qu'aucune n'a disparu du document.
+        lignes: noms().length,
+      };
+    })()`);
+
+    if (glissement) {
+      const { x, y } = glissement.graine;
+      // `buttons` dit quels boutons sont **enfoncés** au moment de l'événement.
+      // L'omettre à l'appui laissait le navigateur croire qu'aucun ne l'était :
+      // les mouvements passaient, le relâchement était ignoré, et le geste
+      // s'arrêtait sans rien écrire. Les trois événements doivent donc le porter,
+      // à 1 tant que le bouton est tenu, à 0 au relâchement.
+      await app.session.call('Input.dispatchMouseEvent', {
+        type: 'mousePressed', x, y, button: 'left', buttons: 1, clickCount: 1,
+      });
+      // Plusieurs pas : le suivi décide à chaque mouvement, et un seul saut
+      // pourrait tomber au-delà de la dernière ligne.
+      const etapes = 6;
+      for (let pas = 1; pas <= etapes; pas += 1) {
+        const entre = {
+          x: Math.round(x + ((glissement.cible.x - x) * pas) / etapes),
+          y: Math.round(y + ((glissement.cible.y - y) * pas) / etapes),
+        };
+        await app.session.call('Input.dispatchMouseEvent', { type: 'mouseMoved', ...entre, button: 'left', buttons: 1 });
+        await new Promise((r) => setTimeout(r, 60));
+      }
+      await app.session.call('Input.dispatchMouseEvent', {
+        type: 'mouseReleased',
+        x: glissement.cible.x, y: glissement.cible.y, button: 'left', buttons: 0, clickCount: 1,
+      });
+      await new Promise((r) => setTimeout(r, 1200));
     }
+
+    const apresGlissement = await evalApp(`(() => ({
+      noms: [...document.querySelectorAll('#list .link__title')].map((n) => n.textContent.trim()),
+      // Les rangs affichés : ce sont eux que le tableau imprimé renumérote, et
+      // ils ne changent qu'après un rendu — donc après une écriture réussie.
+      rangs: [...document.querySelectorAll('#list .link__index')].map((n) => n.textContent.trim()),
+      // Une ligne encore marquée « en cours de glissement » dirait que le
+      // relâchement n'a jamais été reçu, et non que l'écriture a échoué.
+      enCours: document.querySelectorAll('#list .link--dragging').length,
+    }))()`);
+
+    // La preuve que l'ordre est **écrit** n'est pas l'ordre du tableau stocké —
+    // le magasin garde ses entrées là où elles sont et ne fait que mettre à jour
+    // leur rang — mais ce que l'application affiche après un rechargement
+    // complet, c'est-à-dire ce qui partira à l'impression.
+    await recharger(app.session);
+    await forcerPeinture(app.session, 700);
+    const apresRechargement = await evalApp(
+      "[...document.querySelectorAll('#list .link__title')].map((n) => n.textContent.trim())",
+    );
+
+    record(
+      'un glissement déplace la ligne, et l\'ordre survit au rechargement',
+      Boolean(glissement)
+        && JSON.stringify(apresGlissement?.noms) !== JSON.stringify(glissement?.avant)
+        && apresGlissement?.noms?.length === glissement?.lignes
+        && JSON.stringify(apresRechargement) === JSON.stringify(apresGlissement?.noms),
+      `${JSON.stringify(glissement?.avant)} → ${JSON.stringify(apresGlissement?.noms)} `
+        + `(rangs ${apresGlissement?.rangs?.join(',')}, `
+        + `${apresGlissement?.enCours} ligne(s) encore saisie(s)), `
+        + `de ${glissement?.graine?.x},${glissement?.graine?.y} `
+        + `à ${glissement?.cible?.x},${glissement?.cible?.y} `
+        + `dans ${glissement?.fenetre?.largeur}×${glissement?.fenetre?.hauteur}, `
+        + `après rechargement ${JSON.stringify(apresRechargement)}`,
+    );
+
+    // Remise en état : le rangement se referme, et la collection reprend son
+    // ordre de départ — les parcours qui suivent comptent dessus.
+    await evalApp(`new Promise((resolve) => chrome.storage.local.get('links', (valeur) => {
+      const voulu = ${JSON.stringify(tri?.manuel?.noms ?? [])};
+      const rang = new Map(voulu.map((titre, index) => [titre, index]));
+      const suite = (valeur.links ?? []).map((lien) => Object.assign({}, lien, {
+        order: rang.has(lien.title) ? rang.get(lien.title) : voulu.length,
+      }));
+      chrome.storage.local.set({ links: suite }, resolve);
+    }))`);
+    await recharger(app.session);
+    await forcerPeinture(app.session, 600);
 
     // --- La note de collection --------------------------------------------
     //

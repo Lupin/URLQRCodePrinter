@@ -281,10 +281,17 @@ label size is recomputed:
 
 **Reordering, or sorting.** Two different things, in the same place.
 
-The **▲ ▼** arrows on each row move a link within the collection. The rank shown
-to the left of the title — the printed table's — follows, and the order is
-remembered: you find it again when you reopen. Those arrows appear only in
-**manual order**.
+The **"Reorder"** (« Réorganiser ») button above the list opens reordering. Each
+row then shows, **on its left**, a handle and two **▲ ▼** arrows: grab the handle
+to drag the row where you want it, or click the arrows — handy from the keyboard,
+and required for anyone who cannot drag. The rank shown to the left of the title
+— the printed table's — follows, and the order is remembered: you find it again
+when you reopen. **Escape** closes reordering, as a second click on the button
+does.
+
+Those controls exist **only in reorder mode, and only in manual order**: at rest,
+the list carries nothing but its links. During a sort the button is disabled, and
+the hint above the list says why.
 
 The **Sort** (« Trier ») selector, next to the search box, offers nine orders:
 manual, title, domain and tag — each ascending or descending — plus the date both
@@ -295,7 +302,7 @@ an empty string would.
 > "Manual order" finds the collection as you left it. But sorting changes the
 > displayed order, so the **printed table's "N°" follows it** — that number exists
 > to find the row in the list in front of you, and a number pointing at another
-> row would be useless. The arrows disappear during a sort: a move would be undone
+> row would be useless. Reordering disappears during a sort: a move would be undone
 > on the next render, and the user would think something was broken.
 
 Text sorts ignore case, accents and the rank of numbers: "article 2" comes before
