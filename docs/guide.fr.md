@@ -459,6 +459,20 @@ papier.
   (le tableau affichable tel quel). La sélection et les colonnes cochées
   s'appliquent, comme à l'impression.
 
+**Un tableau long sort sur plusieurs pages.** C'est la longueur de la collection
+qui décide du nombre de feuilles, et l'aperçu l'annonce — « 45 lignes imprimées
+sur 3 pages ». Le tableau ne s'arrête plus au bas de la première feuille : il
+continue sur la suivante, **l'en-tête des colonnes se répète** en tête de chaque
+page, et **aucune ligne n'est coupée en deux** — une ligne qui ne tient pas au bas
+d'une page passe entière sur la suivante.
+
+C'était le défaut : la feuille avait la hauteur du papier, et tout ce qui
+dépassait était tranché au bord. Mesuré sur 45 liens : 27 lignes sur 46 tombaient
+hors de la page, la dernière coupée en deux — et rien ne le disait.
+
+L'aperçu montre les **deux premières pages**. Comme pour la planche, ce que vous
+voyez est la page qui sortira : mêmes cotes, mêmes marges, même découpe.
+
 ### Étiquette Niimbot
 
 Pour l'impression directe sur une D110, une M2 ou une M3. Voir la section suivante.

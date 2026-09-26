@@ -77,7 +77,7 @@ protocole : elle répond.
 Les quatre constats sont désormais traités : le contour des boutons était une
 fausse accusation, les deux cibles satisfont l'exception d'espacement, et les
 deux aperçus ont été repris. Le relevé passe à **72 constats sur 72**, et à
-**112 sur 112** après les lots suivants.
+**116 sur 116** après les lots suivants.
 
 ### Le constat 1 : la fenêtre la plus courante est la plus mal servie
 
@@ -286,7 +286,7 @@ l'heuristique du navigateur. Il les distingue maintenant, en interrogeant
 - `:focus-visible` **vrai** et anneau absent → **c'est notre règle**. Le contrôle
   échoue, et il nomme l'élément.
 
-Trois passages consécutifs donnent 112 constats satisfaits sur 112, le troisième
+Trois passages consécutifs donnent 116 constats satisfaits sur 116, le troisième
 relevant l'artefact et le nommant. Un contrôle qui échoue au hasard finit par être
 ignoré ; celui-ci dit ce qu'il a vu et pourquoi il ne conclut pas à un défaut.
 
@@ -355,6 +355,65 @@ C'est la leçon, et elle est l'inverse de celle du piège de peinture : là, qua
 constats concordants **fabriquaient** un défaut ; ici, un constat unique
 **cachait** une fonctionnalité qui marchait. Dans les deux cas, la cause est la
 même — la mesure portait sur autre chose que ce qu'elle croyait mesurer.
+
+---
+
+## Le tableau imprimé s'arrêtait au bas de la première page
+
+Signalé : « en mode tableau, quand une ligne est coupée, il faut gérer
+l'impression multi-pages » — et la même question posée pour la planche.
+
+**Mesuré avant correction**, sur 45 liens, avec la médiation d'impression du
+protocole (`Emulation.setEmulatedMedia` : sans elle, `#print-root` est en
+`display: none` et toute la géométrie se lit à zéro — c'est le premier piège
+retombé ici) :
+
+| | Tableau | Planche |
+|---|---|---|
+| Boîtes de page construites | **1** | 2 |
+| Hauteur de page utile | 1 123 px | 1 123 px |
+| Contenu à imprimer | **2 596 px** | — |
+| Lignes hors de la page | **27 sur 46** | 0 |
+| Dernière ligne coupée | **oui** | non |
+| Pages du PDF du navigateur | **1** | 2 |
+
+La cause est dans la feuille de style et dans un seul appel : `.print-page` a la
+hauteur du papier **et** `overflow: hidden`, et `printSelection` n'en construisait
+qu'une, quelle que soit la longueur du tableau. Tout ce qui dépassait était donc
+tranché au bord de la feuille — sans un mot dans l'interface.
+
+**La correction découpe le tableau en pages réelles**, comme la planche le fait
+déjà. Elle **mesure** les hauteurs au lieu de les estimer : les lignes sont
+montées une fois dans une page aux vraies cotes, posée hors de l'écran mais
+**mise en page** — `visibility: hidden` conserve la mise en page, contrairement à
+`display: none` — puis `paginateByHeight` dit où couper :
+
+| | Avant | Après |
+|---|---|---|
+| Pages construites | 1 | **3** (18 + 18 + 13 lignes) |
+| Lignes hors de la page | 27 | **0** |
+| Adresses manquantes | 21 | **0** |
+| En-tête répété par page | — | oui, sur les 3 |
+| Pages du PDF du navigateur | 1 | **3** |
+
+L'encodage des QR Codes n'a lieu qu'une fois : les lignes sont **déplacées** d'un
+tableau à l'autre, jamais refaites. L'aperçu montre les deux premières pages, et
+sa légende annonce ce que rien ne disait — « 49 lignes imprimées sur 3 pages. »
+
+Le calcul vit dans `src/core/pagination.js`, et il est **pur** : il reçoit des
+hauteurs, il rend des tranches. Trois règles y sont tenues par des tests — l'ordre
+d'impression est conservé, une ligne plus haute qu'une page occupe sa page seule
+plutôt que d'être coupée, et une mesure absente rend **une** page au lieu d'une
+par ligne. La planche, elle, était déjà correcte : le contrôle le vérifie
+désormais, pour qu'un correctif d'un côté ne casse pas l'autre.
+
+**Ce que le contrôle ne dit pas** : la mesure porte sur les liens semés par le
+relevé, pas sur une collection réelle de plusieurs centaines de liens. **La
+longueur a donc été poussée plus loin**, hors relevé, avec l'instrument :
+à **150 liens**, le tableau sort sur **9 pages** — 18 lignes par page, 0 hors
+page, 0 adresse manquante, PDF de 9 pages — et la planche sur **7 pages**, 150
+étiquettes dont aucune hors page. Le nombre de pages suit donc bien la longueur,
+et pas seulement le cas de 45.
 
 ---
 
@@ -536,11 +595,28 @@ et imprime la position et la hauteur réelles de chaque bloc du panneau de
 collection — c'est ainsi qu'un champ de 160 px pour 51 px de contenu a été
 trouvé. Il ne porte aucun verdict : il rend des images et des nombres.
 
-Deux règles d'écriture pour quiconque étend ce script, et toutes deux ont coûté
+Pour **mesurer la pagination** d'une collection de longueur choisie, et garder
+les PDF produits par le navigateur :
+
+```bash
+node scripts/measure-print-pages.mjs 45
+```
+
+Il sème la collection demandée, remplit la racine d'impression par un
+`beforeprint` envoyé à la main — la boîte de dialogue système est bloquante, et
+`window.print()` arrêterait le script —, mesure chaque page sous médiation
+d'impression, puis rend deux PDF dans `.verify-chrome-pages/`. Les constats du
+relevé portent la même mesure sur 45 liens ; ce script sert à en essayer une
+autre longueur.
+
+Deux règles d'écriture pour quiconque étend ces scripts, et toutes deux ont coûté
 une fausse accusation ou une heure perdue :
 
 1. **Peindre avant de mesurer.** Ne jamais lire une valeur de style sans avoir
-   forcé une occasion de rendu.
+   forcé une occasion de rendu — et, pour la racine d'impression, se placer sous
+   médiation d'impression : hors impression, elle est en `display: none`, et
+   toute sa géométrie vaut zéro.
 2. **Aucun accent grave dans un commentaire interne.** Les scripts évalués dans la
    page vivent dans des gabarits de chaîne ; un accent grave dans un commentaire
-   les referme, et l'erreur de syntaxe est signalée à côté.
+   les referme, et l'erreur de syntaxe est signalée à côté. Le piège a été payé
+   une quatrième fois en écrivant le contrôle de pagination.

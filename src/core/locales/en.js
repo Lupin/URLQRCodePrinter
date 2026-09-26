@@ -215,6 +215,8 @@ export const EN_MESSAGES = {
   "Note": "Note",
   "Date": "Date",
   "Grille et bordures": "Grid and borders",
+  "{count} ligne imprimée sur {pages} page.": "{count} row printed on {pages} page.",
+  "{count} lignes imprimées sur {pages} pages.": "{count} rows printed on {pages} pages.",
   "Un tableau dense, adapté à une relecture ou à un archivage papier.": "A dense table, suited to review or paper archiving.",
   "Exporter le tableau (ZIP)": "Export table (ZIP)",
   "L'export du tableau produit un modèle JSON, les QR Codes en PNG et une page HTML. La sélection et les colonnes cochées s'appliquent.": "The table export produces a JSON model, the QR Codes as PNG and an HTML page. The selection and checked columns apply.",

@@ -29,6 +29,8 @@ native/niimbot-kit/.build/
 .verify-brave-captures/
 .verify-chrome/
 .verify-chrome-captures/
+# Les PDF produits par la mesure de pagination : des sorties, pas des sources.
+.verify-chrome-pages/
 
 # Dossier de travail de l'outillage de vision : captures intermédiaires, jamais
 # une source du dépôt.

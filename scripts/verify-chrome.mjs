@@ -3125,6 +3125,164 @@ async function main() {
           `API : ${(perm?.permissions ?? []).join(', ')} · hôtes : ${(perm?.hostPermissions ?? []).length}`,
         );
       }
+
+      // --- Une longue liste sort sur plusieurs pages --------------------------
+      //
+      // Signalé : « en mode tableau, quand une ligne est coupée, il faut gérer
+      // l'impression multi-pages ». Mesuré avant correction : 46 lignes pour
+      // 1 123 px de page utile, **27 lignes hors de la page**, la dernière coupée
+      // en deux — la boîte avait la hauteur du papier et `overflow: hidden`.
+      //
+      // Le contrôle se fait **en dernier**, sur sa propre collection : il ajoute
+      // quarante-cinq liens, et les relevés précédents ne doivent pas les voir.
+      // La planche est mesurée dans la foulée, parce que la question posée
+      // portait sur les deux, et qu'un correctif d'un côté ne doit pas casser
+      // l'autre.
+      const NOMBRE_LONG = 45;
+      await evalApp(`new Promise((resolve) => chrome.storage.local.get('links', (valeur) => {
+        const liens = valeur.links ?? [];
+        for (let i = 0; i < ${NOMBRE_LONG}; i += 1) {
+          const numero = String(i + 1).padStart(3, '0');
+          liens.push({
+            id: 'long-' + numero,
+            url: 'https://exemple.fr/article-' + numero + '?ref=releve',
+            title: 'Article ' + numero + ' — un titre de longueur ordinaire',
+            note: '', tags: [], createdAt: Date.now() - (${NOMBRE_LONG} - i) * 3600000,
+            updatedAt: Date.now(), source: 'manual', favicon: '', shortUrl: '',
+            shortProvider: '', shortenedAt: 0, order: liens.length,
+          });
+        }
+        chrome.storage.local.set({ links: liens }, resolve);
+      }))`);
+      await recharger(app.session);
+      await forcerPeinture(app.session, 900);
+
+      const pagination = await evalApp(`(async () => {
+        const pause = (ms) => new Promise((r) => setTimeout(r, ms));
+        const attendues = Array.from({ length: ${NOMBRE_LONG} }, (_, i) =>
+          'https://exemple.fr/article-' + String(i + 1).padStart(3, '0') + '?ref=releve');
+
+        // Le rendu papier se prépare au clic ; on l'obtient par l'événement que
+        // le navigateur envoie lui-même, sans ouvrir la boîte de dialogue —
+        // qui bloquerait le script jusqu'à ce que quelqu'un la referme.
+        const preparer = async (onglet) => {
+          [...document.querySelectorAll('.tab')].find((t) => t.dataset.mode === onglet).click();
+          await pause(1400);
+          const racine = document.getElementById('print-root');
+          racine.textContent = '';
+          window.dispatchEvent(new Event('beforeprint'));
+          await pause(1400);
+          return racine;
+        };
+
+        const racineTable = await preparer('table');
+        const pagesTable = [...racineTable.querySelectorAll('.print-page')];
+        const lignesTexte = [...racineTable.querySelectorAll('.print-table tbody tr')]
+          .map((l) => l.textContent);
+        // **Le compte attendu se lit, il ne se suppose pas.** Les contrôles
+        // précédents ont laissé des liens dans la collection : la longueur
+        // imprimée est celle de la liste, au moment du relevé.
+        const liens = document.querySelectorAll('#list .link').length;
+        const tableau = {
+          pages: pagesTable.length,
+          lignes: lignesTexte.length,
+          liens,
+          manquantes: attendues.filter((u) => !lignesTexte.some((t) => t.includes(u))).length,
+          enDouble: lignesTexte.length - new Set(lignesTexte).size,
+          entetesParPage: pagesTable.map((p) => p.querySelectorAll('.print-table thead tr').length),
+          // Une ligne hors de sa page serait coupee par le debordement cache.
+          horsPage: pagesTable.reduce((total, page) => {
+            const cadre = page.getBoundingClientRect();
+            return total + [...page.querySelectorAll('.print-table tr')].filter((l) => (
+              l.getBoundingClientRect().bottom - cadre.top > page.clientHeight + 1
+            )).length;
+          }, 0),
+          parPage: pagesTable.map((p) => p.querySelectorAll('.print-table tbody tr').length),
+        };
+
+        const racinePlanche = await preparer('sheet');
+        const pagesPlanche = [...racinePlanche.querySelectorAll('.print-page')];
+        const planche = {
+          pages: pagesPlanche.length,
+          cellules: racinePlanche.querySelectorAll('.print-cell').length,
+          horsPage: pagesPlanche.reduce((total, page) => {
+            const cadre = page.getBoundingClientRect();
+            return total + [...page.querySelectorAll('.print-cell')].filter((c) => (
+              c.getBoundingClientRect().bottom - cadre.top > page.clientHeight + 1
+            )).length;
+          }, 0),
+        };
+
+        // Ce que la légende de l'aperçu annonce, pour l'onglet Tableau.
+        [...document.querySelectorAll('.tab')].find((t) => t.dataset.mode === 'table').click();
+        await pause(1200);
+        const legende = [...document.querySelectorAll('#preview .preview__fact')]
+          .map((n) => n.textContent.trim());
+
+        return { attendues: attendues.length, tableau, planche, legende };
+      })()`);
+
+      // Le **vrai** paginateur du navigateur, pour ne pas se contenter de nos
+      // propres boîtes : `preferCSSPageSize` lui fait honorer le `@page` du
+      // produit.
+      const pdfTable = await app.session.call('Page.printToPDF', {
+        printBackground: true, preferCSSPageSize: true,
+      });
+      const pagesPdf = (Buffer.from(pdfTable.data, 'base64').toString('latin1')
+        .match(/\/Type\s*\/Page[^s]/g) ?? []).length;
+
+      record(
+        'un tableau long sort sur plusieurs pages, sans perdre une ligne',
+        (pagination?.tableau?.pages ?? 0) > 1
+          && pagination?.tableau?.lignes === pagination?.tableau?.liens
+          && pagination?.tableau?.manquantes === 0
+          && pagination?.tableau?.enDouble === 0
+          && pagination?.tableau?.horsPage === 0
+          && pagesPdf === pagination?.tableau?.pages,
+        `${pagination?.tableau?.liens} liens → ${pagination?.tableau?.pages} page(s) `
+          + `(${pagination?.tableau?.parPage?.join(' + ')} lignes), `
+          + `${pagination?.tableau?.horsPage} ligne(s) hors page, `
+          + `${pagination?.tableau?.manquantes} adresse(s) manquante(s), `
+          + `${pagination?.tableau?.enDouble} doublon(s) — PDF du navigateur : ${pagesPdf} page(s)`,
+      );
+
+      record(
+        'l\'en-tête du tableau se répète en tête de chaque page',
+        (pagination?.tableau?.entetesParPage ?? []).length > 1
+          && pagination.tableau.entetesParPage.every((n) => n === 1),
+        `${(pagination?.tableau?.entetesParPage ?? []).length} page(s), `
+          + `en-tête(s) par page : ${(pagination?.tableau?.entetesParPage ?? []).join(', ')}`,
+      );
+
+      record(
+        'la légende de l\'aperçu annonce le nombre de pages du tableau',
+        (pagination?.legende ?? []).some((fait) => /page/i.test(fait) && /\d/.test(fait)),
+        `« ${(pagination?.legende ?? []).join(' | ')} »`,
+      );
+
+      record(
+        'la planche découpe ses pages, et aucune étiquette ne déborde',
+        (pagination?.planche?.pages ?? 0) > 1
+          && pagination?.planche?.cellules === pagination?.tableau?.liens
+          && pagination?.planche?.horsPage === 0,
+        `${pagination?.planche?.pages} page(s), ${pagination?.planche?.cellules} étiquette(s) `
+          + `pour ${pagination?.tableau?.liens} lien(s), ${pagination?.planche?.horsPage} hors page`,
+      );
+
+      // Remise en état : la collection longue disparaît, et l'onglet revient à
+      // la planche — le relevé se termine comme il a commencé.
+      await evalApp(`new Promise((resolve) => chrome.storage.local.get('links', (valeur) => {
+        chrome.storage.local.set({
+          links: (valeur.links ?? []).filter((lien) => !String(lien.id).startsWith('long-')),
+        }, resolve);
+      }))`);
+      await recharger(app.session);
+      await forcerPeinture(app.session, 700);
+      await evalApp(`(async () => {
+        const pause = (ms) => new Promise((r) => setTimeout(r, ms));
+        [...document.querySelectorAll('.tab')].find((t) => t.dataset.mode === 'sheet').click();
+        await pause(600);
+      })()`);
     }
   } finally {
     // Les sessions se referment avant le navigateur : une socket ouverte sur un

@@ -98,6 +98,7 @@ import {
   ptToPx,
 } from './core/label-export.js';
 import { buildTableArchive } from './core/table-export.js';
+import { paginateByHeight } from './core/pagination.js';
 import { buildSheetArchive, sheetArchiveName } from './core/sheet-archive.js';
 import {
   buildPrinterLabelArchive, printerLabelArchiveName, printerLabelFileName,
@@ -229,6 +230,17 @@ let derniersModules = null;
 
 /** @type {number} */
 let dernieresLignes = 0;
+
+/**
+ * Nombre de pages que le tableau imprimé vient d'occuper.
+ *
+ * Consigné au rendu, et non recalculé par l'appelant : la répartition dépend des
+ * hauteurs **mesurées**, que seul le rendu connaît. La légende de l'aperçu le lit
+ * pour dire « 45 lignes sur 3 pages ».
+ *
+ * @type {number}
+ */
+let dernieresPagesTableau = 1;
 
 /**
  * La grille demandée **avant** que l'ajustement ne la change, pour pouvoir dire
@@ -2545,19 +2557,110 @@ function buildTablePage(table, options = {}) {
 }
 
 /**
- * Construit le tableau imprimable.
+ * Le tableau, découpé en autant de pages que le papier en demande.
+ *
+ * La boîte de page avait la hauteur du papier et `overflow: hidden` : au-delà,
+ * le contenu était tranché au bord de la feuille. **Mesuré** sur 45 liens : un
+ * tableau de 2 466 px pour 1 123 px de page utile, **27 lignes sur 46 hors de la
+ * page**, la dernière coupée en deux et les autres absentes — sans un mot dans
+ * l'interface.
+ *
+ * La répartition se **mesure** au lieu de s'estimer : les lignes sont montées une
+ * fois dans une page aux vraies cotes, posée hors de l'écran mais **mise en
+ * page** — `visibility: hidden` conserve la mise en page, contrairement à
+ * `display: none`, qui aurait rendu des hauteurs nulles. `paginateByHeight` dit
+ * ensuite où couper, et il est pur : c'est lui qui est testé.
+ *
+ * L'encodage des QR Codes n'a lieu qu'une fois, quel que soit le nombre de
+ * pages : les lignes sont **déplacées** d'un tableau à l'autre, jamais refaites.
+ *
  * @param {import('./core/link.js').LinkRecord[]} items
+ * @param {{ preview?: boolean }} [options]
+ * @returns {HTMLElement[]}
+ */
+function buildTablePages(items, options = {}) {
+  const config = tablePageConfig();
+  const columns = tableColumns();
+  const size = Number(el.tableQr.value);
+  const rows = items.map((link) => buildTableRow(link, columns, size));
+
+  const mesure = measureTableRows(rows, columns, config);
+  const tranches = paginateByHeight(mesure.hauteurs, mesure.hauteurUtile);
+  dernieresPagesTableau = tranches.length;
+
+  return tranches.map(({ start, end }) => buildTablePage(
+    buildTable(columns, rows.slice(start, end)),
+    options,
+  ));
+}
+
+/**
+ * Hauteurs réelles des lignes, et hauteur utile de la page.
+ *
+ * @param {HTMLElement[]} rows
+ * @param {object} columns
+ * @param {{ marginYMm: number }} config
+ * @returns {{ hauteurs: number[], hauteurUtile: number }}
+ */
+function measureTableRows(rows, columns, config) {
+  const hote = document.createElement('div');
+  hote.setAttribute('aria-hidden', 'true');
+  hote.style.cssText = 'position:absolute;left:-10000px;top:0;visibility:hidden;';
+
+  const page = buildTablePage(buildTable(columns, rows));
+  hote.appendChild(page);
+  document.body.appendChild(hote);
+
+  try {
+    const cadre = page.getBoundingClientRect();
+    const table = page.querySelector('.print-table');
+    const boiteTable = table.getBoundingClientRect();
+    const hauteurs = [...table.querySelectorAll('tbody tr')]
+      .map((ligne) => ligne.getBoundingClientRect().height);
+    // La bande de titre et le rembourrage du bas se déduisent de la mesure, et
+    // non d'une constante recopiée : ils changent avec la case cochée et avec
+    // les marges du tableau.
+    const hauteurUtile = cadre.height
+      - (boiteTable.top - cadre.top)
+      - config.marginYMm * PX_PER_MM;
+    return { hauteurs, hauteurUtile };
+  } finally {
+    document.body.removeChild(hote);
+  }
+}
+
+/**
+ * Construit le tableau imprimable.
+ *
+ * @param {object} columns Colonnes retenues, lues une fois pour toutes.
+ * @param {HTMLElement[]} rows Lignes déjà construites.
  * @returns {HTMLElement}
  */
-function buildTable(items) {
-  const size = Number(el.tableQr.value);
-  const columns = tableColumns();
-  const withDate = columns.date;
-
+function buildTable(columns, rows) {
   const table = document.createElement('table');
   table.className = 'print-table';
   if (!el.tableGrid.checked) table.classList.add('print-table--bare');
 
+  table.appendChild(buildTableHead(columns));
+
+  const body = document.createElement('tbody');
+  for (const row of rows) body.appendChild(row);
+  table.appendChild(body);
+
+  return table;
+}
+
+/**
+ * L'en-tête du tableau imprimé.
+ *
+ * Il est **refait pour chaque page** plutôt que déplacé : un `<tr>` n'appartient
+ * qu'à un seul tableau. Sur une liasse, une page sans en-tête ne dit plus ce
+ * qu'elle contient.
+ *
+ * @param {object} columns
+ * @returns {HTMLElement}
+ */
+function buildTableHead(columns) {
   const head = document.createElement('thead');
   const headRow = document.createElement('tr');
   const headers = [
@@ -2565,7 +2668,7 @@ function buildTable(items) {
     ...(columns.qr ? ['QR Code'] : []),
     ...(columns.url ? ['URL'] : []),
     ...(columns.title ? ['Titre'] : []),
-    ...(withDate ? ['Date'] : []),
+    ...(columns.date ? ['Date'] : []),
     ...(columns.tags ? ['Tags'] : []),
     ...(columns.note ? ['Note'] : []),
   ];
@@ -2575,65 +2678,69 @@ function buildTable(items) {
     headRow.appendChild(th);
   }
   head.appendChild(headRow);
-  table.appendChild(head);
+  return head;
+}
 
-  const body = document.createElement('tbody');
-  items.forEach((link) => {
-    const row = document.createElement('tr');
+/**
+ * Une ligne du tableau imprimé.
+ *
+ * @param {import('./core/link.js').LinkRecord} link
+ * @param {object} columns
+ * @param {number} size Côté du QR Code, en pixels.
+ * @returns {HTMLElement}
+ */
+function buildTableRow(link, columns, size) {
+  const row = document.createElement('tr');
 
-    if (columns.index) {
-      const num = document.createElement('td');
-      // Le rang dans la collection, pas le rang dans le tableau : c'est ce qui
-      // permet de retrouver le lien dans la liste.
-      num.textContent = String(linkRanks.get(link.id) ?? '');
-      row.appendChild(num);
-    }
+  if (columns.index) {
+    const num = document.createElement('td');
+    // Le rang dans la collection, pas le rang dans le tableau : c'est ce qui
+    // permet de retrouver le lien dans la liste.
+    num.textContent = String(linkRanks.get(link.id) ?? '');
+    row.appendChild(num);
+  }
 
-    if (columns.qr) {
-      const qrCell = document.createElement('td');
-      qrCell.className = 'print-table__qr';
-      const svg = qrElement(link.url, { border: 1 });
-      svg.setAttribute('width', String(size));
-      svg.setAttribute('height', String(size));
-      qrCell.appendChild(svg);
-      row.appendChild(qrCell);
-    }
+  if (columns.qr) {
+    const qrCell = document.createElement('td');
+    qrCell.className = 'print-table__qr';
+    const svg = qrElement(link.url, { border: 1 });
+    svg.setAttribute('width', String(size));
+    svg.setAttribute('height', String(size));
+    qrCell.appendChild(svg);
+    row.appendChild(qrCell);
+  }
 
-    if (columns.url) {
-      const urlCell = document.createElement('td');
-      urlCell.textContent = link.url;
-      row.appendChild(urlCell);
-    }
+  if (columns.url) {
+    const urlCell = document.createElement('td');
+    urlCell.textContent = link.url;
+    row.appendChild(urlCell);
+  }
 
-    if (columns.title) {
-      const titleCell = document.createElement('td');
-      titleCell.textContent = link.title;
-      row.appendChild(titleCell);
-    }
+  if (columns.title) {
+    const titleCell = document.createElement('td');
+    titleCell.textContent = link.title;
+    row.appendChild(titleCell);
+  }
 
-    if (withDate) {
-      const dateCell = document.createElement('td');
-      dateCell.textContent = formatCaptureDate(link.createdAt, tableDateMode());
-      row.appendChild(dateCell);
-    }
+  if (columns.date) {
+    const dateCell = document.createElement('td');
+    dateCell.textContent = formatCaptureDate(link.createdAt, tableDateMode());
+    row.appendChild(dateCell);
+  }
 
-    if (columns.tags) {
-      const tagsCell = document.createElement('td');
-      tagsCell.textContent = link.tags.join(' ');
-      row.appendChild(tagsCell);
-    }
+  if (columns.tags) {
+    const tagsCell = document.createElement('td');
+    tagsCell.textContent = link.tags.join(' ');
+    row.appendChild(tagsCell);
+  }
 
-    if (columns.note) {
-      const noteCell = document.createElement('td');
-      noteCell.textContent = link.note;
-      row.appendChild(noteCell);
-    }
+  if (columns.note) {
+    const noteCell = document.createElement('td');
+    noteCell.textContent = link.note;
+    row.appendChild(noteCell);
+  }
 
-    body.appendChild(row);
-  });
-
-  table.appendChild(body);
-  return table;
+  return row;
 }
 
 /** Les colonnes retenues pour le tableau imprimé. */
@@ -2780,7 +2887,20 @@ function renderPreview() {
       el.preview.appendChild(note);
       return;
     }
-    el.preview.appendChild(scaleForScreen(buildTablePage(buildTable(items), { preview: true })));
+    // Le tableau aussi se découpe en pages : on en montre les deux premières,
+    // comme pour la planche. Une seule page affichée laisserait croire que le
+    // reste n'existe pas — c'était le cas, et c'est ce qui trompait.
+    const pagesTableau = buildTablePages(items, { preview: true });
+    for (const page of pagesTableau.slice(0, 2)) {
+      el.preview.appendChild(scaleForScreen(page));
+    }
+    // La légende obéit à la convention des aperçus : **hors** du cadre de page,
+    // une information par ligne. Sur une liasse, savoir combien de feuilles
+    // sortiront est l'information qui manquait.
+    const legende = document.createElement('div');
+    legende.className = 'hint preview__caption';
+    legende.appendChild(ligneDeLegende(tableauPagesFact(items.length, pagesTableau.length)));
+    el.preview.appendChild(legende);
     return;
   }
 
@@ -2896,6 +3016,26 @@ function ligneDeLegende(texte) {
   ligne.className = 'preview__fact';
   ligne.textContent = texte;
   return ligne;
+}
+
+/**
+ * Combien de pages le tableau imprimé occupe, dit en une ligne.
+ *
+ * Le tableau sortait sur une page quelle que soit sa longueur, sans que rien ne
+ * le dise : le nombre de feuilles est exactement ce qu'un utilisateur ne peut pas
+ * deviner avant de cliquer sur « Imprimer ».
+ *
+ * @param {number} lignes
+ * @param {number} pages
+ * @returns {string}
+ */
+function tableauPagesFact(lignes, pages) {
+  return tpl(
+    lignes,
+    '{count} ligne imprimée sur {pages} page.',
+    '{count} lignes imprimées sur {pages} pages.',
+    { pages },
+  );
 }
 
 /**
@@ -3666,10 +3806,12 @@ function printSelection() {
 
   if (mode === 'table') {
     // Le tableau s'imprime sur A4 : il n'a pas de cotes d'étiquette à honorer,
-    // seulement un sens de feuille et des marges à fixer.
+    // seulement un sens de feuille et des marges à fixer. Il se découpe en
+    // autant de pages qu'il en faut — une seule boîte à la hauteur du papier
+    // tranchait le contenu au bord de la feuille.
     const config = tablePageConfig();
     applyPrintPageSize(config.widthMm, config.heightMm);
-    el.printRoot.appendChild(buildTablePage(buildTable(items)));
+    for (const page of buildTablePages(items)) el.printRoot.appendChild(page);
   } else {
     for (const page of buildSheetPages(items)) el.printRoot.appendChild(page);
   }
@@ -4923,7 +5065,7 @@ window.addEventListener('beforeprint', () => {
     if (mode === 'table') {
       const config = tablePageConfig();
       applyPrintPageSize(config.widthMm, config.heightMm);
-      el.printRoot.appendChild(buildTablePage(buildTable(items)));
+      for (const page of buildTablePages(items)) el.printRoot.appendChild(page);
     } else {
       for (const page of buildSheetPages(items)) el.printRoot.appendChild(page);
     }

@@ -443,6 +443,20 @@ paper.
   images) and `table.html` (the table, displayable as is). The selection and the
   checked columns apply, as they do for printing.
 
+**A long table prints on several pages.** The length of the collection decides how
+many sheets come out, and the preview announces it — "45 rows printed on 3
+pages". The table no longer stops at the bottom of the first sheet: it continues
+on the next one, the **column header repeats** at the top of every page, and **no
+row is cut in two** — a row that does not fit at the bottom of a page moves whole
+to the next one.
+
+That was the defect: the sheet had the height of the paper, and anything beyond it
+was sliced at the edge. Measured on 45 links: 27 rows out of 46 fell outside the
+page, the last one cut in half — and nothing said so.
+
+The preview shows the **first two pages**. As with the sheet, what you see is the
+page that will come out: same dimensions, same margins, same breaks.
+
 ### Niimbot label (« Étiquette Niimbot »)
 
 For direct printing on a D110, an M2 or an M3. See the next section.
