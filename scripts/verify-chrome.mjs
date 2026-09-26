@@ -180,6 +180,21 @@ async function forcerPeinture(session, pause = 250) {
   await new Promise((r) => setTimeout(r, pause));
 }
 
+/**
+ * Les noms des archives déjà téléchargées.
+ *
+ * Les deux exports — planche et étiquettes — déposent dans le même dossier, et
+ * chercher « un `.zip` » y trouvait l'archive de l'autre. C'est le piège que
+ * `verify-brave.mjs` documente déjà pour les exports de texte : on compare des
+ * **listes**, pas des motifs.
+ *
+ * @param {string} dossier
+ * @returns {Set<string>}
+ */
+function archivesPresentes(dossier) {
+  return new Set(readdirSync(dossier).filter((nom) => nom.endsWith('.zip')));
+}
+
 /** Ferme le navigateur sans déclencher sa boîte de confirmation. */
 function shutdown(browser) {
   try {
@@ -1108,6 +1123,79 @@ async function main() {
       `« ${entete?.sans?.message?.slice(0, 110)} »`,
     );
 
+    // --- L'export des étiquettes sans imprimante --------------------------
+    //
+    // C'est l'objet de la fonctionnalité : l'onglet Niimbot ne produisait que
+    // par le matériel, et ses réglages ne servaient à rien sans lui. Le contrôle
+    // vérifie donc **qu'aucune imprimante n'est connectée** avant d'exporter, et
+    // que les images déposées ont les dimensions de la tête.
+    const avantExportEtiquettes = await evalApp(`(() => {
+      const bouton = document.getElementById('export-niimbot');
+      const pastille = document.getElementById('printer-dot');
+      return {
+        present: Boolean(bouton),
+        desactive: bouton?.disabled,
+        cache: bouton?.hidden,
+        liesse: !pastille?.className.includes('dot--on'),
+      };
+    })()`);
+
+    await evalApp(`[...document.querySelectorAll('.tab')].find((t) => t.dataset.mode === 'single').click()`);
+    await new Promise((r) => setTimeout(r, 900));
+    const zipsAvantEtiquettes = archivesPresentes(DOWNLOADS);
+    await evalApp("document.getElementById('export-niimbot').click()");
+
+    const archiveEtiquettes = await waitFor(
+      () => readdirSync(DOWNLOADS).find(
+        (nom) => nom.endsWith('.zip') && !nom.endsWith('.crdownload')
+          && !zipsAvantEtiquettes.has(nom),
+      ),
+      { label: 'archive des étiquettes téléchargée', timeout: 30000 },
+    );
+
+    const octetsEtiquettes = new Uint8Array(readFileSync(join(DOWNLOADS, archiveEtiquettes)));
+    const entreesEtiquettes = readStoredZip(octetsEtiquettes);
+    const imagesEtiquettes = [...entreesEtiquettes.keys()].filter((n) => n.startsWith('etiquettes/'));
+    const manifesteEtiquettes = JSON.parse(
+      new TextDecoder().decode(entreesEtiquettes.get('etiquettes.json')),
+    );
+
+    // Les dimensions se lisent dans l'en-tête IHDR du PNG : pas besoin de le
+    // décoder pour savoir ce qu'il contient.
+    const premierPng = entreesEtiquettes.get(imagesEtiquettes[0]);
+    const vuePng = new DataView(premierPng.buffer, premierPng.byteOffset, premierPng.byteLength);
+
+    record(
+      'les étiquettes s\'exportent sans imprimante connectée',
+      avantExportEtiquettes?.present === true
+        && avantExportEtiquettes?.cache === false
+        && avantExportEtiquettes?.liesse === true
+        && imagesEtiquettes.length > 0,
+      `${avantExportEtiquettes?.liesse ? 'aucune imprimante' : 'imprimante connectée'} · `
+        + `${archiveEtiquettes} — ${imagesEtiquettes.length} image(s), `
+        + `${manifesteEtiquettes.settings?.profile} / ${manifesteEtiquettes.settings?.supply}`,
+    );
+    record(
+      'les images exportées ont les dimensions de la tête',
+      vuePng.getUint32(16) === manifesteEtiquettes.labels?.[0]?.widthPx
+        && vuePng.getUint32(20) === manifesteEtiquettes.labels?.[0]?.heightPx
+        && vuePng.getUint32(16) > 0,
+      `${vuePng.getUint32(16)} × ${vuePng.getUint32(20)} px annoncés `
+        + `${manifesteEtiquettes.labels?.[0]?.widthPx} × ${manifesteEtiquettes.labels?.[0]?.heightPx}`,
+    );
+    record(
+      'le dossier des étiquettes porte les réglages de l\'onglet Niimbot',
+      manifesteEtiquettes.format === 'url-qr-code-printer/printer-labels'
+        && manifesteEtiquettes.settings?.profile !== undefined
+        && manifesteEtiquettes.settings?.rotation !== undefined
+        && typeof manifesteEtiquettes.settings?.content === 'object',
+      `${Object.keys(manifesteEtiquettes.settings ?? {}).join(', ')}`,
+    );
+
+    // Remise en état : la suite du parcours compte sur l'onglet des planches.
+    await evalApp(`[...document.querySelectorAll('.tab')].find((t) => t.dataset.mode === 'sheet').click()`);
+    await new Promise((r) => setTimeout(r, 700));
+
     // --- L'export de la planche -------------------------------------------
     //
     // Le contrôle qui compte n'est pas « le fichier existe » mais « il rend la
@@ -1128,29 +1216,18 @@ async function main() {
       };
     })()`);
 
-    const avantExport = await evalApp(`(() => {
-      const bouton = document.getElementById('export-sheet');
-      return {
-        present: Boolean(bouton),
-        desactive: bouton?.disabled,
-        cache: bouton?.hidden,
-        libelle: bouton?.textContent.trim(),
-      };
-    })()`);
+    // On attend un nom **nouveau** : l'export des étiquettes, plus haut, a
+    // déposé sa propre archive dans le même dossier, et chercher « un `.zip` »
+    // y trouvait la sienne. C'est le piège que `verify-brave.mjs` documente déjà
+    // pour les exports de texte.
+    const zipsAvantPlanche = archivesPresentes(DOWNLOADS);
     await evalApp("document.getElementById('export-sheet').click()");
-    await new Promise((r) => setTimeout(r, 2500));
-    const apresExport = await evalApp(`(() => ({
-      toast: document.getElementById('toast').textContent.trim(),
-      libelle: document.getElementById('export-sheet').textContent.trim(),
-      liens: document.querySelectorAll('#list .link').length,
-      mode: [...document.querySelectorAll('.tab')].find((t) => t.getAttribute('aria-selected') === 'true')?.dataset.mode,
-    }))()`);
     const archive = await waitFor(
       () => readdirSync(DOWNLOADS).find(
-        (nom) => nom.endsWith('.zip') && !nom.endsWith('.crdownload'),
+        (nom) => nom.endsWith('.zip') && !nom.endsWith('.crdownload')
+          && !zipsAvantPlanche.has(nom),
       ),
-      { label: `archive de la planche téléchargée — bouton ${JSON.stringify(avantExport)}, `
-        + `après clic ${JSON.stringify(apresExport)}`, timeout: 30000 },
+      { label: 'archive de la planche téléchargée', timeout: 30000 },
     );
 
     const octets = new Uint8Array(readFileSync(join(DOWNLOADS, archive)));

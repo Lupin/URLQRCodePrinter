@@ -494,6 +494,33 @@ série ; le bilan final dit combien sont sorties et pourquoi les autres ont rat�
 
 ## Exporter sans Niimbot
 
+### Dossier des étiquettes composées (onglet « Étiquette Niimbot »)
+
+Le bouton **« Exporter ces étiquettes (ZIP) »**, sous « Imprimer », dépose les
+étiquettes **composées pour l'imprimante** — sans qu'aucune imprimante soit
+connectée. C'est le même chemin que l'impression et l'aperçu : `composeLabel`
+puis `drawLabel`, à la résolution de la tête, avec l'orientation appliquée. Le
+dossier contient donc ce qui serait sorti, et non une seconde composition qui
+lui ressemble.
+
+| Fichier | Ce qu'il contient |
+|---|---|
+| `etiquettes/NN-titre.png` | une image par étiquette, à la résolution de la tête (96 px de large sur un D110 à 203 ppp) |
+| `etiquettes.json` | les réglages de l'onglet : profil, consommable, densité, orientation, disposition, taille du texte, contenu coché |
+| `liens.csv` | la correspondance entre chaque lien et son image, avec les cotes en millimètres |
+
+Le sélecteur **« Ce qu'on imprime »** décide de la portée : le lien affiché, toute
+la collection, ou la sélection cochée. Le champ **Exemplaires** ne s'y applique
+pas — un dossier de dix étiquettes identiques n'apprendrait rien.
+
+> **Pourquoi ce dossier en plus de celui de l'onglet « Étiquette (divers) » ?**
+> Les deux ne composent pas de la même façon. « Étiquette (divers) » raisonne en
+> **format** — une largeur et une hauteur en millimètres, un mode de texte — et
+> sert à n'importe quelle étiqueteuse, y compris du papier ordinaire. L'onglet
+> Niimbot raisonne en **tête d'impression** : un profil de machine, un rouleau du
+> catalogue, une densité, une orientation. C'est cette composition-là que ce
+> bouton exporte, et elle n'était atteignable qu'avec le matériel branché.
+
 ### Dossier d'images (onglet « Étiquette (divers) »)
 
 Le chemin le plus court vers n'importe quelle étiqueteuse. Choisissez :

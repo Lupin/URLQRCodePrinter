@@ -505,6 +505,33 @@ other, without intervention:
 
 ## Exporting without Niimbot
 
+### Folder of printer-composed labels (the "Niimbot label" (« Étiquette Niimbot ») tab)
+
+The **"Export these labels (ZIP)" (« Exporter ces étiquettes (ZIP) »)** button,
+below "Print", writes out the labels **composed for the printer** — with no
+printer connected. It is the same path as printing and the preview: `composeLabel`
+then `drawLabel`, at the printhead resolution, with the orientation applied. The
+folder therefore holds what would have come out, not a second composition that
+resembles it.
+
+| File | What it holds |
+|---|---|
+| `etiquettes/NN-title.png` | one image per label, at the printhead resolution (96 px wide on a 203 dpi D110) |
+| `etiquettes.json` | the tab's settings: profile, supply, density, orientation, alignment, text size, ticked content |
+| `liens.csv` | the mapping between each link and its image, with the dimensions in millimetres |
+
+The **"What gets printed" (« Ce qu'on imprime »)** selector decides the scope: the
+displayed link, the whole collection, or the ticked selection. The **Copies**
+(« Exemplaires ») field does not apply — a folder of ten identical labels would
+teach nothing.
+
+> **Why this folder in addition to the one from the "Label (misc.)" tab?** The
+> two do not compose the same way. "Label (misc.)" works in **formats** — a width
+> and height in millimetres, a text mode — and serves any label printer, plain
+> paper included. The Niimbot tab works in **printheads**: a machine profile, a
+> catalogue roll, a density, an orientation. That composition is what this button
+> exports, and it was only reachable with the hardware plugged in.
+
 ### Image folder (the "Label (misc.)" (« Étiquette (divers) ») tab)
 
 The shortest path to any label printer. Choose:

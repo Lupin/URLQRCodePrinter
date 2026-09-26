@@ -94,6 +94,9 @@ import {
 import { buildTableArchive } from './core/table-export.js';
 import { buildSheetArchive, sheetArchiveName } from './core/sheet-archive.js';
 import {
+  buildPrinterLabelArchive, printerLabelArchiveName, printerLabelFileName,
+} from './core/label-archive.js';
+import {
   probeWebBluetooth,
   explainBluetoothFailure,
   requestPrinter,
@@ -390,6 +393,8 @@ function updatePrintScope() {
   // ferait sortir deux fois plus d'étiquettes que ce que la phrase laisse croire.
   const total = items.length * copies;
   el.printLabel.disabled = !ready || total === 0;
+  // L'export ne demande **pas** d'imprimante : c'est précisément son objet.
+  el.exportNiimbot.disabled = items.length === 0;
   el.printLabel.textContent = total === 0
     ? t('Aucun lien à imprimer')
     : tpl(total, 'Imprimer {count} étiquette', 'Imprimer {count} étiquettes')
@@ -3632,6 +3637,110 @@ async function exportTableArchive() {
 }
 
 /**
+ * Exporte les étiquettes composées pour l'imprimante, sans imprimante.
+ *
+ * L'onglet Niimbot ne savait produire que par le matériel : sans lui, ses
+ * réglages ne servaient à rien. La composition est **la même** que pour
+ * l'impression et pour l'aperçu — `composeLabel` puis `drawLabel`, à la
+ * résolution de la tête, avec l'orientation appliquée — si bien que le dossier
+ * contient ce qui serait sorti, et non une seconde composition qui lui ressemble.
+ */
+async function exportPrinterLabels() {
+  const { items } = impressionChoisie();
+  if (items.length === 0) {
+    toast(t('Aucun lien à imprimer'), 'error');
+    return;
+  }
+
+  const libelle = el.exportNiimbot.textContent;
+  el.exportNiimbot.disabled = true;
+
+  try {
+    const profile = previewProfile();
+    const { turns } = labelRotation();
+    const largeur = String(items.length).length;
+    const labels = [];
+
+    for (const [index, link] of items.entries()) {
+      el.exportNiimbot.textContent = t('Étiquette {index}/{total}…', {
+        index: index + 1,
+        total: items.length,
+      });
+
+      const { geometry, content, verdict } = composeLabel(link, profile);
+
+      const source = document.createElement('canvas');
+      source.width = geometry.width;
+      source.height = geometry.height;
+      const ctx = source.getContext('2d');
+      ctx.imageSmoothingEnabled = false;
+      drawLabel(ctx, geometry, {
+        titleLines: content.titleLines,
+        showTitle: content.showTitle,
+        url: resolveTarget(link, el.qrTarget.value).url,
+        extraText: content.extraText,
+      });
+
+      // L'orientation est appliquée à l'envoi, comme à l'impression : l'image
+      // exportée doit montrer la même chose que ce qui sort.
+      const tourne = turns === 0 ? source : rotateCanvas(source, turns);
+      const blob = await new Promise((resolve) => tourne.toBlob(resolve, 'image/png'));
+      if (!blob) throw new Error(t("Le navigateur n'a pas pu encoder l'image."));
+
+      labels.push({
+        fileName: printerLabelFileName(index + 1, link.title || hostOf(link.url) || link.url, largeur),
+        png: new Uint8Array(await blob.arrayBuffer()),
+        widthMm: Number(pxToMm(geometry.width, profile.dpi).toFixed(1)),
+        heightMm: Number(pxToMm(geometry.height, profile.dpi).toFixed(1)),
+        widthPx: geometry.width,
+        heightPx: geometry.height,
+        pxPerModule: verdict.pxPerModule,
+        url: link.url,
+        title: link.title ?? '',
+      });
+    }
+
+    el.exportNiimbot.textContent = t('Assemblage…');
+    const { bytes } = buildPrinterLabelArchive({
+      labels,
+      title: collectionName(),
+      // Tous les réglages de l'onglet : sans eux, le dossier décrirait des
+      // étiquettes qu'on ne saurait pas recomposer.
+      settings: {
+        profile: profile.id,
+        supply: el.labelSupply.value,
+        supplyName: el.labelSupply.selectedOptions?.[0]?.textContent ?? '',
+        density: Number(el.density.value) || profile.density.default,
+        rotation: el.labelRotation.value,
+        alignment: el.labelAlignment.value,
+        fontSizeMm: Number(el.labelFontSize.value),
+        position: el.labelLink.value,
+        content: {
+          index: el.labelShowIndex.checked,
+          title: el.labelShowTitle.checked,
+          url: el.labelShowUrl.checked,
+          host: el.labelShowHost.checked,
+          date: el.labelShowDate.checked,
+          time: el.labelDateTime.checked,
+        },
+      },
+    });
+
+    const filename = printerLabelArchiveName(Date.now(), collectionName());
+    const ok = downloadBytes(filename, bytes, { mime: 'application/zip' });
+    toast(ok
+      ? tpl(labels.length, '{count} étiquette — {filename} enregistré',
+        '{count} étiquettes — {filename} enregistré', { filename })
+      : t('Téléchargement impossible'), ok ? 'info' : 'error');
+  } catch (error) {
+    toast(t('Export impossible : {message}', { message: error.message }), 'error');
+  } finally {
+    el.exportNiimbot.textContent = libelle;
+    updatePrintScope();
+  }
+}
+
+/**
  * Exporte la planche en dossier autonome.
  *
  * Le HTML n'est pas reconstruit : il est repris tel quel des pages rendues pour
@@ -3846,6 +3955,11 @@ el.exportLabels.addEventListener('click', exportLabelImages);
 el.print.addEventListener('click', printSelection);
 el.connect.addEventListener('click', connectPrinter);
 el.disconnect.addEventListener('click', disconnectPrinter);
+el.exportNiimbot.addEventListener('click', () => {
+  exportPrinterLabels().catch((error) => {
+    toast(error.message ?? t('Export impossible'), 'error');
+  });
+});
 el.printLabel.addEventListener('click', () => {
   // Pendant une série, le même bouton arrête : on ne peut pas en lancer une
   // seconde par-dessus la première. C'était l'objet du regroupement — il n'y a

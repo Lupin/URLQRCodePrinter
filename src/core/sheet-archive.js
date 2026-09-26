@@ -22,7 +22,7 @@
  */
 
 import { createZip } from './zip.js';
-import { exportFilename, escapeCsvField } from './exporters.js';
+import { exportFilename, toCsvTable } from './exporters.js';
 
 /** Identifiant du format, écrit dans le manifeste. Stable : il est persisté. */
 export const SHEET_ARCHIVE_FORMAT = 'url-qr-code-printer/sheet';
@@ -41,12 +41,6 @@ export const SHEET_ARCHIVE_FORMAT = 'url-qr-code-printer/sheet';
 export function sheetArchiveName(now = Date.now(), base = 'etiquettes') {
   return exportFilename(`${base} planche`, 'zip', now || Date.now());
 }
-
-/** Le séparateur des CSV produits : le point-virgule, qu'attend un tableur
- * français. Le BOM en tête aide Excel à reconnaître l'UTF-8 ; l'échappement
- * vient de `exporters.js`, où il est déjà éprouvé — une seconde copie locale
- * aurait été refusée par le build, qui détecte les déclarations en collision. */
-const DELIMITEUR_CSV = ';';
 
 /**
  * Échappe un texte destiné à du balisage.
@@ -151,18 +145,17 @@ export function buildSheetArchive(options) {
     pageHeightMm: options.pageHeightMm,
   });
 
-  const entetes = ['N°', 'Page', 'Colonne', 'Rangée', 'URL', 'Titre'];
-  const lignes = cells.map((cell) => [
-    cell.index + 1,
-    cell.page + 1,
-    cell.column + 1,
-    cell.row + 1,
-    cell.url,
-    cell.title ?? '',
-  ]);
-  const csv = '\uFEFF' + [entetes, ...lignes]
-    .map((ligne) => ligne.map((cellule) => escapeCsvField(cellule, DELIMITEUR_CSV)).join(DELIMITEUR_CSV))
-    .join('\r\n') + '\r\n';
+  const csv = toCsvTable(
+    ['N°', 'Page', 'Colonne', 'Rangée', 'URL', 'Titre'],
+    cells.map((cell) => [
+      cell.index + 1,
+      cell.page + 1,
+      cell.column + 1,
+      cell.row + 1,
+      cell.url,
+      cell.title ?? '',
+    ]),
+  );
 
   const manifest = {
     format: SHEET_ARCHIVE_FORMAT,

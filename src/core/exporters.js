@@ -181,6 +181,26 @@ export function toCsv(links, options = {}) {
 }
 
 /**
+ * Assemble un CSV à partir d'un en-tête et de lignes de cellules.
+ *
+ * Le point-virgule est le séparateur, et le BOM aide Excel à reconnaître
+ * l'UTF-8. La convention vit ici, une fois : les dossiers exportés — planche,
+ * tableau, étiquettes — la partageaient en la recopiant chacun, et le build
+ * refuse d'ailleurs deux déclarations de même nom, ce qui a fait remonter la
+ * duplication.
+ *
+ * @param {unknown[]} entetes
+ * @param {unknown[][]} lignes
+ * @returns {string}
+ */
+export function toCsvTable(entetes, lignes) {
+  const delimiter = ';';
+  return '\uFEFF' + [entetes, ...lignes]
+    .map((ligne) => ligne.map((cellule) => escapeCsvField(cellule, delimiter)).join(delimiter))
+    .join('\r\n') + '\r\n';
+}
+
+/**
  * Échappe le contenu d'une cellule de tableau Markdown.
  * @param {unknown} value
  * @returns {string}

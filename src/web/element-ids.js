@@ -111,6 +111,7 @@ export const ELEMENT_IDS = Object.freeze([
   'disconnect',
   'ble-support',
   'print-label',
+  'export-niimbot',
   'print-status',
   'preview',
   'print',
