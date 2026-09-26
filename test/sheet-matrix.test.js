@@ -4,7 +4,7 @@
  * Le défaut qui a motivé ce fichier ne se voyait dans aucun test : la géométrie
  * était juste, mais elle n'était **appliquée qu'à l'impression**. L'aperçu
  * empilait donc les étiquettes en une seule colonne, le texte d'une étiquette
- * débordait sur la suivante, et le curseur de largeur du QR n'avait aucun effet.
+ * débordait sur la suivante, et le curseur de largeur du QR Code n'avait aucun effet.
  *
  * D'où deux niveaux, complémentaires :
  *
@@ -13,7 +13,7 @@
  *    décalages négatifs, proportions extrêmes) ;
  * 2. **dans `scripts/verify-brave.mjs`** — le rendu réellement calculé par le
  *    navigateur, mesuré au pixel : colonnes distinctes, aucune superposition,
- *    QR contenu dans sa boîte. C'est ce second niveau qui aurait attrapé le
+ *    QR Code contenu dans sa boîte. C'est ce second niveau qui aurait attrapé le
  *    défaut, et c'est pourquoi il existe maintenant.
  */
 
@@ -240,10 +240,10 @@ test('un décalage nul ne change strictement rien', () => {
 });
 
 // ---------------------------------------------------------------------------
-// Taille du QR dans l'étiquette
+// Taille du QR Code dans l'étiquette
 // ---------------------------------------------------------------------------
 
-test('le côté du QR se règle sur le petit côté de l\'étiquette', () => {
+test('le côté du QR Code se règle sur le petit côté de l\'étiquette', () => {
   for (const key of PRESET_KEYS) {
     const preset = SHEET_PRESETS[key];
     const shortest = Math.min(preset.labelWidthMm, preset.labelHeightMm);
@@ -257,7 +257,7 @@ test('le côté du QR se règle sur le petit côté de l\'étiquette', () => {
   }
 });
 
-test('le côté du QR ne peut jamais dépasser l\'étiquette', () => {
+test('le côté du QR Code ne peut jamais dépasser l\'étiquette', () => {
   for (const key of PRESET_KEYS) {
     const preset = SHEET_PRESETS[key];
     // Proportions absurdes : l'interface est bornée, mais le calcul doit tenir
@@ -267,13 +267,13 @@ test('le côté du QR ne peut jamais dépasser l\'étiquette', () => {
       assert.ok(side >= 0, `${key} / ${ratio} : côté négatif`);
       assert.ok(
         side <= Math.min(preset.labelWidthMm, preset.labelHeightMm) + EPSILON,
-        `${key} / ${ratio} : QR de ${side} mm plus grand que l'étiquette`,
+        `${key} / ${ratio} : QR Code de ${side} mm plus grand que l'étiquette`,
       );
     }
   }
 });
 
-test('le côté du QR croît avec la proportion, sans saut', () => {
+test('le côté du QR Code croît avec la proportion, sans saut', () => {
   const preset = SHEET_PRESETS['avery-l7160'];
   let previous = 0;
   for (let ratio = MIN_QR_RATIO; ratio <= MAX_QR_RATIO + EPSILON; ratio += 0.05) {
@@ -290,7 +290,7 @@ test('le calcul refuse une étiquette de dimension nulle', () => {
 });
 
 // ---------------------------------------------------------------------------
-// Contenu de l'étiquette : QR + texte
+// Contenu de l'étiquette : QR Code + texte
 // ---------------------------------------------------------------------------
 
 test('le rognage du texte est empêché, pas seulement signalé', () => {
@@ -298,7 +298,7 @@ test('le rognage du texte est empêché, pas seulement signalé', () => {
     const short = Math.min(preset.labelWidthMm, preset.labelHeightMm);
 
     // Sans contrainte de lisibilité, la borne haute est celle qui laisse une
-    // ligne de texte : le QR ne peut donc jamais manger tout le petit côté.
+    // ligne de texte : le QR Code ne peut donc jamais manger tout le petit côté.
     const roomy = qrRatioBounds({
       labelWidthMm: preset.labelWidthMm,
       labelHeightMm: preset.labelHeightMm,
@@ -306,7 +306,7 @@ test('le rognage du texte est empêché, pas seulement signalé', () => {
       textLines: 1,
       minModuleMm: 0.01,
     });
-    assert.equal(roomy.fits, true, `${key} : un QR de 25 modules doit tenir`);
+    assert.equal(roomy.fits, true, `${key} : un QR Code de 25 modules doit tenir`);
     assert.ok(
       roomy.maxSideMm < short,
       `${key} : la borne haute (${roomy.maxSideMm} mm) doit laisser la place du texte`,
@@ -317,7 +317,7 @@ test('le rognage du texte est empêché, pas seulement signalé', () => {
     const metrics = sheetTextMetrics();
     assert.ok(
       roomy.maxSideMm + SHEET_QR_GAP_MM + metrics.lineHeightMm <= short + 1e-9,
-      `${key} : QR + une ligne doit tenir dans le petit côté`,
+      `${key} : QR Code + une ligne doit tenir dans le petit côté`,
     );
   }
 });
@@ -384,7 +384,7 @@ test('le type d\'impression change la contrainte de lisibilité', () => {
   assert.equal(thermal.fits, true, thermal.reason);
   assert.ok(
     thermal.min < paper.min,
-    `la tête thermique autorise un QR plus petit (${thermal.min} < ${paper.min})`,
+    `la tête thermique autorise un QR Code plus petit (${thermal.min} < ${paper.min})`,
   );
 });
 

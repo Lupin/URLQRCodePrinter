@@ -442,7 +442,7 @@ el.clear.addEventListener('click', async () => {
 /**
  * Ouvre l'application dans un onglet.
  *
- * C'est là que se trouvent les QR codes, les mises en page et l'impression.
+ * C'est là que se trouvent les QR Codes, les mises en page et l'impression.
  * L'application est embarquée dans l'extension, donc elle lit **le même
  * stockage** que cette fenêtre : les liens collectés y sont déjà.
  */

@@ -43,11 +43,11 @@ politique publiée, les déclarations du portail et le comportement réel.
 
 **FR**
 
-> Collectez des liens depuis votre navigateur et imprimez-les en étiquettes QR. Tout reste sur votre appareil.
+> Collectez des liens depuis votre navigateur et imprimez-les en étiquettes QR Code. Tout reste sur votre appareil.
 
 **EN**
 
-> Collect links from your browser and print them as QR labels. Everything stays on your device.
+> Collect links from your browser and print them as QR Code labels. Everything stays on your device.
 
 ### Description détaillée
 
@@ -72,7 +72,7 @@ relégué en bas de page.
 **FR**
 
 ```
-URLQRCodePrinter transforme les adresses que vous croisez en étiquettes QR à coller sur vos affaires, vos dossiers, vos câbles ou vos étagères. Il en fait aussi une collection de liens que vous pouvez rechercher, classer, raccourcir, exporter et imprimer : sur une planche d'étiquettes autocollantes, sur une imprimante d'étiquettes thermique en Bluetooth, ou sous forme de dossier d'images prêt à imprimer.
+URLQRCodePrinter transforme les adresses que vous croisez en étiquettes QR Code à coller sur vos affaires, vos dossiers, vos câbles ou vos étagères. Il en fait aussi une collection de liens que vous pouvez rechercher, classer, raccourcir, exporter et imprimer : sur une planche d'étiquettes autocollantes, sur une imprimante d'étiquettes thermique en Bluetooth, ou sous forme de dossier d'images prêt à imprimer.
 
 Ce que l'extension lit
 
@@ -93,7 +93,7 @@ Collecter un lien en un geste
 - Champ d'ajout : saisie manuelle d'une adresse.
 - Importation : relit une archive exportée d'ici, un dossier d'étiquettes ou un fichier CSV, même retravaillé dans un tableur. Les liens déjà présents sont ignorés, jamais dupliqués.
 
-Les adresses sont normalisées à l'entrée : le schéma est complété si besoin, le fragment de navigation est retiré et les paramètres de campagne publicitaire sont supprimés, car ils allongent le QR code sans rien apporter sur le papier.
+Les adresses sont normalisées à l'entrée : le schéma est complété si besoin, le fragment de navigation est retiré et les paramètres de campagne publicitaire sont supprimés, car ils allongent le QR Code sans rien apporter sur le papier.
 
 Retrouver et organiser
 
@@ -114,25 +114,25 @@ Imprimer sur une planche d'étiquettes
 Imprimer directement sur une imprimante d'étiquettes
 
 - Imprimantes Niimbot compatibles, avec les rouleaux réellement vendus pour chacune.
-- Densité, nombre d'exemplaires, taille du texte et orientation du texte : droit, tourné dans les deux sens, ou en colonne à côté du QR code.
+- Densité, nombre d'exemplaires, taille du texte et orientation du texte : droit, tourné dans les deux sens, ou en colonne à côté du QR Code.
 - Contenu de l'étiquette composable : numéro, titre, adresse, domaine, date, heure.
 - Longueur d'étiquette renseignée : la composition remplit la bande au lieu de s'arrêter après le contenu.
 - Impression en série de toute la collection ou de la sélection cochée, plusieurs exemplaires par lien, avec un bouton d'arrêt qui termine proprement l'étiquette en cours.
 - Aperçu exact sans imprimante connectée : dimensions, nombre de modules et pixels par module sont calculés depuis le profil du modèle. Vous pouvez juger un rendu, ou savoir si une adresse tient sur une étiquette étroite, avant même d'acheter le matériel.
-- Une étiquette illisible est refusée avec un message explicite, plutôt que d'imprimer un QR code qui ne se scannerait pas.
+- Une étiquette illisible est refusée avec un message explicite, plutôt que d'imprimer un QR Code qui ne se scannerait pas.
 
 Sous Brave, l'accès Bluetooth doit être activé dans les réglages avancés du navigateur ; l'application détecte ce cas et affiche la procédure. Chrome et Edge n'ont pas cette contrainte.
 
 Exporter vers n'importe quelle imprimante
 
 - Dossier d'images : une image par étiquette à la résolution du format choisi, une planche prête à imprimer, la correspondance entre les adresses et les fichiers, et les réglages utilisés. Utilisable avec les rouleaux du commerce ou sur papier ordinaire.
-- Tableur : un vrai classeur où chaque ligne porte son QR code en image et son adresse cliquable. Un CSV ne peut pas transporter d'image.
-- Dossier de tableau : le modèle des données, les QR codes en images et la table en page web.
+- Tableur : un vrai classeur où chaque ligne porte son QR Code en image et son adresse cliquable. Un CSV ne peut pas transporter d'image.
+- Dossier de tableau : le modèle des données, les QR Codes en images et la table en page web.
 - CSV lisible par un tableur, Markdown en tableau ou en liste, et archive complète réimportable.
 
 Raccourcir un lien (optionnel)
 
-Quatre services au choix, sans clé d'API ni compte. L'adresse d'origine n'est jamais remplacée : le lien court est conservé à côté. Moins de caractères, donc moins de modules : le QR code devient plus lisible et peut être imprimé plus petit. Vous choisissez ce que le QR code encode, l'adresse d'origine ou le lien court, et ce choix vaut pour toutes les sorties.
+Quatre services au choix, sans clé d'API ni compte. L'adresse d'origine n'est jamais remplacée : le lien court est conservé à côté. Moins de caractères, donc moins de modules : le QR Code devient plus lisible et peut être imprimé plus petit. Vous choisissez ce que le QR Code encode, l'adresse d'origine ou le lien court, et ce choix vaut pour toutes les sorties.
 
 Ce que l'extension ne fait pas
 
@@ -154,7 +154,7 @@ Chrome sur ordinateur ; fonctionne aussi dans Brave et Edge. L'impression Blueto
 **EN**
 
 ```
-URLQRCodePrinter turns the addresses you come across into QR labels you can stick on your belongings, folders, cables or shelves. It also keeps them as a collection of links you can search, tag, shorten, export and print: on a sheet of self-adhesive labels, on a thermal label printer over Bluetooth, or as a folder of print-ready images.
+URLQRCodePrinter turns the addresses you come across into QR Code labels you can stick on your belongings, folders, cables or shelves. It also keeps them as a collection of links you can search, tag, shorten, export and print: on a sheet of self-adhesive labels, on a thermal label printer over Bluetooth, or as a folder of print-ready images.
 
 What the extension reads
 
@@ -175,7 +175,7 @@ Collect a link in one gesture
 - Add field: type an address by hand.
 - Import: reads back an archive exported from here, a label folder or a CSV file, even one edited in a spreadsheet. Links already present are skipped, never duplicated.
 
-Addresses are normalised on entry: the scheme is completed when missing, the navigation fragment is removed and advertising campaign parameters are stripped, since they lengthen the QR code without adding anything on paper.
+Addresses are normalised on entry: the scheme is completed when missing, the navigation fragment is removed and advertising campaign parameters are stripped, since they lengthen the QR Code without adding anything on paper.
 
 Find and organise
 
@@ -196,25 +196,25 @@ Print on a sheet of labels
 Print directly on a label printer
 
 - Compatible Niimbot printers, with the rolls actually sold for each of them.
-- Density, copies, text size and text orientation: upright, rotated either way, or a column beside the QR code.
+- Density, copies, text size and text orientation: upright, rotated either way, or a column beside the QR Code.
 - Composable label content: number, title, address, host, date, time.
 - A label length field: the composition fills the band instead of stopping after the content.
 - Batch printing of the whole collection or the checked selection, several copies per link, with a stop button that ends cleanly after the current label.
 - Exact preview with no printer connected: dimensions, module count and pixels per module are computed from the model's profile. You can judge a rendering, or find out whether an address fits on a narrow label, before buying the hardware.
-- An illegible label is refused with an explicit message, rather than printing a QR code that will not scan.
+- An illegible label is refused with an explicit message, rather than printing a QR Code that will not scan.
 
 In Brave, Bluetooth access has to be enabled in the browser's advanced settings; the app detects this case and shows the procedure. Chrome and Edge have no such constraint.
 
 Export to any printer
 
 - Image folder: one image per label at the resolution of the chosen format, a ready-to-print sheet, the mapping between addresses and files, and the settings used. Works with commercial rolls or plain paper.
-- Spreadsheet: a real workbook where each row carries its QR code as an image and its clickable address. A CSV cannot carry an image.
-- Table folder: the data model, the QR codes as images and the table as a web page.
+- Spreadsheet: a real workbook where each row carries its QR Code as an image and its clickable address. A CSV cannot carry an image.
+- Table folder: the data model, the QR Codes as images and the table as a web page.
 - Spreadsheet-readable CSV, Markdown as a table or a list, and a complete archive that can be imported back.
 
 Shorten a link (optional)
 
-Four services to choose from, with no API key and no account. The original address is never replaced: the short link is kept alongside it. Fewer characters means fewer modules, so the QR code is more legible and can be printed smaller. You choose what the QR code encodes, the original address or the short link, and that choice applies to every output.
+Four services to choose from, with no API key and no account. The original address is never replaced: the short link is kept alongside it. Fewer characters means fewer modules, so the QR Code is more legible and can be printed smaller. You choose what the QR Code encodes, the original address or the short link, and that choice applies to every output.
 
 What the extension does not do
 
@@ -238,7 +238,7 @@ Chrome on desktop; also works in Brave and Edge. Direct Bluetooth printing needs
 Le portail demande de résumer la fonction de l'extension en une phrase. Celle-ci
 doit correspondre exactement à ce que la description annonce :
 
-> Collect links the user chooses from the browser and turn them into printable QR
+> Collect links the user chooses from the browser and turn them into printable QR Code
 > labels, stored and processed entirely on the user's device.
 
 ---

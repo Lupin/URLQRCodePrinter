@@ -23,7 +23,7 @@
         </svg>
         <h1 class="topbar__title">URLQRCodePrinter</h1>
       </div>
-    <p class="topbar__subtitle" data-i18n="Collectez vos liens, imprimez-les en QR codes.">Collectez vos liens, imprimez-les en QR codes.</p>
+    <p class="topbar__subtitle" data-i18n="Collectez vos liens, imprimez-les en QR Codes.">Collectez vos liens, imprimez-les en QR Codes.</p>
     <label class="locale">
         <span class="sr-only" data-i18n="Langue">Langue</span>
         <select id="locale" class="locale__select" data-i18n-aria-label="Langue" aria-label="Langue">
@@ -110,7 +110,7 @@
       </p>
 
       <!-- Trois préoccupations distinctes, séparées : exporter, importer,
-           effacer. Elles étaient mêlées sur deux lignes, avec « Tableur + QR »
+           effacer. Elles étaient mêlées sur deux lignes, avec « Tableur + QR Code »
            en avant — une hiérarchie que rien ne justifiait. -->
       <div class="panel__footer">
         <!-- `btn--fill` : au survol, le contour devient un aplat d'accent. Le
@@ -119,7 +119,7 @@
              sur `:not(.actions--end)` casserait au premier bouton ajouté. -->
         <div class="actions">
           <span class="actions__label" data-i18n="Exporter">Exporter</span>
-          <button id="export-xlsx" class="btn btn--ghost btn--fill" type="button" disabled data-i18n="Tableur + QR">Tableur + QR</button>
+          <button id="export-xlsx" class="btn btn--ghost btn--fill" type="button" disabled data-i18n="Tableur + QR Code">Tableur + QR Code</button>
           <button id="export-csv" class="btn btn--ghost btn--fill" type="button" disabled data-i18n="CSV">CSV</button>
           <button id="export-md" class="btn btn--ghost btn--fill" type="button" disabled data-i18n="Markdown">Markdown</button>
           <button id="export-json" class="btn btn--ghost btn--fill" type="button" disabled data-i18n="Archive">Archive</button>
@@ -145,7 +145,7 @@
       <h2 id="layout-title" class="panel__title" data-i18n="Mise en forme">Mise en forme</h2>
 
       <label class="field field--compact">
-        <span class="field__label" data-i18n="Le QR code pointe vers">Le QR code pointe vers</span>
+        <span class="field__label" data-i18n="Le QR Code pointe vers">Le QR Code pointe vers</span>
         <select id="qr-target" class="input input--compact"></select>
       </label>
       <p id="target-hint" class="hint hint--tight"></p>
@@ -170,9 +170,9 @@
             <select id="preset" class="input"></select>
           </label>
           <label class="field">
-            <span class="field__label" data-i18n="Largeur du QR">Largeur du QR</span>
-            <!-- Les bornes sont recalculées à chaque rendu : un QR plus petit
-                 ne serait plus lisible une fois imprimé, un QR plus grand
+            <span class="field__label" data-i18n="Largeur du QR Code">Largeur du QR Code</span>
+            <!-- Les bornes sont recalculées à chaque rendu : un QR Code plus petit
+                 ne serait plus lisible une fois imprimé, un QR Code plus grand
                  chasserait le texte hors de l'étiquette. -->
             <input id="sheet-qr" class="input" type="range" min="30" max="100" value="70">
           </label>
@@ -185,14 +185,14 @@
           </label>
         </div>
         <p id="sheet-qr-info" class="hint hint--tight"></p>
-        <!-- Une ligne de plus sous le QR : chaque ligne prend la place du code,
+        <!-- Une ligne de plus sous le QR Code : chaque ligne prend la place du code,
              d'où une option et non un réglage par défaut. -->
         <fieldset class="columns">
-          <legend class="columns__legend" data-i18n="Sous chaque QR">Sous chaque QR</legend>
+          <legend class="columns__legend" data-i18n="Sous chaque QR Code">Sous chaque QR Code</legend>
           <!-- L'URL manquait : la planche n'imprimait que le titre, et
                retombait sur l'URL uniquement quand il n'y en avait pas. Sur
                une étiquette, l'URL est pourtant ce qu'on scanne en dernier
-               recours quand le QR est abîmé. -->
+               recours quand le QR Code est abîmé. -->
           <label class="columns__item field__label">
             <input id="sheet-url" type="checkbox">
             <span data-i18n="URL">URL</span>
@@ -266,7 +266,7 @@
       <div class="mode" data-mode-panel="table" hidden>
         <div class="fields">
           <label class="field">
-            <span class="field__label" data-i18n="Taille du QR">Taille du QR</span>
+            <span class="field__label" data-i18n="Taille du QR Code">Taille du QR Code</span>
             <input id="table-qr" class="input" type="range" min="20" max="80" value="38">
           </label>
           <!-- Le sens de la feuille : un tableau large gagne à être couché. -->
@@ -314,7 +314,7 @@
           </label>
           <label class="columns__item field__label">
             <input id="table-col-qr" type="checkbox" checked>
-            <span data-i18n="QR">QR</span>
+            <span data-i18n="QR Code">QR Code</span>
           </label>
           <label class="columns__item field__label">
             <input id="table-col-url" type="checkbox" checked>
@@ -352,7 +352,7 @@
         </fieldset>
         <p id="table-hint" class="hint hint--tight"></p>
         <p class="hint" data-i18n="Un tableau dense, adapté à une relecture ou à un archivage papier.">Un tableau dense, adapté à une relecture ou à un archivage papier.</p>
-        <p class="hint hint--tight" data-i18n="L'export du tableau produit un modèle JSON, les QR en PNG et une page HTML. La sélection et les colonnes cochées s'appliquent.">L'export du tableau produit un modèle JSON, les QR en PNG et une page HTML. La sélection et les colonnes cochées s'appliquent.</p>
+        <p class="hint hint--tight" data-i18n="L'export du tableau produit un modèle JSON, les QR Codes en PNG et une page HTML. La sélection et les colonnes cochées s'appliquent.">L'export du tableau produit un modèle JSON, les QR Codes en PNG et une page HTML. La sélection et les colonnes cochées s'appliquent.</p>
       </div>
 
       <!-- Étiquette Niimbot -->
@@ -409,7 +409,7 @@
         </div>
         <p id="label-font-hint" class="hint hint--tight"></p>
 
-        <!-- Ce qui est imprimé sous le QR, coché comme les colonnes du tableau.
+        <!-- Ce qui est imprimé sous le QR Code, coché comme les colonnes du tableau.
              Une liste déroulante n'acceptait qu'un choix, alors que titre, URL
              et numéro se cumulent : le numéro sert à retrouver la ligne quand
              l'étiquette est petite. -->
@@ -518,7 +518,7 @@
              demandée. La case « Titre » ajoute le titre même quand la liste
              « Texte imprimé » ne le porte pas. -->
         <fieldset class="columns">
-          <legend class="columns__legend" data-i18n="Sous le QR">Sous le QR</legend>
+          <legend class="columns__legend" data-i18n="Sous le QR Code">Sous le QR Code</legend>
           <label class="columns__item field__label">
             <input id="export-title" type="checkbox">
             <span data-i18n="Titre">Titre</span>

@@ -157,7 +157,7 @@ test('toMarkdown produit un tableau avec liens cliquables', () => {
   const links = [createLink({ url: 'https://e.com/a', title: 'Ex', tags: ['x'] }, { now: T0 })];
   const md = toMarkdown(links, { now: T0 });
   assert.ok(md.startsWith('---\n'));
-  assert.ok(md.includes('# Mes liens QR'));
+  assert.ok(md.includes('# Mes liens QR Code'));
   assert.ok(md.includes('| N° | URL | Titre | Tags | Ajouté le |'));
   assert.ok(md.includes('[https://e.com/a](https://e.com/a)'));
   assert.ok(md.includes('`#x`'));
@@ -196,7 +196,9 @@ test('parseJsonExport rejette un JSON sans liens', () => {
 test('exportFilename est horodaté, assaini et en heure locale', () => {
   // L'horodatage est volontairement local : l'utilisateur doit reconnaître
   // l'heure de son export. On vérifie donc la forme, pas une heure figée.
-  assert.match(exportFilename('Mes liens QR', 'csv', T0), /^Mes-liens-QR-\d{8}-\d{4}\.csv$/);
+  // Le nom du fichier remplace les espaces par des tirets : « Mes liens QR Code »
+  // devient « Mes-liens-QR-Code ». Le motif suit donc le nom, pas le titre.
+  assert.match(exportFilename('Mes liens QR Code', 'csv', T0), /^Mes-liens-QR-Code-\d{8}-\d{4}\.csv$/);
   assert.ok(exportFilename('', 'md', T0).startsWith('liens-'));
   assert.ok(exportFilename('///', 'csv', T0).startsWith('liens-'));
   assert.ok(exportFilename('a/b:c*d', 'csv', T0).startsWith('a-b-c-d-'));
@@ -250,7 +252,7 @@ test('toMonoBitmap produit des lignes alignées sur l\'octet', () => {
     assert.ok(row instanceof Uint8Array);
     assert.equal(row.length, bmp.bytesPerRow);
   }
-  // Un QR n'est jamais entièrement blanc : au moins un bit doit être à 1.
+  // Un QR Code n'est jamais entièrement blanc : au moins un bit doit être à 1.
   assert.ok(bmp.rows.some((row) => row.some((b) => b !== 0)));
 });
 
@@ -314,7 +316,7 @@ test('hasShortUrl distingue « pas de raccourci » de « chaîne vide »', () =>
   assert.equal(hasShortUrl({ shortUrl: 'https://tinyurl.com/x' }), true);
 });
 
-test('resolveTarget laisse le QR sur l\'URL d\'origine par défaut', () => {
+test('resolveTarget laisse le QR Code sur l\'URL d\'origine par défaut', () => {
   const link = shortLink();
   const resolved = resolveTarget(link, 'original');
   assert.equal(resolved.url, link.url);
@@ -323,7 +325,7 @@ test('resolveTarget laisse le QR sur l\'URL d\'origine par défaut', () => {
   assert.equal(resolved.title, 'Un article', 'le reste de l\'enregistrement est conservé');
 });
 
-test('resolveTarget bascule le QR sur le lien court quand on le demande', () => {
+test('resolveTarget bascule le QR Code sur le lien court quand on le demande', () => {
   const resolved = resolveTarget(shortLink(), 'short');
   assert.equal(resolved.url, 'https://tinyurl.com/2yxwpwb6');
   assert.equal(resolved.originalUrl, 'https://exemple.fr/un-article?id=42');
@@ -424,7 +426,7 @@ test('le titre du Markdown est celui qu\'on donne', () => {
 });
 
 // --------------------------------------------------------------------------
-// Date imprimée sous le QR code
+// Date imprimée sous le QR Code
 // --------------------------------------------------------------------------
 
 test('formatCaptureDate respecte les trois modes', () => {

@@ -191,7 +191,7 @@ test('les caractères de contrôle sont retirés du XML', async () => {
 // Export complet
 // ---------------------------------------------------------------------------
 
-test('l\'export tableur intègre un QR par lien', async () => {
+test('l\'export tableur intègre un QR Code par lien', async () => {
   const links = [
     createLink({ url: 'https://exemple.fr/a', title: 'Un' }, { now: 1736937000000 }),
     createLink({ url: 'https://exemple.fr/b', title: 'Deux' }, { now: 1736930000000 }),
@@ -217,8 +217,8 @@ test('l\'export tableur intègre un QR par lien', async () => {
   assert.equal(drawing.match(/<xdr:twoCellAnchor/g).length, links.length);
 });
 
-test('l\'en-tête déclare une colonne pour les QR', () => {
-  assert.ok(SPREADSHEET_HEADERS.includes('QR code'));
+test('l\'en-tête déclare une colonne pour les QR Codes', () => {
+  assert.ok(SPREADSHEET_HEADERS.includes('QR Code'));
   assert.ok(QR_COLUMN_INDEX > 0);
 });
 
@@ -289,7 +289,7 @@ test('le classeur suit la cible choisie et conserve l\'URL d\'origine', async ()
   const entries = readZip(xlsx);
   const sheet = new TextDecoder().decode(entries.get('xl/worksheets/sheet1.xml').data);
 
-  // La cellule « URL » contient exactement ce qu'encode le QR de la même ligne.
+  // La cellule « URL » contient exactement ce qu'encode le QR Code de la même ligne.
   assert.ok(sheet.includes('>https://tinyurl.com/abc<'));
   // Le domaine reste celui du site visé, jamais celui du raccourcisseur.
   assert.ok(sheet.includes('>exemple.fr<'));
@@ -320,8 +320,8 @@ test('le classeur n\'ajoute la note que si elle sert, sans décaler les images',
   const layout = spreadsheetLayout(withNote);
   assert.ok(layout.headers.includes('Note'));
   assert.equal(layout.noteColumn, 5);
-  // L'image doit rester ancrée sur la colonne du QR, qui s'est décalée.
-  assert.equal(layout.qrColumn, layout.headers.indexOf('QR code'));
+  // L'image doit rester ancrée sur la colonne du QR Code, qui s'est décalée.
+  assert.equal(layout.qrColumn, layout.headers.indexOf('QR Code'));
   assert.equal(layout.qrColumn, QR_COLUMN_INDEX + 1);
 
   const xlsx = await buildLinkSpreadsheet(withNote, { now: 1 });
@@ -335,17 +335,17 @@ test('le classeur n\'ajoute la note que si elle sert, sans décaler les images',
   const drawing = new TextDecoder().decode(entries.get('xl/drawings/drawing1.xml').data);
   assert.equal(drawing.match(/<xdr:twoCellAnchor/g).length, withNote.length);
   // La colonne de départ de chaque ancre, en base 0 : « Note » occupe la 5e, le
-  // QR la 7e. Chaque image porte un `from` et un `to` : on ne lit que les `from`.
+  // QR Code la 7e. Chaque image porte un `from` et un `to` : on ne lit que les `from`.
   const columns = [...drawing.matchAll(/<xdr:from><xdr:col>(\d+)<\/xdr:col>/g)]
     .map((m) => Number(m[1]));
   assert.deepEqual(
     columns,
     Array(withNote.length).fill(layout.qrColumn),
-    'QR ancré sur la bonne colonne',
+    'QR Code ancré sur la bonne colonne',
   );
 });
 
-test('chaque QR est ancré à sa propre ligne, comme Excel l\'écrit', async () => {
+test('chaque QR Code est ancré à sa propre ligne, comme Excel l\'écrit', async () => {
   // Défaut d'origine : un `oneCellAnchor`, licite mais qu'Excel n'écrit jamais,
   // et que les visionneuses d'Apple empilaient au coin de la feuille. On écrit
   // désormais la forme d'Excel : `twoCellAnchor editAs="oneCell"`, marqueurs
@@ -370,7 +370,7 @@ test('chaque QR est ancré à sa propre ligne, comme Excel l\'écrit', async () 
   assert.equal(froms.length, links.length, 'un marqueur `from` par image');
   assert.equal(tos.length, links.length, 'un marqueur `to` par image');
 
-  // Une ligne par image, toutes différentes, dans la colonne des QR.
+  // Une ligne par image, toutes différentes, dans la colonne des QR Codes.
   assert.deepEqual(froms.map((f) => f.row), [1, 2, 3, 4]);
   assert.deepEqual(froms.map((f) => f.col), Array(links.length).fill(QR_COLUMN_INDEX));
   // `to` est la cellule suivante : l'image est liée à cette cellule-là.
@@ -380,7 +380,7 @@ test('chaque QR est ancré à sa propre ligne, comme Excel l\'écrit', async () 
   }
 });
 
-test('l\'image du QR tient dans sa cellule, et la ligne dans une page', async () => {
+test('l\'image du QR Code tient dans sa cellule, et la ligne dans une page', async () => {
   // Trois mesures qui doivent rester cohérentes : la largeur de la colonne, la
   // hauteur de la ligne, et la mise en page. Une image plus large que sa
   // colonne déborde ; une ligne trop haute fait sortir le tableau de la page.
@@ -390,7 +390,7 @@ test('l\'image du QR tient dans sa cellule, et la ligne dans une page', async ()
   const sheet = new TextDecoder().decode(entries.get('xl/worksheets/sheet1.xml').data);
   const drawing = new TextDecoder().decode(entries.get('xl/drawings/drawing1.xml').data);
 
-  // L'image est de 96 px ; la colonne du QR doit être au moins aussi large.
+  // L'image est de 96 px ; la colonne du QR Code doit être au moins aussi large.
   const ext = drawing.match(/<xdr:ext cx="(\d+)" cy="(\d+)"/) ?? drawing.match(/<a:ext cx="(\d+)" cy="(\d+)"/);
   const imagePx = Number(ext[1]) / 9525;
   assert.equal(imagePx, 96, 'la taille de l\'image est connue');
@@ -405,12 +405,12 @@ test('l\'image du QR tient dans sa cellule, et la ligne dans une page', async ()
       + `pour une image de ${imagePx} px`,
   );
 
-  // La ligne qui porte le QR est assez haute pour lui (1 px = 0,75 point).
+  // La ligne qui porte le QR Code est assez haute pour lui (1 px = 0,75 point).
   const height = Number(sheet.match(/<row r="2" ht="(\d+)"/)?.[1] ?? 0);
   assert.ok(height >= imagePx * 0.75, `ligne de ${height} pt pour une image de ${imagePx} px`);
 
   // Et la mise en page ramène le tableau à une largeur de page : sans cela, un
-  // QR peut sortir sur une autre feuille que son URL.
+  // QR Code peut sortir sur une autre feuille que son URL.
   assert.match(sheet, /<pageSetUpPr fitToPage="1"\/>/);
   assert.match(sheet, /fitToWidth="1"/);
   assert.match(sheet, /orientation="landscape"/);

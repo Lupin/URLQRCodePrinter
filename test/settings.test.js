@@ -55,7 +55,7 @@ test('le mode de date est validé comme les autres préférences', () => {
   assert.equal(sanitizeSettings({ dateMode: 'date' }).dateMode, 'date');
   assert.equal(sanitizeSettings({ dateMode: 'heure' }).dateMode, DEFAULT_SETTINGS.dateMode);
   assert.equal(sanitizeSettings({ dateMode: 42 }).dateMode, DEFAULT_SETTINGS.dateMode);
-  // Aucune date par défaut : chaque ligne prend la place du QR code.
+  // Aucune date par défaut : chaque ligne prend la place du QR Code.
   assert.equal(DEFAULT_SETTINGS.dateMode, 'none');
 });
 

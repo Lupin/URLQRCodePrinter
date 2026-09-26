@@ -1,5 +1,5 @@
 /**
- * Composition d'une étiquette : un QR code et une URL lisible.
+ * Composition d'une étiquette : un QR Code et une URL lisible.
  *
  * Ce module ne dépend d'aucune imprimante : il décrit une géométrie en pixels
  * pour une largeur de tête et une résolution données. Les profils concrets
@@ -16,14 +16,14 @@ import { t } from './i18n.js';
  * @property {number} width       Largeur totale en pixels.
  * @property {number} height      Hauteur totale en pixels.
  * @property {number} padding     Marge intérieure en pixels.
- * @property {number} qrSize      Côté du QR en pixels (multiple de l'échelle).
+ * @property {number} qrSize      Côté du QR Code en pixels (multiple de l'échelle).
  * @property {number} textTop     Ordonnée du premier texte.
  * @property {number} lineHeight  Hauteur de ligne de texte.
  * @property {string[]} lines     Lignes de texte déjà découpées.
  * @property {number} fontSize    Taille de police en pixels.
- * @property {number} qrScale     Pixels par module du QR.
+ * @property {number} qrScale     Pixels par module du QR Code.
  * @property {number} pxPerModule Pixels par module.
- * @property {boolean} fits       false si le QR ne tient pas dans la largeur utile.
+ * @property {boolean} fits       false si le QR Code ne tient pas dans la largeur utile.
  * @property {import('./qr.js').QrMatrix} qrMatrix Matrice encodée.
  */
 
@@ -31,8 +31,8 @@ import { t } from './i18n.js';
  * Contenu textuel d'une étiquette Niimbot, selon le mode choisi.
  *
  * Le même vocabulaire que l'export d'images (`TEXT_MODES`), pour qu'on n'ait
- * qu'une chose à apprendre : QR seul, QR + titre, QR + URL, etc. La date, elle,
- * suit le réglage global « Date sous le QR code » et s'ajoute en dernier.
+ * qu'une chose à apprendre : QR Code seul, QR Code + titre, QR Code + URL, etc. La date, elle,
+ * suit le réglage global « Date sous le QR Code » et s'ajoute en dernier.
  *
  * Le titre et la date occupent chacun **une ligne réservée** : `extraLines`
  * prévient la géométrie, sans quoi la dernière ligne serait rognée.
@@ -66,7 +66,7 @@ export function labelContent(link, mode, dateLines = []) {
 }
 
 /**
- * Prépare la date à imprimer sous le QR, en la découpant si elle ne tient pas.
+ * Prépare la date à imprimer sous le QR Code, en la découpant si elle ne tient pas.
  *
  * `drawLabel` écrit chaque ligne supplémentaire telle quelle, sans la découper :
  * une date trop large déborderait. On lui fournit donc des lignes déjà prêtes.
@@ -159,7 +159,7 @@ function pxToMmFloor(width, dpi) {
 /**
  * Compose le contenu d'une étiquette à partir de choix indépendants.
  *
- * Remplace l'ancien mode unique — « QR + titre », « QR + URL »… — par des cases
+ * Remplace l'ancien mode unique — « QR Code + titre », « QR Code + URL »… — par des cases
  * qui se cumulent : le titre, l'URL, le domaine, le numéro et la date ne
  * s'excluent pas. Le numéro sert à retrouver la ligne de la liste quand
  * l'étiquette est trop petite pour porter l'URL entière.
@@ -178,7 +178,7 @@ function pxToMmFloor(width, dpi) {
 export function labelContentFromChoices(link, options = {}) {
   const title = typeof link.title === 'string' ? link.title.trim() : '';
   // Le titre n'est repris que s'il existe : cocher « Titre » sur un lien sans
-  // titre ne doit pas laisser une ligne vide sous le QR.
+  // titre ne doit pas laisser une ligne vide sous le QR Code.
   const showTitle = options.title === true && title !== '';
 
   const parts = [];
@@ -230,7 +230,7 @@ export const MIN_FONT_MM = 1.6;
 /**
  * Part de la hauteur que le texte peut occuper au maximum.
  *
- * Le reste va au QR : une étiquette où le texte mange les deux tiers de la
+ * Le reste va au QR Code : une étiquette où le texte mange les deux tiers de la
  * longueur ne se scanne plus. Sans ce plafond, une URL longue sur une longueur
  * de rouleau confortable ferait exactement cela.
  */
@@ -246,7 +246,7 @@ export const LABEL_TEXT_HEIGHT_RATIO = 0.45;
 export const LABEL_ALIGNMENTS = Object.freeze([
   { id: 'center', label: 'Centré' },
   { id: 'top', label: 'En haut' },
-  { id: 'spread', label: 'Réparti (QR en haut, texte en bas)' },
+  { id: 'spread', label: 'Réparti (QR Code en haut, texte en bas)' },
 ]);
 
 /** Disposition retenue par défaut. */
@@ -256,8 +256,8 @@ export const DEFAULT_LABEL_ALIGNMENT = 'center';
  * Taille de police maximale, en part de la largeur de la tête.
  *
  * Une longueur de rouleau confortable donne envie de grossir le texte jusqu'à
- * remplir la place. Au-delà de ce plafond, le texte devient plus gros que le QR
- * qu'il accompagne : l'étiquette perd son équilibre et le QR, seul élément
+ * remplir la place. Au-delà de ce plafond, le texte devient plus gros que le QR Code
+ * qu'il accompagne : l'étiquette perd son équilibre et le QR Code, seul élément
  * utile, passe au second plan. Le reste de la place va aux marges.
  */
 export const MAX_FONT_WIDTH_RATIO = 0.18;
@@ -353,17 +353,17 @@ export function wrapText(measure, text, maxWidth, options = {}) {
  * de gaspiller une étiquette sur une URL courte.
  *
  * @param {object} options
- * @param {string} options.text           Texte à imprimer sous le QR (généralement l'URL).
- * @param {string} [options.qrText]       Contenu réellement encodé dans le QR.
- *   Distinct de `text` : les deux ne coïncident que par hasard. Un QR code
- *   peut n'avoir aucun texte sous lui (mode « QR seul »), et un titre imprimé
+ * @param {string} options.text           Texte à imprimer sous le QR Code (généralement l'URL).
+ * @param {string} [options.qrText]       Contenu réellement encodé dans le QR Code.
+ *   Distinct de `text` : les deux ne coïncident que par hasard. Un QR Code
+ *   peut n'avoir aucun texte sous lui (mode « QR Code seul »), et un titre imprimé
  *   n'est pas ce qu'on encode. Les confondre faisait lever l'encodage dès que
- *   le texte était vide — « QR code seul » et « QR + titre » ne rendaient rien.
+ *   le texte était vide — « QR Code seul » et « QR Code + titre » ne rendaient rien.
  * @param {number} options.widthPx        Largeur utile de la tête, en pixels.
  * @param {number} [options.dpi]          Résolution, pour les conversions mm <-> px.
  * @param {number} [options.fontSize]     Taille de police en pixels.
  * @param {number} [options.padding]      Marge intérieure en pixels.
- * @param {number} [options.qrRatio]      Part maximale de la largeur utile occupée par le QR (0-1).
+ * @param {number} [options.qrRatio]      Part maximale de la largeur utile occupée par le QR Code (0-1).
  * @param {number} [options.minScale]     Pixels par module minimum (défaut : MIN_QR_SCALE).
  * @param {number} [options.lineSpacing]  Interligne, en multiple de la police.
  * @param {number} [options.maxLines]     Nombre maximal de lignes de texte.
@@ -405,7 +405,7 @@ export function computeLabelGeometry(options) {
   let target = minHeight;
   if (maxHeight > 0) target = target > 0 ? Math.min(target, maxHeight) : maxHeight;
 
-  // Le QR a une taille entière en modules : on arrondit au multiple inférieur.
+  // Le QR Code a une taille entière en modules : on arrondit au multiple inférieur.
   // Ce qui est encodé n'est pas ce qui est imprimé : `qrText` prime, et à
   // défaut on retombe sur le texte affiché, comportement d'origine.
   const qrText = options.qrText ?? options.text ?? '';
@@ -423,18 +423,18 @@ export function computeLabelGeometry(options) {
   const layoutText = (size) => {
     const height = Math.ceil(size * lineSpacing);
     const mesure = measureFactory(size);
-    // Le texte ne peut pas manger toute la longueur : au-delà, le QR n'a plus
+    // Le texte ne peut pas manger toute la longueur : au-delà, le QR Code n'a plus
     // de place et la disposition répartie le pousserait hors de l'étiquette.
     const cap = target > 0
       ? Math.max(extraLines, Math.floor((target * LABEL_TEXT_HEIGHT_RATIO) / height))
       : maxLines;
-    // Le plafond de lignes protège l'équilibre entre le QR et son texte, mais il
+    // Le plafond de lignes protège l'équilibre entre le QR Code et son texte, mais il
     // ne doit pas amputer le texte : une URL coupée après « com/ » est fausse,
     // pas seulement tronquée. On compte donc les lignes qu'il faut réellement,
     // et on ne retient le plafond que s'il suffit. S'il ne suffit pas, la police
     // sera réduite par `tryFont`, qui juge sur la hauteur obtenue.
     const complet = wrapText(mesure, options.text ?? '', innerWidth, { maxLines: Infinity });
-    // Ce que la longueur du rouleau peut réellement contenir : le QR, l'écart,
+    // Ce que la longueur du rouleau peut réellement contenir : le QR Code, l'écart,
     // la marge, et le reste pour le texte. C'est cette borne qui empêche le
     // texte entier de dépasser l'étiquette — sans elle, garder le texte complet
     // faisait sortir 292 px sur une cible de 176.
@@ -469,7 +469,7 @@ export function computeLabelGeometry(options) {
     };
   };
 
-  // Le texte dispose de la place que le QR lui laisse. L'ordre des candidats
+  // Le texte dispose de la place que le QR Code lui laisse. L'ordre des candidats
   // décide de tout :
   //
   // 1. **La taille demandée passe en premier.** C'est un réglage de
@@ -495,7 +495,7 @@ export function computeLabelGeometry(options) {
   const fits = qrSize <= innerWidth;
 
   // Le texte ne monte pas plus haut que cette part de la largeur de la tête :
-  // au-delà il dominerait le QR au lieu de l'accompagner. C'est une règle
+  // au-delà il dominerait le QR Code au lieu de l'accompagner. C'est une règle
   // d'**équilibre**, et elle ne vaut que pour le choix automatique — voir
   // `tryFont`.
   const fontCeiling = Math.max(6, Math.floor(width * MAX_FONT_WIDTH_RATIO));
@@ -504,14 +504,14 @@ export function computeLabelGeometry(options) {
    * Essaie une taille de police et dit si elle tient.
    *
    * « Tenir » veut dire deux choses, et les deux comptent : le contenu garde la
-   * marge basse de l'étiquette, et le QR conserve sa place au-dessus. Ne
-   * vérifier que la première laissait passer une taille qui chassait le QR ou
+   * marge basse de l'étiquette, et le QR Code conserve sa place au-dessus. Ne
+   * vérifier que la première laissait passer une taille qui chassait le QR Code ou
    * qui collait le texte au bord.
    *
    * @param {number} size
    * @param {boolean} [explicit] Taille demandée par l'utilisateur : elle échappe
    *   au plafond d'équilibre. Le plafond existe pour empêcher le **choix
-   *   automatique** de laisser le texte dominer le QR ; il n'a pas à annuler un
+   *   automatique** de laisser le texte dominer le QR Code ; il n'a pas à annuler un
    *   réglage explicite, sans quoi le réglage n'a aucun effet — c'était le cas,
    *   et de 2 à 7 mm la même police sortait. La place réellement disponible
    *   reste vérifiée juste en dessous, et c'est elle qui borne.
@@ -521,7 +521,7 @@ export function computeLabelGeometry(options) {
     const usable = Math.max(6, borné);
     const attempt = layoutText(usable);
     const textHeight = (attempt.lines.length + extraLines) * attempt.lineHeight;
-    // Hauteur complète : marge haute, QR, écart, texte, **et marge basse**.
+    // Hauteur complète : marge haute, QR Code, écart, texte, **et marge basse**.
     // C'est la plus petite hauteur d'étiquette qui contienne le tout. Oublier
     // la marge basse donnait une étiquette dont le texte touchait le bord, et
     // une disposition répartie qui n'avait plus rien à répartir.
@@ -597,7 +597,7 @@ export function computeLabelGeometry(options) {
     // marge basse : l'écart cherché est donc `slack`, et non `slack + padding`.
     spreadGap = padding + slack;
   } else if (effectiveAlign === 'center') {
-    // La place restante se partage en deux : une moitié au-dessus du QR, une
+    // La place restante se partage en deux : une moitié au-dessus du QR Code, une
     // sous le texte. Chaque moitié s'ajoute à la marge, qui reste intacte.
     const centered = Math.floor(slack / 2);
     qrTop = padding + centered;
@@ -606,7 +606,7 @@ export function computeLabelGeometry(options) {
     qrTop = padding;
   }
 
-  // Le texte peut se placer au-dessus du QR : on remonte alors le QR de la
+  // Le texte peut se placer au-dessus du QR Code : on remonte alors le QR Code de la
   // hauteur du texte, pour que les deux ne se chevauchent pas. Sans ce
   // décalage, « texte au-dessus » dessinait le texte par-dessus le code.
   const blockHeight = qrSize + (contentLines > 0 ? spreadGap + textHeight : 0);
@@ -643,10 +643,10 @@ export function computeLabelGeometry(options) {
 }
 
 /**
- * Dispose le QR et le texte côte à côte, sur la largeur de la tête.
+ * Dispose le QR Code et le texte côte à côte, sur la largeur de la tête.
  *
  * L'orientation « horizontale » ne tourne rien : elle change l'axe de
- * composition. Le QR garde sa taille, le texte se découpe sur la largeur qui
+ * composition. Le QR Code garde sa taille, le texte se découpe sur la largeur qui
  * reste et se cale à droite du code. C'est ce qui permet de garder le texte
  * lisible et paramétrable quelle que soit l'orientation du support.
  *
@@ -662,7 +662,7 @@ export function layoutLabelLateral(geometry, options) {
   const gap = Math.max(1, Math.floor(options.gap ?? geometry.padding));
   const maxLines = Math.max(1, Math.trunc(options.maxLines ?? 4));
 
-  // Le QR ne descend jamais sous son échelle minimale : un code illisible ne
+  // Le QR Code ne descend jamais sous son échelle minimale : un code illisible ne
   // sert à rien, et c'est le texte qui cède, pas le code. Sa taille plancher
   // est donc celle qui décide s'il reste une colonne utilisable pour le texte.
   const minQr = geometry.qrMatrix.size * MIN_QR_SCALE;
@@ -677,7 +677,7 @@ export function layoutLabelLateral(geometry, options) {
     return { ...geometry, lateral: false, lateralRefused: true, lateralTextWidth: textWidth };
   }
 
-  // Le texte a la place qu'il lui faut ; le QR prend le reste, jusqu'à être
+  // Le texte a la place qu'il lui faut ; le QR Code prend le reste, jusqu'à être
   // aussi grand que possible sans jamais empiéter sur cette colonne.
   const qrMax = Math.max(minQr, usable - MIN_LATERAL_TEXT_PX);
   let qrSize = geometry.qrSize;
@@ -719,10 +719,10 @@ export function layoutLabelLateral(geometry, options) {
 }
 
 /**
- * Dispose le QR en haut et son texte tourné d'un quart de tour en dessous.
+ * Dispose le QR Code en haut et son texte tourné d'un quart de tour en dessous.
  *
  * C'est la disposition qui rend le texte lisible sur un rouleau étroit : droit,
- * il ne dispose que de la largeur de la tête moins le QR — 18 px sur 12 mm, soit
+ * il ne dispose que de la largeur de la tête moins le QR Code — 18 px sur 12 mm, soit
  * trois caractères par ligne. Tourné, il profite de toute la hauteur restante.
  *
  * @param {LabelGeometry} geometry Géométrie empilée déjà calculée.
@@ -752,14 +752,14 @@ export function layoutLabelRotated(geometry, options) {
     Math.trunc(options.maxLines ?? Math.floor((geometry.width - padding * 2) / lineHeight)),
   );
 
-  // La bande de texte commence sous le QR. Sa longueur ne peut pas dépasser ce
+  // La bande de texte commence sous le QR Code. Sa longueur ne peut pas dépasser ce
   // qui reste jusqu'à la marge basse : c'est cette borne qui l'empêche de
   // remonter sur le code — le texte monte depuis le bas de sa bande.
   // Le texte monte depuis le bas de sa bande : sa longueur est donc bornée par
-  // la hauteur qui reste sous le QR, marge basse déduite.
+  // la hauteur qui reste sous le QR Code, marge basse déduite.
   const afterQr = padding + geometry.qrSize + gap;
   const fixed = geometry.targetHeight > 0;
-  // La bande part du bas du QR et s'arrête à la marge basse. Le texte monte
+  // La bande part du bas du QR Code et s'arrête à la marge basse. Le texte monte
   // depuis son extrémité basse : si la bande descendait jusque dans la marge,
   // le texte s'y écrivait et touchait le bord de l'étiquette.
   const bottom = Math.max(afterQr, geometry.targetHeight - padding);
@@ -829,7 +829,7 @@ export function layoutLabelRotated(geometry, options) {
 
   // Le texte est dessiné depuis le **bas** de sa bande, en remontant : c'est
   // donc `textTop + textWidth` qui doit tomber sur la marge basse. Placer la
-  // bande juste après le QR la faisait descendre dans la marge.
+  // bande juste après le QR Code la faisait descendre dans la marge.
   const bandTop = fixed
     ? geometry.targetHeight - padding - available
     : afterQr;
@@ -896,7 +896,7 @@ function defaultMeasure(fontSize) {
 }
 
 /**
- * Dessine une étiquette complète (QR + texte) dans un contexte 2D.
+ * Dessine une étiquette complète (QR Code + texte) dans un contexte 2D.
  *
  * @param {CanvasRenderingContext2D} ctx
  * @param {LabelGeometry} geometry
@@ -922,7 +922,7 @@ export function drawLabel(ctx, geometry, options = {}) {
   ctx.fillStyle = '#ffffff';
   ctx.fillRect(0, 0, geometry.width, geometry.height);
 
-  // `qrLeft` et `qrTop` viennent de la géométrie : le QR ne part plus du coin
+  // `qrLeft` et `qrTop` viennent de la géométrie : le QR Code ne part plus du coin
   // supérieur gauche, il se place dans la disposition retenue.
   const qrX = geometry.qrLeft ?? Math.floor((geometry.width - geometry.qrSize) / 2);
   drawQr(geometry.qrMatrix, ctx, { x: qrX, y: geometry.qrTop, scale: geometry.qrScale });
@@ -931,15 +931,15 @@ export function drawLabel(ctx, geometry, options = {}) {
   ctx.textBaseline = 'top';
 
   // En disposition latérale, le texte se cale à gauche dans la colonne qui lui
-  // reste ; sinon il reste centré sous le QR.
+  // reste ; sinon il reste centré sous le QR Code.
   const lateral = geometry.lateral === true;
   const textX = lateral ? geometry.textLeft : geometry.width / 2;
   const maxWidth = lateral ? geometry.textWidth : undefined;
 
-  // Texte tourné d'un quart de tour, dans sa bande sous le QR.
+  // Texte tourné d'un quart de tour, dans sa bande sous le QR Code.
   //
   // Le bloc est **centré** dans sa bande, sur l'épaisseur comme sur la longueur.
-  // Auparavant chaque sens s'ancrait d'un côté différent — l'un au bord du QR,
+  // Auparavant chaque sens s'ancrait d'un côté différent — l'un au bord du QR Code,
   // l'autre au bord de l'étiquette — et le titre, compté deux fois dans
   // l'épaisseur réservée, décalait encore le bloc d'un demi-interligne. Résultat
   // visible à l'impression : un sens rognait le texte, l'autre non.
@@ -983,7 +983,7 @@ export function drawLabel(ctx, geometry, options = {}) {
     // Chaque ligne occupe sa propre rangée : dans le repère tourné, `x` avance
     // le long de la bande et `y` empile les lignes. Les écrire bout à bout sur
     // un même `x` cumulait leurs longueurs et faisait dépasser le texte, qui
-    // remontait alors par-dessus le QR.
+    // remontait alors par-dessus le QR Code.
     let rangee = 0;
     for (const { contenu, gras } of rangees) {
       ctx.font = `${gras ? 'bold ' : ''}${geometry.fontSize}px ${fontFamily}`;
@@ -1062,10 +1062,10 @@ export function pxToMm(px, dpi) {
 }
 
 /**
- * Vérifie qu'un QR code restera imprimable et lisible.
+ * Vérifie qu'un QR Code restera imprimable et lisible.
  *
  * Deux causes d'échec, dans cet ordre :
- * 1. le QR déborde de la largeur utile — l'URL est trop longue pour cette
+ * 1. le QR Code déborde de la largeur utile — l'URL est trop longue pour cette
  *    étiquette, aucune mise à l'échelle ne peut le sauver ;
  * 2. la densité est insuffisante (moins de 2 px par module), cas que
  *    `computeLabelGeometry` évite normalement via `minScale`, mais qui peut
@@ -1084,7 +1084,7 @@ export function checkQrLegibility(geometry, options = {}) {
       ok: false,
       pxPerModule,
       reason: t(
-        "URL trop longue : le QR fait {size} px pour {width} px de large. Raccourcissez l'URL ou utilisez une étiquette plus large.",
+        "URL trop longue : le QR Code fait {size} px pour {width} px de large. Raccourcissez l'URL ou utilisez une étiquette plus large.",
         { size: geometry.qrSize, width: geometry.width },
       ),
     };
@@ -1094,7 +1094,7 @@ export function checkQrLegibility(geometry, options = {}) {
       ok: false,
       pxPerModule,
       reason: t(
-        "QR trop dense : {px} px par module (minimum {min}). Raccourcissez l'URL ou augmentez la largeur de l'étiquette.",
+        "QR Code trop dense : {px} px par module (minimum {min}). Raccourcissez l'URL ou augmentez la largeur de l'étiquette.",
         { px: pxPerModule.toFixed(2), min: minPx },
       ),
     };

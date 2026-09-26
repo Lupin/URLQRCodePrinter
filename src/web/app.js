@@ -120,7 +120,7 @@ let printer = null;
 let toastTimer = null;
 /** Objet-URL de l'aperçu d'étiquette, à révoquer avant chaque nouveau rendu. */
 let labelPreviewUrl = null;
-/** Préférences retenues d'une session à l'autre (service, cible du QR). */
+/** Préférences retenues d'une session à l'autre (service, cible du QR Code). */
 const settings = createSettingsStore();
 /** `AbortController` du lot de raccourcissement en cours, s'il y en a un. */
 let shortenJob = null;
@@ -152,12 +152,12 @@ let linkRanks = new Map();
 const LABEL_LAYOUTS = Object.freeze([
   {
     id: 'dessous',
-    label: 'Texte droit, sous le QR',
+    label: 'Texte droit, sous le QR Code',
     mode: 'stacked',
   },
   {
     id: 'dessus',
-    label: 'Texte droit, au-dessus du QR',
+    label: 'Texte droit, au-dessus du QR Code',
     mode: 'stacked',
     textFirst: true,
   },
@@ -165,7 +165,7 @@ const LABEL_LAYOUTS = Object.freeze([
     id: 'tourne',
     label: 'Texte tourné, se lit de bas en haut',
     // Sur un rouleau étroit, un texte droit ne dispose que de la largeur de la
-    // tête moins le QR — quelques caractères. Tourné, il profite de la longueur.
+    // tête moins le QR Code — quelques caractères. Tourné, il profite de la longueur.
     mode: 'rotated',
     sens: 'horaire',
   },
@@ -180,9 +180,9 @@ const LABEL_LAYOUTS = Object.freeze([
   },
   {
     id: 'cote',
-    label: 'Texte à droite du QR',
+    label: 'Texte à droite du QR Code',
     mode: 'lateral',
-    // Cette disposition n'a de sens que si le QR laisse une vraie colonne :
+    // Cette disposition n'a de sens que si le QR Code laisse une vraie colonne :
     // sur une tête de 12 mm, il en reste quelques pixels. On ne la propose donc
     // que sur une tête large, plutôt que de laisser choisir une option vide.
     minHeadPx: 200,
@@ -192,7 +192,7 @@ const LABEL_LAYOUTS = Object.freeze([
 /**
  * Les dispositions qui ont un sens pour un profil donné.
  *
- * Proposer « texte à droite » sur une tête de 12 mm n'avait aucun sens : le QR
+ * Proposer « texte à droite » sur une tête de 12 mm n'avait aucun sens : le QR Code
  * y occupe presque toute la largeur et la colonne de texte fait quelques
  * pixels. On écarte donc les dispositions inapplicables au lieu de les laisser
  * échouer à l'usage.
@@ -326,7 +326,7 @@ function button(label, className, onClick) {
 }
 
 /**
- * Construit l'aperçu SVG d'un QR code.
+ * Construit l'aperçu SVG d'un QR Code.
  *
  * L'`innerHTML` est sûr ici : la chaîne ne contient que des nombres et des
  * couleurs choisies par le code, jamais de donnée utilisateur. L'URL est
@@ -822,7 +822,7 @@ function applyCollectionName() {
 /**
  * Les liens à imprimer, préparés pour la cible choisie.
  *
- * C'est le seul endroit où l'on décide si le QR code encode l'URL collectée ou
+ * C'est le seul endroit où l'on décide si le QR Code encode l'URL collectée ou
  * son raccourci. Tout ce qui produit une image, une planche ou une étiquette
  * passe par ici, et rien d'autre : la liste affichée à l'écran, elle, garde
  * toujours l'URL d'origine.
@@ -1067,13 +1067,13 @@ async function shortenSelection() {
 }
 
 /**
- * Remplit le choix de la cible du QR code.
+ * Remplit le choix de la cible du QR Code.
  *
  * Deux possibilités seulement, et l'URL d'origine reste la valeur par défaut :
  * un lien raccourci dépend d'un tiers, ce n'est pas un choix à faire par
  * inadvertance.
  */
-/** Remplit le choix de la date imprimée sous le QR code. */
+/** Remplit le choix de la date imprimée sous le QR Code. */
 /** Rien à remplir : la date se coche, elle ne se choisit plus dans une liste. */
 function fillDateModes() {}
 
@@ -1112,7 +1112,7 @@ function tableDateMode() {
 /**
  * Explique ce que coûte la date demandée.
  *
- * Chaque ligne sous le QR se paie en place disponible : le dire évite de
+ * Chaque ligne sous le QR Code se paie en place disponible : le dire évite de
  * croire que la date est gratuite.
  */
 function updateDateHint() {
@@ -1130,7 +1130,7 @@ function updateDateHint() {
     parties.push(t('Date de collecte sur sa propre ligne — {sample}.', { sample: echantillon }));
   }
   if (el.sheetDateIndex.checked) parties.push(t('Le numéro du lien s\'imprime au-dessus du titre.'));
-  parties.push(t('Chaque ligne de plus réduit la place du QR code.'));
+  parties.push(t('Chaque ligne de plus réduit la place du QR Code.'));
   el.sheetDateHint.textContent = parties.join(' ');
 }
 
@@ -1168,11 +1168,11 @@ function updateTargetAvailability() {
   }
 
   el.targetHint.textContent = shortened === 0
-    ? t("Le QR code encode l'URL collectée.")
+    ? t("Le QR Code encode l'URL collectée.")
     : tpl(
       shortened,
-      '{count} lien raccourci : un QR plus court se scanne plus vite et tient sur une plus petite étiquette.',
-      '{count} liens raccourcis : un QR plus court se scanne plus vite et tient sur une plus petite étiquette.',
+      '{count} lien raccourci : un QR Code plus court se scanne plus vite et tient sur une plus petite étiquette.',
+      '{count} liens raccourcis : un QR Code plus court se scanne plus vite et tient sur une plus petite étiquette.',
     );
 }
 
@@ -1305,7 +1305,7 @@ function prefillGridFields() {
 
   // La taille du texte suit la hauteur de l'étiquette : 7 pt convenait à une
   // petite étiquette, pas à une A4 où la place restait inutilisée — le texte
-  // sortait minuscule sous un QR qui occupait tout. Le champ reste modifiable.
+  // sortait minuscule sous un QR Code qui occupait tout. Le champ reste modifiable.
   el.sheetFont.value = String(defaultSheetFontPt(preset, grid));
 }
 
@@ -1314,7 +1314,7 @@ function prefillGridFields() {
  *
  * Proportionnelle à la hauteur de l'étiquette : une étiquette deux fois plus
  * haute porte un texte deux fois plus grand. Bornée pour rester lisible et
- * laisser de la place au QR.
+ * laisser de la place au QR Code.
  *
  * @param {object} preset
  * @param {{ rows: number, marginYMm: number, gapYMm: number }} grid
@@ -1426,9 +1426,9 @@ function buildSheetPages(items) {
   const modules = densest.matrix.size;
 
   // Bornes calculées avant le rendu : en dessous, un module imprimé n'est plus
-  // lisible ; au-dessus, le QR chasse le texte hors de l'étiquette.
+  // lisible ; au-dessus, le QR Code chasse le texte hors de l'étiquette.
   // La date occupe une ligne à part entière : elle doit être comptée dans la
-  // place que le QR doit laisser, sinon le curseur autoriserait un réglage qui
+  // place que le QR Code doit laisser, sinon le curseur autoriserait un réglage qui
   // la rogne.
   const wantsDate = dateMode() !== 'none';
   // Lues **avant** d'être utilisées : `const` lue plus haut lève une
@@ -1436,14 +1436,14 @@ function buildSheetPages(items) {
   // vierge, sans message.
   const veutIndex = el.sheetDateIndex.checked;
   // Le numéro et la date occupent chacun une ligne à part entière, en plus du
-  // texte principal. Ils doivent être comptés dans la place que le QR laisse,
+  // texte principal. Ils doivent être comptés dans la place que le QR Code laisse,
   // sinon le curseur autoriserait un réglage qui les rogne.
   const indexLignes = veutIndex ? 1 : 0;
   const dateLignes = wantsDate ? 1 : 0;
   const lignesHorsTexte = indexLignes + dateLignes;
 
   /**
-   * Bornes du QR pour un nombre de lignes de texte donné.
+   * Bornes du QR Code pour un nombre de lignes de texte donné.
    *
    * Les bornes dépendent de la place que le texte réclame : c'est ce qui permet
    * de **réserver deux lignes** plutôt que de tronquer le titre. Une seule
@@ -1458,12 +1458,12 @@ function buildSheetPages(items) {
     gapMm: SHEET_QR_GAP_MM,
     minModuleMm: MIN_MODULE_MM_PAPER,
     // La hauteur de ligne dépend de la taille du texte : une police plus grande
-    // laisse moins de place au QR, et la borne haute doit en tenir compte.
+    // laisse moins de place au QR Code, et la borne haute doit en tenir compte.
     fontSizePt: sheetFontPt(),
   });
 
   /**
-   * Ce qui s'imprime sous le QR.
+   * Ce qui s'imprime sous le QR Code.
    *
    * Un titre absent laissait déjà la place à l'URL ; l'option l'ajoute au
    * titre. La même fonction sert au calcul des lignes réservées et au rendu :
@@ -1491,7 +1491,7 @@ function buildSheetPages(items) {
   }, 1);
 
   // Ce que le format peut réellement offrir : c'est `textLinesAtMin` qui le dit,
-  // puisque le QR ne descend pas sous la taille où ses modules restent lisibles.
+  // puisque le QR Code ne descend pas sous la taille où ses modules restent lisibles.
   // Au-delà, on tronque — mais seulement au-delà.
   const sondeLignes = bornesPourLignes(1);
   const lignesOffertes = Math.max(1, sondeLignes.textLinesAtMin - lignesHorsTexte);
@@ -1509,7 +1509,7 @@ function buildSheetPages(items) {
   const innerWidthMm = layout.labelWidthMm - SHEET_CELL_MARGIN_MM * 2;
   const textSpaceMm = layout.labelHeightMm - SHEET_CELL_MARGIN_MM * 2
     - side - SHEET_QR_GAP_MM;
-  // La tolérance n'est pas cosmétique : la borne du QR est arrondie au millième
+  // La tolérance n'est pas cosmétique : la borne du QR Code est arrondie au millième
   // par `qrRatioBounds`, et cet arrondi se propage jusqu'ici. Sans elle, une
   // place calculée pour deux lignes n'en donnait qu'une — 12,978 mm pour
   // 6,493 mm d'interligne vaut 1,9989, que `floor` ramenait à 1. Le texte était
@@ -1638,7 +1638,7 @@ function buildSheetPages(items) {
 /**
  * Applique au curseur les bornes calculées pour la planche courante.
  *
- * C'est le détrompeur demandé : le curseur ne peut plus demander un QR qui ne
+ * C'est le détrompeur demandé : le curseur ne peut plus demander un QR Code qui ne
  * serait pas imprimable. La valeur courante est ramenée dans l'intervalle si
  * elle en sortait — par exemple après un changement de disposition.
  *
@@ -1657,7 +1657,7 @@ function applyQrSliderBounds(bounds) {
 }
 
 /**
- * Décrit la taille du QR retenue et ce qu'elle implique.
+ * Décrit la taille du QR Code retenue et ce qu'elle implique.
  *
  * @param {{ bounds: object, side: number, modules: number, ratio: number, maxLines: number, metrics: object }} state
  */
@@ -1677,7 +1677,7 @@ function updateQrInfo(state) {
     max: Math.round(bounds.max * 100),
   });
   el.sheetQrInfo.textContent = t(
-    'QR de {side} mm ({module} mm par module, minimum {minimum} mm) — réglable de {range} — {lines} de texte.',
+    'QR Code de {side} mm ({module} mm par module, minimum {minimum} mm) — réglable de {range} — {lines} de texte.',
     {
       side: decimal(side),
       module: decimal(moduleMm, 2),
@@ -1770,7 +1770,7 @@ function buildTable(items) {
   const headRow = document.createElement('tr');
   const headers = [
     ...(columns.index ? ['N°'] : []),
-    ...(columns.qr ? ['QR'] : []),
+    ...(columns.qr ? ['QR Code'] : []),
     ...(columns.url ? ['URL'] : []),
     ...(columns.title ? ['Titre'] : []),
     ...(withDate ? ['Date'] : []),
@@ -2074,7 +2074,7 @@ function renderSingleLabel(link) {
   frame.style.padding = '10px';
 
   // On compose à la taille réelle, puis on met à l'échelle pour l'écran : un
-  // rendu agrandi par le navigateur interpolerait le QR et le rendrait flou.
+  // rendu agrandi par le navigateur interpolerait le QR Code et le rendrait flou.
   const source = document.createElement('canvas');
   source.width = geometry.width;
   source.height = geometry.height;
@@ -2109,7 +2109,7 @@ function renderSingleLabel(link) {
   canvas.style.imageRendering = zoom < 1 ? 'auto' : 'pixelated';
 
   const ctx = canvas.getContext('2d');
-  // À la réduction, un lissage garde le QR lisible ; à l'agrandissement, le plus
+  // À la réduction, un lissage garde le QR Code lisible ; à l'agrandissement, le plus
   // proche voisin conserve les modules nets.
   ctx.imageSmoothingEnabled = zoom < 1;
   ctx.drawImage(shown, 0, 0, displayWidth, displayHeight);
@@ -2131,7 +2131,7 @@ function renderSingleLabel(link) {
     lines: tpl(geometry.lines.length + (content.titleLines?.length ?? 0), '{count} ligne', '{count} lignes'),
   });
   const orientationNote = lateralRefused
-    ? t(' — texte empilé : le QR laisse trop peu de largeur pour une colonne de texte.')
+    ? t(' — texte empilé : le QR Code laisse trop peu de largeur pour une colonne de texte.')
     : (turns === 0 ? '' : t(' — orientation : {label}', { label: t(labelRotation().label) }));
   caption.textContent = (verdict.ok
     ? t('{profile} — {width} × {height} px, {px} px par module', {
@@ -2160,9 +2160,9 @@ function renderSingleLabel(link) {
  * @returns {{ geometry: object, verdict: object }}
  */
 function composeLabel(link, profile) {
-  // Le QR encode la cible choisie — l'URL collectée ou son raccourci. Sans
+  // Le QR Code encode la cible choisie — l'URL collectée ou son raccourci. Sans
   // cette résolution, l'étiquette ignorait le réglage : la liste affichait un
-  // tinyurl que le QR n'encodait pas et que le texte n'imprimait pas non plus.
+  // tinyurl que le QR Code n'encodait pas et que le texte n'imprimait pas non plus.
   const target = resolveTarget(link, el.qrTarget.value);
 
   // Avec l'heure quand la place le permet : sur une étiquette étroite, la date
@@ -2181,8 +2181,8 @@ function composeLabel(link, profile) {
   // `drawLabel` écrit la date sur une seule ligne, sans la découper : on vérifie
   // d'abord qu'elle tient, à la taille de police que la géométrie va retenir.
   // Un premier calcul sans ligne réservée donne cette taille.
-  // Le QR encode toujours l'URL du lien ; le texte imprimé, lui, suit le mode
-  // choisi. Le mode « QR seul » n'a donc aucun texte à mesurer, d'où la sonde
+  // Le QR Code encode toujours l'URL du lien ; le texte imprimé, lui, suit le mode
+  // choisi. Le mode « QR Code seul » n'a donc aucun texte à mesurer, d'où la sonde
   // sur l'URL : c'est la matrice la plus large qui décide de l'échelle.
   const probe = computeLabelGeometry({
     text: target.url,
@@ -2204,7 +2204,7 @@ function composeLabel(link, profile) {
   // rendait le réglage inopérant sur une tête de 12 mm.
   // La date est une option de l'étiquette, pas un réglage global : elle se
   // coche ici, avec sa précision. La faire dépendre du réglage « Date sous le
-  // QR code » des planches rendait la case sans effet tant qu'on n'y touchait
+  // QR Code » des planches rendait la case sans effet tant qu'on n'y touchait
   // pas, ce qui se lisait comme un défaut.
   // « Avec l'heure » implique la date, comme dans les autres onglets.
   const wantsDate = el.labelShowDate.checked || el.labelDateTime.checked;
@@ -2266,7 +2266,7 @@ function composeLabel(link, profile) {
       ? Math.min(fontSize, tailleDate)
       : (tailleDate > 0 ? tailleDate : fontSize),
     measureFactory: cachedTextMeasure,
-    // « Texte au-dessus » se décide à la composition : le texte précède le QR.
+    // « Texte au-dessus » se décide à la composition : le texte précède le QR Code.
     textFirst: labelLayout().textFirst === true,
   });
 
@@ -2426,7 +2426,7 @@ function readLabelOptions() {
 /**
  * Dessine une étiquette dans un contexte 2D.
  *
- * Le rendu se fait par plus proche voisin : un QR lissé devient illisible.
+ * Le rendu se fait par plus proche voisin : un QR Code lissé devient illisible.
  *
  * @param {CanvasRenderingContext2D} ctx
  * @param {object} plan
@@ -2439,7 +2439,7 @@ function drawLabelCanvas(ctx, plan, url, options = {}) {
   ctx.fillStyle = '#ffffff';
   ctx.fillRect(0, 0, plan.widthPx, plan.heightPx);
 
-  // QR code, centré horizontalement.
+  // QR Code, centré horizontalement.
   const matrix = encodeQr(url, { ecc: 'M', border: 2 });
   const x0 = Math.floor((plan.widthPx - plan.qrSizePx) / 2);
   ctx.fillStyle = '#000000';
@@ -2571,7 +2571,7 @@ function renderImagePreview(link) {
       heightPx: plan.heightPx,
       dpi: options.format.dpi,
     })
-    : t('URL trop longue pour ce format : le QR fait {size} px pour {width} px de large.', {
+    : t('URL trop longue pour ce format : le QR Code fait {size} px pour {width} px de large.', {
       size: plan.qrSizePx,
       width: plan.widthPx,
     }))
@@ -2863,7 +2863,7 @@ const MIN_TEXT_MM = 1.6;
 /** Plancher de lisibilité du texte, en pixels : 1,6 mm à 203 dpi. */
 const MIN_FONT_PX = 6;
 
-/** Nombre de lignes qu'une date peut occuper sous le QR, une fois découpée. */
+/** Nombre de lignes qu'une date peut occuper sous le QR Code, une fois découpée. */
 const DATE_LINES_MAX = 2;
 
 /** Vrai pendant une série : le bouton sert alors à l'interrompre. */
@@ -3142,11 +3142,11 @@ function fillLabelChoices() {
 
 /** Vocabulaire de l'étiquette, plus explicite que celui de l'export. */
 const LABEL_CONTENT_LABELS = Object.freeze({
-  none: 'QR code seul',
-  title: 'QR code + titre',
-  url: 'QR code + URL',
-  'title-url': 'QR code + titre + URL',
-  host: 'QR code + domaine',
+  none: 'QR Code seul',
+  title: 'QR Code + titre',
+  url: 'QR Code + URL',
+  'title-url': 'QR Code + titre + URL',
+  host: 'QR Code + domaine',
 });
 
 /**
@@ -3174,7 +3174,7 @@ function fillLabelLinks() {
   updateLabelContentHint();
 }
 
-/** Explique ce qui sera imprimé sous le QR, d'après les cases cochées. */
+/** Explique ce qui sera imprimé sous le QR Code, d'après les cases cochées. */
 function updateLabelContentHint() {
   const choisis = [];
   if (el.labelShowIndex.checked) choisis.push(t('le numéro du lien'));
@@ -3186,11 +3186,11 @@ function updateLabelContentHint() {
   }
 
   if (choisis.length === 0) {
-    el.labelContentHint.textContent = t('Le QR code seul, sans texte sous lui.');
+    el.labelContentHint.textContent = t('Le QR Code seul, sans texte sous lui.');
     return;
   }
   el.labelContentHint.textContent = t(
-    'Sous le QR : {list}. Le texte est découpé à la largeur de la tête.',
+    'Sous le QR Code : {list}. Le texte est découpé à la largeur de la tête.',
     { list: choisis.join(', ') },
   );
 }
@@ -3221,7 +3221,7 @@ function rotateCanvas(source, turns) {
 }
 
 /**
- * La disposition retenue : comment le QR et son texte s'organisent.
+ * La disposition retenue : comment le QR Code et son texte s'organisent.
  *
  * Ce n'est **pas** une orientation du support : l'étiquette garde sa taille et
  * son sens. Seule la composition change, pour que le texte reste lisible selon
@@ -3347,10 +3347,10 @@ el.selectAllBox.addEventListener('change', () => {
 });
 
 /**
- * Exporte un classeur `.xlsx` avec les QR codes intégrés.
+ * Exporte un classeur `.xlsx` avec les QR Codes intégrés.
  *
  * Un CSV ne peut pas transporter d'image : c'est tout l'intérêt de cet export.
- * La génération des QR prend un instant par lien, d'où le retour sur le bouton.
+ * La génération des QR Codes prend un instant par lien, d'où le retour sur le bouton.
  */
 async function exportSpreadsheet() {
   if (links.length === 0) return;
@@ -3362,7 +3362,7 @@ async function exportSpreadsheet() {
   try {
     const bytes = await buildLinkSpreadsheet(resolveTargets(links, el.qrTarget.value), {
       onProgress: (done, total) => {
-        el.exportXlsx.textContent = t('QR {done}/{total}…', { done, total });
+        el.exportXlsx.textContent = t('QR Code {done}/{total}…', { done, total });
       },
     });
     const filename = exportFilename(collectionName(), 'xlsx');
@@ -3383,7 +3383,7 @@ async function exportSpreadsheet() {
  *
  * Contrairement aux exports de la collection, celui-ci suit la sélection et
  * les colonnes cochées dans l'onglet, comme l'impression : c'est le même
- * tableau, avec ses QR codes prêts à l'emploi.
+ * tableau, avec ses QR Codes prêts à l'emploi.
  */
 async function exportTableArchive() {
   const items = printableLinks();
@@ -3401,7 +3401,7 @@ async function exportTableArchive() {
       // Le rang de la collection, celui que porte le tableau imprimé.
       rankOf: (link, index) => linkRanks.get(link.id) ?? index + 1,
       onProgress: (done, total) => {
-        el.exportTable.textContent = t('QR {done}/{total}…', { done, total });
+        el.exportTable.textContent = t('QR Code {done}/{total}…', { done, total });
       },
     });
     const filename = exportFilename(collectionName(), 'zip');

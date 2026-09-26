@@ -172,7 +172,7 @@ test('un format à hauteur fixe la respecte', () => {
   assert.equal(plan.heightPx, mmToPx(30, 300));
 });
 
-test('le QR fait toujours un nombre entier de modules', () => {
+test('le QR Code fait toujours un nombre entier de modules', () => {
   for (const id of ['niimbot-d110', 'brother-62', 'generic-50x30']) {
     const plan = planLabel({ link: link('https://a.fr/x'), format: findFormat(id), measure: measure1 });
     assert.equal(plan.qrSizePx % plan.qrModules, 0, `${id} : ${plan.qrSizePx} / ${plan.qrModules}`);
@@ -197,7 +197,7 @@ test('le mode sans texte produit une étiquette plus courte', () => {
   assert.deepEqual(sans.lines, []);
 });
 
-test('la case « Titre » ajoute le titre sous le QR', () => {
+test('la case « Titre » ajoute le titre sous le QR Code', () => {
   const format = findFormat('generic-50x30');
   const item = link('https://exemple.fr/a', 'Un titre');
 
@@ -416,7 +416,7 @@ function shortPair() {
 test('le nom du fichier garde le domaine du site visé', () => {
   const { raw, resolved } = shortPair();
   assert.equal(labelFileName(raw, 0, 1), '1-un-article.png');
-  // Même une fois le QR basculé sur le raccourci : sinon une collection
+  // Même une fois le QR Code basculé sur le raccourci : sinon une collection
   // raccourcie deviendrait une série de « 1-tinyurl-com.png ».
   assert.equal(labelFileName(resolved, 0, 1), '1-un-article.png');
 });
@@ -425,12 +425,12 @@ test('le texte imprimé suit la cible, le domaine non', () => {
   const { resolved } = shortPair();
   assert.deepEqual(labelText(resolved, 'url'), [SHORT_URL]);
   assert.deepEqual(labelText(resolved, 'title-url'), ['Un article', SHORT_URL]);
-  // Le domaine affiché reste celui du site : « tinyurl.com » sous un QR
+  // Le domaine affiché reste celui du site : « tinyurl.com » sous un QR Code
   // n'apprendrait rien à qui lit l'étiquette.
   assert.deepEqual(labelText(resolved, 'host'), ['exemple.fr']);
 });
 
-test('le QR code encode la cible choisie', () => {
+test('le QR Code encode la cible choisie', () => {
   const { raw, resolved } = shortPair();
   const options = { format: findFormat('generic-50x30'), measure: measure1 };
   const before = planLabel({ ...options, link: raw });
@@ -438,7 +438,7 @@ test('le QR code encode la cible choisie', () => {
 
   assert.equal(before.url, CLEAN_URL);
   assert.equal(after.url, SHORT_URL);
-  // Un lien plus court donne une matrice plus petite, donc un QR plus lisible
+  // Un lien plus court donne une matrice plus petite, donc un QR Code plus lisible
   // sur une petite étiquette : c'est tout l'intérêt de la manœuvre.
   assert.ok(after.qrModules < before.qrModules, `${after.qrModules} < ${before.qrModules}`);
 });
@@ -498,8 +498,8 @@ test('la date demandée prend sa propre ligne', () => {
   assert.deepEqual(withDate.lines, ['https://exemple.fr/article', '15/09/2026']);
   assert.deepEqual(withTime.lines, ['https://exemple.fr/article', '15/09/2026 10:30']);
 
-  // La date se paie en place : le QR rétrécit plutôt que de la chasser.
-  assert.ok(withDate.qrSizePx < withoutDate.qrSizePx, 'le QR doit céder de la place');
+  // La date se paie en place : le QR Code rétrécit plutôt que de la chasser.
+  assert.ok(withDate.qrSizePx < withoutDate.qrSizePx, 'le QR Code doit céder de la place');
   assert.equal(withDate.heightPx, withoutDate.heightPx, 'hauteur fixe : rien ne débordé');
 
   // Le paramètre de date est consigné dans le manifeste, pour reproduire.

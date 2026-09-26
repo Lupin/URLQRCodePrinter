@@ -314,7 +314,7 @@ test('les deux variantes sont complètes et autonomes', () => {
       'popup.js',
       'popup.html',
       'popup.css',
-      // L'application est embarquée : c'est elle qui affiche les QR codes, et
+      // L'application est embarquée : c'est elle qui affiche les QR Codes, et
       // elle partage le stockage de l'extension.
       'app.html',
       'app.js',
@@ -345,7 +345,7 @@ test('les deux variantes sont complètes et autonomes', () => {
   }
 });
 
-test('la fenêtre propose d\'ouvrir l\'application, où sont les QR codes', () => {
+test('la fenêtre propose d\'ouvrir l\'application, où sont les QR Codes', () => {
   for (const dir of [EXT, join(ROOT, 'dist', 'extension')]) {
     const html = readFileSync(join(dir, 'popup.html'), 'utf8');
     const script = readFileSync(join(dir, 'popup.js'), 'utf8');

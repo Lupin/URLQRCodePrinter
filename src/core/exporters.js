@@ -10,9 +10,9 @@
 import { hostOf, hasShortUrl } from './link.js';
 
 /**
- * Modes d'affichage de la date sous un QR code.
+ * Modes d'affichage de la date sous un QR Code.
  *
- * `none` par défaut : un QR code doit rester lisible, et chaque ligne de texte
+ * `none` par défaut : un QR Code doit rester lisible, et chaque ligne de texte
  * supplémentaire réduit la place disponible. Le mode `datetime` sert aux cas où
  * l'heure compte — recherche, essais, prototypes — où l'on doit pouvoir dater
  * une capture à la minute près.
@@ -32,7 +32,7 @@ export function formatDate(epochMs) {
 }
 
 /**
- * Texte de date à imprimer sous un QR code, selon le mode retenu.
+ * Texte de date à imprimer sous un QR Code, selon le mode retenu.
  *
  * Une date illisible ne doit pas produire une ligne vide dans une étiquette :
  * on renvoie une chaîne vide, que les appelants n'impriment pas.
@@ -67,7 +67,7 @@ export const COLUMNS = [
  * L'export texte reste ainsi un export de **données** : il conserve l'URL
  * d'origine en colonne principale — c'est elle qui identifie le lien dans le
  * temps — et consigne le raccourci à côté, sans jamais l'y substituer. Le choix
- * « le QR encode le raccourci » ne concerne que les sorties imprimées.
+ * « le QR Code encode le raccourci » ne concerne que les sorties imprimées.
  */
 const SHORT_COLUMN = {
   key: 'shortUrl',
@@ -210,7 +210,7 @@ export function escapeMarkdownCell(value) {
  */
 export function toMarkdown(links, options = {}) {
   const {
-    title = 'Mes liens QR',
+    title = 'Mes liens QR Code',
     layout = 'table',
     frontmatter = true,
     includeQr = false,
@@ -280,7 +280,7 @@ export function toMarkdown(links, options = {}) {
   out.push('');
 
   if (includeQr) {
-    out.push('## Planches de QR codes');
+    out.push('## Planches de QR Codes');
     out.push('');
     out.push('Les images correspondantes sont dans le dossier `qr/`.');
     out.push('');

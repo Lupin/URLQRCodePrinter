@@ -2,9 +2,9 @@
  * Raccourcissement d'URL — fonctionnalité optionnelle.
  *
  * Deux raisons de raccourcir un lien avant de l'imprimer :
- *   - un QR code plus court est moins dense, donc plus facile à scanner et
+ *   - un QR Code plus court est moins dense, donc plus facile à scanner et
  *     imprimable plus petit (c'est décisif sur une étiquette de 12 mm) ;
- *   - l'URL tient sur une seule ligne sous le QR code.
+ *   - l'URL tient sur une seule ligne sous le QR Code.
  *
  * Deux raisons de s'en méfier, qu'il ne faut pas cacher à l'utilisateur :
  *   - le lien imprimé dépend d'un service tiers : s'il ferme, l'étiquette est

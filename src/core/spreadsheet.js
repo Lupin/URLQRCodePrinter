@@ -1,8 +1,8 @@
 /**
- * Export tableur, avec les QR codes intégrés.
+ * Export tableur, avec les QR Codes intégrés.
  *
  * Un CSV ne peut pas transporter d'image : c'est la raison d'être de cet
- * export, qui produit un vrai classeur `.xlsx` où chaque ligne porte son QR.
+ * export, qui produit un vrai classeur `.xlsx` où chaque ligne porte son QR Code.
  *
  * La construction du classeur vit dans `core/xlsx.js` ; ce module ne fait que
  * décider de sa mise en forme — quelles colonnes, quelle taille d'image, quels
@@ -18,7 +18,7 @@ import { formatDateTime } from './exporters.js';
 /**
  * Taille d'image visée, en pixels, avant réduction au besoin.
  *
- * 96 px : à 96 dpi cela fait exactement un pouce (25,4 mm), soit un QR d'environ
+ * 96 px : à 96 dpi cela fait exactement un pouce (25,4 mm), soit un QR Code d'environ
  * 21 mm de côté une fois posé — imprimable, scannable, et assez petit pour que
  * dix lignes tiennent sur une page. Une image plus grande obligeait à des lignes
  * de 100 points, et le tableau ne tenait plus sur une page en largeur.
@@ -26,10 +26,10 @@ import { formatDateTime } from './exporters.js';
 const QR_TARGET_PX = 96;
 
 /** En-têtes du classeur, dans l'ordre des colonnes, sans la note. */
-export const SPREADSHEET_HEADERS = ['N°', 'URL', 'Titre', 'Domaine', 'Tags', 'Ajouté le', 'QR code'];
+export const SPREADSHEET_HEADERS = ['N°', 'URL', 'Titre', 'Domaine', 'Tags', 'Ajouté le', 'QR Code'];
 
 /**
- * Largeur de la colonne des QR codes, en unités Excel (caractères).
+ * Largeur de la colonne des QR Codes, en unités Excel (caractères).
  *
  * 19 unités ≈ 138 px, pour une image de 96 px : elle tient dans sa cellule avec
  * de la marge, sans déborder sur la colonne suivante.
@@ -37,14 +37,14 @@ export const SPREADSHEET_HEADERS = ['N°', 'URL', 'Titre', 'Domaine', 'Tags', 'A
 export const QR_WIDTH_UNITS = 19;
 
 /** Index de la colonne qui reçoit les images, dans la forme de référence. */
-export const QR_COLUMN_INDEX = SPREADSHEET_HEADERS.indexOf('QR code');
+export const QR_COLUMN_INDEX = SPREADSHEET_HEADERS.indexOf('QR Code');
 
 /**
  * Colonnes réellement écrites, et index de celle qui porte les images.
  *
  * La colonne « Note » n'est ajoutée que si au moins un lien en a une : un
  * classeur ne doit pas transporter une colonne vide sur toute sa hauteur. Elle
- * se place **avant** la colonne des QR codes, dont l'index est donc recalculé —
+ * se place **avant** la colonne des QR Codes, dont l'index est donc recalculé —
  * une image ancrée sur la mauvaise colonne serait invisible.
  *
  * @param {import('./link.js').LinkRecord[]} links
@@ -55,20 +55,20 @@ export function spreadsheetLayout(links) {
   const headers = [
     'N°', 'URL', 'Titre', 'Domaine', 'Tags',
     ...(withNote ? ['Note'] : []),
-    'Ajouté le', 'QR code',
+    'Ajouté le', 'QR Code',
   ];
   return {
     headers,
-    qrColumn: headers.indexOf('QR code'),
+    qrColumn: headers.indexOf('QR Code'),
     noteColumn: withNote ? headers.indexOf('Note') : -1,
   };
 }
 
 /**
- * Construit le classeur des liens, avec leurs QR codes.
+ * Construit le classeur des liens, avec leurs QR Codes.
  *
  * Le classeur reçoit les liens **déjà résolus** par `resolveTargets` : l'URL de
- * la colonne « URL » est donc exactement celle qu'encode l'image QR de la même
+ * la colonne « URL » est donc exactement celle qu'encode l'image QR Code de la même
  * ligne, ce qui est tout l'intérêt d'un tableur imprimé. L'URL d'origine, quand
  * elle diffère, apparaît dans une colonne ajoutée en fin de tableau.
  *
@@ -95,7 +95,7 @@ export async function buildLinkSpreadsheet(links, options = {}) {
     link.tags.join(' '),
     ...(layout.noteColumn >= 0 ? [link.note] : []),
     formatDateTime(link.createdAt),
-    // La cellule sous l'image reste vide : le QR est ancré par-dessus.
+    // La cellule sous l'image reste vide : le QR Code est ancré par-dessus.
     '',
     ...(withOriginal ? [sourceUrl(link) === link.url ? '' : sourceUrl(link)] : []),
   ]);
@@ -114,7 +114,7 @@ export async function buildLinkSpreadsheet(links, options = {}) {
     options.onProgress?.(index + 1, links.length);
   }
 
-  // Largeurs alignées sur les colonnes réellement écrites. La colonne du QR
+  // Largeurs alignées sur les colonnes réellement écrites. La colonne du QR Code
   // fait au moins la largeur de l'image (19 unités ≈ 138 px) : une image plus
   // large que sa cellule déborde sur la voisine, et un lecteur qui rogne à la
   // cellule en couperait un morceau.

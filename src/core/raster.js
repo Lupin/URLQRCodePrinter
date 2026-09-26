@@ -4,7 +4,7 @@
  * Les têtes Niimbot attendent un flux de lignes, 1 bit par pixel, poids fort
  * en premier, 1 = noir, chaque ligne complétée à l'octet. Ce module fait cette
  * conversion depuis un `ImageData` de canvas, ce qui permet d'imprimer une
- * étiquette composée (QR + texte) et pas seulement un QR nu.
+ * étiquette composée (QR Code + texte) et pas seulement un QR Code nu.
  *
  * La fonction est pure : elle ne dépend que de son entrée, donc testable hors
  * navigateur.

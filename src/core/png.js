@@ -5,7 +5,7 @@
  * `IDAT` (les pixels, compressés en zlib), `IEND`. Chaque bloc porte son CRC32.
  *
  * On n'encode qu'un seul format — RVBA 8 bits, non entrelacé — ce qui suffit
- * pour des QR codes et des icônes, et évite d'embarquer une bibliothèque
+ * pour des QR Codes et des icônes, et évite d'embarquer une bibliothèque
  * graphique. Le même encodeur sert aux icônes de l'extension et aux images
  * intégrées dans l'export tableur.
  *

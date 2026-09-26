@@ -5,7 +5,7 @@
  * les scripts sont à jour. Le résultat est trompeur : les nouveaux réglages
  * apparaissent, mais la mise en page reste celle du build précédent. C'est
  * arrivé — une planche s'affichait en une seule colonne, curseur de largeur du
- * QR sans effet, alors que le correctif était bien sur le disque.
+ * QR Code sans effet, alors que le correctif était bien sur le disque.
  *
  * La parade est une empreinte du contenu dans l'URL. Ces tests vérifient que
  * l'empreinte est bien présente **et qu'elle correspond au fichier livré** : une

@@ -27,7 +27,7 @@ These are not stylistic preferences; each one exists because breaking it caused
 a real defect.
 
 - **Zero dependencies.** The core uses native ES modules and no bundler. The
-  only runtime dependency is `uqr`, a pure ESM QR encoder. Do not add a library
+  only runtime dependency is `uqr`, a pure ESM QR Code encoder. Do not add a library
   for something that fits in a module here.
 - **The core is pure.** `src/core/` must not touch the DOM, the network, or
   global state that is not injected. `src/web/` and `src/extension-src/` own
@@ -50,7 +50,7 @@ a real defect.
 
 | Path | Role |
 |---|---|
-| `src/core/` | Pure business core: links, QR, labels, sheets, storage, exports, Niimbot protocol |
+| `src/core/` | Pure business core: links, QR Code, labels, sheets, storage, exports, Niimbot protocol |
 | `src/web/` | Standalone application (the extension's full page) |
 | `src/extension-src/` | MV3 extension source (Brave, Chrome, Edge, Safari) |
 | `native/niimbot-kit/` | Swift core: same protocol, same print sequence, same test vectors |
@@ -66,7 +66,7 @@ a real defect.
 - The Niimbot frames are validated **byte for byte in both languages**. If you
   change a frame, update both implementations and both test vectors — the
   duplication is deliberate and is the project's main correctness check.
-- Property-style tests (grid layouts, QR bounds) are preferred over a handful of
+- Property-style tests (grid layouts, QR Code bounds) are preferred over a handful of
   examples when a range of inputs is possible.
 - `npm run verify:brave` drives a real browser on an isolated profile and checks
   the files actually written to disk. `npm run verify:safari` drives the real

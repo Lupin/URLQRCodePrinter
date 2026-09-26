@@ -11,7 +11,7 @@ import { t } from './i18n.js';
 /**
  * @typedef {Object} LinkRecord
  * @property {string}   id        Identifiant stable (UUID v4).
- * @property {string}   url       URL absolue normalisée — c'est elle qui est encodée dans le QR.
+ * @property {string}   url       URL absolue normalisée — c'est elle qui est encodée dans le QR Code.
  * @property {string}   title     Titre lisible de la page (peut être vide).
  * @property {string}   note      Note libre de l'utilisateur.
  * @property {string[]} tags      Étiquettes de classement, sans « # », dédoublonnées.
@@ -55,7 +55,7 @@ export function newId() {
  *
  * - ajoute `https://` si le schéma est absent ;
  * - retire les identifiants de session et le fragment, qui n'ont pas leur place
- *   dans un QR code imprimé (le fragment n'est jamais envoyé au serveur, et un
+ *   dans un QR Code imprimé (le fragment n'est jamais envoyé au serveur, et un
  *   `#` allonge inutilement la matrice) ;
  * - supprime un éventuel slash final redondant sur la racine.
  *
@@ -90,7 +90,7 @@ export function normalizeUrl(input) {
 
   parsed.hash = '';
 
-  // Paramètres de campagne : ils polluent le QR et le rendent plus dense.
+  // Paramètres de campagne : ils polluent le QR Code et le rendent plus dense.
   for (const key of [...parsed.searchParams.keys()]) {
     if (/^(utm_|fbclid$|gclid$|mc_cid$|mc_eid$|ref_src$)/i.test(key)) {
       parsed.searchParams.delete(key);
@@ -295,7 +295,7 @@ export function sourceHost(link) {
 }
 
 /**
- * Destinations possibles du QR code.
+ * Destinations possibles du QR Code.
  * - `original` : l'URL collectée (comportement par défaut) ;
  * - `short` : le lien raccourci quand il existe, l'URL d'origine sinon.
  */
@@ -305,7 +305,7 @@ export const TARGET_MODES = Object.freeze(['original', 'short']);
  * Prépare un enregistrement pour l'affichage ou l'impression.
  *
  * Renvoie toujours une copie portant :
- * - `url` : la destination retenue, celle que le QR code encode ;
+ * - `url` : la destination retenue, celle que le QR Code encode ;
  * - `originalUrl` : l'URL collectée, jamais perdue ;
  * - `shortUrl` : le lien raccourci, ou une chaîne vide.
  *

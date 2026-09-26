@@ -96,7 +96,7 @@ export const SHEET_PRESETS = Object.freeze({
     gapYMm: 0,
   },
   'a4-qr-3x4': {
-    label: 'A4 — 3 × 4 grandes étiquettes QR (60 × 60 mm)',
+    label: 'A4 — 3 × 4 grandes étiquettes QR Code (60 × 60 mm)',
     group: 'generic',
     page: 'a4',
     declaredColumns: 3,
@@ -497,11 +497,11 @@ function nonNegative(value) {
 // Contenu d'une étiquette de planche
 // ---------------------------------------------------------------------------
 
-/** Proportion minimale du QR par rapport au petit côté de l'étiquette. */
+/** Proportion minimale du QR Code par rapport au petit côté de l'étiquette. */
 export const MIN_QR_RATIO = 0.3;
-/** Proportion maximale : au-delà, le QR chasse le texte hors de l'étiquette. */
+/** Proportion maximale : au-delà, le QR Code chasse le texte hors de l'étiquette. */
 export const MAX_QR_RATIO = 1;
-/** Écart entre le QR et le texte, identique à celui de la feuille de style. */
+/** Écart entre le QR Code et le texte, identique à celui de la feuille de style. */
 export const SHEET_QR_GAP_MM = 1.5;
 /** Marge intérieure d'une étiquette de planche, pour ne pas toucher les bords. */
 export const SHEET_CELL_MARGIN_MM = 0.5;
@@ -512,12 +512,12 @@ export const SHEET_FONT_PT = 7;
 export const SHEET_LINE_SPACING = 1.15;
 
 /**
- * Taille minimale d'un module de QR **sur papier**, en millimètres.
+ * Taille minimale d'un module de QR Code **sur papier**, en millimètres.
  *
  * C'est la contrainte qui manquait : un module plus petit n'est plus résolu
  * proprement par une imprimante laser ou jet d'encre, et un téléphone a du mal
  * à faire la mise au point dessus. 0,4 mm correspond à la recommandation
- * courante pour un QR code imprimé lu à bout portant.
+ * courante pour un QR Code imprimé lu à bout portant.
  */
 export const MIN_MODULE_MM_PAPER = 0.4;
 
@@ -561,16 +561,16 @@ export function sheetTextMetrics(options = {}) {
 }
 
 /**
- * Bornes de la proportion du QR dans une étiquette de planche.
+ * Bornes de la proportion du QR Code dans une étiquette de planche.
  *
  * Le calcul est fait **avant** le rendu, pour que le curseur ne puisse pas
- * demander un QR impossible à imprimer :
+ * demander un QR Code impossible à imprimer :
  *
- * - **borne basse** : un module doit rester lisible une fois imprimé, donc le QR
+ * - **borne basse** : un module doit rester lisible une fois imprimé, donc le QR Code
  *   ne peut pas descendre sous `qrModules × minModuleMm`. Sur une planche papier
  *   la contrainte est physique (0,4 mm) ; sur une tête thermique elle vient de
  *   la résolution (2 px par module).
- * - **borne haute** : le QR est carré, il doit tenir dans la largeur **et**
+ * - **borne haute** : le QR Code est carré, il doit tenir dans la largeur **et**
  *   laisser au moins une ligne de texte sous lui.
  *
  * Quand les deux bornes se croisent, aucune valeur ne convient : l'URL est trop
@@ -617,7 +617,7 @@ export function qrRatioBounds(options) {
   const innerHeight = labelHeightMm - marginMm * 2;
 
   const textHeight = textLines > 0 ? gapMm + textLines * lineHeightMm : 0;
-  // Le QR est carré : la hauteur disponible est la contrainte la plus serrée
+  // Le QR Code est carré : la hauteur disponible est la contrainte la plus serrée
   // sur une étiquette large et basse, la largeur sur une étiquette étroite.
   const rawMaxSide = Math.min(innerWidth, innerHeight - textHeight);
   const minSideMm = qrModules * minModuleMm;
@@ -630,7 +630,7 @@ export function qrRatioBounds(options) {
   const max = clampRatio(Math.max(0, rawMaxSide));
   const fits = rawMaxSide > 0 && minSideMm <= rawMaxSide + 1e-9;
 
-  // Combien de lignes de texte tiennent encore si le QR est au minimum lisible ?
+  // Combien de lignes de texte tiennent encore si le QR Code est au minimum lisible ?
   const textLinesAtMin = lineHeightMm > 0
     ? Math.max(0, Math.floor((innerHeight - minSideMm - gapMm) / lineHeightMm))
     : 0;
@@ -639,7 +639,7 @@ export function qrRatioBounds(options) {
   if (rawMaxSide <= 0) {
     reason =
       `Une étiquette de ${round1(labelWidthMm)} × ${round1(labelHeightMm)} mm ne ` +
-      'laisse aucune place à un QR code et à une ligne de texte.';
+      'laisse aucune place à un QR Code et à une ligne de texte.';
   } else if (!fits) {
     reason =
       `URL trop longue pour cette étiquette : ${qrModules} modules à ` +
@@ -698,11 +698,11 @@ export function sheetCellLines(text, options) {
 }
 
 /**
- * Côté du QR code d'une étiquette de planche, en millimètres.
+ * Côté du QR Code d'une étiquette de planche, en millimètres.
  *
- * Le QR est carré : il se règle donc sur le **petit** côté de l'étiquette. Sans
+ * Le QR Code est carré : il se règle donc sur le **petit** côté de l'étiquette. Sans
  * cette borne, une étiquette basse (33,9 mm de haut pour 63,5 mm de large)
- * produirait un QR plus haut que son support. La proportion est bornée pour
+ * produirait un QR Code plus haut que son support. La proportion est bornée pour
  * qu'aucune valeur d'interface ne puisse dépasser l'étiquette.
  *
  * @param {number} labelWidthMm

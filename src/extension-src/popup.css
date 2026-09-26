@@ -480,7 +480,7 @@ body {
   background: var(--accent-hover);
 }
 
-/* Action remplie, mais sans chroma. « Voir les QR codes » garde le poids d'un
+/* Action remplie, mais sans chroma. « Voir les QR Codes » garde le poids d'un
    bouton plein sans ajouter une seconde couleur à l'écran : c'est ce qui
    permet à l'orange de ne désigner qu'une seule chose, l'ajout de la page. */
 .btn--neutral {

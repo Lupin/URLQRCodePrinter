@@ -95,7 +95,7 @@ la main dans `src/extension-src/popup.js`.
 
 | Emplacement | Support | Icône |
 |---|---|---|
-| Barre d'outils, menu contextuel, page de gestion | PNG généré | marque QR, encre orange `#e8590c`, **fond transparent** |
+| Barre d'outils, menu contextuel, page de gestion | PNG généré | marque QR Code, encre orange `#e8590c`, **fond transparent** |
 | Bouton de suppression d'une ligne | SVG en ligne | Phosphor `x` (regular) |
 
 ### Ce qui a changé, et pourquoi

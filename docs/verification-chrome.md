@@ -146,7 +146,7 @@ ne prouverait rien.
 
 ```
 langue → titre de la 1ʳᵉ ligne → supprimer → titre de la 2ᵉ → supprimer
-       → voir les QR codes → CSV → Markdown → tout effacer → page d'information
+       → voir les QR Codes → CSV → Markdown → tout effacer → page d'information
 ```
 
 Chaque arrêt porte un anneau de focus visible, et le cycle se referme sans

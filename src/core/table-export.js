@@ -1,9 +1,9 @@
 /**
- * Export du tableau en dossier autonome : un modèle JSON, ses QR codes PNG et
+ * Export du tableau en dossier autonome : un modèle JSON, ses QR Codes PNG et
  * une page HTML prête à l'emploi.
  *
  * Le tableau de l'onglet « Tableau » n'avait aucune sortie réutilisable : ses
- * colonnes et ses QR codes ne quittaient le navigateur que par l'impression.
+ * colonnes et ses QR Codes ne quittaient le navigateur que par l'impression.
  * Ici, on produit un dossier qu'on ouvre, qu'on sert ou qu'on donne à lire à
  * une application. Chaque ligne porte son image PNG — utilisable telle quelle
  * dans une page, un traitement de texte ou un CMS, sans exiger du consommateur
@@ -41,7 +41,7 @@ export const QR_DIRECTORY = 'qr';
  */
 export const TABLE_COLUMNS = Object.freeze([
   { key: 'index', label: 'N°' },
-  { key: 'qr', label: 'QR' },
+  { key: 'qr', label: 'QR Code' },
   { key: 'url', label: 'URL' },
   { key: 'title', label: 'Titre' },
   { key: 'date', label: 'Date' },
@@ -50,7 +50,7 @@ export const TABLE_COLUMNS = Object.freeze([
 ]);
 
 /**
- * Réglages d'encodage et de taille des images QR.
+ * Réglages d'encodage et de taille des images QR Code.
  *
  * `maxSize` borne la largeur : une URL longue ne doit pas produire une image
  * démesurée. L'échelle demandée est un plafond ; elle est réduite, jamais
@@ -100,7 +100,7 @@ function qrFileName(link, index) {
 }
 
 /**
- * Construit le modèle du tableau et les matrices QR prêtes à rendre.
+ * Construit le modèle du tableau et les matrices QR Code prêtes à rendre.
  *
  * Le modèle est sérialisable tel quel ; les matrices restent en mémoire, car
  * un tableau de booléens n'a pas sa place dans un JSON destiné à un lecteur
@@ -145,7 +145,7 @@ export function buildTableModel(links, options = {}) {
     if (columns.tags) row.tags = Array.isArray(link.tags) ? [...link.tags] : [];
     if (columns.note) row.note = link.note ?? '';
 
-    // Quand le QR encode un raccourci, l'adresse collectée reste consignée :
+    // Quand le QR Code encode un raccourci, l'adresse collectée reste consignée :
     // aucune sortie ne doit perdre une URL. Elle n'est pas une colonne — le
     // tableau ne l'affiche pas — mais le modèle la conserve.
     const original = typeof link.originalUrl === 'string' ? link.originalUrl : '';
@@ -268,7 +268,7 @@ ${rows}
 }
 
 /**
- * Rend une matrice QR en image RVBA agrandie d'un facteur entier.
+ * Rend une matrice QR Code en image RVBA agrandie d'un facteur entier.
  *
  * @param {import('./qr.js').QrMatrix} matrix
  * @param {number} scale
@@ -298,7 +298,7 @@ function rgbaFromQr(matrix, scale) {
  * Assemble le dossier du tableau : `table.json`, `table.html` et `qr/*.png`.
  *
  * Le JSON est le contrat — il décrit les colonnes, les lignes et, pour chaque
- * QR, de quoi le régénérer à l'identique. Les images sont là pour l'usage
+ * QR Code, de quoi le régénérer à l'identique. Les images sont là pour l'usage
  * direct, et le HTML pour n'avoir rien à coder.
  *
  * @param {import('./link.js').LinkRecord[]} links

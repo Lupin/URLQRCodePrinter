@@ -305,7 +305,7 @@ test('le sélecteur de fichier accepte les formats relisibles', () => {
   }
 });
 
-test("la planche peut imprimer l'URL sous le QR", () => {
+test("la planche peut imprimer l'URL sous le QR Code", () => {
   // Elle n'imprimait que le titre, et retombait sur l'URL uniquement quand il
   // n'y en avait pas : aucune option ne permettait de l'ajouter.
   const html = readFileSync(join(ROOT, 'src', 'web', 'index.html'), 'utf8');
@@ -313,7 +313,7 @@ test("la planche peut imprimer l'URL sous le QR", () => {
   const app = readFileSync(join(ROOT, 'src', 'web', 'app.js'), 'utf8');
 
   const champ = html.match(/<input id="sheet-url"[^>]*>/);
-  assert.ok(champ, "aucune case « URL » dans « Sous chaque QR »");
+  assert.ok(champ, "aucune case « URL » dans « Sous chaque QR Code »");
   assert.match(champ[0], /type="checkbox"/);
   assert.ok(ids.includes("'sheet-url'"), "l'identifiant n'est pas déclaré");
 

@@ -3,14 +3,14 @@
 **Français** · [English](README.md) · [Guide d'utilisation](docs/guide.fr.md)
 
 Collecter des URL depuis le navigateur (clic droit ou bouton), les garder dans
-une base locale, puis les imprimer en étiquettes QR — tableau, export CSV ou
+une base locale, puis les imprimer en étiquettes QR Code — tableau, export CSV ou
 Markdown, ou envoi direct à une imprimante Niimbot.
 
 ## Pourquoi ce projet
 
 J'ai créé cette extension pour mon carnet. J'y note mes recherches et mes
 trouvailles sur papier, et j'y recopiais les adresses à la main. Les écrire
-prenait du temps, et les retrouver aussi. J'ai d'abord imprimé les QR codes un
+prenait du temps, et les retrouver aussi. J'ai d'abord imprimé les QR Codes un
 par un sur une petite Niimbot, puis je me suis dit que tout cela pouvait se faire
 tout seul.
 
@@ -25,7 +25,7 @@ retrouve et se partage facilement.
 
 | Étape | État |
 |---|---|
-| Cœur métier (liens, QR, étiquettes, stockage, exports) | fait, testé |
+| Cœur métier (liens, QR Code, étiquettes, stockage, exports) | fait, testé |
 | Protocole Niimbot (trames, profils D110 / M2 / M3) | fait, testé |
 | Transport Web Bluetooth + session d'impression D110 / M2 / M3 | fait, testé, **impression réelle sur une D110** |
 | Extension Brave / Chrome (clic droit, popup, liens cliquables) | fait, vérifié dans Brave et dans Chrome |
@@ -39,7 +39,7 @@ retrouve et se partage facilement.
 | Socle natif Swift (protocole, session, CoreBluetooth) | fait, testé |
 | Application iOS qui utilise ce socle | à faire |
 
-**808 tests, tous verts** — 704 en JavaScript et 104 en Swift — dont :
+**813 tests, tous verts** — 709 en JavaScript et 104 en Swift — dont :
 
 - la validation **octet à octet** des trames Niimbot contre les relevés
   documentés, **dans les deux langages** : deux implémentations indépendantes
@@ -55,7 +55,7 @@ retrouve et se partage facilement.
 - le **calcul inverse** « remplir la feuille » : la grille demandée est
   exactement celle qui sort, sur plus de 400 combinaisons de colonnes, rangées,
   marges et écarts, pour le A4 comme pour le Letter ;
-- les **bornes du QR** par type d'impression : la taille du curseur est calculée
+- les **bornes du QR Code** par type d'impression : la taille du curseur est calculée
   avant le rendu, et la découpe du texte qui en découle est vérifiée ligne à
   ligne.
 
@@ -70,7 +70,7 @@ l'aperçu d'étiquette composé sans aucune imprimante connectée.
 **La page de l'extension est vérifiée dans Safari** : `npm run verify:safari`
 pilote le Safari réel par WebDriver, charge `app.html`, et compare ses sorties au
 cœur exécuté hors navigateur. 37 vérifications — le CSV exporté par Safari est
-**identique octet pour octet** à celui du cœur, et le QR dessiné est **identique
+**identique octet pour octet** à celui du cœur, et le QR Code dessiné est **identique
 module pour module** (31 × 31, 436 modules, zéro écart). Le relevé complet, ce
 qui n'a pas pu être vérifié et pourquoi : `docs/safari-extension-verification.md`.
 
@@ -97,19 +97,19 @@ par toutes les surfaces :
 
 ```
 src/core/
-  link.js              modèle de lien, normalisation, cible du QR, href sûr
+  link.js              modèle de lien, normalisation, cible du QR Code, href sûr
   capture.js           décision de capture depuis un clic contextuel
-  qr.js                encodage QR → matrice → bitmap 1 bit/pixel, PNG
+  qr.js                encodage QR Code → matrice → bitmap 1 bit/pixel, PNG
   label.js             géométrie d'étiquette, découpe de texte, lisibilité
   raster.js            ImageData → bitmap monochrome pour tête thermique
   sheet.js             planches d'impression : cotes, pagination, calibrage
   store.js             IndexedDB / chrome.storage / mémoire, même interface
   exporters.js         CSV (RFC 4180), Markdown, JSON
-  spreadsheet.js       classeur .xlsx avec les QR codes intégrés
+  spreadsheet.js       classeur .xlsx avec les QR Codes intégrés
   label-export.js      formats d'étiquettes, planche HTML, archive ZIP
-  table-export.js      dossier du tableau : modèle JSON, QR PNG, page HTML
+  table-export.js      dossier du tableau : modèle JSON, QR Code PNG, page HTML
   shorten.js           raccourcissement d'URL : services, pannes, rythme
-  settings.js          préférences retenues (service, cible du QR)
+  settings.js          préférences retenues (service, cible du QR Code)
   i18n.js              messages d'interface fr → en, résolution de la langue
   locales/en.js        table des traductions anglaises
   png.js               encodeur PNG (CompressionStream), CRC et déflate
@@ -175,7 +175,7 @@ second appareil avec lequel synchroniser.
 Le plafond est de 10 Mo, parce que `chrome.storage.local` est limité à cela et
 que le manifeste ne demande pas `unlimitedStorage`. La marge vient de ce que
 contient un enregistrement : une adresse, un titre, des tags, une note, une
-date. Du texte, rien d'autre. **L'image du QR n'est jamais stockée** : elle est
+date. Du texte, rien d'autre. **L'image du QR Code n'est jamais stockée** : elle est
 recalculée depuis l'adresse au moment de l'impression. L'étiquette est
 dérivable, donc elle n'est pas conservée.
 
@@ -341,7 +341,7 @@ s'il existe, et l'URL de l'onglet est lue par injection quand `tab.url` manque.
 
 ## Ce qui est imprimable est calculé avant, pas signalé après
 
-Un QR code a deux limites physiques, et elles dépendent du **type d'impression** :
+Un QR Code a deux limites physiques, et elles dépendent du **type d'impression** :
 
 | Support | Contrainte | Sur une D110 (203 dpi) | Sur papier |
 |---|---|---|---|
@@ -349,13 +349,13 @@ Un QR code a deux limites physiques, et elles dépendent du **type d'impression*
 | Papier (laser, jet d'encre) | 0,4 mm par module, sinon le module n'est plus résolu et l'appareil photo ne fait pas la mise au point | — | 0,4 mm |
 
 `qrRatioBounds` (dans `core/sheet.js`) croise ces contraintes avec la géométrie
-de l'étiquette pour produire l'intervalle **autorisé** de la largeur du QR :
+de l'étiquette pour produire l'intervalle **autorisé** de la largeur du QR Code :
 
-- **borne basse** : `qrModules × minModuleMm` — un QR plus petit serait illisible
+- **borne basse** : `qrModules × minModuleMm` — un QR Code plus petit serait illisible
   une fois imprimé, et la densité de la matrice dépend de la longueur de l'URL :
   sur une L7160, une URL courte laisse régler de 30 à 86 %, une URL de 49 modules
   impose au moins 58 % ;
-- **borne haute** : le QR est carré, il doit tenir dans la largeur **et** laisser
+- **borne haute** : le QR Code est carré, il doit tenir dans la largeur **et** laisser
   au moins une ligne de texte sous lui.
 
 **Une seule présentation, six valeurs.** Colonnes, rangées, marge
@@ -379,7 +379,7 @@ millimètre, que les champs de décalage rattrapent. Une erreur de pas, elle,
 s'accumulerait d'une colonne à l'autre. Le test de propriété le vérifie pour les
 treize dispositions du catalogue.
 
-Le curseur reçoit ces bornes : **il ne peut plus demander un QR impossible**, au
+Le curseur reçoit ces bornes : **il ne peut plus demander un QR Code impossible**, au
 lieu d'afficher un avertissement une fois le réglage fautif choisi. Quand les deux
 bornes se croisent — 57 modules sur une tête de 12 mm demandent 14,3 mm — le
 message le dit, nomme le lien le plus dense, et propose la seule vraie sortie :
@@ -414,7 +414,7 @@ Le libellé suit chaque case cochée, pas seulement les boutons de groupe : la
 vérification dans Brave a justement montré qu'il restait figé sur un état
 antérieur quand on cochait une ligne à la main.
 
-## Le classeur : un QR par ligne
+## Le classeur : un QR Code par ligne
 
 Deux défauts réels dans l'export `.xlsx`, trouvés en examinant un fichier
 réellement produit :
@@ -424,16 +424,16 @@ et lu correctement par deux analyseurs indépendants (le mien et `openpyxl`) —
 qu'Excel n'écrit jamais. Excel écrit `twoCellAnchor` avec `editAs="oneCell"` et
 les marqueurs `from` **et** `to` pour chaque image insérée. On écrit désormais
 cette forme-là, avec `to` sur la cellule suivante : l'image est liée à une seule
-cellule, celle de son QR.
+cellule, celle de son QR Code.
 
 **Le tableau ne tenait pas sur une page en largeur.** Sept colonnes font environ
 309 mm pour du A4 portrait (210 mm) : à l'impression, Excel répartissait les
-colonnes sur plusieurs feuilles, et un QR code pouvait sortir sur une autre page
-que son URL — exactement « pas un QR par ligne ». La feuille porte maintenant
+colonnes sur plusieurs feuilles, et un QR Code pouvait sortir sur une autre page
+que son URL — exactement « pas un QR Code par ligne ». La feuille porte maintenant
 `fitToPage` + `fitToWidth="1"` et l'orientation paysage, ce qui ramène le tableau
 à une largeur de page.
 
-**Et l'image tient dans sa cellule** : QR de 96 px (25,4 mm, un pouce) au lieu de
+**Et l'image tient dans sa cellule** : QR Code de 96 px (25,4 mm, un pouce) au lieu de
 128, colonne de 19 unités (≈ 138 px), ligne de 76 points. Une image plus large
 que sa colonne déborde sur la voisine, et une ligne de 100 points faisait sortir
 le tableau de la page.
@@ -511,9 +511,9 @@ au chargement.
 
 ## Dater une étiquette : une option, jamais un fragment
 
-La date de collecte peut être imprimée sous le QR code — `Aucune`, `Date de
+La date de collecte peut être imprimée sous le QR Code — `Aucune`, `Date de
 collecte`, `Date et heure de collecte`. Aucune par défaut : chaque ligne sous le
-QR se paie en place disponible, et une étiquette de 12 mm n'en a pas de reste.
+QR Code se paie en place disponible, et une étiquette de 12 mm n'en a pas de reste.
 Le choix vaut pour les quatre mises en forme : planche, tableau (une colonne
 « Date »), étiquette Niimbot, et archive d'images.
 
@@ -534,14 +534,14 @@ pire que pas de date. Désormais :
 - l'archive consigne `datesOmitted`, et les aperçus affichent la raison — sans
   quoi l'option semblerait sans effet.
 
-Le calcul des bornes du QR compte la date comme une ligne de plus : activer la
+Le calcul des bornes du QR Code compte la date comme une ligne de plus : activer la
 date fait baisser la borne haute du curseur (86 % → 79 % sur une L7160), parce
-que le QR doit laisser la place de deux lignes au lieu d'une.
+que le QR Code doit laisser la place de deux lignes au lieu d'une.
 
 ## Un export ne doit rien contenir d'insaisissable
 
 Règle du projet, née de deux remarques justes : le Markdown portait un titre
-choisi par le programme (« Mes liens QR »), et une colonne « Tags » qu'aucune
+choisi par le programme (« Mes liens QR Code »), et une colonne « Tags » qu'aucune
 interface ne permettait de remplir. Un export qui transporte des colonnes vides,
 ou un titre qui n'est pas celui de l'utilisateur, est un export faux.
 
@@ -563,13 +563,13 @@ exports d'une collection raccourcie) ne sont ajoutées que si au moins un lien a
 la valeur correspondante. Sans cela, un tableau à sept colonnes dont une vide sur
 toute la hauteur, et les tests existants auraient dû changer à chaque ajout.
 
-**Dans le classeur, la note se place avant la colonne des QR codes**, dont
+**Dans le classeur, la note se place avant la colonne des QR Codes**, dont
 l'index est donc recalculé (`spreadsheetLayout`) : une image ancrée sur la
 mauvaise colonne serait tout simplement invisible. Les tags y sont écrits sans
 « # », comme dans le CSV : dans un tableur, le dièse gêne le filtrage.
 
 Les tags ne s'impriment pas sur les étiquettes : ils classent la collection, et
-les étiquettes portent le QR et le texte choisi. Ils ressortent en revanche dans
+les étiquettes portent le QR Code et le texte choisi. Ils ressortent en revanche dans
 tous les exports de données.
 
 ## Planches d'étiquettes
@@ -591,12 +591,12 @@ marge de droite est ce qui reste.
 la feuille imprimée partagent les mêmes règles, donc la même mise en page. Ça
 n'a pas toujours été le cas : tant que `.print-cell` n'était positionné que dans
 le bloc d'impression, l'aperçu empilait les étiquettes en une seule colonne, le
-texte d'une étiquette débordait sur sa voisine, et le curseur de largeur du QR
+texte d'une étiquette débordait sur sa voisine, et le curseur de largeur du QR Code
 n'avait aucun effet — le SVG gardait sa taille intrinsèque dans une boîte que
 personne ne contraignait. La leçon est dans les tests : `test/sheet-matrix.test.js`
 couvre la géométrie pure sur tous les formats, et `npm run verify:brave` mesure
 le DOM réellement calculé par le navigateur (colonnes distinctes, aucune
-superposition, QR contenu dans sa boîte, effet du curseur). Un test de géométrie
+superposition, QR Code contenu dans sa boîte, effet du curseur). Un test de géométrie
 seul n'aurait jamais vu ce défaut.
 
 **Le nombre de colonnes peut devenir une consigne.** Par défaut, la géométrie
@@ -614,7 +614,7 @@ confronte la géométrie au nombre d'étiquettes annoncé serait devenu circulai
 un navigateur peut servir un `style.css` du build précédent alors que le HTML et
 les scripts sont à jour : les nouveaux réglages apparaissent, mais la mise en
 page reste l'ancienne. C'est arrivé, et le diagnostic a été long — la planche
-s'affichait en une seule colonne, curseur de largeur du QR sans effet, alors que
+s'affichait en une seule colonne, curseur de largeur du QR Code sans effet, alors que
 le correctif était bien sur le disque. Deux parades : l'URL porte une empreinte
 (`style.css?v=…`), et l'application **détecte** une feuille de style périmée en
 lisant une propriété que seule la feuille définit, puis l'annonce dans un bandeau
@@ -665,7 +665,7 @@ Trois garde-fous, parce qu'un lien imprimé engage dans la durée :
 2. **L'URL d'origine n'est jamais remplacée.** Le raccourci vit dans son propre
    champ ; l'URL collectée reste la source de vérité, et un bouton « Retirer »
    efface tous les raccourcis d'un coup.
-3. **Le choix se fait au moment de l'impression.** Le sélecteur « Le QR code
+3. **Le choix se fait au moment de l'impression.** Le sélecteur « Le QR Code
    pointe vers » vaut pour toutes les sorties imprimées — aperçu, planche,
    tableau, étiquettes, ZIP d'images, dossier du tableau, impression Niimbot. Les
    exports de *données* (CSV, JSON) conservent l'URL d'origine et ajoutent le
@@ -674,7 +674,7 @@ Trois garde-fous, parce qu'un lien imprimé engage dans la durée :
    collectée dans `sourceUrl`. Aucune sortie ne perd une adresse.
 
 Raccourcir a un intérêt concret sur une étiquette de 12 mm : moins de caractères
-donnent une matrice plus petite, donc un QR plus lisible et imprimable plus
+donnent une matrice plus petite, donc un QR Code plus lisible et imprimable plus
 petit. La contrepartie est réelle et affichée dans l'interface : un lien
 raccourci dépend de la survie du service. Pour un usage durable, gardez la cible
 « URL collectée ».
@@ -754,7 +754,7 @@ relevaient pas de la même cause :
   de lignes porte sur le total, titre compris.
 - **Un test faux.** `testTopRowsContainTheQrCode` cherchait de l'encre dans les
   dix premières lignes. C'était impossible par construction : les deux modules
-  de blanc qui entourent le QR — sa zone de silence, sans laquelle aucun lecteur
+  de blanc qui entourent le QR Code — sa zone de silence, sans laquelle aucun lecteur
   n'accroche — occupent exactement cette bande. Le test vérifie maintenant la
   position du premier pixel encré, `marge + 2 × échelle`, ce qui est plus précis
   que ce qu'il vérifiait avant.
@@ -816,7 +816,7 @@ pull request :
 
 ```bash
 npm install
-npm run test:all   # 704 tests JavaScript + 104 tests Swift
+npm run test:all   # 709 tests JavaScript + 104 tests Swift
 ```
 
 Les conventions du dépôt — cœur sans DOM ni réseau implicite, zéro dépendance,

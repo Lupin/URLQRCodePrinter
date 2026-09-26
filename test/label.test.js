@@ -72,7 +72,7 @@ test('la géométrie tient dans la largeur demandée', () => {
   assert.ok(g.qrSize > 0);
 });
 
-test('le QR occupe un nombre entier de modules', () => {
+test('le QR Code occupe un nombre entier de modules', () => {
   const g = computeLabelGeometry({
     text: 'https://example.com',
     widthPx: 120,
@@ -81,9 +81,9 @@ test('le QR occupe un nombre entier de modules', () => {
   assert.equal(g.qrSize % g.qrMatrix.size, 0);
 });
 
-test('le QR garde toujours au moins 2 px par module', () => {
+test('le QR Code garde toujours au moins 2 px par module', () => {
   // Régression : une URL longue faisait tomber l'échelle à 1 px/module, ce qui
-  // produisait un QR illisible à l'impression thermique.
+  // produisait un QR Code illisible à l'impression thermique.
   const long = computeLabelGeometry({
     text: 'https://example.com/' + 'tres-long-segment/'.repeat(10),
     widthPx: 120, measure: measure10, fontSize: 10,
@@ -91,12 +91,12 @@ test('le QR garde toujours au moins 2 px par module', () => {
   assert.ok(long.pxPerModule >= 2, `px/module = ${long.pxPerModule}`);
 });
 
-test('une URL courte produit un QR qui remplit l\'étiquette', () => {
+test('une URL courte produit un QR Code qui remplit l\'étiquette', () => {
   const g = computeLabelGeometry({
     text: 'https://a.co', widthPx: 120, measure: measure10, fontSize: 10,
   });
   assert.equal(g.fits, true);
-  assert.ok(g.qrSize > 120 * 0.5, `QR trop petit : ${g.qrSize} px`);
+  assert.ok(g.qrSize > 120 * 0.5, `QR Code trop petit : ${g.qrSize} px`);
 });
 
 test('une URL démesurée est signalée par fits = false', () => {
@@ -127,7 +127,7 @@ test('la hauteur respecte le minimum et le maximum', () => {
   assert.equal(capped.alignment, 'top', 'sans place, la répartition se désactive');
 });
 
-test('le texte est centré sous le QR', () => {
+test('le texte est centré sous le QR Code', () => {
   const g = computeLabelGeometry({
     text: 'https://example.com', widthPx: 120, measure: measure10, padding: 6, fontSize: 10,
   });
@@ -136,7 +136,7 @@ test('le texte est centré sous le QR', () => {
 });
 
 test('maxLines limite les lignes, sans amputer le texte', () => {
-  // Le plafond protege l'equilibre entre le QR et son texte, mais il ne doit
+  // Le plafond protege l'equilibre entre le QR Code et son texte, mais il ne doit
   // pas couper : une URL tronquee est fausse, pas seulement raccourcie.
   const texte = 'https://example.com/' + 'segment/'.repeat(10);
   const g = computeLabelGeometry({
@@ -163,7 +163,7 @@ test('mmToPx et pxToMm sont cohérents à 203 dpi', () => {
   assert.equal(mmToPx(15, 203), 120);
 });
 
-test('checkQrLegibility accepte un QR assez grand', () => {
+test('checkQrLegibility accepte un QR Code assez grand', () => {
   const g = computeLabelGeometry({
     text: 'https://a.co', widthPx: 120, measure: measure10, qrRatio: 0.9,
   });
@@ -275,7 +275,7 @@ test('la disposition répartie colle le texte au bas de l\'étiquette', () => {
   const spread = computeLabelGeometry({ ...base, alignment: 'spread' });
   const top = computeLabelGeometry({ ...base, alignment: 'top' });
 
-  assert.equal(spread.qrTop, spread.padding, 'le QR reste en haut');
+  assert.equal(spread.qrTop, spread.padding, 'le QR Code reste en haut');
   assert.ok(spread.textTop > top.textTop, 'le texte descend');
   assert.equal(
     spread.height - (spread.textTop + (spread.lines.length + spread.extraLines) * spread.lineHeight),
@@ -289,7 +289,7 @@ test('la disposition centrée partage la place en haut et en bas', () => {
     text: 'https://exemple.fr/article', widthPx: 96, dpi: 203, measure: measure10,
     maxHeightPx: 240, alignment: 'center',
   });
-  // La place libre se partage en deux : une moitié au-dessus du QR, le reste
+  // La place libre se partage en deux : une moitié au-dessus du QR Code, le reste
   // sous le texte. La marge de l'étiquette, elle, reste entière des deux côtés.
   const above = g.qrTop - g.padding;
   const below = g.height - (g.textTop + (g.lines.length + g.extraLines) * g.lineHeight)
@@ -313,7 +313,7 @@ test('une longueur connue grossit le texte, jamais au-delà de la lisibilité', 
 
   const roomy = computeLabelGeometry({ ...base, maxHeightPx: 240, alignment: 'spread' });
   assert.ok(roomy.fontSize > bare.fontSize, 'la place disponible doit profiter au texte');
-  assert.ok(roomy.fontSize <= 96 * MAX_FONT_WIDTH_RATIO, 'le texte ne doit pas dominer le QR');
+  assert.ok(roomy.fontSize <= 96 * MAX_FONT_WIDTH_RATIO, 'le texte ne doit pas dominer le QR Code');
 });
 
 test('la date ne déborde pas quand une longueur est imposée', () => {
@@ -672,7 +672,7 @@ test('aucune taille demandée n\'ampute le texte', () => {
 });
 
 test('une taille demandée échappe au plafond d\'équilibre, le choix automatique non', () => {
-  // Le plafond existe pour que le texte ne domine pas le QR quand la géométrie
+  // Le plafond existe pour que le texte ne domine pas le QR Code quand la géométrie
   // choisit seule. Il ne doit pas annuler un réglage explicite.
   const url = 'https://exemple.fr/note';
   const mesure = mesureProportionnelle;

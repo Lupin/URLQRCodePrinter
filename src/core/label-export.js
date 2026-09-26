@@ -7,7 +7,7 @@
  * l'imprimante qu'il veut : l'application du fabricant, un traitement de texte,
  * un navigateur, ou une Niimbot via le module dédié.
  *
- * Chaque image contient le QR code et le texte choisi. Le dossier emporte aussi
+ * Chaque image contient le QR Code et le texte choisi. Le dossier emporte aussi
  * une planche HTML imprimable, un CSV reliant chaque URL à son image, et le
  * détail des réglages — de quoi reproduire l'export à l'identique.
  *
@@ -168,7 +168,7 @@ export const LABEL_FORMATS = Object.freeze([
 ]);
 
 /**
- * Nombre de lignes qu'une date peut occuper sous le QR code.
+ * Nombre de lignes qu'une date peut occuper sous le QR Code.
  *
  * Au-delà, elle est abandonnée plutôt qu'imprimée partiellement : sur une
  * étiquette de 12 mm, « 15/09/2026 18:01 » demande trois lignes et viderait le
@@ -176,7 +176,7 @@ export const LABEL_FORMATS = Object.freeze([
  */
 export const DATE_MAX_LINES = 3;
 
-/** Contenu textuel imprimé sous le QR code. */
+/** Contenu textuel imprimé sous le QR Code. */
 export const TEXT_MODES = Object.freeze({
   'title-url': 'Titre puis URL',
   url: 'URL seule',
@@ -192,7 +192,7 @@ export const DEFAULT_EXPORT_OPTIONS = Object.freeze({
   // Le titre se coche à part dans l'onglet « Étiquette (divers) » : décoché, il
   // n'apparaît que si le mode de texte le porte déjà.
   showTitle: false,
-  // Aucune date par défaut : chaque ligne de texte prend la place du QR, et une
+  // Aucune date par défaut : chaque ligne de texte prend la place du QR Code, et une
   // étiquette de 12 mm n'en a pas de reste.
   dateMode: 'none',
   marginMm: 1.5,
@@ -243,7 +243,7 @@ export function labelText(link, textMode) {
       return link.title ? [link.title] : [link.url];
     case 'host':
       // Le domaine imprimé est toujours celui du site visé, jamais celui du
-      // raccourcisseur : « tinyurl.com » sous un QR n'apprendrait rien.
+      // raccourcisseur : « tinyurl.com » sous un QR Code n'apprendrait rien.
       return [sourceHost(link)];
     case 'none':
       return [];
@@ -285,7 +285,7 @@ export function labelFileName(link, index, total) {
  * @param {(text: string) => number} options.measure Mesure de texte, fournie
  *   par l'appelant — lui seul connaît la police réellement utilisée.
  * @param {string} [options.textMode]
- * @param {boolean} [options.showTitle] Imprime le titre sous le QR, même quand
+ * @param {boolean} [options.showTitle] Imprime le titre sous le QR Code, même quand
  *   le mode de texte ne le demande pas. Sans doublon s'il y figure déjà.
  * @param {number} [options.marginMm]
  * @param {number} [options.qrRatio]
@@ -345,7 +345,7 @@ export function planLabel(options) {
     ? wrapText(measure, body, innerWidth, { maxLines })
     : [];
 
-  // Le titre coché s'ajoute sous le QR, comme la date : il vient avant le
+  // Le titre coché s'ajoute sous le QR Code, comme la date : il vient avant le
   // texte principal. Il ne se duplique pas quand le mode de texte le porte
   // déjà — « Titre puis URL » plus la case « Titre » n'imprime qu'un titre.
   const title = typeof link.title === 'string' ? link.title.trim() : '';
@@ -365,7 +365,7 @@ export function planLabel(options) {
   if (fixedHeight > 0) {
     const available = fixedHeight - marginPx * 2 - gap - textHeight;
     const side = Math.max(16, Math.min(innerWidth, available));
-    // Un QR fait un nombre entier de modules : on arrondit vers le bas.
+    // Un QR Code fait un nombre entier de modules : on arrondit vers le bas.
     qrSizePx = Math.max(matrix.size * 2, Math.floor(side / matrix.size) * matrix.size);
   } else {
     qrSizePx = Math.max(matrix.size * 2, Math.floor((innerWidth * qrRatio) / matrix.size) * matrix.size);
@@ -387,7 +387,7 @@ export function planLabel(options) {
     lineHeightPx,
     lines,
     textTopPx: marginPx + qrSizePx + gap,
-    // `false` signale que le QR ne tient pas dans la largeur utile : l'appelant
+    // `false` signale que le QR Code ne tient pas dans la largeur utile : l'appelant
     // peut alors prévenir plutôt que de rogner en silence.
     fits: qrSizePx <= innerWidth,
     url: link.url,

@@ -28,10 +28,17 @@ et il n'a lieu que si vous cliquez dessus.
 
 | Moyen | Où |
 |---|---|
-| Clic droit sur un lien ou une page | « Enregistrer ce lien en QR » |
-| Bouton de la barre d'outils | enregistre l'onglet courant |
+| Clic droit, entrée « Ajouter cette page à URLQRCodePrinter » | la page où vous avez cliqué, même si le clic est tombé sur un lien |
+| Clic droit, entrée « Ajouter ce lien à URLQRCodePrinter » | le lien visé |
+| Clic droit sur un texte sélectionné, entrée « Ajouter « … » » | la sélection si c'est une URL, sinon la page, la sélection devenant une note |
+| Bouton de la barre d'outils | enregistre l'onglet courant, avec son titre modifiable avant l'ajout |
 | Champ « Ajouter » | saisie manuelle |
 | Bouton « Importer » | relit une archive JSON exportée précédemment |
+
+Chaque entrée fait exactement ce qu'elle annonce. La version précédente donnait
+la priorité au lien visé quel que soit le choix : sur l'accueil de YouTube ou
+d'une chaîne — des grilles de vignettes — « Ajouter cette page » enregistrait la
+vidéo, et la page demandée n'arrivait jamais.
 
 **Nommer la collection.** Le champ « Nom de la collection » (sous le titre du
 panneau) donne son titre à l'export Markdown, à la planche HTML de l'archive
@@ -57,10 +64,10 @@ classent la collection.
 
 Les URL sont normalisées à l'entrée : `https://` ajouté si absent, fragment
 retiré, paramètres de campagne (`utm_*`, `fbclid`, `gclid`…) supprimés — ils
-allongent le QR sans rien apporter au papier. Un doublon n'est pas ajouté deux
+allongent le QR Code sans rien apporter au papier. Un doublon n'est pas ajouté deux
 fois ; l'application vous le dit au lieu de rester silencieuse.
 
-**Dater les étiquettes.** Le sélecteur « Date sous le QR code » imprime la date
+**Dater les étiquettes.** Le sélecteur « Date sous le QR Code » imprime la date
 de collecte du lien — `Aucune` par défaut, `Date de collecte` (`15/09/2026`) ou
 `Date et heure de collecte` (`15/09/2026 18:01`). Utile pour dater une capture
 dans un cahier de laboratoire ou un journal d'essais. Le choix s'applique à la
@@ -101,7 +108,7 @@ Ce qui se passe ensuite :
   pas le reste de l'import ;
 - la **date de collecte** est conservée quand le fichier la porte — un CSV
   exporté puis réimporté garde donc ses dates ;
-- les colonnes **Domaine**, **N°**, **Image** et **QR code** sont ignorées : elles
+- les colonnes **Domaine**, **N°**, **Image** et **QR Code** sont ignorées : elles
   se recalculent ;
 - dans un CSV, les colonnes sont retrouvées **par leur nom**, pas par leur
   position : réordonner les colonnes dans un tableur ne casse rien, et les
@@ -140,12 +147,12 @@ Ce qui se passe, et ce qui ne se passe pas :
   vivre des années, gardez l'URL d'origine.
 
 L'intérêt est concret sur une petite étiquette : moins de caractères donnent
-moins de modules, donc un QR plus lisible et imprimable plus petit.
+moins de modules, donc un QR Code plus lisible et imprimable plus petit.
 
-Ensuite, le sélecteur **« Le QR code pointe vers »** (colonne de droite) décide
+Ensuite, le sélecteur **« Le QR Code pointe vers »** (colonne de droite) décide
 ce qui part à l'impression : l'URL collectée, ou le raccourci. Il vaut pour
 toutes les sorties imprimées — planche, tableau, images **et étiquette
-Niimbot**, dont le QR comme le texte suivent ce choix.
+Niimbot**, dont le QR Code comme le texte suivent ce choix.
 
 ## Mettre en page
 
@@ -176,7 +183,7 @@ Pour les planches autocollantes A4 et Letter. Deux familles de dispositions :
 > imprimer », qui affiche une étiquette en grand.
 
 **Choisir les colonnes du tableau.** Dans l'onglet « Tableau », le groupe
-**Tableau imprimé** permet de cocher une à une les colonnes : N°, QR, URL, Titre,
+**Tableau imprimé** permet de cocher une à une les colonnes : N°, QR Code, URL, Titre,
 Tags, Note, Date. La date a sa propre case, avec ou sans l'heure : chaque onglet
 a la sienne, un réglage unique obligerait à le changer en passant de l'un à
 l'autre.
@@ -192,14 +199,14 @@ suivre une ligne des yeux.
 
 **Choisir le nombre de colonnes, ou remplir la feuille.** Le sélecteur
 **Régler la taille du texte de la planche.** Le champ **Taille du texte (pt)**
-donne la hauteur de la police imprimée sous chaque QR. Il est prérempli d'après
+donne la hauteur de la police imprimée sous chaque QR Code. Il est prérempli d'après
 la hauteur de l'étiquette — 7 pt sur une étiquette de 25 mm, 9,5 pt sur une A4
 3 × 8, 14 pt sur une 60 mm — car 7 pt partout laissait la place d'une A4
-inutilisée, sous un QR qui occupait tout. Changer de disposition le réécrit,
+inutilisée, sous un QR Code qui occupait tout. Changer de disposition le réécrit,
 comme les six valeurs de la grille.
 
 Montez-le à la main si vous voulez plus grand : la borne haute du curseur
-**Largeur du QR** descend d'elle-même pour laisser la place au texte, et rien
+**Largeur du QR Code** descend d'elle-même pour laisser la place au texte, et rien
 n'est tronqué. La ligne sous le curseur dit combien de lignes de texte la
 disposition retenue permet encore.
 
@@ -254,10 +261,10 @@ pour toutes les planches.
 
 ### Tableau
 
-Un tableau dense — QR code, titre, domaine, notes — pour relire ou archiver sur
+Un tableau dense — QR Code, titre, domaine, notes — pour relire ou archiver sur
 papier.
 
-- **Taille du QR** — un curseur, du plus discret au plus lisible.
+- **Taille du QR Code** — un curseur, du plus discret au plus lisible.
 - **Orientation de la page** — portrait ou paysage. Un tableau à nombreuses
   colonnes gagne à être couché : les colonnes respirent au lieu d'être serrées.
 - **Marges** — haut et bas, gauche et droite, en millimètres. Elles étaient
@@ -265,10 +272,10 @@ papier.
 - **En-tête de page** — le nom de la collection s'imprime en tête, avec la date
   d'impression si vous la demandez. Sur une liasse, c'est ce qui dit de quelle
   collection elle vient.
-- **Colonnes** — N°, QR, URL, Titre, Tags, Note, Date. Les tags et la note ne
+- **Colonnes** — N°, QR Code, URL, Titre, Tags, Note, Date. Les tags et la note ne
   sont proposés que si la collection en contient.
 - **Exporter le tableau (ZIP)** — un dossier autonome : `table.json` (le
-  modèle), `qr/*.png` (les QR en images prêtes à l'emploi) et `table.html`
+  modèle), `qr/*.png` (les QR Codes en images prêtes à l'emploi) et `table.html`
   (le tableau affichable tel quel). La sélection et les colonnes cochées
   s'appliquent, comme à l'impression.
 
@@ -355,7 +362,7 @@ libre — le catalogue du fabricant n'est pas la réalité de tous les rouleaux.
 bouton **Libre** revient au rouleau continu, où la hauteur découle du contenu.
 
 **Disposition** décide où va la place restante : *Centré*, *En haut*, ou
-*Réparti* (le QR en haut, le texte en bas).
+*Réparti* (le QR Code en haut, le texte en bas).
 
 ### Imprimer
 
@@ -363,15 +370,15 @@ bouton **Libre** revient au rouleau continu, où la hauteur découle du contenu.
   impression pâle se corrige en montant d'un cran.
 - **Copies** : 1 à 20, pour l'impression d'une seule étiquette.
 - **Contenu de l'étiquette** : des cases qui se cumulent — numéro du lien,
-  titre, URL, domaine, date de collecte, et l'heure avec la date. Le QR encode
+  titre, URL, domaine, date de collecte, et l'heure avec la date. Le QR Code encode
   toujours l'URL ; le texte affiché suit ces choix. Le numéro sert à retrouver
   la ligne de la liste quand l'étiquette est trop petite pour porter l'URL.
 - **Date et heure** : sur une tête de 12 mm, « 15/09/2026 21:07 » se coupe
   proprement sur deux lignes ; la taille du texte est réduite juste assez pour
   qu'elle entre, jamais sous 1,6 mm — en dessous, elle ne serait plus lisible.
-- **Disposition du texte** : *Texte droit, sous le QR*, *Texte droit, au-dessus
-  du QR*, *Texte tourné, se lit de bas en haut*, *Texte tourné, se lit de haut en
-  bas*, et *Texte à droite du QR* — cette dernière n'apparaît que sur une tête
+- **Disposition du texte** : *Texte droit, sous le QR Code*, *Texte droit, au-dessus
+  du QR Code*, *Texte tourné, se lit de bas en haut*, *Texte tourné, se lit de haut en
+  bas*, et *Texte à droite du QR Code* — cette dernière n'apparaît que sur une tête
   assez large pour laisser une vraie colonne. Les deux sens de rotation du texte
   tourné sont équivalents : le texte est centré dans sa bande dans les deux cas.
 - **Disposition** : voir plus haut.
@@ -407,15 +414,15 @@ Le chemin le plus court vers n'importe quelle étiqueteuse. Choisissez :
   50 × 30 et 70 × 40 mm ; planche A4 3 × 8 ;
 - **Texte imprimé** — titre + URL, URL seule, titre seul, domaine seul, ou rien ;
 - **Marge**, **taille du texte**, **traits de coupe** ;
-- **Sous le QR** — le titre, puis la date de collecte, avec l'heure si vous la
+- **Sous le QR Code** — le titre, puis la date de collecte, avec l'heure si vous la
   demandez. La case « Titre » ajoute le titre même quand « Texte imprimé » ne le
   porte pas, et sans le doubler s'il y figure déjà. Ces cases sont propres à cet
   onglet : une date cochée pour la planche ne s'imprime pas ici, et
   réciproquement.
 
-Le curseur **Largeur du QR** n'est pas libre : ses bornes sont calculées pour la
+Le curseur **Largeur du QR Code** n'est pas libre : ses bornes sont calculées pour la
 disposition choisie. En dessous, un module imprimé ne serait plus lisible (0,4 mm
-sur papier, 2 pixels sur une tête thermique) ; au-dessus, le QR chasserait le
+sur papier, 2 pixels sur une tête thermique) ; au-dessus, le QR Code chasserait le
 texte hors de l'étiquette. La ligne sous le curseur indique la taille obtenue, la
 taille réelle d'un module, l'intervalle permis et le nombre de lignes de texte
 disponibles. Si une URL est trop dense pour le format — un lien long sur une
@@ -436,10 +443,10 @@ export.json                     les réglages retenus, et l'URL d'origine
 Ouvrez `planche.html` et imprimez : c'est le chemin le plus direct vers le
 papier, sans pilote ni application de fabricant.
 
-### Tableur `.xlsx` avec les QR codes intégrés
+### Tableur `.xlsx` avec les QR Codes intégrés
 
-Le bouton **« Tableur + QR »** produit un vrai classeur où chaque ligne porte son
-QR code **et** son URL cliquable. Un CSV ne peut pas transporter d'image : c'est
+Le bouton **« Tableur + QR Code »** produit un vrai classeur où chaque ligne porte son
+QR Code **et** son URL cliquable. Un CSV ne peut pas transporter d'image : c'est
 tout l'intérêt de cet export.
 
 Quand un lien est raccourci, le classeur suit la cible imprimée et ajoute l'URL
@@ -453,8 +460,8 @@ autonome qui reflète la sélection et les colonnes cochées :
 
 | Fichier | Contenu |
 |---|---|
-| `table.json` | le modèle : colonnes, lignes, et pour chaque QR l'URL encodée, la correction d'erreur et la bordure |
-| `qr/<id>.png` | le QR de chaque ligne, à une échelle entière — vectorisable sans perte |
+| `table.json` | le modèle : colonnes, lignes, et pour chaque QR Code l'URL encodée, la correction d'erreur et la bordure |
+| `qr/<id>.png` | le QR Code de chaque ligne, à une échelle entière — vectorisable sans perte |
 | `table.html` | le tableau rendu, à ouvrir dans un navigateur |
 
 C'est le seul export qui suit la mise en forme du tableau : les exports de la
@@ -481,7 +488,7 @@ bandeau n'apparaît que dans ce cas précis.
 décalage qui augmente de rangée en rangée signale un mauvais pas, pas une
 mauvaise marge : choisissez la référence exacte plutôt que de compenser.
 
-**Le QR est illisible.** La ligne sous le curseur donne les millimètres par
+**Le QR Code est illisible.** La ligne sous le curseur donne les millimètres par
 module et le minimum du support. Si l'URL est trop dense pour l'étiquette, le
 curseur ne peut pas la rendre imprimable : raccourcissez l'URL (le raccourcisseur
 est fait pour ça), réduisez le texte imprimé, ou prenez une étiquette plus large.

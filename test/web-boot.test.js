@@ -116,7 +116,7 @@ test('Web Bluetooth absent : la connexion est désactivée et expliquée', () =>
 });
 
 // ---------------------------------------------------------------------------
-// Raccourcissement et cible du QR code
+// Raccourcissement et cible du QR Code
 // ---------------------------------------------------------------------------
 
 /** Les options d'un `<select>` du DOM factice, sous forme de paires. */
@@ -142,7 +142,7 @@ test('les services de raccourcissement sont proposés dès le démarrage', () =>
   assert.equal(registry.get('shortener').value, 'tinyurl');
 });
 
-test('le QR vise l\'URL collectée, et le raccourci reste hors de portée', () => {
+test('le QR Code vise l\'URL collectée, et le raccourci reste hors de portée', () => {
   assert.deepEqual(
     options('qr-target'),
     [['original', "L'URL collectée"], ['short', 'Le lien raccourci']],

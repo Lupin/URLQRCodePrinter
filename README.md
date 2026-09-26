@@ -3,14 +3,14 @@
 **English** · [Français](README.fr.md) · [User guide](docs/guide.md)
 
 Collect URLs from the browser (right-click or button), keep them in a local
-database, then print them as QR labels — table, CSV or Markdown export, or send
+database, then print them as QR Code labels — table, CSV or Markdown export, or send
 them straight to a Niimbot printer.
 
 ## Why this exists
 
 I built this extension for my own notebook. I keep my research and my finds on
 paper, and I used to copy the addresses into it by hand. Writing them took time,
-and finding them again took just as long. I started by printing the QR codes one
+and finding them again took just as long. I started by printing the QR Codes one
 at a time on a small Niimbot, then decided it could all be done automatically.
 
 It matters most for what you want to keep within reach: a research paper, a
@@ -24,7 +24,7 @@ share.
 
 | Step | Status |
 |---|---|
-| Core business logic (links, QR, labels, storage, exports) | done, tested |
+| Core business logic (links, QR Code, labels, storage, exports) | done, tested |
 | Niimbot protocol (frames, D110 / M2 / M3 profiles) | done, tested |
 | Web Bluetooth transport + D110 / M2 / M3 print session | done, tested, **printed on a real D110** |
 | Brave / Chrome extension (right-click, popup, clickable links) | done, verified in Brave and in Chrome |
@@ -38,7 +38,7 @@ share.
 | Native Swift core (protocol, session, CoreBluetooth) | done, tested |
 | iOS app that uses that core | to do |
 
-**808 tests, all green** — 704 in JavaScript and 104 in Swift — including:
+**813 tests, all green** — 709 in JavaScript and 104 in Swift — including:
 
 - **byte-for-byte** validation of the Niimbot frames against the documented
   records, **in both languages**: two independent implementations that
@@ -54,7 +54,7 @@ share.
 - the **inverse calculation** "fill the sheet": the requested grid is exactly
   the one that comes out, over more than 400 combinations of columns, rows,
   margins and gaps, for A4 as well as for Letter;
-- the **QR bounds** per print type: the slider value is computed before
+- the **QR Code bounds** per print type: the slider value is computed before
   rendering, and the text wrapping that follows from it is verified line by
   line.
 
@@ -69,7 +69,7 @@ printer connected.
 **The extension page is verified in Safari**: `npm run verify:safari` drives
 the real Safari through WebDriver, loads `app.html`, and compares its outputs
 with the core run outside the browser. 37 checks — the CSV exported by Safari
-is **identical byte for byte** to the core's, and the QR drawn is **identical
+is **identical byte for byte** to the core's, and the QR Code drawn is **identical
 module for module** (31 × 31, 436 modules, zero gap). The full record, what
 could not be verified and why: `docs/safari-extension-verification.md`.
 
@@ -96,19 +96,19 @@ consumed by all the surfaces:
 
 ```
 src/core/
-  link.js              link model, normalization, QR target, safe href
+  link.js              link model, normalization, QR Code target, safe href
   capture.js           capture decision from a context click
-  qr.js                QR encoding → matrix → 1 bit/pixel bitmap, PNG
+  qr.js                QR Code encoding → matrix → 1 bit/pixel bitmap, PNG
   label.js             label geometry, text wrapping, legibility
   raster.js            ImageData → monochrome bitmap for the thermal head
   sheet.js             print sheets: dimensions, pagination, calibration
   store.js             IndexedDB / chrome.storage / memory, same interface
   exporters.js         CSV (RFC 4180), Markdown, JSON
-  spreadsheet.js       .xlsx workbook with embedded QR codes
+  spreadsheet.js       .xlsx workbook with embedded QR Codes
   label-export.js      label formats, HTML sheet, ZIP archive
-  table-export.js      table folder: JSON model, QR PNG, HTML page
+  table-export.js      table folder: JSON model, QR Code PNG, HTML page
   shorten.js           URL shortening: services, failures, pacing
-  settings.js          remembered preferences (service, QR target)
+  settings.js          remembered preferences (service, QR Code target)
   i18n.js              fr → en interface messages, language resolution
   locales/en.js        English translation table
   png.js               PNG encoder (CompressionStream), CRC and deflate
@@ -171,7 +171,7 @@ second device to synchronise with.
 
 The ceiling is 10 MB, because `chrome.storage.local` is capped there and the
 manifest does not request `unlimitedStorage`. The margin comes from what a
-record holds: an address, a title, tags, a note, a date. Text only. **The QR
+record holds: an address, a title, tags, a note, a date. Text only. **The QR Code
 image is never stored** — it is recomputed from the address at print time. The
 label is derivable, so it is not kept.
 
@@ -337,7 +337,7 @@ missing.
 
 ## What is printable is computed in advance, not reported afterwards
 
-A QR code has two physical limits, and they depend on the **print type**:
+A QR Code has two physical limits, and they depend on the **print type**:
 
 | Medium | Constraint | On a D110 (203 dpi) | On paper |
 |---|---|---|---|
@@ -345,13 +345,13 @@ A QR code has two physical limits, and they depend on the **print type**:
 | Paper (laser, inkjet) | 0.4 mm per module, otherwise the module is no longer resolved and the camera does not focus | — | 0.4 mm |
 
 `qrRatioBounds` (in `core/sheet.js`) crosses these constraints with the label
-geometry to produce the **allowed** range of the QR width:
+geometry to produce the **allowed** range of the QR Code width:
 
-- **lower bound**: `qrModules × minModuleMm` — a smaller QR would be illegible
+- **lower bound**: `qrModules × minModuleMm` — a smaller QR Code would be illegible
   once printed, and the matrix density depends on the URL length: on an L7160, a
   short URL leaves 30 to 86 % adjustable, a 49-module URL requires at least
   58 %;
-- **upper bound**: the QR is square, it must fit within the width **and** leave
+- **upper bound**: the QR Code is square, it must fit within the width **and** leave
   at least one line of text below it.
 
 **A single presentation, six values.** Columns, rows, left/right margin,
@@ -375,7 +375,7 @@ one column to the next. The property test verifies this for the thirteen
 layouts in the catalog.
 
 The slider receives these bounds: **it can no longer request an impossible
-QR**, instead of displaying a warning once the faulty setting has been chosen.
+QR Code**, instead of displaying a warning once the faulty setting has been chosen.
 When the two bounds cross — 57 modules on a 12 mm head require 14.3 mm — the
 message says so, names the densest link, and offers the only real way out:
 shorten the URL, which the shortener does.
@@ -409,7 +409,7 @@ The label follows every checked box, not just the group buttons: the
 verification in Brave showed precisely that it stayed frozen on an earlier
 state when a row was checked by hand.
 
-## The workbook: one QR per row
+## The workbook: one QR Code per row
 
 Two real defects in the `.xlsx` export, found by examining a file actually
 produced:
@@ -419,16 +419,16 @@ and read correctly by two independent parsers (mine and `openpyxl`) — but one
 that Excel never writes. Excel writes `twoCellAnchor` with `editAs="oneCell"`
 and the `from` **and** `to` markers for each inserted image. We now write that
 form, with `to` on the next cell: the image is bound to a single cell, the one
-holding its QR.
+holding its QR Code.
 
 **The table did not fit on one page in width.** Seven columns make about
 309 mm for A4 portrait (210 mm): when printing, Excel spread the columns over
-several sheets, and a QR code could come out on a different page than its URL —
-exactly "not one QR per row". The sheet now carries `fitToPage` +
+several sheets, and a QR Code could come out on a different page than its URL —
+exactly "not one QR Code per row". The sheet now carries `fitToPage` +
 `fitToWidth="1"` and landscape orientation, which brings the table back to one
 page width.
 
-**And the image fits in its cell**: a QR of 96 px (25.4 mm, one inch) instead
+**And the image fits in its cell**: a QR Code of 96 px (25.4 mm, one inch) instead
 of 128, a column of 19 units (≈ 138 px), a row of 76 points. An image wider
 than its column overflows onto the neighbor, and a 100-point row pushed the
 table off the page.
@@ -505,8 +505,8 @@ load time.
 
 ## Dating a label: an option, never a fragment
 
-The collection date can be printed under the QR code — `None`, `Collection
-date`, `Collection date and time`. None by default: every line under the QR is
+The collection date can be printed under the QR Code — `None`, `Collection
+date`, `Collection date and time`. None by default: every line under the QR Code is
 paid for in available space, and a 12 mm label has none to spare. The choice
 applies to the four output formats: sheet, table (a "Date" column), Niimbot
 label, and image archive.
@@ -528,14 +528,14 @@ From now on:
 - the archive records `datesOmitted`, and the previews display the reason —
   without which the option would seem to have no effect.
 
-The QR bounds calculation counts the date as one more line: enabling the date
-lowers the slider's upper bound (86 % → 79 % on an L7160), because the QR must
+The QR Code bounds calculation counts the date as one more line: enabling the date
+lowers the slider's upper bound (86 % → 79 % on an L7160), because the QR Code must
 leave room for two lines instead of one.
 
 ## An export must contain nothing that cannot be entered
 
 Project rule, born from two fair remarks: the Markdown carried a title chosen
-by the program ("Mes liens QR"), and a "Tags" column that no interface allowed
+by the program ("Mes liens QR Code"), and a "Tags" column that no interface allowed
 you to fill in. An export that carries empty columns, or a title that is not
 the user's, is a false export.
 
@@ -558,13 +558,13 @@ corresponding value. Without that, a seven-column table with one of them empty
 over its whole height, and the existing tests would have had to change on every
 addition.
 
-**In the workbook, the note is placed before the QR code column**, whose index
+**In the workbook, the note is placed before the QR Code column**, whose index
 is therefore recomputed (`spreadsheetLayout`): an image anchored to the wrong
 column would simply be invisible. The tags there are written without "#", as in
 the CSV: in a spreadsheet, the hash sign hinders filtering.
 
 Tags are not printed on labels: they classify the collection, and the labels
-carry the QR and the chosen text. They do appear, however, in all data exports.
+carry the QR Code and the chosen text. They do appear, however, in all data exports.
 
 ## Label sheets
 
@@ -585,11 +585,11 @@ right margin is what remains.
 printed sheet share the same rules, hence the same layout. That has not always
 been the case: as long as `.print-cell` was positioned only in the print block,
 the preview stacked the labels into a single column, the text of one label
-overflowed onto its neighbor, and the QR width slider had no effect — the SVG
+overflowed onto its neighbor, and the QR Code width slider had no effect — the SVG
 kept its intrinsic size in a box that nobody constrained. The lesson is in the
 tests: `test/sheet-matrix.test.js` covers pure geometry on all formats, and
 `npm run verify:brave` measures the DOM actually computed by the browser
-(distinct columns, no overlap, QR contained in its box, effect of the slider).
+(distinct columns, no overlap, QR Code contained in its box, effect of the slider).
 A geometry test alone would never have seen this defect.
 
 **The number of columns can become an instruction.** By default, the geometry
@@ -607,7 +607,7 @@ with the announced label count would have become circular.
 can serve a `style.css` from the previous build while the HTML and scripts are
 up to date: the new settings appear, but the layout remains the old one. This
 happened, and the diagnosis took a long time — the sheet displayed in a single
-column, QR width slider without effect, while the fix was indeed on disk. Two
+column, QR Code width slider without effect, while the fix was indeed on disk. Two
 safeguards: the URL carries a fingerprint (`style.css?v=…`), and the app
 **detects** a stale stylesheet by reading a property that only the stylesheet
 defines, then announces it in a persistent banner —
@@ -658,7 +658,7 @@ Three safeguards, because a printed link commits you over time:
 2. **The original URL is never replaced.** The short URL lives in its own
    field; the collected URL remains the source of truth, and a "Remove" button
    clears all short URLs at once.
-3. **The choice is made at print time.** The "The QR code points to" selector
+3. **The choice is made at print time.** The "The QR Code points to" selector
    applies to all printed outputs — preview, sheet, table, labels, image ZIP,
    table folder, Niimbot print. The *data* exports (CSV, JSON) keep the
    original URL and add the short URL in a "Short URL" column; the `.xlsx`
@@ -667,7 +667,7 @@ Three safeguards, because a printed link commits you over time:
    address.
 
 Shortening has a concrete benefit on a 12 mm label: fewer characters give a
-smaller matrix, hence a more legible QR that can be printed smaller. The
+smaller matrix, hence a more legible QR Code that can be printed smaller. The
 trade-off is real and displayed in the interface: a shortened link depends on
 the service surviving. For durable use, keep the "Collected URL" target.
 
@@ -744,7 +744,7 @@ they did not stem from the same cause:
   the total, title included.
 - **A false test.** `testTopRowsContainTheQrCode` looked for ink in the first
   ten lines. That was impossible by construction: the two modules of white that
-  surround the QR — its quiet zone, without which no reader latches on — occupy
+  surround the QR Code — its quiet zone, without which no reader latches on — occupy
   exactly that band. The test now verifies the position of the first inked
   pixel, `margin + 2 × scale`, which is more precise than what it verified
   before.
@@ -803,7 +803,7 @@ exists in French and English. Before opening a pull request:
 
 ```bash
 npm install
-npm run test:all   # 704 JavaScript tests + 104 Swift tests
+npm run test:all   # 709 JavaScript tests + 104 Swift tests
 ```
 
 The repository conventions — a core with no DOM and no implicit network, zero

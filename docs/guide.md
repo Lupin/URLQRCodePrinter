@@ -29,10 +29,17 @@ only happens if you click it.
 
 | Way | Where |
 |---|---|
-| Right-click a link or a page | "Save this link as a QR code" (« Enregistrer ce lien en QR ») |
-| Toolbar button | saves the current tab |
+| Right-click, "Add this page to URLQRCodePrinter" (« Ajouter cette page à URLQRCodePrinter ») | the page you clicked on, even if the click landed on a link |
+| Right-click, "Add this link to URLQRCodePrinter" (« Ajouter ce lien à URLQRCodePrinter ») | the link you targeted |
+| Right-click a selection, "Add « … »" (« Ajouter « … » ») | the selection if it is a URL, otherwise the page, with the selection kept as a note |
+| Toolbar button | saves the current tab, with its title editable before the link is added |
 | "Add" (« Ajouter ») field | manual entry |
 | "Import" (« Importer ») button | reads back a JSON archive exported earlier |
+
+Each entry does exactly what it says. The previous version gave priority to the
+targeted link whatever the choice: on YouTube's home page or a channel page —
+grids of thumbnails — "Add this page" saved the video, and the page you asked for
+never arrived.
 
 **Naming the collection.** The "Collection name" (« Nom de la collection »)
 field (under the panel title) gives its title to the Markdown export and to the
@@ -56,11 +63,11 @@ workbook — and only if they have content, so as not to add empty columns. Tags
 are not printed on labels: they classify the collection.
 
 URLs are normalized on entry: `https://` added if missing, fragment removed,
-campaign parameters (`utm_*`, `fbclid`, `gclid`…) stripped — they make the QR
+campaign parameters (`utm_*`, `fbclid`, `gclid`…) stripped — they make the QR Code
 code longer without adding anything on paper. A duplicate is not added twice;
 the application tells you so instead of staying silent.
 
-**Dating the labels.** The "Date below the QR code" (« Date sous le QR code »)
+**Dating the labels.** The "Date below the QR Code" (« Date sous le QR Code »)
 selector prints the link's collection date — `None` by default,
 `Collection date` (`15/09/2026`) or `Collection date and time`
 (`15/09/2026 18:01`). Useful for dating a capture in a lab notebook or a test
@@ -100,7 +107,7 @@ What happens next:
   interrupt the rest of the import;
 - the **collection date** is kept when the file carries it — a CSV exported and
   then re-imported therefore keeps its dates;
-- the **Host** (« Domaine »), **No.** (« N° »), **Image** and **QR code**
+- the **Host** (« Domaine »), **No.** (« N° »), **Image** and **QR Code**
   columns are ignored: they are recomputed;
 - in a CSV, columns are matched **by their name**, not by their position:
   reordering columns in a spreadsheet breaks nothing, and the optional columns
@@ -140,12 +147,12 @@ What happens, and what does not:
   live for years, keep the original URL.
 
 The benefit is concrete on a small label: fewer characters give fewer modules,
-hence a QR code that is more legible and can be printed smaller.
+hence a QR Code that is more legible and can be printed smaller.
 
-Then the **"The QR code points to"** (« Le QR code pointe vers ») selector
+Then the **"The QR Code points to"** (« Le QR Code pointe vers ») selector
 (right column) decides what goes to the printer: the collected URL, or the short
 link. It applies to all printed outputs — sheet, table, images **and Niimbot
-label** — whose QR code as well as text follow this choice.
+label** — whose QR Code as well as text follow this choice.
 
 ## Laying out
 
@@ -177,7 +184,7 @@ For A4 and Letter self-adhesive sheets. Two families of layouts:
 
 **Choosing the table columns.** In the "Table" (« Tableau ») tab, the **Printed
 table** (« Tableau imprimé ») group lets you check the columns one by one:
-No., QR, URL, Title, Tags, Note, Date. The date has its own checkbox, with or
+No., QR Code, URL, Title, Tags, Note, Date. The date has its own checkbox, with or
 without the time: each tab has its own, and a single setting would force you to
 change it when moving from one to the other.
 
@@ -193,13 +200,13 @@ only landmark left to follow a row with your eyes.
 **Choosing the number of columns, or filling the sheet.** The **Set the sheet
 text size** (« Régler la taille du texte de la planche ») selector. The **Text
 size (pt)** (« Taille du texte (pt) ») field gives the height of the font
-printed under each QR code. It is pre-filled from the label height — 7 pt on a
+printed under each QR Code. It is pre-filled from the label height — 7 pt on a
 25 mm label, 9.5 pt on a 3 × 8 A4, 14 pt on a 60 mm one — because 7 pt
-everywhere left an A4's space unused, under a QR code that took up everything.
+everywhere left an A4's space unused, under a QR Code that took up everything.
 Changing the layout rewrites it, like the six grid values.
 
-Raise it by hand if you want it bigger: the upper bound of the **QR width**
-(« Largeur du QR ») slider comes down by itself to leave room for the text, and
+Raise it by hand if you want it bigger: the upper bound of the **QR Code width**
+(« Largeur du QR Code ») slider comes down by itself to leave room for the text, and
 nothing is truncated. The line under the slider says how many lines of text the
 chosen layout still allows.
 
@@ -254,10 +261,10 @@ sheets.
 
 ### Table (« Tableau »)
 
-A dense table — QR code, title, host, notes — for reviewing or archiving on
+A dense table — QR Code, title, host, notes — for reviewing or archiving on
 paper.
 
-- **QR size** (« Taille du QR ») — a slider, from the most discreet to the most
+- **QR Code size** (« Taille du QR Code ») — a slider, from the most discreet to the most
   legible.
 - **Page orientation** (« Orientation de la page ») — portrait or landscape. A
   table with many columns benefits from being laid down: the columns breathe
@@ -267,10 +274,10 @@ paper.
 - **Page header** (« En-tête de page ») — the collection name is printed at the
   top, with the print date if you ask for it. On a stack of paper, this is what
   tells you which collection it comes from.
-- **Columns** (« Colonnes ») — No., QR, URL, Title, Tags, Note, Date. Tags and
+- **Columns** (« Colonnes ») — No., QR Code, URL, Title, Tags, Note, Date. Tags and
   the note are only offered if the collection contains any.
 - **Export table (ZIP)** (« Exporter le tableau (ZIP) ») — a self-contained
-  folder: `table.json` (the model), `qr/*.png` (the QR codes as ready-to-use
+  folder: `table.json` (the model), `qr/*.png` (the QR Codes as ready-to-use
   images) and `table.html` (the table, displayable as is). The selection and the
   checked columns apply, as they do for printing.
 
@@ -360,7 +367,7 @@ The **Free** (« Libre ») button returns to the continuous roll, where the heig
 follows from the content.
 
 **Layout** (« Disposition ») decides where the remaining space goes: *Centered*
-(« Centré »), *Top* (« En haut »), or *Spread* (« Réparti ») (the QR code at the
+(« Centré »), *Top* (« En haut »), or *Spread* (« Réparti ») (the QR Code at the
 top, the text at the bottom).
 
 ### Printing
@@ -370,16 +377,16 @@ top, the text at the bottom).
 - **Copies**: 1 to 20, for printing a single label.
 - **Label content** (« Contenu de l'étiquette »): checkboxes that accumulate —
   link number, title, URL, host, collection date, and the time together with the
-  date. The QR code always encodes the URL; the text displayed follows these
+  date. The QR Code always encodes the URL; the text displayed follows these
   choices. The number is there to find the row in the list when the label is too
   small to carry the URL.
 - **Date and time** (« Date et heure »): on a 12 mm printhead,
   "15/09/2026 21:07" wraps cleanly onto two lines; the text size is reduced just
   enough for it to fit, never below 1.6 mm — below that, it would no longer be
   legible.
-- **Text layout** (« Disposition du texte »): *Text upright, below the QR*, *Text
-  upright, above the QR*, *Rotated text, read bottom to top*, *Rotated text, read
-  top to bottom*, and *Text to the right of the QR* — the last one only appears on
+- **Text layout** (« Disposition du texte »): *Text upright, below the QR Code*, *Text
+  upright, above the QR Code*, *Rotated text, read bottom to top*, *Rotated text, read
+  top to bottom*, and *Text to the right of the QR Code* — the last one only appears on
   a head wide enough to leave a real column. The two rotation directions are
   equivalent: the text is centred in its band in both cases.
 - **Layout** (« Disposition »): see above.
@@ -419,15 +426,15 @@ The shortest path to any label printer. Choose:
   only, or nothing;
 - **Margin** (« Marge »), **text size** (« taille du texte »), **cut marks**
   (« traits de coupe »);
-- **Below the QR** (« Sous le QR ») — the title, then the collection date, with
+- **Below the QR Code** (« Sous le QR Code ») — the title, then the collection date, with
   the time if you ask for it. The "Title" (« Titre ») checkbox adds the title
   even when "Printed text" does not carry it, and without duplicating it if it
   is already there. These checkboxes are specific to this tab: a date checked
   for the sheet is not printed here, and vice versa.
 
-The **QR width** (« Largeur du QR ») slider is not free: its bounds are computed
+The **QR Code width** (« Largeur du QR Code ») slider is not free: its bounds are computed
 for the chosen layout. Below them, a printed module would no longer be legible
-(0.4 mm on paper, 2 pixels on a thermal printhead); above them, the QR code
+(0.4 mm on paper, 2 pixels on a thermal printhead); above them, the QR Code
 would push the text off the label. The line under the slider gives the resulting
 size, the actual size of a module, the permitted range and the number of text
 lines available. If a URL is too dense for the format — a long link on a 12 mm
@@ -449,10 +456,10 @@ export.json                     the settings used, and the original URL
 Open `planche.html` and print: it is the most direct path to paper, with no
 driver or manufacturer application.
 
-### `.xlsx` workbook with the QR codes embedded
+### `.xlsx` workbook with the QR Codes embedded
 
-The **"Spreadsheet + QR"** (« Tableur + QR ») button produces a real workbook in
-which each row carries its QR code **and** its clickable URL. A CSV cannot carry
+The **"Spreadsheet + QR Code"** (« Tableur + QR Code ») button produces a real workbook in
+which each row carries its QR Code **and** its clickable URL. A CSV cannot carry
 an image: that is the whole point of this export.
 
 When a link is shortened, the workbook follows the printed target and adds the
@@ -467,8 +474,8 @@ columns:
 
 | File | Contents |
 |---|---|
-| `table.json` | the model: columns, rows, and for each QR code the encoded URL, the error correction and the border |
-| `qr/<id>.png` | the QR code of each row, at a whole-number scale — vectorizable without loss |
+| `table.json` | the model: columns, rows, and for each QR Code the encoded URL, the error correction and the border |
+| `qr/<id>.png` | the QR Code of each row, at a whole-number scale — vectorizable without loss |
 | `table.html` | the rendered table, to open in a browser |
 
 It is the only export that follows the table's formatting: the collection
@@ -496,7 +503,7 @@ appears in that specific case.
 that grows from row to row points to a wrong pitch, not a wrong margin: choose
 the exact reference rather than compensating.
 
-**The QR code is illegible.** The line under the slider gives the millimeters
+**The QR Code is illegible.** The line under the slider gives the millimeters
 per module and the medium's minimum. If the URL is too dense for the label, the
 slider cannot make it printable: shorten the URL (the shortener is made for
 that), reduce the printed text, or take a wider label. Reminder: 0.4 mm per

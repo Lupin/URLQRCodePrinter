@@ -1,10 +1,10 @@
 /**
- * Encodage QR code.
+ * Encodage QR Code.
  *
  * On s'appuie sur `uqr` (ESM pur, sans dépendance) qui renvoie une matrice
  * booléenne. C'est exactement la représentation dont a besoin le pipeline
  * d'impression thermique : on évite ainsi tout aller-retour par une image
- * bitmap intermédiaire, qui dégraderait la netteté du QR à l'impression.
+ * bitmap intermédiaire, qui dégraderait la netteté du QR Code à l'impression.
  */
 
 import { encode } from 'uqr';
@@ -18,12 +18,12 @@ export const ECC_LEVELS = ['L', 'M', 'Q', 'H'];
  * @typedef {Object} QrMatrix
  * @property {boolean[][]} data   `data[y][x] === true` pour un module noir.
  * @property {number}      size   Nombre de modules par côté, bordure comprise.
- * @property {number}      version Version QR (1-40).
+ * @property {number}      version Version QR Code (1-40).
  * @property {number}      border Taille de la bordure (en modules).
  */
 
 /**
- * Encode une chaîne en matrice QR.
+ * Encode une chaîne en matrice QR Code.
  *
  * @param {string} text
  * @param {{ ecc?: 'L'|'M'|'Q'|'H', border?: number, minVersion?: number }} [options]
@@ -51,12 +51,12 @@ export function encodeQr(text, options = {}) {
 }
 
 /**
- * Nombre de pixels par module nécessaire pour qu'un QR reste lisible à une
+ * Nombre de pixels par module nécessaire pour qu'un QR Code reste lisible à une
  * densité d'impression donnée. En dessous de 3 px/module, la tête thermique
  * (203 dpi) fusionne les modules et le code devient illisible.
  *
  * @param {number} targetPx Largeur disponible en pixels.
- * @param {number} moduleCount Nombre de modules du QR, bordure comprise.
+ * @param {number} moduleCount Nombre de modules du QR Code, bordure comprise.
  * @returns {number} Échelle entière >= 1.
  */
 export function pickScale(targetPx, moduleCount) {
@@ -68,7 +68,7 @@ export function pickScale(targetPx, moduleCount) {
  * Rend la matrice dans un contexte 2D de canvas, à l'échelle demandée.
  *
  * L'arrondi de `size * scale` est important : sans lui, les modules ne tombent
- * pas sur des pixels entiers et le QR est flou.
+ * pas sur des pixels entiers et le QR Code est flou.
  *
  * @param {QrMatrix} matrix
  * @param {CanvasRenderingContext2D} ctx
@@ -144,7 +144,7 @@ export function toSvg(matrix, options = {}) {
 }
 
 /**
- * Encode une matrice QR en flux noir & blanc 1 bit par pixel.
+ * Encode une matrice QR Code en flux noir & blanc 1 bit par pixel.
  *
  * C'est le format d'image natif des têtes thermiques : un bit à 1 = point
  * chauffé = pixel noir. Les lignes sont rembourrées à l'octet.
@@ -178,7 +178,7 @@ export function toMonoBitmap(matrix, scale, options = {}) {
 }
 
 /**
- * Rend un QR code en image PNG.
+ * Rend un QR Code en image PNG.
  *
  * C'est le format attendu par un tableur : un CSV ne peut pas transporter
  * d'image, un `.xlsx` si. Le rendu se fait par plus proche voisin — un

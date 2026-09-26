@@ -4,7 +4,7 @@
  * C'est le scénario qui a coûté le plus de temps à diagnostiquer : le navigateur
  * servait un `style.css` gardé en cache alors que le HTML et les scripts étaient
  * à jour. Les nouveaux réglages apparaissaient, mais la planche s'affichait en
- * une seule colonne et le curseur de largeur du QR restait sans effet — puisque
+ * une seule colonne et le curseur de largeur du QR Code restait sans effet — puisque
  * la règle qui contraint le SVG à la largeur de sa boîte manquait.
  *
  * Le versionnement des ressources rend ce cas improbable, mais pas impossible :

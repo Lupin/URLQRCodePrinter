@@ -4,7 +4,7 @@
  * Le contrat tient en deux promesses : le JSON décrit le tableau configuré, et
  * chaque ligne y trouve son image PNG, référencée et réellement présente dans
  * l'archive. Ce fichier vérifie l'une et l'autre, ainsi que la régénération
- * fidèle du QR — l'échelle reste entière, les paramètres d'encodage sont
+ * fidèle du QR Code — l'échelle reste entière, les paramètres d'encodage sont
  * conservés.
  */
 
@@ -107,7 +107,7 @@ test('le modèle ne retient que les colonnes non vides demandées', () => {
   assert.equal(model.dateMode, 'datetime');
 });
 
-test('le modèle conserve l\'URL d\'origine quand le QR encode un raccourci', () => {
+test('le modèle conserve l\'URL d\'origine quand le QR Code encode un raccourci', () => {
   const link = {
     ...createLink({ id: 'court', url: 'https://exemple.com/original', createdAt: T0 }),
     url: 'https://exemple.com/court',
@@ -123,7 +123,7 @@ test('le modèle conserve l\'URL d\'origine quand le QR encode un raccourci', ()
   assert.ok(!('sourceUrl' in plain.rows[0]));
 });
 
-test('chaque QR porte de quoi le régénérer, à une échelle entière bornée', () => {
+test('chaque QR Code porte de quoi le régénérer, à une échelle entière bornée', () => {
   const links = sample();
   const { model, images } = buildTableModel(links, {
     columns: { qr: true },
@@ -167,7 +167,7 @@ test('le HTML rend les colonnes et référence les images', () => {
 
   assert.match(html, /<table>/);
   assert.match(html, /<th>N°<\/th>/);
-  assert.match(html, /<th>QR<\/th>/);
+  assert.match(html, /<th>QR Code<\/th>/);
   assert.match(html, /src="qr\/alpha\.png"/);
   assert.match(html, /Veille &amp; Cie/);
   assert.ok(!html.includes('Veille & Cie'), 'le titre doit être échappé');
@@ -227,7 +227,7 @@ test('la progression signale chaque image, une fois', async () => {
   assert.deepEqual(steps, [[1, 2], [2, 2]]);
 });
 
-test('sans colonne QR, l\'archive ne contient aucune image', async () => {
+test('sans colonne QR Code, l\'archive ne contient aucune image', async () => {
   const { bytes, model } = await buildTableArchive(sample(), { columns: { url: true }, now: T0 });
   assert.deepEqual(model.columns, ['url']);
   assert.ok(![...readStoredZip(bytes).keys()].some((name) => name.startsWith('qr/')));

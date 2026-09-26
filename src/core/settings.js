@@ -2,7 +2,7 @@
  * Réglages persistants de l'application.
  *
  * Deux préférences seulement, mais deux préférences qu'on ne veut pas rechoisir
- * à chaque ouverture : le service de raccourcissement retenu et ce que le QR
+ * à chaque ouverture : le service de raccourcissement retenu et ce que le QR Code
  * code doit encoder. Elles sont enregistrées dans `localStorage` — disponible
  * aussi bien dans l'onglet de l'application que dans la page embarquée de
  * l'extension — et **jamais** dans le stockage des liens : un réglage n'est pas
@@ -24,7 +24,7 @@ export const SETTINGS_KEY = 'url-qr-code-printer/settings';
 /** Longueur maximale du nom de collection : au-delà, il ne tient plus nulle part. */
 export const COLLECTION_NAME_MAX = 80;
 
-/** Valeurs par défaut : aucun raccourcissement, le QR encode l'URL collectée. */
+/** Valeurs par défaut : aucun raccourcissement, le QR Code encode l'URL collectée. */
 export const DEFAULT_SETTINGS = Object.freeze({
   shortener: DEFAULT_SHORTENER,
   targetMode: 'original',

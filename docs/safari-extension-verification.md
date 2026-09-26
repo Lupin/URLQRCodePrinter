@@ -77,8 +77,8 @@ Relevé intégral de `npm run verify:safari` :
 — Collecte et rendu —
 ✓ un lien ajouté apparaît dans la liste — 1 lien
 ✓ l'URL est normalisée comme dans le cœur : les paramètres de suivi partent
-✓ l'aperçu de planche est réellement composé — 1 étiquette, 1 QR
-✓ le QR rendu par Safari est identique à celui du cœur, module pour module
+✓ l'aperçu de planche est réellement composé — 1 étiquette, 1 QR Code
+✓ le QR Code rendu par Safari est identique à celui du cœur, module pour module
     — cœur 31 × 31, 436 modules sombres, 0 écart
 
 — Exports —
@@ -109,7 +109,7 @@ l'autre — et exigent une égalité exacte :
 
 - le CSV exporté par Safari est **identique octet pour octet** à celui que
   `core/exporters.js` produit, BOM UTF-8 compris ;
-- le QR dessiné dans la page est **identique module pour module** à celui que
+- le QR Code dessiné dans la page est **identique module pour module** à celui que
   `core/qr.js` encode : 31 × 31, 436 modules sombres, zéro écart.
 
 ## Ce qui ne fonctionne pas, et pourquoi
