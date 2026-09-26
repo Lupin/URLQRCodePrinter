@@ -18,6 +18,15 @@ export const EN_MESSAGES = {
   "Utilisez le clic droit sur une page ou un lien.": "Right-click a page or a link to save it.",
   "Voir les QR Codes": "View the QR Codes",
   "Titre du lien": "Link title",
+  // Recadrage de la grille de la planche
+  "{asked} colonnes ne tiennent pas : {kept} au maximum sur cette feuille.":
+    "{asked} columns do not fit: {kept} at most on this sheet.",
+  "{asked} rangées ne tiennent pas : {kept} au maximum sur cette feuille.":
+    "{asked} rows do not fit: {kept} at most on this sheet.",
+  "Réduisez l'écart ou la marge pour en placer davantage.":
+    "Reduce the gap or the margin to fit more.",
+  "Les marges ne laissent aucune place à une étiquette sur cette feuille.":
+    "The margins leave no room for a label on this sheet.",
   "Page d'information": "Information page",
   "Tout effacer": "Clear all",
   "Chargement…": "Loading…",

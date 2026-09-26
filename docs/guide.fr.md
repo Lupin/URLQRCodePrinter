@@ -210,6 +210,16 @@ Montez-le à la main si vous voulez plus grand : la borne haute du curseur
 n'est tronqué. La ligne sous le curseur dit combien de lignes de texte la
 disposition retenue permet encore.
 
+**Une grille impossible ne bloque plus.** Si vous demandez plus d'étiquettes que
+la feuille n'en accepte, les deux champs sont ramenés à ce qui tient dès que vous
+les quittez, et la phrase sous les champs dit ce qui a été réduit et pourquoi :
+« 60 rangées ne tiennent pas : 54 au maximum sur cette feuille. » Les champs,
+l'aperçu et le papier montrent alors la même grille — c'était le défaut
+précédent : le champ gardait le nombre tapé, l'aperçu gardait la disposition
+d'avant, et rien ne disait laquelle serait imprimée. La borne haute des deux
+champs suit d'ailleurs celles de la feuille choisie : une A4 accepte 26 colonnes
+à la taille minimale d'étiquette, alors que le champ s'arrêtait à 12.
+
 **Une seule présentation, six valeurs.** Le sélecteur **Disposition** ne fait
 que *préremplir* les six champs qui suivent ; vous pouvez ensuite les ajuster
 librement, et la taille des étiquettes est recalculée :

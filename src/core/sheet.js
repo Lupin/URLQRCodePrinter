@@ -8,6 +8,7 @@
  */
 
 import { wrapText } from './label.js';
+import { t } from './i18n.js';
 
 /** Dimensions des formats papier courants, en millimètres. */
 export const PAGE_SIZES = Object.freeze({
@@ -826,6 +827,107 @@ export function fitGrid(options) {
     marginYMm: floor2(marginYMm + slackY / 2),
     columns,
     rows,
+  };
+}
+
+/**
+ * Ramène une grille demandée à la plus grande qui tienne réellement.
+ *
+ * Le défaut qu'elle corrige : `fitGrid` **refuse** une grille impossible, et
+ * l'interface se contentait alors de garder la disposition précédente. Les
+ * champs affichaient donc une valeur, l'aperçu en montrait une autre, et
+ * l'impression une troisième — sans que rien ne dise laquelle. L'utilisateur
+ * concluait, à juste titre, qu'il était bloqué dans une configuration dont il ne
+ * voyait pas le résultat.
+ *
+ * Ici, la demande est ramenée à ce qui tient, et la raison est rendue avec.
+ * L'appelant peut alors écrire la valeur retenue dans son champ : l'écran,
+ * l'aperçu et le papier ne montrent plus qu'une seule grille.
+ *
+ * Le calcul est celui de `computeSheet` — la même formule, avec la taille
+ * minimale d'étiquette à la place de la taille réelle. C'est ce qui garantit que
+ * la grille rendue est acceptée par `fitGrid` : une seconde formule, écrite
+ * ailleurs, finirait par diverger d'un centième et rendrait une grille refusée.
+ *
+ * @param {{
+ *   pageWidthMm: number,
+ *   pageHeightMm: number,
+ *   columns: number,
+ *   rows: number,
+ *   marginXMm?: number,
+ *   marginYMm?: number,
+ *   gapXMm?: number,
+ *   gapYMm?: number,
+ *   minLabelMm?: number,
+ * }} options
+ * @returns {{ columns: number, rows: number, clamped: boolean, reason: string }}
+ *   `clamped` dit si la valeur rendue diffère de la demande ; `reason` est vide
+ *   dans ce cas, et l'explique sinon.
+ */
+export function clampGrid(options) {
+  const pageWidthMm = positive(options.pageWidthMm, 'pageWidthMm');
+  const pageHeightMm = positive(options.pageHeightMm, 'pageHeightMm');
+  const columns = Math.max(1, Math.trunc(options.columns ?? 1));
+  const rows = Math.max(1, Math.trunc(options.rows ?? 1));
+  const marginXMm = nonNegative(options.marginXMm ?? 0);
+  const marginYMm = nonNegative(options.marginYMm ?? 0);
+  const gapXMm = nonNegative(options.gapXMm ?? 0);
+  const gapYMm = nonNegative(options.gapYMm ?? 0);
+  const minLabelMm = Number.isFinite(options.minLabelMm) ? options.minLabelMm : 5;
+
+  const usableWidth = pageWidthMm - marginXMm * 2;
+  const usableHeight = pageHeightMm - marginYMm * 2;
+
+  // Même tolérance que `computeSheet` : les cotes décimales tombent parfois
+  // juste sous l'entier attendu, et l'epsilon reste très inférieur à toute
+  // imprécision d'impression.
+  const EPSILON = 1e-9;
+  const pas = (usable, gap) => (gap === 0
+    ? Math.floor(usable / minLabelMm + EPSILON)
+    : Math.floor((usable + gap) / (minLabelMm + gap) + EPSILON));
+
+  const maxColumns = Math.max(0, pas(usableWidth, gapXMm));
+  const maxRows = Math.max(0, pas(usableHeight, gapYMm));
+
+  const keptColumns = Math.min(columns, maxColumns);
+  const keptRows = Math.min(rows, maxRows);
+  const reduit = keptColumns !== columns || keptRows !== rows;
+
+  if (!reduit) {
+    return { columns: keptColumns, rows: keptRows, clamped: false, reason: '' };
+  }
+
+  // Aucune place du tout : ce n'est plus une question de nombre, et proposer
+  // « 1 colonne » serait faux — elle ne tiendrait pas davantage. On le dit
+  // franchement, et l'appelant n'a rien à dessiner.
+  if (keptColumns === 0 || keptRows === 0) {
+    return {
+      columns: 0,
+      rows: 0,
+      clamped: true,
+      reason: t('Les marges ne laissent aucune place à une étiquette sur cette feuille.'),
+    };
+  }
+
+  // Deux phrases indépendantes plutôt qu'une seule à trous : chacune se traduit
+  // pour elle-même, et l'ordre des mots reste celui de la langue cible.
+  const raisons = [];
+  if (columns > maxColumns) {
+    raisons.push(t('{asked} colonnes ne tiennent pas : {kept} au maximum sur cette feuille.', {
+      asked: columns, kept: keptColumns,
+    }));
+  }
+  if (rows > maxRows) {
+    raisons.push(t('{asked} rangées ne tiennent pas : {kept} au maximum sur cette feuille.', {
+      asked: rows, kept: keptRows,
+    }));
+  }
+
+  return {
+    columns: keptColumns,
+    rows: keptRows,
+    clamped: true,
+    reason: `${raisons.join(' ')} ${t("Réduisez l'écart ou la marge pour en placer davantage.")}`,
   };
 }
 

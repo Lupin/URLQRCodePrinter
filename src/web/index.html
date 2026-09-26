@@ -215,15 +215,26 @@
              taille des étiquettes en découle, et le choix de planche ci-dessus
              ne fait que préremplir ces valeurs. -->
         <div class="fields">
+          <!-- La borne haute est **posée par le script**, à la plus grande
+               grille qui tienne sur la feuille choisie. Elle était figée à 12 et
+               30 : une A4 accepte 26 colonnes à la taille minimale d'étiquette,
+               et le calcul ne voyait donc jamais ce qui dépassait — la valeur
+               était écrêtée en silence, le champ gardait le nombre tapé, et
+               l'aperçu en montrait un troisième. -->
           <label class="field">
             <span class="field__label" data-i18n="Colonnes">Colonnes</span>
-            <input id="sheet-columns" class="input" type="number" min="1" max="12" step="1" value="3">
+            <input id="sheet-columns" class="input" type="number" min="1" step="1" value="3">
           </label>
           <label class="field">
             <span class="field__label" data-i18n="Rangées">Rangées</span>
-            <input id="sheet-rows" class="input" type="number" min="1" max="30" step="1" value="8">
+            <input id="sheet-rows" class="input" type="number" min="1" step="1" value="8">
           </label>
         </div>
+        <!-- Le message est **ici**, sous les deux champs qu'il concerne.
+             Il vivait plus bas, mêlé aux avertissements du rendu : un nombre
+             refusé se signalait donc à l'autre bout du panneau, et l'aperçu
+             montrait entre-temps la disposition précédente. -->
+        <p id="sheet-grid-hint" class="hint hint--tight"></p>
         <div class="fields">
           <label class="field">
             <span class="field__label" data-i18n="Marge gauche et droite (mm)">Marge gauche et droite (mm)</span>

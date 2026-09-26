@@ -210,6 +210,15 @@ Raise it by hand if you want it bigger: the upper bound of the **QR Code width**
 nothing is truncated. The line under the slider says how many lines of text the
 chosen layout still allows.
 
+**An impossible grid no longer blocks you.** If you ask for more labels than the
+sheet accepts, both fields are brought back to what fits as soon as you leave
+them, and the sentence under the fields says what was reduced and why: "60 rows
+do not fit: 54 at most on this sheet." The fields, the preview and the paper then
+show the same grid — the previous defect was that the field kept the number you
+typed, the preview kept the layout from before, and nothing said which one would
+be printed. The upper bound of both fields follows the chosen sheet, too: an A4
+takes 26 columns at the smallest label size, where the field used to stop at 12.
+
 **A single preset, six values.** The **Layout** (« Disposition ») selector only
 *pre-fills* the six fields that follow; you can then adjust them freely, and the
 label size is recomputed:

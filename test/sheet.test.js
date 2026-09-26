@@ -7,7 +7,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { PAGE_SIZES, SHEET_PRESETS, computeSheet, paginate } from '../src/core/sheet.js';
+import {
+  PAGE_SIZES, SHEET_PRESETS, computeSheet, paginate, fitGrid, clampGrid,
+} from '../src/core/sheet.js';
 
 /**
  * Préréglage de référence. Les attentes sont dérivées de ses propres cotes
@@ -229,4 +231,122 @@ test('paginate ignore les éléments au-delà des cellules calculées', () => {
   const pages = paginate(['a', 'b', 'c', 'd'], layout);
   const total = pages.reduce((sum, page) => sum + page.items.length, 0);
   assert.equal(total, 2);
+});
+
+// ---------------------------------------------------------------------------
+// clampGrid
+//
+// Le défaut qu'elle corrige : une grille demandée impossible était refusée, et
+// l'interface gardait alors la disposition **précédente**. Les champs disaient
+// une chose, l'aperçu une autre, et le papier une troisième. « On se retrouve
+// bloqué dans des configurations impossibles, et ça ne correspond pas en aperçu
+// avec ce qu'on obtient à l'impression. »
+// ---------------------------------------------------------------------------
+
+const GRILLE = (colonnes, rangees, extra = {}) => ({
+  pageWidthMm: PAGE_SIZES.a4.widthMm,
+  pageHeightMm: PAGE_SIZES.a4.heightMm,
+  columns: colonnes,
+  rows: rangees,
+  marginXMm: BASE.marginXMm,
+  marginYMm: BASE.marginYMm,
+  gapXMm: BASE.gapXMm,
+  gapYMm: BASE.gapYMm,
+  ...extra,
+});
+
+test('clampGrid laisse intacte une grille qui tient', () => {
+  const resultat = clampGrid(GRILLE(3, 8));
+  assert.equal(resultat.columns, 3);
+  assert.equal(resultat.rows, 8);
+  assert.equal(resultat.clamped, false);
+  assert.equal(resultat.reason, '');
+});
+
+test('clampGrid ramène une grille trop grande à ce qui tient', () => {
+  // 40 × 60 dépasse les deux axes : c'est le cas où l'utilisateur tape un nombre
+  // « pour voir », et où l'aperçu d'avant gardait la grille précédente.
+  const resultat = clampGrid(GRILLE(40, 60));
+  assert.equal(resultat.clamped, true);
+  assert.ok(resultat.columns < 40 && resultat.columns >= 1);
+  assert.ok(resultat.rows < 60 && resultat.rows >= 1);
+  // La raison nomme la demande **et** ce qui reste : « ça ne tient pas » sans
+  // chiffre oblige à chercher soi-même lequel des deux champs réduit.
+  assert.match(resultat.reason, /40 colonnes/);
+  assert.match(resultat.reason, /60 rangées/);
+  assert.match(resultat.reason, new RegExp(`\\b${resultat.columns}\\b`));
+});
+
+test('clampGrid ne réduit que l\'axe qui déborde', () => {
+  // 12 colonnes tiennent sur une A4 — 26 au maximum à 5 mm par étiquette — mais
+  // 60 rangées, non : 56 au plus. Réduire les deux serait une correction
+  // aveugle, et ferait perdre des colonnes à quelqu'un qui n'avait rien demandé
+  // d'impossible en largeur.
+  const resultat = clampGrid(GRILLE(12, 60));
+  assert.equal(resultat.clamped, true);
+  assert.equal(resultat.columns, 12, 'les colonnes tenaient : elles ne bougent pas');
+  assert.ok(resultat.rows < 60);
+  assert.match(resultat.reason, /60 rangées/);
+  assert.doesNotMatch(resultat.reason, /12 colonnes/);
+});
+
+test('clampGrid ne rend jamais plus que la demande', () => {
+  for (const [colonnes, rangees] of [[1, 1], [2, 9], [4, 4], [3, 20], [10, 2]]) {
+    const resultat = clampGrid(GRILLE(colonnes, rangees));
+    assert.ok(resultat.columns <= colonnes, `${colonnes} → ${resultat.columns}`);
+    assert.ok(resultat.rows <= rangees, `${rangees} → ${resultat.rows}`);
+  }
+});
+
+test('ce que clampGrid rend est toujours accepté par fitGrid', () => {
+  // C'est l'invariant qui compte : une grille recadrée doit produire une
+  // planche imprimable, sinon le recadrage ne fait que déplacer le blocage. On
+  // balaie les marges et les écarts, y compris les cas extrêmes.
+  const marges = [0, 7.25, 15, 40];
+  const ecarts = [0, 2.5, 6, 10];
+  const pages = [PAGE_SIZES.a4, PAGE_SIZES.letter];
+  let essayees = 0;
+
+  for (const page of pages) {
+    for (const marge of marges) {
+      for (const ecart of ecarts) {
+        for (const [colonnes, rangees] of [[12, 30], [5, 12], [1, 1]]) {
+          const demande = {
+            pageWidthMm: page.widthMm,
+            pageHeightMm: page.heightMm,
+            columns: colonnes,
+            rows: rangees,
+            marginXMm: marge,
+            marginYMm: marge,
+            gapXMm: ecart,
+            gapYMm: ecart,
+          };
+          const garde = clampGrid(demande);
+          if (garde.columns === 0 || garde.rows === 0) continue;
+
+          // C'est bien la grille **recadrée** qu'on soumet : soumettre la
+          // demande d'origine ne prouverait rien, sinon que fitGrid refuse —
+          // ce qu'on sait déjà.
+          const grille = fitGrid({ ...demande, columns: garde.columns, rows: garde.rows });
+          assert.ok(
+            grille.ok,
+            `refusée : ${garde.columns} × ${garde.rows} sur `
+              + `${page.widthMm} × ${page.heightMm} mm, marge ${marge}, écart ${ecart} — ${grille.reason}`,
+          );
+          essayees += 1;
+        }
+      }
+    }
+  }
+  assert.ok(essayees > 60, `trop peu de cas éprouvés : ${essayees}`);
+});
+
+test('clampGrid dit franchement quand il ne reste aucune place', () => {
+  // Des marges qui mangent la page : ce n'est plus une question de nombre, et
+  // proposer « 1 colonne » serait faux — elle ne tiendrait pas davantage.
+  const resultat = clampGrid(GRILLE(3, 8, { marginXMm: 150, marginYMm: 150 }));
+  assert.equal(resultat.columns, 0);
+  assert.equal(resultat.rows, 0);
+  assert.equal(resultat.clamped, true);
+  assert.match(resultat.reason, /marges/i);
 });

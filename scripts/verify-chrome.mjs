@@ -46,6 +46,10 @@ import { fileURLToPath } from 'node:url';
 // un enregistrement inventé serait rejeté en silence, et l'encart de la mention
 // resterait affiché, déplaçant toute la mise en page mesurée en dessous.
 import { CONSENT_KEY, DISCLOSURE_VERSION } from '../src/core/privacy.js';
+// Le modèle pur de la planche, importé pour confronter ce que le navigateur
+// dessine à ce que le calcul retient — deux chemins indépendants, qui doivent
+// tomber sur le même nombre.
+import { fitGrid, clampGrid, PAGE_SIZES, SHEET_PRESETS } from '../src/core/sheet.js';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const SANDBOX = join(ROOT, '.verify-chrome');
@@ -914,6 +918,111 @@ async function main() {
       })()`));
     }
     await app.session.call('Emulation.clearDeviceMetricsOverride');
+
+    // --- La grille de la planche ne se bloque plus ------------------------
+    //
+    // Le défaut : une grille impossible était refusée, et l'application gardait
+    // alors la disposition **précédente**. Les champs disaient une chose,
+    // l'aperçu une autre, l'impression une troisième. On demande donc une grille
+    // impossible au rendu, puis on confronte ce que le navigateur dessine à ce
+    // que le modèle pur calcule pour la même demande — deux chemins
+    // indépendants, qui doivent tomber sur le même nombre.
+    // La demande volontairement impossible. Les clés sont celles du modèle —
+    // `columns` et `rows` — et non des noms français : `clampGrid` les lit
+    // directement, et une clé traduite l'aurait fait retomber sur 1 × 1, ce qui
+    // aurait fait échouer le contrôle pour une raison sans rapport avec le
+    // produit.
+    const DEMANDE_GRILLE = { columns: 40, rows: 60 };
+
+    const grille = await evalApp(`(async () => {
+      const champ = (id) => document.getElementById(id);
+      const lire = (id) => champ(id).value;
+      const poser = (id, valeur) => {
+        const noeud = champ(id);
+        noeud.value = valeur;
+        noeud.dispatchEvent(new Event('input', { bubbles: true }));
+        noeud.dispatchEvent(new Event('change', { bubbles: true }));
+      };
+      const pause = (ms) => new Promise((r) => setTimeout(r, ms));
+
+      // Les réglages qui décident de la taille des étiquettes, relevés **avant**
+      // de demander l'impossible : c'est avec eux que le modèle recalculera.
+      const avant = {
+        colonnes: lire('sheet-columns'),
+        rangees: lire('sheet-rows'),
+        margeX: lire('sheet-margin-x'),
+        margeY: lire('sheet-margin-y'),
+        ecartX: lire('sheet-gap-x'),
+        ecartY: lire('sheet-gap-y'),
+        preset: lire('preset'),
+      };
+
+      poser('sheet-columns', '${DEMANDE_GRILLE.columns}');
+      poser('sheet-rows', '${DEMANDE_GRILLE.rows}');
+      await pause(800);
+
+      const cellule = document.querySelector('#preview .print-cell');
+      const largeurMm = cellule ? Number.parseFloat(cellule.style.width) : null;
+      const hauteurMm = cellule ? Number.parseFloat(cellule.style.height) : null;
+
+      return {
+        avant,
+        apres: { colonnes: lire('sheet-columns'), rangees: lire('sheet-rows') },
+        message: champ('sheet-grid-hint').textContent.trim(),
+        largeurMm,
+        hauteurMm,
+        cellules: document.querySelectorAll('#preview .print-cell').length,
+      };
+    })()`);
+
+    // L'attendu se calcule depuis la **demande**, pas depuis l'état d'avant : le
+    // modèle doit ramener 40 × 60 à ce qui tient, et c'est cette grille que le
+    // navigateur doit dessiner. Comparer à la disposition précédente ne
+    // prouverait rien — sinon qu'elle a bien changé.
+    const page = PAGE_SIZES[SHEET_PRESETS[grille?.avant.preset]?.page ?? 'a4'];
+    const commun = grille ? {
+      pageWidthMm: page.widthMm,
+      pageHeightMm: page.heightMm,
+      marginXMm: Number(grille.avant.margeX),
+      marginYMm: Number(grille.avant.margeY),
+      gapXMm: Number(grille.avant.ecartX),
+      gapYMm: Number(grille.avant.ecartY),
+    } : null;
+    const retenue = commun ? clampGrid({ ...commun, ...DEMANDE_GRILLE }) : null;
+    const attendu = retenue ? fitGrid({ ...commun, ...retenue }) : null;
+
+    record(
+      'une grille impossible est ramenée au lieu d\'être refusée',
+      grille !== undefined
+        && Number(grille.apres.colonnes) < DEMANDE_GRILLE.columns
+        && Number(grille.apres.rangees) < DEMANDE_GRILLE.rows,
+      `${DEMANDE_GRILLE.columns} × ${DEMANDE_GRILLE.rows} demandés → `
+        + `${grille?.apres.colonnes} × ${grille?.apres.rangees} retenus`,
+    );
+    record(
+      'le refus est expliqué là où il se produit',
+      /au maximum/.test(grille?.message ?? ''),
+      `« ${grille?.message?.slice(0, 120)} »`,
+    );
+    // Le contrôle qui compte : le dessin et le calcul pur doivent donner la même
+    // taille d'étiquette. Un écart signalerait que l'aperçu ne montre pas ce qui
+    // sera imprimé — précisément le grief.
+    record(
+      'l\'aperçu dessine la grille que le calcul retient',
+      grille?.largeurMm !== null && grille?.largeurMm !== undefined
+        && Math.abs(grille.largeurMm - (attendu?.labelWidthMm ?? -1)) < 0.02
+        && Math.abs((grille?.hauteurMm ?? 0) - (attendu?.labelHeightMm ?? -1)) < 0.02,
+      `aperçu ${grille?.largeurMm} × ${grille?.hauteurMm} mm · `
+        + `calcul ${attendu?.labelWidthMm} × ${attendu?.labelHeightMm} mm`,
+    );
+    record(
+      'la grille retenue est bien celle des champs',
+      attendu?.ok === true
+        && Number(grille?.apres.colonnes) === attendu.columns
+        && Number(grille?.apres.rangees) === attendu.rows,
+      `champs ${grille?.apres.colonnes} × ${grille?.apres.rangees} · `
+        + `calcul ${attendu?.columns} × ${attendu?.rows}`,
+    );
 
     const tousOnglets = geometrie.every(
       (g) => g.onglets.length === 4 && g.onglets.every(Boolean),

@@ -46,6 +46,7 @@ import {
   paginate,
   qrSideMm,
   fitGrid,
+  clampGrid,
   presetToGrid,
   round1,
   qrRatioBounds,
@@ -1214,6 +1215,18 @@ function decimal(value, digits = 1) {
 }
 
 /** Contraint un entier de formulaire entre deux bornes. */
+/**
+ * Borne de saisie des deux champs de grille.
+ *
+ * Elle n'existe que pour écarter un nombre non numérique ou délirant avant le
+ * calcul : ce qui **tient** réellement est décidé par `clampGrid`, et c'est sa
+ * réponse qui est réécrite dans le champ. Un plafond figé dans le balisage — 12
+ * colonnes, 30 rangées — écrêtait la valeur avant que le calcul ne la voie, ce
+ * qui produisait exactement le défaut signalé : le champ disait 40, l'aperçu en
+ * dessinait 12, et rien ne le disait.
+ */
+const GRILLE_MAX_SAISIE = 999;
+
 function clampInt(value, min, max, fallback) {
   const number = Number(value);
   if (!Number.isFinite(number)) return fallback;
@@ -1249,28 +1262,38 @@ function sheetConfig() {
     offsetYMm: Number(el.sheetOffsetY.value) || 0,
   };
 
-  const columns = clampInt(el.sheetColumns.value, 1, 12, preset.declaredColumns);
-  const rows = clampInt(el.sheetRows.value, 1, 30, preset.declaredRows);
-  const marginXMm = Math.max(0, Number(el.sheetMarginX.value) || 0);
-  const marginYMm = Math.max(0, Number(el.sheetMarginY.value) || 0);
-  const gapXMm = Math.max(0, Number(el.sheetGapX.value) || 0);
-  const gapYMm = Math.max(0, Number(el.sheetGapY.value) || 0);
-
-  const grid = fitGrid({
+  const demande = {
     pageWidthMm: page.widthMm,
     pageHeightMm: page.heightMm,
-    columns,
-    rows,
-    marginXMm,
-    marginYMm,
-    gapXMm,
-    gapYMm,
+    columns: clampInt(el.sheetColumns.value, 1, GRILLE_MAX_SAISIE, preset.declaredColumns),
+    rows: clampInt(el.sheetRows.value, 1, GRILLE_MAX_SAISIE, preset.declaredRows),
+    marginXMm: Math.max(0, Number(el.sheetMarginX.value) || 0),
+    marginYMm: Math.max(0, Number(el.sheetMarginY.value) || 0),
+    gapXMm: Math.max(0, Number(el.sheetGapX.value) || 0),
+    gapYMm: Math.max(0, Number(el.sheetGapY.value) || 0),
+  };
+
+  // **La grille demandée est ramenée à ce qui tient**, au lieu d'être refusée en
+  // gardant la disposition précédente. C'était le défaut : les champs disaient
+  // une chose, l'aperçu une autre, le papier une troisième, et rien ne disait
+  // laquelle. Le champ est réécrit à la sortie du champ de saisie, si bien que
+  // les trois finissent par montrer la même grille.
+  const garde = clampGrid(demande);
+  if (garde.columns === 0 || garde.rows === 0) {
+    return { ...config, problem: garde.reason, gridFix: garde };
+  }
+
+  const grid = fitGrid({
+    ...demande,
+    columns: garde.columns,
+    rows: garde.rows,
   });
 
   if (!grid.ok) {
-    // On garde la disposition précédente plutôt que de produire une planche
-    // impossible : le message dit quoi corriger.
-    return { ...config, problem: grid.reason };
+    // Filet, et non chemin courant : `clampGrid` rend une grille que `fitGrid`
+    // accepte, et un test le vérifie sur un balayage de marges et d'écarts. On
+    // préfère ce filet à une planche sans cotes, si la garantie venait à céder.
+    return { ...config, problem: grid.reason, gridFix: garde };
   }
 
   return {
@@ -1281,8 +1304,77 @@ function sheetConfig() {
     labelHeightMm: grid.labelHeightMm,
     marginXMm: grid.marginXMm,
     marginYMm: grid.marginYMm,
-    gapXMm,
-    gapYMm,
+    gapXMm: demande.gapXMm,
+    gapYMm: demande.gapYMm,
+    gridFix: garde,
+  };
+}
+
+/**
+ * Ramène les deux champs de grille à ce qui tient, et l'explique sur place.
+ *
+ * Appelée à la **sortie** du champ, jamais à la frappe : réécrire un nombre
+ * pendant qu'on le tape empêcherait d'entrer « 12 » sans passer par « 1 ». Une
+ * fois la saisie finie, la valeur retenue remplace celle qui ne tenait pas, et
+ * l'écran, l'aperçu et le papier ne montrent plus qu'une seule grille — c'est
+ * exactement le défaut à corriger.
+ *
+ * Quand il ne reste aucune place, les champs ne sont pas touchés : mettre « 0 »
+ * dans un champ qui accepte 1 au minimum serait une valeur impossible à
+ * corriger à la main.
+ */
+function recadrerGrille() {
+  if (!el.sheetGridHint) return;
+
+  const preset = SHEET_PRESETS[el.preset.value] ?? SHEET_PRESETS['a4-3x8'];
+  const page = PAGE_SIZES[preset.page];
+  const commun = demandeSansGrille(preset, page);
+
+  const garde = clampGrid({
+    ...commun,
+    columns: clampInt(el.sheetColumns.value, 1, GRILLE_MAX_SAISIE, preset.declaredColumns),
+    rows: clampInt(el.sheetRows.value, 1, GRILLE_MAX_SAISIE, preset.declaredRows),
+  });
+
+  // La borne haute des champs suit la feuille : le poussoir du champ et la
+  // validation native du navigateur disent alors la même chose que le calcul,
+  // au lieu de plafonner à 12 et 30 sur une A4 qui en accepte 26 et 56.
+  const plafond = clampGrid({
+    ...commun, columns: GRILLE_MAX_SAISIE, rows: GRILLE_MAX_SAISIE,
+  });
+  if (plafond.columns > 0) el.sheetColumns.max = String(plafond.columns);
+  if (plafond.rows > 0) el.sheetRows.max = String(plafond.rows);
+
+  if (!garde.clamped) {
+    el.sheetGridHint.textContent = '';
+    return;
+  }
+
+  if (garde.columns > 0 && garde.rows > 0) {
+    el.sheetColumns.value = String(garde.columns);
+    el.sheetRows.value = String(garde.rows);
+  }
+  el.sheetGridHint.textContent = garde.reason;
+}
+
+/**
+ * Les réglages de la grille, hors colonnes et rangées.
+ *
+ * Extrait pour que la borne haute et le recadrage partent des mêmes chiffres :
+ * deux lectures séparées finiraient par diverger, et la borne haute ne
+ * correspondrait plus à ce que le recadrage autorise.
+ *
+ * @param {object} preset
+ * @param {{ widthMm: number, heightMm: number }} page
+ */
+function demandeSansGrille(preset, page) {
+  return {
+    pageWidthMm: page.widthMm,
+    pageHeightMm: page.heightMm,
+    marginXMm: Math.max(0, Number(el.sheetMarginX.value) || 0),
+    marginYMm: Math.max(0, Number(el.sheetMarginY.value) || 0),
+    gapXMm: Math.max(0, Number(el.sheetGapX.value) || 0),
+    gapYMm: Math.max(0, Number(el.sheetGapY.value) || 0),
   };
 }
 
@@ -3465,14 +3557,25 @@ el.qrTarget.addEventListener('change', () => {
 
 el.preset.addEventListener('change', () => {
   prefillGridFields();
+  // Un changement de planche efface le message : la grille vient d'être
+  // remplacée par celle du fabricant, il n'y a plus rien à recadrer.
+  if (el.sheetGridHint) el.sheetGridHint.textContent = '';
   renderPreview();
 });
+// Les six réglages dont dépend la **taille** des étiquettes. Aux `input`, on
+// redessine seulement ; au `change` — c'est-à-dire à la sortie du champ — on
+// recadre. Réécrire un nombre pendant la frappe empêcherait d'entrer « 12 »
+// sans passer par « 1 ».
 for (const field of [
   el.sheetColumns, el.sheetRows,
   el.sheetMarginX, el.sheetMarginY,
   el.sheetGapX, el.sheetGapY,
 ]) {
   field.addEventListener('input', renderPreview);
+  field.addEventListener('change', () => {
+    recadrerGrille();
+    renderPreview();
+  });
 }
 el.sheetQr.addEventListener('input', renderPreview);
 el.sheetFont.addEventListener('input', renderPreview);
