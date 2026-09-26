@@ -65,6 +65,7 @@ import {
   SHEET_QR_GAP_MM,
   SHEET_FONT_PT,
   MIN_MODULE_MM_PAPER,
+  spacingForGrid,
 } from './core/sheet.js';
 import {
   PROFILES,
@@ -198,6 +199,45 @@ let linkRanks = new Map();
  * @type {boolean}
  */
 let reorderMode = false;
+
+/**
+ * La dernière grille **demandée** dans le panneau de la planche, avant d'être
+ * ramenée à ce qui tient. L'ajustement d'espacement part de là : sans elle, il
+ * ne saurait plus ce que l'utilisateur voulait.
+ *
+ * @type {{columns: number, rows: number}|null}
+ */
+let derniereGrilleDemandee = null;
+
+/**
+ * La grille demandée a-t-elle été ramenée à ce qui tient ?
+ *
+ * C'est l'autre moitié du signal : le bouton d'ajustement se montre quand
+ * quelque chose ne tient pas — la grille, ou le contenu dans les étiquettes.
+ *
+ * @type {boolean}
+ */
+let derniereGrilleEcourtee = false;
+
+/**
+ * La densité de la planche au dernier rendu : la cote de la matrice la plus
+ * large, et le nombre de lignes de texte réservées. L'ajustement part de là —
+ * c'est ce qui lui dit de quelle place les étiquettes ont besoin.
+ *
+ * @type {number|null}
+ */
+let derniersModules = null;
+
+/** @type {number} */
+let dernieresLignes = 0;
+
+/**
+ * La grille demandée **avant** que l'ajustement ne la change, pour pouvoir dire
+ * ce qui ne tenait pas.
+ *
+ * @type {{columns: number, rows: number}|null}
+ */
+let derniereGrilleDemandeeInitiale = null;
 
 /**
  * Orientations proposées à l'impression.
@@ -1722,11 +1762,16 @@ function recadrerGrille() {
   const page = PAGE_SIZES[preset.page];
   const commun = demandeSansGrille(preset, page);
 
-  const garde = clampGrid({
-    ...commun,
+  // La grille **demandée**, retenue avant d'être ramenée à ce qui tient : c'est
+  // elle que l'ajustement d'espacement doit faire tenir.
+  const demande = {
     columns: clampInt(el.sheetColumns.value, 1, GRILLE_MAX_SAISIE, preset.declaredColumns),
     rows: clampInt(el.sheetRows.value, 1, GRILLE_MAX_SAISIE, preset.declaredRows),
-  });
+  };
+  derniereGrilleDemandee = demande;
+  derniereGrilleDemandeeInitiale = demande;
+
+  const garde = clampGrid({ ...commun, ...demande });
 
   // La borne haute des champs suit la feuille : le poussoir du champ et la
   // validation native du navigateur disent alors la même chose que le calcul,
@@ -1736,6 +1781,8 @@ function recadrerGrille() {
   });
   if (plafond.columns > 0) el.sheetColumns.max = String(plafond.columns);
   if (plafond.rows > 0) el.sheetRows.max = String(plafond.rows);
+
+  derniereGrilleEcourtee = garde.clamped;
 
   if (!garde.clamped) {
     el.sheetGridHint.textContent = '';
@@ -1747,6 +1794,64 @@ function recadrerGrille() {
     el.sheetRows.value = String(garde.rows);
   }
   el.sheetGridHint.textContent = garde.reason;
+  // **Ranger plutôt que trancher.** Le bouton se montre au rendu, qui seul sait
+  // si le contenu tient dans les étiquettes ; ici, on se contente de dire que la
+  // grille a été ramenée.
+}
+
+/**
+ * Range la planche pour que ce qu'on imprime tienne dans les étiquettes.
+ *
+ * Le plan vient de `planAjustement`, exactement comme le bouton qui l'annonce :
+ * une seule décision, deux usages. Ce qui est fait est ensuite **dit**, chiffres
+ * en main — un ajustement silencieux se confondrait avec une correction de
+ * l'utilisateur, et personne ne saurait pourquoi les champs ont bougé.
+ */
+function ajusterEspacement() {
+  const modules = derniersModules;
+  const lignes = dernieresLignes;
+  if (modules === null) return;
+
+  const demandeInitiale = derniereGrilleDemandeeInitiale
+    ?? derniereGrilleDemandee
+    ?? { columns: 0, rows: 0 };
+  const plan = planAjustement(modules, lignes);
+  if (!plan) return;
+
+  const poser = (champ, valeur) => {
+    champ.value = String(valeur);
+    champ.dispatchEvent(new Event('input', { bubbles: true }));
+    champ.dispatchEvent(new Event('change', { bubbles: true }));
+  };
+  if (plan.kind === 'espacement') {
+    poser(el.sheetGapX, plan.gapXMm);
+    poser(el.sheetGapY, plan.gapYMm);
+    poser(el.sheetMarginX, plan.marginXMm);
+    poser(el.sheetMarginY, plan.marginYMm);
+  }
+  // La grille demandée revient : elle avait été ramenée à ce qui tenait, et
+  // c'est justement ce qu'on veut défaire. Le plan qui descend la grille donne
+  // ses propres colonnes et rangées.
+  poser(el.sheetColumns, plan.columns);
+  poser(el.sheetRows, plan.rows);
+
+  derniereGrilleDemandee = { columns: plan.columns, rows: plan.rows };
+  recadrerGrille();
+  renderPreview();
+  el.sheetGridHint.textContent = plan.kind === 'espacement'
+    ? t('Écart {gap} mm et marge {margin} mm : les {columns} × {rows} tiennent sur la feuille.', {
+      gap: decimal(plan.gapXMm),
+      margin: decimal(plan.marginXMm),
+      columns: plan.columns,
+      rows: plan.rows,
+    })
+    : t('Les {asked} ne peuvent pas tenir sur une page : {columns} × {rows} à la place.', {
+      asked: tpl(Math.max(demandeInitiale.columns, plan.columns),
+        '{count} colonne', '{count} colonnes'),
+      columns: plan.columns,
+      rows: plan.rows,
+    });
+  el.sheetFit.hidden = true;
 }
 
 /**
@@ -2075,6 +2180,17 @@ function buildSheetPages(items) {
 
   updateQrInfo({ bounds, side, modules, ratio, maxLines, metrics, densest });
 
+  // « Ranger plutôt que trancher » : le bouton n'apparaît que si quelque chose
+  // ne tient pas — QR Code compris — et qu'un arrangement existe. Proposer
+  // l'impossible, ou proposer quand tout va bien, serait du bruit.
+  const lignesRetenues = Math.min(lignesNecessaires, lignesOffertes) + lignesHorsTexte;
+  derniersModules = modules;
+  dernieresLignes = lignesRetenues;
+  const plan = bounds.fits && !derniereGrilleEcourtee
+    ? null
+    : planAjustement(modules, lignesRetenues);
+  el.sheetFit.hidden = plan === null;
+
   // Les pages sont construites **avant** de composer le message : c'est la
   // construction qui découvre les dates écartées faute de largeur. Composer le
   // message plus tôt — ce qui était le cas — rendait cet avertissement
@@ -2226,6 +2342,106 @@ function applyQrSliderBounds(bounds) {
  *
  * @param {{ bounds: object, side: number, modules: number, ratio: number, maxLines: number, metrics: object }} state
  */
+/**
+ * La plus petite étiquette qui contienne ce qu'on imprime dessus.
+ *
+ * Le QR Code impose sa taille — ses modules fois le minimum lisible — et le
+ * texte qu'on a demandé sous lui impose la sienne. C'est ce que l'ajustement
+ * cherche à retrouver quand un espacement a trop rétréci les étiquettes.
+ *
+ * @param {number} modules - Cote de la matrice la plus dense de la planche.
+ * @param {number} lignes - Lignes de texte sous le QR Code.
+ * @returns {{ widthMm: number, heightMm: number, qrMm: number }}
+ */
+function tailleNecessaire(modules, lignes) {
+  const { lineHeightMm } = sheetTextMetrics({ fontSizePt: sheetFontPt() });
+  const qrMm = modules * MIN_MODULE_MM_PAPER;
+  const texteMm = lignes > 0 ? SHEET_QR_GAP_MM + lignes * lineHeightMm : 0;
+  return {
+    widthMm: qrMm + SHEET_CELL_MARGIN_MM * 2,
+    heightMm: qrMm + SHEET_CELL_MARGIN_MM * 2 + texteMm,
+    qrMm,
+  };
+}
+
+/**
+ * Ce que l'ajustement ferait, ou `null` s'il n'y a rien à faire.
+ *
+ * Deux réponses, dans cet ordre :
+ *
+ * 1. **Garder la grille demandée** en resserrant l'écart et la marge — le même
+ *    des deux côtés. C'est la réponse préférée : on ne change pas le nombre
+ *    d'étiquettes par page.
+ * 2. Si même sans espacement les étiquettes sont trop petites pour le contenu,
+ *    **descendre la grille** jusqu'à ce que les étiquettes suffisent, et
+ *    répartir l'espace restant également.
+ *
+ * @param {number} modules
+ * @param {number} lignes
+ * @returns {{
+ *   kind: 'espacement'|'grille', columns: number, rows: number,
+ *   gapXMm: number, gapYMm: number, marginXMm: number, marginYMm: number,
+ * }|null}
+ */
+function planAjustement(modules, lignes) {
+  const preset = SHEET_PRESETS[el.preset.value] ?? SHEET_PRESETS['a4-3x8'];
+  const page = PAGE_SIZES[preset.page];
+  const demande = derniereGrilleDemandee
+    ?? { columns: preset.declaredColumns, rows: preset.declaredRows };
+  const besoin = tailleNecessaire(modules, lignes);
+
+  // 1. **L'espacement ramené à celui de la disposition**, en gardant la grille
+  //    demandée : c'est la réponse préférée, parce qu'elle ne change pas le
+  //    nombre d'étiquettes par page. Elle n'existe que si l'étiquette de la
+  //    disposition — celle que l'utilisateur a sur son bureau — tient dans la
+  //    grille demandée ; au-delà, aucune marge ne la fera tenir.
+  const espace = spacingForGrid({
+    pageWidthMm: page.widthMm,
+    pageHeightMm: page.heightMm,
+    columns: demande.columns,
+    rows: demande.rows,
+    labelWidthMm: preset.labelWidthMm,
+    labelHeightMm: preset.labelHeightMm,
+  });
+  if (espace.ok && espace.gapXMm <= (Number(el.sheetGapX.value) || 0) + 1e-9) {
+    return {
+      kind: 'espacement',
+      columns: demande.columns,
+      rows: demande.rows,
+      gapXMm: espace.gapXMm, gapYMm: espace.gapYMm,
+      marginXMm: espace.marginXMm, marginYMm: espace.marginYMm,
+    };
+  }
+
+  // La grille demandée ne peut pas tenir, même sans espacement : on cherche la
+  // plus grande qui contienne des étiquettes assez grandes. **L'espacement, lui,
+  // ne bouge pas** : ce sont les étiquettes qui doivent grandir, et c'est en
+  // retirant des colonnes ou des rangées qu'elles grandissent. Répartir en plus
+  // l'espace libéré dans l'écart aurait redonné de petites étiquettes avec de
+  // grandes marges — le contraire de ce qu'on cherche.
+  const garde = clampGrid({
+    pageWidthMm: page.widthMm,
+    pageHeightMm: page.heightMm,
+    columns: demande.columns,
+    rows: demande.rows,
+    marginXMm: Number(el.sheetMarginX.value) || 0,
+    marginYMm: Number(el.sheetMarginY.value) || 0,
+    gapXMm: Number(el.sheetGapX.value) || 0,
+    gapYMm: Number(el.sheetGapY.value) || 0,
+    minLabelMm: Math.max(besoin.widthMm, besoin.heightMm),
+  });
+  if (garde.columns < 1 || garde.rows < 1) return null;
+  if (garde.columns === demande.columns && garde.rows === demande.rows) return null;
+
+  // L'espacement reste celui de l'utilisateur : le plan ne porte que la grille.
+  return {
+    kind: 'grille',
+    columns: garde.columns,
+    rows: garde.rows,
+    gapXMm: null, gapYMm: null, marginXMm: null, marginYMm: null,
+  };
+}
+
 function updateQrInfo(state) {
   const { bounds, side, modules, maxLines } = state;
   const moduleMm = side / modules;
@@ -4378,6 +4594,32 @@ el.qrTarget.addEventListener('change', () => {
   updateTargetAvailability();
   renderPreview();
 });
+
+/**
+ * Parcourt les dispositions de la **famille** courante.
+ *
+ * On essaie les références d'un même fabricant l'une après l'autre — c'est le
+ * geste réel quand on hésite entre deux pochettes — sans traverser les autres
+ * familles ni ouvrir la liste. Le sélecteur reste, pour qui sait ce qu'il
+ * cherche.
+ *
+ * @param {number} pas +1 pour la suivante, −1 pour la précédente.
+ */
+function parcourirDispositions(pas) {
+  const courante = el.preset.value;
+  const groupe = SHEET_PRESETS[courante]?.group;
+  const famille = Object.keys(SHEET_PRESETS).filter((cle) => SHEET_PRESETS[cle].group === groupe);
+  if (famille.length < 2) return;
+
+  const index = famille.indexOf(courante);
+  const suivant = famille[(index + pas + famille.length) % famille.length];
+  el.preset.value = suivant;
+  el.preset.dispatchEvent(new Event('change', { bubbles: true }));
+}
+
+el.presetPrev.addEventListener('click', () => parcourirDispositions(-1));
+el.presetNext.addEventListener('click', () => parcourirDispositions(1));
+el.sheetFit.addEventListener('click', ajusterEspacement);
 
 el.preset.addEventListener('change', () => {
   prefillGridFields();

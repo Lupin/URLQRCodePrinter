@@ -1778,6 +1778,127 @@ async function main() {
         + `« ${sansNote?.planche?.bulle} »`,
     );
 
+    // --- Ranger plutôt que trancher ----------------------------------------
+    //
+    // Quand un espacement ou une grille rétrécit les étiquettes au point que le
+    // contenu n'y tient plus, l'application le disait sans rien proposer. Le
+    // contrôle vérifie les deux moitiés : le bouton **apparaît** dans cet état,
+    // et il rend une planche où le contenu tient de nouveau.
+    const ajustement = await evalApp(`(async () => {
+      const pause = (ms) => new Promise((r) => setTimeout(r, ms));
+      const poser = (id, valeur) => {
+        const n = document.getElementById(id);
+        n.value = valeur;
+        n.dispatchEvent(new Event('input', { bubbles: true }));
+        n.dispatchEvent(new Event('change', { bubbles: true }));
+      };
+      [...document.querySelectorAll('.tab')].find((t) => t.dataset.mode === 'sheet').click();
+      await pause(700);
+
+      const lire = () => ({
+        colonnes: document.getElementById('sheet-columns').value,
+        rangees: document.getElementById('sheet-rows').value,
+        ecartX: document.getElementById('sheet-gap-x').value,
+        ecartY: document.getElementById('sheet-gap-y').value,
+        margeX: document.getElementById('sheet-margin-x').value,
+        margeY: document.getElementById('sheet-margin-y').value,
+        qr: document.getElementById('sheet-qr-info').textContent.trim(),
+        grille: document.getElementById('sheet-grid-hint').textContent.trim(),
+        boutonVisible: document.getElementById('sheet-fit').hidden === false,
+        taille: document.getElementById('sheet-fit-hint').textContent.trim(),
+      });
+
+      const avant = lire();
+
+      // Quatorze colonnes rétrécissent l'étiquette à 12,6 mm : le QR Code n'y
+      // tient plus, et l'application le dit en rouge.
+      poser('sheet-columns', '14');
+      await pause(900);
+      const degrade = lire();
+
+      document.getElementById('sheet-fit').click();
+      await pause(1200);
+      const ajuste = lire();
+
+      // Remise en état : la disposition d'origine reprend ses cotes.
+      const preset = document.getElementById('preset');
+      preset.dispatchEvent(new Event('change', { bubbles: true }));
+      await pause(700);
+      return { avant, degrade, ajuste };
+    })()`);
+
+    record(
+      'quand le contenu ne tient plus dans les étiquettes, l\'application propose de ranger',
+      /trop longue/.test(ajustement?.degrade?.qr ?? '')
+        && ajustement?.degrade?.boutonVisible === true,
+      `${ajustement?.degrade?.colonnes} colonnes → « ${ajustement?.degrade?.qr?.slice(0, 90)} » — `
+        + `bouton proposé : ${ajustement?.degrade?.boutonVisible}`,
+    );
+    record(
+      'l\'ajustement rend une planche où le contenu tient, et le dit',
+      /tiennent|à la place/.test(ajustement?.ajuste?.grille ?? '')
+        && !/trop longue/.test(ajustement?.ajuste?.qr ?? '')
+        && Number(ajustement?.ajuste?.colonnes) < Number(ajustement?.degrade?.colonnes ?? 0)
+        && ajustement?.ajuste?.boutonVisible === false,
+      `${ajustement?.degrade?.colonnes} colonnes → ${ajustement?.ajuste?.colonnes} × `
+        + `${ajustement?.ajuste?.rangees}, écart ${ajustement?.ajuste?.ecartX} mm et `
+        + `marge ${ajustement?.ajuste?.margeX} mm — « ${ajustement?.ajuste?.grille?.slice(0, 110)} » `
+        + `— ${ajustement?.ajuste?.taille?.slice(0, 90)}`,
+    );
+
+    // --- Les flèches de parcours des dispositions --------------------------
+    const fleches = await evalApp(`(async () => {
+      const pause = (ms) => new Promise((r) => setTimeout(r, ms));
+      const select = document.getElementById('preset');
+      const suivante = document.getElementById('preset-next');
+      const precedente = document.getElementById('preset-prev');
+      const lire = () => ({
+        valeur: select.value,
+        libelle: select.selectedOptions?.[0]?.textContent ?? '',
+        groupe: select.selectedOptions?.[0]?.parentNode?.label ?? '',
+      });
+      const depart = lire();
+      suivante.click();
+      await pause(600);
+      const apres = lire();
+      suivante.click();
+      suivante.click();
+      await pause(600);
+      // Un tour complet doit revenir au départ : on parcourt la famille en
+      // boucle, sans jamais sortir d'elle.
+      const famille = [...(select.selectedOptions?.[0]?.parentNode?.children ?? [])].map((o) => o.value);
+      const index = famille.indexOf(lire().valeur);
+      const tours = [];
+      for (let i = 0; i < famille.length; i += 1) {
+        tours.push(select.value);
+        suivante.click();
+        await pause(120);
+      }
+      precedente.click();
+      await pause(400);
+      const retour = lire();
+      return { depart, apres, famille, index, tours, retour };
+    })()`);
+
+    record(
+      'les flèches parcourent la famille de la disposition, en boucle',
+      fleches?.apres?.valeur !== fleches?.depart?.valeur
+        && fleches?.apres?.groupe === fleches?.depart?.groupe
+        && new Set(fleches?.tours ?? []).size === (fleches?.famille?.length ?? 0)
+        && fleches?.retour?.valeur === fleches?.tours?.[fleches.tours.length - 1],
+      `${fleches?.depart?.groupe} : ${fleches?.tours?.length} dispositions parcourues `
+        + `(${(fleches?.tours ?? []).join(', ')}), retour arrière sur « ${fleches?.retour?.libelle} »`,
+    );
+
+    // Remise en état : la disposition de départ.
+    await evalApp(`(async () => {
+      const pause = (ms) => new Promise((r) => setTimeout(r, ms));
+      const select = document.getElementById('preset');
+      select.value = 'a4-3x8';
+      select.dispatchEvent(new Event('change', { bubbles: true }));
+      await pause(600);
+    })()`);
+
     // --- Une portée vide dans l'onglet Niimbot -----------------------------
     //
     // Le défaut signalé : avec rien de coché, le sélecteur retombait sur le

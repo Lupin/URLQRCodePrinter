@@ -220,10 +220,22 @@
           <legend data-i18n="La page">La page</legend>
 
           <div class="fields">
-            <label class="field">
+            <div class="field">
               <span class="field__label" data-i18n="Disposition">Disposition</span>
-              <select id="preset" class="input"></select>
-            </label>
+              <!-- Deux flèches pour parcourir la **famille** de la disposition
+                   courante : on essaie les références d'un même fabricant l'une
+                   après l'autre, sans traverser les autres familles ni ouvrir la
+                   liste. Le sélecteur reste, pour qui sait ce qu'il cherche. -->
+              <div class="field__row">
+                <button id="preset-prev" class="btn btn--ghost btn--small btn--arrow" type="button"
+                        aria-label="Disposition précédente" data-i18n-aria-label="Disposition précédente"
+                        title="Disposition précédente" data-i18n-title="Disposition précédente">◀</button>
+                <select id="preset" class="input"></select>
+                <button id="preset-next" class="btn btn--ghost btn--small btn--arrow" type="button"
+                        aria-label="Disposition suivante" data-i18n-aria-label="Disposition suivante"
+                        title="Disposition suivante" data-i18n-title="Disposition suivante">▶</button>
+              </div>
+            </div>
           </div>
 
           <!-- Une seule présentation : la grille, les marges et les écarts. La
@@ -249,7 +261,15 @@
                Il vivait plus bas, mêlé aux avertissements du rendu : un nombre
                refusé se signalait donc à l'autre bout du panneau, et l'aperçu
                montrait entre-temps la disposition précédente. -->
-          <p id="sheet-grid-hint" class="hint hint--tight"></p>
+          <!-- Le message dit ce qui ne tient pas, et le bouton propose de
+               ranger autrement **au lieu de tronquer la grille en silence** :
+               l'écart et la marge se recalculent pour garder les colonnes et les
+               rangées demandées. -->
+          <p class="hint hint--tight">
+            <span id="sheet-grid-hint"></span>
+            <button id="sheet-fit" class="btn btn--ghost btn--small" type="button" hidden
+                    data-i18n="Ajuster l'espacement">Ajuster l'espacement</button>
+          </p>
 
           <div class="fields">
             <label class="field">

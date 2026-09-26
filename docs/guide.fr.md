@@ -319,6 +319,21 @@ que les rangées se touchent, et l'égaliser décalerait les étiquettes par rap
 au papier. Pour une planche du commerce, choisissez la référence qui y est
 inscrite.
 
+**Quand quelque chose ne tient plus.** Deux flèches **◀ ▶** encadrent le
+sélecteur de disposition : elles parcourent la **famille** courante — les
+génériques, ou les Avery A4, ou les Avery Letter — en boucle, sans traverser les
+autres ni ouvrir la liste. C'est le geste d'hésitation : on essaie les
+références d'un même fabricant l'une après l'autre.
+
+Si un écart ou une grille rétrécit les étiquettes au point que le QR Code n'y
+tienne plus, l'application le dit **et propose de ranger** : le bouton
+**« Ajuster l'espacement »** apparaît sous le message. Il ramène d'abord l'écart
+et la marge à ceux de la disposition, ce qui garde le nombre d'étiquettes par
+page ; si l'étiquette de la disposition ne peut pas tenir dans cette grille, il
+retire des colonnes ou des rangées — et l'écrit : « Les 14 colonnes ne peuvent
+pas tenir sur une page : 5 × 8 à la place. » Un ajustement silencieux se
+confondrait avec une correction de votre part.
+
 **Une seule présentation, six valeurs.** Le sélecteur **Disposition** ne fait
 que *préremplir* les six champs qui suivent ; vous pouvez ensuite les ajuster
 librement, et la taille des étiquettes est recalculée :

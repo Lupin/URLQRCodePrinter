@@ -92,6 +92,13 @@ export const EN_MESSAGES = {
   "Nom de la collection en haut de chaque page": "Collection name at the top of every page",
   "Avec la date d'impression": "With the print date",
   "Avec la note de collection": "With the collection note",
+  "Ajuster l'espacement": "Adjust the spacing",
+  "Disposition précédente": "Previous layout",
+  "Disposition suivante": "Next layout",
+  "Les {asked} ne peuvent pas tenir sur une page : {columns} × {rows} à la place.":
+    "The {asked} cannot fit on one page: {columns} × {rows} instead.",
+  "Écart {gap} mm et marge {margin} mm : les {columns} × {rows} tiennent sur la feuille.":
+    "Gap {gap} mm and margin {margin} mm: the {columns} × {rows} fit on the sheet.",
   "Imprimer la note de collection sous le nom": "Print the collection note under the name",
   "Écrivez d'abord la note de collection, dans le panneau de gauche.":
     "Write the collection note first, in the left-hand panel.",

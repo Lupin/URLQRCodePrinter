@@ -319,6 +319,19 @@ pre-cut sheet the vertical gap is often zero because the rows touch, and
 equalising it would shift the labels relative to the paper. For a commercial
 sheet, pick the reference printed on it.
 
+**When something no longer fits.** Two arrows **◀ ▶** frame the layout selector:
+they walk the **current family** — generic, Avery A4, or Avery Letter — in a
+loop, without crossing into the others or opening the list. It is the gesture of
+hesitation: trying one manufacturer's references after another.
+
+If a gap or a grid shrinks the labels to the point where the QR Code no longer
+fits, the application says so **and offers to rearrange**: the **"Adjust the
+spacing"** button appears under the message. It first brings the gap and the
+margin back to the layout's own, which keeps the number of labels per page; if
+the layout's label cannot fit that grid, it removes columns or rows — and says
+so: "The 14 colonnes cannot fit on one page: 5 × 8 instead." A silent adjustment
+would be mistaken for a correction of your own.
+
 **A single preset, six values.** The **Layout** (« Disposition ») selector only
 *pre-fills* the six fields that follow; you can then adjust them freely, and the
 label size is recomputed:

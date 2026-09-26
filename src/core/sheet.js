@@ -973,6 +973,141 @@ export function fitGrid(options) {
  *   `clamped` dit si la valeur rendue diffère de la demande ; `reason` est vide
  *   dans ce cas, et l'explique sinon.
  */
+/**
+ * L'écart et la marge qui font tenir une grille demandée sur une page.
+ *
+ * C'est le calcul **inverse** de celui des dispositions : au lieu de déduire la
+ * taille des étiquettes de la grille et des espacements, on garde la taille
+ * d'étiquette et la grille, et l'on cherche les espacements qui les font tenir.
+ *
+ * La réponse préférée est **symétrique** — le même écart dans les deux sens et
+ * la même marge partout. `n` colonnes de largeur `w`, `r` rangées de hauteur
+ * `h`, un écart `g` et une marge `m` donnent deux équations :
+ *
+ *     n·w + (n-1)·g + 2m = W        r·h + (r-1)·g + 2m = H
+ *
+ * Deux équations, deux inconnues : une seule solution, qui n'existe que si
+ * `g ≥ 0` et `m ≥ 0`. Quand la marge tomberait sous zéro — les étiquettes sont
+ * plus hautes que larges, et la grille carrée —, on garde l'écart égal et
+ * l'on partage ce qui reste : c'est le seul moyen de ne pas trancher dans la
+ * grille demandée.
+ *
+ * Si même sans écart ni marge les étiquettes ne tiennent pas, aucun
+ * arrangement ne peut les faire tenir : la réponse le dit.
+ *
+ * @param {{
+ *   pageWidthMm: number, pageHeightMm: number,
+ *   columns: number, rows: number,
+ *   labelWidthMm: number, labelHeightMm: number,
+ *   gapXMm?: number,
+ * }} options
+ * @returns {{
+ *   ok: boolean,
+ *   reason?: 'etiquettes',
+ *   gapXMm?: number, gapYMm?: number, marginXMm?: number, marginYMm?: number,
+ *   symetrique?: boolean,
+ * }}
+ */
+export function spacingForGrid(options) {
+  const pageWidthMm = positive(options.pageWidthMm, 'pageWidthMm');
+  const pageHeightMm = positive(options.pageHeightMm, 'pageHeightMm');
+  const columns = Math.max(1, Math.trunc(options.columns ?? 1));
+  const rows = Math.max(1, Math.trunc(options.rows ?? 1));
+  const labelWidthMm = positive(options.labelWidthMm, 'labelWidthMm');
+  const labelHeightMm = positive(options.labelHeightMm, 'labelHeightMm');
+
+  const arrondi = (valeur) => Math.round(valeur * 100) / 100;
+  const libreLargeur = pageWidthMm - columns * labelWidthMm;
+  const libreHauteur = pageHeightMm - rows * labelHeightMm;
+
+  // Les étiquettes elles-mêmes ne tiennent pas : aucun espacement n'y changera
+  // rien, et le dire vaut mieux que de rendre des valeurs négatives.
+  if (libreLargeur < -0.01 || libreHauteur < -0.01) return { ok: false, reason: 'etiquettes' };
+
+  const ecartsLargeur = columns - 1;
+  const ecartsHauteur = rows - 1;
+
+  // Cas particulier : une seule étiquette dans les deux sens — il n'y a pas
+  // d'écart à trouver, seulement une marge.
+  if (ecartsLargeur === 0 && ecartsHauteur === 0) {
+    const marge = Math.max(0, Math.min(libreLargeur, libreHauteur) / 2);
+    return {
+      ok: true, gapXMm: 0, gapYMm: 0, marginXMm: arrondi(marge), marginYMm: arrondi(marge),
+      symetrique: true,
+    };
+  }
+
+  if (ecartsLargeur === ecartsHauteur) {
+    // Même nombre d'écarts des deux côtés : la solution symétrique n'existe que
+    // si la place libre est la même dans les deux sens.
+    if (Math.abs(libreLargeur - libreHauteur) <= 0.01) {
+      const marge = Math.max(0, Math.min(libreLargeur, libreHauteur)
+        / Math.max(1, 2 * (ecartsLargeur + 1)));
+      return {
+        ok: true,
+        gapXMm: arrondi(Math.max(0, Number(options.gapXMm) || 0)),
+        gapYMm: arrondi(Math.max(0, Number(options.gapXMm) || 0)),
+        marginXMm: arrondi(marge), marginYMm: arrondi(marge), symetrique: true,
+      };
+    }
+    return partager(libreLargeur, libreHauteur, ecartsLargeur, ecartsHauteur, arrondi);
+  }
+
+  const ecart = (libreHauteur - libreLargeur) / (ecartsHauteur - ecartsLargeur);
+  const marge = (libreLargeur - ecartsLargeur * ecart) / 2;
+  if (ecart >= -0.01 && marge >= -0.01) {
+    return {
+      ok: true,
+      gapXMm: arrondi(Math.max(0, ecart)), gapYMm: arrondi(Math.max(0, ecart)),
+      marginXMm: arrondi(Math.max(0, marge)), marginYMm: arrondi(Math.max(0, marge)),
+      symetrique: true,
+    };
+  }
+  return partager(libreLargeur, libreHauteur, ecartsLargeur, ecartsHauteur, arrondi);
+}
+
+/**
+ * L'écart égal le plus grand qui laisse une marge positive, et les marges qui
+ * restent. Utilisé quand la solution symétrique n'existe pas.
+ * @returns {{ ok: boolean, gapXMm: number, gapYMm: number, marginXMm: number, marginYMm: number, symetrique: boolean }}
+ */
+function partager(libreLargeur, libreHauteur, ecartsLargeur, ecartsHauteur, arrondi) {
+  const parLargeur = ecartsLargeur > 0 ? libreLargeur / ecartsLargeur : Infinity;
+  const parHauteur = ecartsHauteur > 0 ? libreHauteur / ecartsHauteur : Infinity;
+  const ecart = Math.max(0, Math.min(parLargeur, parHauteur));
+  const margeX = ecartsLargeur > 0 ? (libreLargeur - ecartsLargeur * ecart) / 2 : libreLargeur / 2;
+  const margeY = ecartsHauteur > 0 ? (libreHauteur - ecartsHauteur * ecart) / 2 : libreHauteur / 2;
+  return {
+    ok: true,
+    gapXMm: arrondi(ecart), gapYMm: arrondi(ecart),
+    marginXMm: arrondi(Math.max(0, margeX)), marginYMm: arrondi(Math.max(0, margeY)),
+    symetrique: Math.abs(margeX - margeY) <= 0.01,
+  };
+}
+
+/**
+ * La plus grande grille qui tient sur la page, à la taille minimale d'étiquette.
+ *
+ * Le calcul est celui de `computeSheet` — la même formule, avec la taille
+ * minimale d'étiquette à la place de la taille réelle. C'est ce qui garantit que
+ * la grille rendue est acceptée par `fitGrid` : une seconde formule, écrite
+ * ailleurs, finirait par diverger d'un centième et rendrait une grille refusée.
+ *
+ * @param {{
+ *   pageWidthMm: number,
+ *   pageHeightMm: number,
+ *   columns: number,
+ *   rows: number,
+ *   marginXMm?: number,
+ *   marginYMm?: number,
+ *   gapXMm?: number,
+ *   gapYMm?: number,
+ *   minLabelMm?: number,
+ * }} options
+ * @returns {{ columns: number, rows: number, clamped: boolean, reason: string }}
+ *   `clamped` dit si la valeur rendue diffère de la demande ; `reason` est vide
+ *   dans ce cas, et l'explique sinon.
+ */
 export function clampGrid(options) {
   const pageWidthMm = positive(options.pageWidthMm, 'pageWidthMm');
   const pageHeightMm = positive(options.pageHeightMm, 'pageHeightMm');

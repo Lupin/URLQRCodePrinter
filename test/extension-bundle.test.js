@@ -80,7 +80,20 @@ async function loadFresh(file) {
  * puis rafraîchissement du badge et rendu — plusieurs tours de boucle. Un délai
  * court mais réel évite un test qui échoue selon l'ordonnancement.
  */
-const settle = () => new Promise((resolvePromise) => setTimeout(resolvePromise, 5));
+/**
+ * Laisse tourner la boucle d'événements jusqu'à ce que le démarrage soit fini.
+ *
+ * C'était **un seul** délai de 5 ms : la suite entière tourne en parallèle, et
+ * sous charge la fenêtre n'avait pas fini de démarrer — deux tests sans rapport
+ * avec le changement en cours échouaient alors, une fois sur trois. Cinq tours
+ * de un milliseconde laissent autant de fois la main aux chaînes de promesses
+ * en attente, pour la même durée totale.
+ */
+const settle = async (turns = 5) => {
+  for (let i = 0; i < turns; i += 1) {
+    await new Promise((resolvePromise) => setTimeout(resolvePromise, 1));
+  }
+};
 
 // ---------------------------------------------------------------------------
 // Service worker

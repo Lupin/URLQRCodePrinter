@@ -190,6 +190,41 @@ async function main() {
         profil: document.getElementById('label-profile')?.value ?? null,
       });
       const sansSelection = lire();
+
+      // Ce qu'un changement d'espacement fait vraiment : la grille est-elle
+      // tranchée, ou la taille des étiquettes (et donc leur contenu) ?
+      [...document.querySelectorAll('.tab')].find((t) => t.dataset.mode === 'sheet').click();
+      await pause(700);
+      const lireFeuille = () => ({
+        colonnes: document.getElementById('sheet-columns').value,
+        rangees: document.getElementById('sheet-rows').value,
+        ecartX: document.getElementById('sheet-gap-x').value,
+        margeY: document.getElementById('sheet-margin-y').value,
+        grille: document.getElementById('sheet-grid-hint').textContent.trim(),
+        taille: document.getElementById('sheet-fit-hint').textContent.trim(),
+        qr: document.getElementById('sheet-qr-info').textContent.trim(),
+        boutonAjuster: document.getElementById('sheet-fit').hidden === false,
+        lignesParCellule: [...document.querySelectorAll('#preview .print-cell')]
+          .slice(0, 2).map((c) => c.querySelectorAll('.print-cell__text').length),
+      });
+      const feuilleAvant = lireFeuille();
+      const poser = (id, v) => {
+        const n = document.getElementById(id);
+        n.value = v;
+        n.dispatchEvent(new Event('input', { bubbles: true }));
+        n.dispatchEvent(new Event('change', { bubbles: true }));
+      };
+      poser('sheet-gap-x', '20');
+      await pause(900);
+      const ecartLarge = lireFeuille();
+      poser('sheet-gap-x', '1.25');
+      await pause(600);
+      poser('sheet-columns', '14');
+      await pause(900);
+      const beaucoupDeColonnes = lireFeuille();
+      poser('sheet-columns', '3');
+      await pause(600);
+      window.__feuille = { feuilleAvant, ecartLarge, beaucoupDeColonnes };
       // **Tous** les messages visibles du panneau, et pas seulement la légende de
       // l'aperçu : c'est ce que l'utilisateur a sous les yeux.
       sansSelection.messages = [...document.querySelectorAll('#panel-layout .hint, .panel .hint')]
@@ -244,6 +279,7 @@ async function main() {
       return { sansSelection, parcours, porteeSansCoche, avecSelection: lire() };
     })()`);
     console.log(JSON.stringify(niimbot, null, 2));
+    console.log(JSON.stringify(await evaluate('window.__feuille'), null, 2));
 
     const zoneEtiquette = await evaluate(`(() => {
       const cadre = document.querySelector('#preview .preview__page');

@@ -8,7 +8,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
 import {
-  PAGE_SIZES, SHEET_PRESETS, computeSheet, paginate, fitGrid, clampGrid,
+  PAGE_SIZES, SHEET_PRESETS, computeSheet, paginate, fitGrid, clampGrid, spacingForGrid,
   sheetCellText, qrRatioBounds, sheetHeaderFits, SHEET_HEADER_MM,
 } from '../src/core/sheet.js';
 
@@ -150,6 +150,65 @@ test('les dispositions génériques ont le même écart dans les deux sens', () 
     assert.equal(preset.marginXMm, preset.marginYMm, `${key} : marge`);
     assert.ok(preset.marginYMm > 0, `${key} : une marge positive`);
   }
+});
+
+test("l'ajustement d'espacement garde la grille demandée", () => {
+  // L'inverse du calcul de la planche : on garde les colonnes et les rangées,
+  // et l'on cherche l'écart et la marge qui les font tenir. C'est ce qui évite
+  // de trancher dans la grille quand un espacement change.
+  const page = PAGE_SIZES.a4;
+  for (const [columns, rows, labelWidthMm, labelHeightMm] of [
+    [3, 8, 63.5, 33.9],
+    [2, 7, 99.1, 38.1],
+    [4, 10, 48, 25],
+  ]) {
+    const plan = spacingForGrid({
+      pageWidthMm: page.widthMm, pageHeightMm: page.heightMm,
+      columns, rows, labelWidthMm, labelHeightMm,
+    });
+    assert.equal(plan.ok, true, `${columns}×${rows} : ajustable`);
+    assert.equal(plan.gapXMm, plan.gapYMm, `${columns}×${rows} : écart égal`);
+    assert.equal(plan.marginXMm, plan.marginYMm, `${columns}×${rows} : marge égale`);
+    assert.ok(plan.gapXMm >= 0 && plan.marginXMm >= 0, `${columns}×${rows} : valeurs positives`);
+
+    // La preuve : la grille tient **exactement** sur la page, aux deux cotes.
+    const largeur = columns * labelWidthMm + (columns - 1) * plan.gapXMm + 2 * plan.marginXMm;
+    const hauteur = rows * labelHeightMm + (rows - 1) * plan.gapYMm + 2 * plan.marginYMm;
+    // Cinquante millièmes de millimètre : l'écart est arrondi au centième, et
+    // aucun papier ni aucune imprimante ne distingue ce qui reste. Ce que le
+    // test défend, c'est que la grille **tienne** — pas qu'elle soit exacte au
+    // micron.
+    assert.ok(Math.abs(largeur - page.widthMm) < 0.05, `${columns}×${rows} : largeur ${largeur}`);
+    assert.ok(Math.abs(hauteur - page.heightMm) < 0.05, `${columns}×${rows} : hauteur ${hauteur}`);
+  }
+});
+
+test("l'ajustement reproduit les dispositions génériques", () => {
+  // Les mêmes chiffres, par deux chemins : les dispositions ont été calculées à
+  // la main, et l'ajustement les retrouve. Une divergence signalerait une
+  // formule fausse d'un côté ou de l'autre.
+  const page = PAGE_SIZES.a4;
+  for (const key of ['a4-3x8', 'a4-2x7']) {
+    const preset = SHEET_PRESETS[key];
+    const plan = spacingForGrid({
+      pageWidthMm: page.widthMm, pageHeightMm: page.heightMm,
+      columns: preset.declaredColumns, rows: preset.declaredRows,
+      labelWidthMm: preset.labelWidthMm, labelHeightMm: preset.labelHeightMm,
+    });
+    assert.ok(Math.abs(plan.gapXMm - preset.gapXMm) < 0.02, `${key} : écart`);
+    assert.ok(Math.abs(plan.marginXMm - preset.marginXMm) < 0.02, `${key} : marge`);
+  }
+});
+
+test("l'ajustement refuse ce qu'aucun espacement ne peut faire tenir", () => {
+  // Dix rangées de 33,9 mm font 339 mm : aucune marge négative ne les fera
+  // tenir sur 297 mm. Le dire vaut mieux que de proposer l'impossible.
+  const plan = spacingForGrid({
+    pageWidthMm: PAGE_SIZES.a4.widthMm, pageHeightMm: PAGE_SIZES.a4.heightMm,
+    columns: 3, rows: 10, labelWidthMm: 63.5, labelHeightMm: 33.9,
+  });
+  assert.equal(plan.ok, false);
+  assert.equal(plan.reason, 'etiquettes');
 });
 
 test('le décalage d\'impression déplace la grille sans la déformer', () => {
