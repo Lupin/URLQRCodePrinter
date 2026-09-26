@@ -1778,6 +1778,77 @@ async function main() {
         + `« ${sansNote?.planche?.bulle} »`,
     );
 
+    // --- Le premier numéro de la collection --------------------------------
+    //
+    // Le cas d'usage tient en une phrase : on termine un lot, on efface les
+    // liens, et le lot suivant doit reprendre la numérotation. Le numéro est
+    // donc réglé, et il doit atteindre **toutes** les sorties — la liste comme
+    // ce qui s'imprime — puis survivre à un rechargement.
+    const numerotation = await evalApp(`(async () => {
+      const pause = (ms) => new Promise((r) => setTimeout(r, ms));
+      const poser = (id, valeur) => {
+        const n = document.getElementById(id);
+        if (n.checked !== undefined && typeof valeur !== 'string') {
+          n.checked = valeur;
+          n.dispatchEvent(new Event('change', { bubbles: true }));
+          return;
+        }
+        n.value = valeur;
+        n.dispatchEvent(new Event('input', { bubbles: true }));
+        n.dispatchEvent(new Event('change', { bubbles: true }));
+      };
+      // Le numéro s'imprime : on demande la ligne pour pouvoir le lire.
+      poser('sheet-date-index', true);
+      poser('collection-start', '101');
+      await pause(1000);
+
+      const premiere = document.querySelector('#preview .print-cell');
+      return {
+        rangs: [...document.querySelectorAll('#list .link__index')].map((n) => n.textContent.trim()),
+        lignes: [...(premiere?.querySelectorAll('.print-cell__text') ?? [])]
+          .map((n) => n.textContent.trim()),
+        champ: document.getElementById('collection-start').value,
+      };
+    })()`);
+
+    record(
+      'le premier numéro règne sur la liste et sur la planche',
+      numerotation?.rangs?.[0] === '101'
+        && numerotation?.rangs?.join(',') === ['101', '102', '103'].join(',')
+        // Le numéro ouvre le texte de la cellule : il est la première chose
+        // imprimée sous le QR Code, et la ligne suivante porte le titre.
+        && (numerotation?.lignes?.join(' ') ?? '').startsWith('101'),
+      `rangs ${JSON.stringify(numerotation?.rangs)}, première étiquette `
+        + `${JSON.stringify(numerotation?.lignes)}`,
+    );
+
+    await recharger(app.session);
+    await forcerPeinture(app.session, 700);
+    const numerotationApres = await evalApp(`(() => ({
+      champ: document.getElementById('collection-start').value,
+      rangs: [...document.querySelectorAll('#list .link__index')].map((n) => n.textContent.trim()),
+    }))()`);
+
+    record(
+      'le premier numéro survit au rechargement',
+      numerotationApres?.champ === '101' && numerotationApres?.rangs?.[0] === '101',
+      `champ « ${numerotationApres?.champ} », rangs ${JSON.stringify(numerotationApres?.rangs)}`,
+    );
+
+    // Remise en état : la numérotation repart de 1, et la ligne du numéro ne
+    // s'imprime plus — les contrôles suivants mesurent la planche.
+    await evalApp(`(async () => {
+      const pause = (ms) => new Promise((r) => setTimeout(r, ms));
+      const champ = document.getElementById('collection-start');
+      champ.value = '1';
+      champ.dispatchEvent(new Event('input', { bubbles: true }));
+      champ.dispatchEvent(new Event('change', { bubbles: true }));
+      const ligne = document.getElementById('sheet-date-index');
+      ligne.checked = false;
+      ligne.dispatchEvent(new Event('change', { bubbles: true }));
+      await pause(800);
+    })()`);
+
     // --- Le raccourcissement, réglé lien par lien -------------------------
     //
     // Deux questions, distinctes : **où** se fait le choix, et **ce qu'il

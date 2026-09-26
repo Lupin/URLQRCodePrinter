@@ -34,6 +34,17 @@ export const COLLECTION_NAME_MAX = 80;
  */
 export const COLLECTION_NOTE_MAX = 600;
 
+/**
+ * Bornes du premier numéro de la collection.
+ *
+ * Le numéro s'imprime sur l'étiquette, sous le QR Code : au-delà de quatre
+ * chiffres, la ligne ne tient plus sur une étiquette étroite et se ferait
+ * rogner. Zéro est permis — une série peut commencer à zéro — et le défaut
+ * reste 1, qui est ce que faisait la numérotation jusqu'ici.
+ */
+export const START_INDEX_MIN = 0;
+export const START_INDEX_MAX = 9999;
+
 /** Valeurs par défaut : aucun raccourcissement, le QR Code encode l'URL collectée. */
 export const DEFAULT_SETTINGS = Object.freeze({
   shortener: DEFAULT_SHORTENER,
@@ -47,6 +58,10 @@ export const DEFAULT_SETTINGS = Object.freeze({
   // date, et un tri choisi par le programme serait une décision qu'on n'a pas
   // prise.
   sortMode: 'manual',
+  // Le premier numéro de la collection. 1 : c'est ce que faisait la
+  // numérotation avant que ce réglage existe, et rien ne change pour qui n'y
+  // touche pas.
+  startIndex: 1,
 });
 
 /**
@@ -58,7 +73,7 @@ export const DEFAULT_SETTINGS = Object.freeze({
  * @param {unknown} value
  * @returns {{ shortener: string, targetMode: 'original'|'short',
  *   collectionName: string, collectionNote: string, dateMode: string,
- *   sortMode: string }}
+ *   sortMode: string, startIndex: number }}
  */
 export function sanitizeSettings(value) {
   const source = value && typeof value === 'object' ? value : {};
@@ -89,7 +104,16 @@ export function sanitizeSettings(value) {
   // ordre naturel qu'un tri que personne n'a demandé.
   const sortMode = isSortMode(source.sortMode) ? source.sortMode : DEFAULT_SETTINGS.sortMode;
 
-  return { shortener, targetMode, collectionName, collectionNote, dateMode, sortMode };
+  // Le premier numéro est **borné**, pas refusé : une valeur hors bornes est
+  // ramenée dans l'intervalle plutôt que de faire retomber toute la collection
+  // au numéro 1. Un nombre à virgule est tronqué — on numérote des objets, pas
+  // des mesures.
+  const brut = Number(source.startIndex);
+  const startIndex = Number.isFinite(brut)
+    ? Math.min(START_INDEX_MAX, Math.max(START_INDEX_MIN, Math.trunc(brut)))
+    : DEFAULT_SETTINGS.startIndex;
+
+  return { shortener, targetMode, collectionName, collectionNote, dateMode, sortMode, startIndex };
 }
 
 /**

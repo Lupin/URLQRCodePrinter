@@ -12,6 +12,7 @@ export const ELEMENT_IDS = Object.freeze([
   'count',
   'collection-name',
   'collection-note',
+  'collection-start',
   'add-form',
   'url-input',
   'add-error',

@@ -50,14 +50,32 @@
     <section class="panel" aria-labelledby="collection-title">
       <h2 id="collection-title" class="panel__title" data-i18n="Ma collection">Ma collection</h2>
 
-      <!-- Ce nom devient le titre des exports Markdown et de la planche
-           imprimable : il doit donc être saisissable ici. -->
-      <label class="field field--compact">
-        <span class="field__label" data-i18n="Nom de la collection">Nom de la collection</span>
-        <input id="collection-name" class="input input--compact" type="text"
-               maxlength="80" value="Mes liens" placeholder="Mes liens" data-i18n-placeholder="Mes liens"
-               autocomplete="off" spellcheck="false">
-      </label>
+      <!-- Le nom et le premier numéro décrivent tous deux la collection
+           elle-même, et tiennent donc sur une ligne : le nom prend la place, le
+           numéro garde la sienne. Sous eux vient la note, qui est un
+           paragraphe. -->
+      <div class="fields">
+        <!-- Ce nom devient le titre des exports Markdown et de la planche
+             imprimable : il doit donc être saisissable ici. -->
+        <label class="field field--compact">
+          <span class="field__label" data-i18n="Nom de la collection">Nom de la collection</span>
+          <input id="collection-name" class="input input--compact" type="text"
+                 maxlength="80" value="Mes liens" placeholder="Mes liens" data-i18n-placeholder="Mes liens"
+                 autocomplete="off" spellcheck="false">
+        </label>
+
+        <!-- Le premier numéro. Il sert à **continuer une série** : on efface les
+             liens d'un lot terminé, on garde la numérotation, et le lot suivant
+             reprend où le précédent s'est arrêté. Le numéro n'est donc pas
+             déduit des liens présents — il survit à leur effacement. -->
+        <label class="field field--compact field--count">
+          <span class="field__label" data-i18n="Numéroter à partir de">Numéroter à partir de</span>
+          <input id="collection-start" class="input input--compact" type="number"
+                 min="0" max="9999" step="1" value="1"
+                 title="Le numéro du premier lien. Il s'affiche dans la liste et s'imprime avec la planche et le tableau ; effacer les liens ne le remet pas à 1."
+                 data-i18n-title="Le numéro du premier lien. Il s'affiche dans la liste et s'imprime avec la planche et le tableau ; effacer les liens ne le remet pas à 1.">
+        </label>
+      </div>
 
       <!-- La note décrit la **collection**, pas un lien. Elle est donc ici, sous
            le nom, et non dans l'éditeur d'une ligne — et facultative : une

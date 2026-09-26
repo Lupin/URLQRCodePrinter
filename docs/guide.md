@@ -64,6 +64,22 @@ The **CSV** does not carry it: it is made only of link rows, and slipping the no
 in would repeat it on every one. That is not an oversight — the note describes the
 whole, and has no row to sit in.
 
+**Numbering from a given value.** The **"Number from"** (« Numéroter à partir
+de ») field sets the number of the collection's **first** link; the rest follow.
+It exists to **continue a series** — you finish a batch of boxes numbered 101 to
+120, clear those links, and the next batch starts at 121 without recounting
+anything.
+
+That number shows to the left of each row, and it is the one that prints: the
+"N°" line under the QR Code on the sheet, the table's "N°" column, the Niimbot
+label's number and the one in the image folder. One setting, therefore — and
+never two numberings contradicting each other on the same object.
+
+It is **set, not derived from the links present**: clearing the collection does
+not reset it to 1, which is exactly what is worth preserving. Sorting, on the
+other hand, stays a view: it renumbers the display without touching either the
+starting number or the stored order.
+
 **Title, tags and note.** The **✎** button on each row opens the three fields
 that go into the exports:
 

@@ -16,6 +16,8 @@ import {
   sanitizeSettings,
   createSettingsStore,
   COLLECTION_NOTE_MAX,
+  START_INDEX_MIN,
+  START_INDEX_MAX,
 } from '../src/core/settings.js';
 
 /** Stockage factice, avec compteur d'écritures. */
@@ -60,6 +62,22 @@ test('le mode de date est validé comme les autres préférences', () => {
   assert.equal(DEFAULT_SETTINGS.dateMode, 'none');
 });
 
+test('le premier numéro est borné, jamais refusé', () => {
+  // Une valeur hors bornes est ramenée dans l'intervalle : retomber à 1 ferait
+  // perdre la numérotation d'une série au moment où l'on s'en sert.
+  assert.equal(DEFAULT_SETTINGS.startIndex, 1, 'rien ne change pour qui n\'y touche pas');
+  assert.equal(sanitizeSettings({ startIndex: 101 }).startIndex, 101);
+  assert.equal(sanitizeSettings({ startIndex: 0 }).startIndex, 0, 'une série peut commencer à zéro');
+  assert.equal(sanitizeSettings({ startIndex: -40 }).startIndex, START_INDEX_MIN);
+  assert.equal(sanitizeSettings({ startIndex: 12.7 }).startIndex, 12, 'on numérote des objets, pas des mesures');
+  assert.equal(sanitizeSettings({ startIndex: START_INDEX_MAX + 500 }).startIndex, START_INDEX_MAX);
+  // Une saisie illisible n'est pas un numéro : on garde le défaut.
+  assert.equal(sanitizeSettings({ startIndex: 'abc' }).startIndex, DEFAULT_SETTINGS.startIndex);
+  assert.equal(sanitizeSettings({ startIndex: undefined }).startIndex, DEFAULT_SETTINGS.startIndex);
+  // Le champ d'un formulaire rend une chaîne : elle doit être acceptée.
+  assert.equal(sanitizeSettings({ startIndex: '512' }).startIndex, 512);
+});
+
 test('le nom de collection est nettoyé', () => {
   // Le nom devient un titre d'export : il ne peut pas être vide, ne doit pas
   // garder d'espaces autour, et reste d'une longueur affichable.
@@ -85,6 +103,18 @@ test('les réglages survivent à un redémarrage', () => {
     collectionName: 'Veille',
     dateMode: 'datetime',
   });
+});
+
+test('le premier numéro survit à la fermeture, comme le nom', () => {
+  // C'est le cas d'usage : on termine un lot, on efface les liens, et le lot
+  // suivant doit reprendre la numérotation. Le numéro est donc un **réglage**,
+  // rangé à part des liens — effacer la collection ne peut pas l'atteindre.
+  const storage = fakeStorage();
+  createSettingsStore({ storage }).save({ startIndex: 101, collectionName: 'Cartons' });
+
+  const apres = createSettingsStore({ storage }).load();
+  assert.equal(apres.startIndex, 101);
+  assert.equal(apres.collectionName, 'Cartons');
 });
 
 test('une écriture partielle ne réinitialise pas le reste', () => {

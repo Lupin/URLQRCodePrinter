@@ -18,6 +18,7 @@ import { resolveDefaultStore } from './core/store.js';
 import { ELEMENT_IDS } from './element-ids.js';
 import {
   createSettingsStore, DEFAULT_SETTINGS, COLLECTION_NAME_MAX, COLLECTION_NOTE_MAX,
+  sanitizeSettings,
 } from './core/settings.js';
 import {
   SHORTENERS,
@@ -493,7 +494,7 @@ async function refresh() {
   // « N° » du tableau dans l'autre. Le magasin, lui, garde l'ordre manuel : revenir
   // à « Ordre manuel » retrouve la collection telle qu'on l'avait laissée.
   links = sortLinks(await store.list(), preferences.sortMode);
-  linkRanks = new Map(links.map((link, index) => [link.id, index + 1]));
+  linkRanks = new Map(links.map((link, index) => [link.id, index + premierNumero()]));
   fillLabelLinks();
   updatePrintScope();
   // Les colonnes « Tags » et « Note » ne sont proposées que si la collection en
@@ -897,17 +898,20 @@ function moveControls(link) {
   grip.setAttribute('aria-hidden', 'true');
   grip.textContent = '⠿';
 
-  const rang = linkRanks.get(link.id) ?? 1;
+  // La **position** dans la liste, et non le numéro affiché : depuis que la
+  // numérotation peut commencer à 101, comparer le numéro à l'effectif
+  // désactiverait les flèches au mauvais moment.
+  const position = links.findIndex((candidat) => candidat.id === link.id) + 1;
   const nom = link.title || link.url;
   const up = button('▲', 'link__move', () => moveLink(link.id, -1));
   up.setAttribute('aria-label', t('Déplacer {title} vers le haut', { title: nom }));
   up.title = t('Monter');
-  up.disabled = rang <= 1;
+  up.disabled = position <= 1;
 
   const down = button('▼', 'link__move', () => moveLink(link.id, 1));
   down.setAttribute('aria-label', t('Déplacer {title} vers le bas', { title: nom }));
   down.title = t('Descendre');
-  down.disabled = rang >= linkRanks.size;
+  down.disabled = position <= 0 || position >= links.length;
 
   bloc.append(grip, up, down);
   wireDrag(grip);
@@ -1106,6 +1110,20 @@ function exportImagesLabel(count) {
 }
 
 /** L'ensemble des liens actuellement sélectionnés, dans l'ordre d'affichage. */
+/**
+ * Le numéro du premier lien de la collection.
+ *
+ * Il est **réglé**, et non déduit : on numérote une série d'objets, et une
+ * série continue après qu'on a vidé la collection du lot précédent. Le déduire
+ * des liens présents remettrait la numérotation à 1 au moment précis où l'on
+ * veut la continuer.
+ *
+ * @returns {number}
+ */
+function premierNumero() {
+  return preferences.startIndex;
+}
+
 function selectedLinks() {
   const picked = links.filter((link) => selected.has(link.id));
   // Sans sélection explicite, tout est imprimé : c'est l'intention la plus
@@ -3982,6 +4000,39 @@ el.list.addEventListener('keydown', (event) => {
   el.reorder.focus();
 });
 
+// Le premier numéro : appliqué à la frappe quand il est exploitable, et remis
+// en forme au changement. Un champ vidé ou hors bornes n'est pas une valeur —
+// la collection garde alors le dernier numéro valide, plutôt que de sauter à 1
+// au milieu d'une saisie.
+function appliquerPremierNumero(redessiner) {
+  const brut = Number(el.collectionStart.value);
+  if (!Number.isFinite(brut)) return false;
+  const voulu = sanitizeSettings({ startIndex: brut }).startIndex;
+  if (voulu === preferences.startIndex) return false;
+  preferences = settings.save({ startIndex: voulu });
+  if (redessiner) {
+    // Le numéro est une **vue**, comme le tri : il ne touche ni la collection ni
+    // l'ordre enregistré. On redessine donc la liste et l'aperçu sans relire le
+    // magasin.
+    linkRanks = new Map(links.map((link, index) => [link.id, index + premierNumero()]));
+    renderList();
+    renderPreview();
+  }
+  return true;
+}
+
+el.collectionStart.addEventListener('input', () => {
+  appliquerPremierNumero(Boolean(el.collectionStart.value.trim()));
+});
+
+// Au changement — sortie du champ, flèches du compteur — on réécrit la valeur
+// retenue : le champ ne doit pas afficher un nombre que la collection n'utilise
+// pas.
+el.collectionStart.addEventListener('change', () => {
+  appliquerPremierNumero(true);
+  el.collectionStart.value = String(preferences.startIndex);
+});
+
 el.collectionName.addEventListener('input', () => {
   applyCollectionName();
   // Enregistré à la volée : le nom se retape rarement, mais le perdre serait
@@ -4072,7 +4123,7 @@ async function exportTableArchive() {
       columns: tableColumns(),
       dateMode: tableDateMode(),
       // Le rang de la collection, celui que porte le tableau imprimé.
-      rankOf: (link, index) => linkRanks.get(link.id) ?? index + 1,
+      rankOf: (link, index) => linkRanks.get(link.id) ?? index + premierNumero(),
       onProgress: (done, total) => {
         el.exportTable.textContent = t('QR Code {done}/{total}…', { done, total });
       },
@@ -4530,6 +4581,7 @@ el.collectionName.value = preferences.collectionName === DEFAULT_SETTINGS.collec
   : preferences.collectionName;
 // Une note vide reste vide : elle n'a pas de valeur par défaut à traduire.
 el.collectionNote.value = preferences.collectionNote;
+el.collectionStart.value = String(preferences.startIndex);
 applyCollectionName();
 fillSortModes();
 updateDateHint();

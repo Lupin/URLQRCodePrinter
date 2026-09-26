@@ -379,6 +379,12 @@ body {
 .field__label { color: var(--text-2); font-size: 12px; }
 .fields { display: flex; flex-wrap: wrap; gap: 12px; }
 
+/* Le premier numéro tient à côté du nom : deux champs d'une ligne, qui décrivent
+   tous deux la collection elle-même. Sa largeur est fixe et le nom prend le
+   reste ; sous 160 px de place, l'enroulement de `.fields` le fait passer à la
+   ligne, sans qu'une requête de média ait à le prévoir. */
+.fields > .field--count { flex: 0 0 132px; }
+
 .field-error { margin: 0; color: var(--danger); font-size: 12px; }
 
 .toolbar { display: flex; align-items: flex-end; gap: 6px; }

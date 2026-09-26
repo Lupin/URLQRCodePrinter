@@ -61,6 +61,21 @@ Le **CSV** ne la porte pas : il n'est fait que de lignes de liens, et y glisser 
 note la répéterait sur chacune. Ce n'est pas un oubli — la note décrit l'ensemble,
 elle n'a pas de ligne où se mettre.
 
+**Numéroter à partir de.** Le champ **« Numéroter à partir de »** règle le numéro
+du **premier** lien de la collection : les suivants s'enchaînent. Il sert à
+**continuer une série** — on termine un lot de cartons numérotés 101 à 120, on
+efface ces liens, et le lot suivant repart à 121 sans rien recompter.
+
+Le numéro est affiché à gauche de chaque ligne, et c'est celui qui s'imprime : la
+ligne « N° » sous le QR Code de la planche, la colonne « N° » du tableau, le
+numéro de l'étiquette Niimbot et celui du dossier d'images. Un seul réglage, donc
+— et jamais deux numérotations qui se contrediraient sur le même objet.
+
+Il est **réglé, et non déduit des liens présents** : effacer la collection ne le
+remet pas à 1, c'est précisément ce qu'on veut préserver. Le tri, lui, reste une
+vue : il renumérote l'affichage, mais ne touche ni le numéro de départ ni l'ordre
+enregistré.
+
 **Titre, tags et note.** Le bouton **✎** de chaque ligne ouvre les trois champs
 qui partent dans les exports :
 

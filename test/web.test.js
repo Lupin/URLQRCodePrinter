@@ -493,6 +493,30 @@ test('ranger est impossible sous un tri, et le bouton le dit', () => {
   assert.match(app, /el\.reorder\.disabled = !peutRanger/);
 });
 
+test('la collection peut commencer à un numéro choisi', () => {
+  // Continuer une série après avoir vidé la collection : le numéro est un
+  // réglage, pas une conséquence des liens présents.
+  const champ = html.match(/<input id="collection-start"[^>]*>/);
+  assert.ok(champ, 'aucun champ de premier numéro');
+  assert.match(champ[0], /type="number"/);
+  assert.match(champ[0], /min="0"/);
+  assert.match(champ[0], /max="9999"/);
+  assert.match(champ[0], /value="1"/, 'le défaut ne change pas la numérotation existante');
+  assert.match(champ[0], /data-i18n-title=/, 'la portée du réglage doit être expliquée');
+
+  const app = readFileSync(join(WEB, 'app.js'), 'utf8');
+  // Le rang affiché et imprimé part du numéro réglé, pour **toutes** les
+  // sorties : liste, planche, tableau, étiquette Niimbot et exports, qui
+  // lisent tous `linkRanks`.
+  assert.match(app, /linkRanks = new Map\(links\.map\(\(link, index\) => \[link\.id, index \+ premierNumero\(\)\]\)\)/);
+  assert.match(app, /function premierNumero\(\)/);
+  // Les flèches de rangement se bornent sur la position, et non sur le numéro
+  // affiché : avec un départ à 101, comparer le numéro à l'effectif les
+  // désactiverait au mauvais moment.
+  assert.match(app, /const position = links\.findIndex\(\(candidat\) => candidat\.id === link\.id\) \+ 1/);
+  assert.doesNotMatch(app, /down\.disabled = rang >= linkRanks\.size/);
+});
+
 test('aucun champ ne s\'étire dans une colonne', () => {
   // `flex: 1 1 160px` sur `.field` était pensé pour une **rangée** : dans une
   // colonne, la base devenait une hauteur, chaque champ montait à 160 px et

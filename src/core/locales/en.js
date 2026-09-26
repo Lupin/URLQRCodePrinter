@@ -62,6 +62,9 @@ export const EN_MESSAGES = {
   "Le tri range la liste et renumérote le tableau imprimé. Le rangement n'existe qu'en ordre manuel : on ne réordonne pas une liste triée.":
     "Sorting orders the list and renumbers the printed table. Reordering exists only in manual order: you do not reorder a sorted list.",
   "Note de la collection (facultative)": "Collection note (optional)",
+  "Numéroter à partir de": "Number from",
+  "Le numéro du premier lien. Il s'affiche dans la liste et s'imprime avec la planche et le tableau ; effacer les liens ne le remet pas à 1.":
+    "The number of the first link. It shows in the list and prints with the sheet and the table; clearing the links does not reset it to 1.",
   "À quoi sert cette collection…": "What this collection is for…",
   "Exporter ces étiquettes (ZIP)": "Export these labels (ZIP)",
   "Export impossible": "Export failed",
