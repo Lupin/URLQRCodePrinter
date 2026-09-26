@@ -25,6 +25,7 @@ import {
   buildLabelArchive,
   labelArchiveName,
   ptToPx,
+  labelPreviewZoom,
 } from '../src/core/label-export.js';
 import { mmToPx } from '../src/core/label.js';
 import { createLink, resolveTarget, resolveTargets } from '../src/core/link.js';
@@ -585,4 +586,65 @@ test('une date trop longue est découpée, jamais tronquée', () => {
   });
   const manifest = JSON.parse(readZip(archive).get('export.json'));
   assert.equal(manifest.datesOmitted, 1);
+});
+
+// ---------------------------------------------------------------------------
+// Échelle de l'aperçu
+//
+// Le défaut : l'aperçu agrandissait huit fois et demi sans le dire, borné par un
+// facteur de rendu — « 4 » — qui ne veut rien dire pour l'utilisateur. Quatre
+// fois un rendu de 203 ppp, c'est huit fois et demi la taille réelle ; quatre
+// fois un rendu de 300 ppp, c'en est deux et deux dixièmes.
+// ---------------------------------------------------------------------------
+
+test("l'aperçu d'une étiquette est borné par un multiple de la taille réelle", () => {
+  // Tête de 12 mm à 203 ppp, panneau large : la borne doit mordre, et donner
+  // exactement le multiple annoncé.
+  const grand = labelPreviewZoom({ widthPx: 96, dpi: 203, availablePx: 600 });
+  assert.equal(grand.multiple.toFixed(2), '4.00');
+
+  // Tête large : c'est la place disponible qui commande, et le multiple suit.
+  const moyen = labelPreviewZoom({ widthPx: 851, dpi: 300, availablePx: 600 });
+  assert.ok(moyen.multiple < 4 && moyen.multiple > 1);
+  assert.equal(Math.round(851 * moyen.zoom), 600, "la largeur disponible n'est pas utilisée");
+});
+
+test("l'aperçu à la taille réelle montre l'étiquette à sa taille physique", () => {
+  // 12 mm à l'écran, à la correspondance admise de 96 px CSS par pouce : 45 px.
+  const reel = labelPreviewZoom({ widthPx: 96, dpi: 203, availablePx: 600, realSize: true });
+  assert.equal(reel.multiple, 1);
+  assert.equal(Math.round(96 * reel.zoom), 45);
+
+  // Et cela ne dépend pas de la résolution de la tête : la taille physique est
+  // la même, seul le nombre de pixels de rendu change.
+  const autreTete = labelPreviewZoom({ widthPx: 142, dpi: 300, availablePx: 600, realSize: true });
+  assert.equal(autreTete.multiple, 1);
+  assert.equal(Math.round(142 * autreTete.zoom), 45);
+});
+
+test("l'aperçu ne dépasse jamais la place offerte", () => {
+  for (const availablePx of [80, 200, 600, 1200]) {
+    for (const widthPx of [96, 300, 851]) {
+      const { zoom } = labelPreviewZoom({ widthPx, dpi: 203, availablePx });
+      assert.ok(
+        Math.round(widthPx * zoom) <= availablePx + 1,
+        `${widthPx} px dans ${availablePx} px → ${Math.round(widthPx * zoom)} px`,
+      );
+    }
+  }
+});
+
+test("l'échelle reste exploitable même quand la place manque", () => {
+  // Un panneau très étroit : l'étiquette doit rétrécir, pas disparaître.
+  const etroit = labelPreviewZoom({ widthPx: 851, dpi: 300, availablePx: 120 });
+  assert.ok(etroit.zoom > 0 && etroit.multiple > 0);
+  assert.equal(Math.round(851 * etroit.zoom), 120);
+});
+
+test("une résolution manquante ne fait pas disparaître l'aperçu", () => {
+  // Un profil incomplet ne doit pas produire un `NaN` jusque dans la largeur du
+  // canevas : c'est le genre de valeur qui laisse une zone vide sans message.
+  const defaut = labelPreviewZoom({ widthPx: 96, dpi: 0, availablePx: 600 });
+  assert.ok(Number.isFinite(defaut.zoom) && defaut.zoom > 0);
+  assert.ok(Number.isFinite(defaut.multiple));
 });

@@ -102,6 +102,7 @@ export const ELEMENT_IDS = Object.freeze([
   'label-margin',
   'label-font',
   'label-cut',
+  'label-real-size',
   'export-title',
   'export-date',
   'export-date-time',

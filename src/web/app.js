@@ -81,6 +81,7 @@ import { downloadText, downloadBytes } from './core/download.js';
 import { buildLinkSpreadsheet } from './core/spreadsheet.js';
 import { parseImportFile, toImportableLinks } from './core/import.js';
 import {
+  labelPreviewZoom,
   LABEL_FORMATS,
   TEXT_MODES,
   findFormat,
@@ -2266,11 +2267,19 @@ function renderSingleLabel(link) {
   const shown = rotated ?? source;
 
   const canvas = document.createElement('canvas');
-  // Le rendu écran suit la place disponible : agrandi quand la tête est étroite
-  // (96 px sur un D110), réduit quand elle est large (851 px sur un M3) — un
-  // zoom minimal de 1 faisait déborder ce dernier du panneau.
+  // L'échelle de l'aperçu est calculée dans le cœur, où elle est testable : elle
+  // dépend de la tête, de la résolution et de la place disponible, et elle est
+  // désormais bornée par un **multiple de la taille réelle** plutôt que par un
+  // facteur de rendu. Plafonner à « 4 » donnait 8,5 × sur une tête de 203 ppp et
+  // 2,2 × sur une tête de 300 ppp, sans que rien ne relie le chiffre au résultat.
   const available = Math.max(1, previewViewportWidth() - 20);
-  const zoom = Math.min(4, available / shown.width);
+  const echelle = labelPreviewZoom({
+    widthPx: shown.width,
+    dpi: profile.dpi,
+    availablePx: available,
+    realSize: el.labelRealSize.checked,
+  });
+  const zoom = echelle.zoom;
   const displayWidth = Math.max(1, Math.round(shown.width * zoom));
   const displayHeight = Math.max(1, Math.round(shown.height * zoom));
   canvas.width = displayWidth;
@@ -2303,6 +2312,21 @@ function renderSingleLabel(link) {
   const orientationNote = lateralRefused
     ? t(' — texte empilé : le QR Code laisse trop peu de largeur pour une colonne de texte.')
     : (turns === 0 ? '' : t(' — orientation : {label}', { label: t(labelRotation().label) }));
+  // L'échelle est **dite**. C'est le défaut d'origine : l'aperçu agrandissait
+  // huit fois et demi sans l'annoncer, et rien ne permettait de s'en apercevoir.
+  const largeurMm = pxToMm(geometry.width, profile.dpi).toFixed(1);
+  const hauteurMm = pxToMm(geometry.height, profile.dpi).toFixed(1);
+  const echelleNote = echelle.multiple > 1.05
+    ? t(' — aperçu à {multiple} × la taille réelle ({width} × {height} mm).', {
+      multiple: echelle.multiple.toFixed(1),
+      width: largeurMm,
+      height: hauteurMm,
+    })
+    : t(' — aperçu à la taille réelle ({width} × {height} mm).', {
+      width: largeurMm,
+      height: hauteurMm,
+    });
+
   caption.textContent = (verdict.ok
     ? t('{profile} — {width} × {height} px, {px} px par module', {
       profile: profile.id,
@@ -2310,7 +2334,8 @@ function renderSingleLabel(link) {
       height: geometry.height,
       px: decimal(verdict.pxPerModule),
     })
-    : t('{profile} — {reason}', { profile: profile.id, reason: t(verdict.reason) })) + orientationNote + dateNote;
+    : t('{profile} — {reason}', { profile: profile.id, reason: t(verdict.reason) }))
+    + orientationNote + dateNote + echelleNote;
   if (!verdict.ok) caption.style.color = 'var(--danger)';
   frame.appendChild(caption);
 
@@ -3769,6 +3794,9 @@ for (const box of [
   });
 }
 el.labelAlignment.addEventListener('change', renderPreview);
+// Réglage d'aperçu : il ne change rien à l'impression, mais il change ce qu'on
+// regarde.
+el.labelRealSize.addEventListener('change', renderPreview);
 el.labelFontSize.addEventListener('input', renderPreview);
 // Les réglages de page du tableau se répercutent sur l'aperçu.
 for (const node of [

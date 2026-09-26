@@ -513,6 +513,14 @@
         </fieldset>
         <p id="label-content-hint" class="hint hint--tight"></p>
 
+        <!-- Réglage d'**aperçu**, et non d'impression : il ne change rien à ce
+             qui sort. Il a donc sa propre ligne, à part des réglages qui, eux,
+             s'impriment — c'est la même règle que pour la planche. -->
+        <label class="field field--inline">
+          <input id="label-real-size" type="checkbox">
+          <span class="field__label" data-i18n="Aperçu à la taille réelle">Aperçu à la taille réelle</span>
+        </label>
+
         <div class="printer">
           <div class="printer__status">
             <span id="printer-dot" class="dot dot--off"></span>

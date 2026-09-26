@@ -352,9 +352,21 @@ The preview is composed **even without a connected printer**: dimensions,
 module count and legibility are exact. That is what lets you judge a rendering,
 or check that a URL fits, before buying the hardware.
 
-Under the preview, a caption gives the profile used and the number of pixels per
-module. Two pixels per module is the minimum: below that, a thermal printhead
-merges the dots.
+Under the preview, a caption gives the profile used, the number of pixels per
+module, **and the preview's scale**. Two pixels per module is the minimum: below
+that, a thermal printhead merges the dots.
+
+**The scale is stated because it is a magnification.** A 12 mm label measures
+45 px on screen, and a QR Code there is impossible to judge: the preview
+therefore magnifies, up to **four times the real size**. A rendering factor means
+nothing to a reader — four times a 203 dpi rendering is eight and a half times
+real size — hence a multiple that is computed and written in the caption:
+"preview at 4.0 × real size (12.0 × 24.6 mm)".
+
+The **"Preview at real size" (« Aperçu à la taille réelle »)** checkbox shows the
+label at its physical dimension, to judge the room it will really take. It
+changes nothing about what comes out: it is a preview setting, and for that
+reason it has its own line, apart from the settings that do get printed.
 
 Once a printer is connected, the preview locks onto its real profile, and
 printing **always** uses the hardware profile — never the preview's. You can

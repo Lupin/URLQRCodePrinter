@@ -211,6 +211,43 @@ export const DEFAULT_EXPORT_OPTIONS = Object.freeze({
  * @param {number} dpi
  * @returns {number}
  */
+/**
+ * Échelle de l'aperçu d'une étiquette, et multiple de la taille réelle.
+ *
+ * L'agrandissement est **nécessaire** : une étiquette de 12 mm mesure 45 px à
+ * l'écran, et un QR Code y est injugeable. Ce qui manquait n'était donc pas la
+ * réduction, mais l'aveu : l'aperçu agrandissait huit fois et demi sans le dire,
+ * et rien à l'écran ne permettait de s'en apercevoir.
+ *
+ * La borne porte désormais sur le **multiple de la taille réelle**, et non sur
+ * un facteur de rendu : plafonner à « 4 » donnait 8,5 × sur une tête de 203 ppp
+ * et 2,2 × sur une tête de 300 ppp, sans que rien ne relie le chiffre au
+ * résultat. On calcule donc ce que vaut un pixel de rendu en pixel CSS, et l'on
+ * plafonne le rapport des deux.
+ *
+ * `realSize` rend l'étiquette à sa taille physique sur l'écran — 45 px pour
+ * 12 mm, à la correspondance admise de 96 px CSS par pouce.
+ *
+ * @param {{ widthPx: number, dpi: number, availablePx: number,
+ *   realSize?: boolean, maxMultiple?: number }} options
+ * @returns {{ zoom: number, multiple: number }}
+ */
+export function labelPreviewZoom(options) {
+  const widthPx = Math.max(1, options.widthPx);
+  const dpi = options.dpi > 0 ? options.dpi : 203;
+  const availablePx = Math.max(1, options.availablePx);
+  // Correspondance admise entre le CSS et le monde physique, faute de connaître
+  // le matériel d'affichage.
+  const CSS_PX_PER_INCH = 96;
+  const reel = CSS_PX_PER_INCH / dpi;
+  const maxMultiple = options.maxMultiple ?? 4;
+
+  if (options.realSize) return { zoom: reel, multiple: 1 };
+
+  const zoom = Math.min((maxMultiple * CSS_PX_PER_INCH) / dpi, availablePx / widthPx);
+  return { zoom, multiple: (zoom * dpi) / CSS_PX_PER_INCH };
+}
+
 export function ptToPx(pt, dpi) {
   return Math.round((pt / 72) * dpi);
 }

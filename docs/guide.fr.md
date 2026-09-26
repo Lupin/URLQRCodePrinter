@@ -365,9 +365,21 @@ L'aperçu est composé **même sans imprimante connectée** : dimensions, nombre
 modules et lisibilité sont exacts. C'est ce qui permet de juger un rendu, ou de
 vérifier qu'une URL tient, avant d'acheter le matériel.
 
-Sous l'aperçu, une légende indique le profil utilisé et le nombre de pixels par
-module. Deux pixels par module est le minimum : en dessous, une tête thermique
-fusionne les points.
+Sous l'aperçu, une légende indique le profil utilisé, le nombre de pixels par
+module, **et l'échelle de l'aperçu**. Deux pixels par module est le minimum : en
+dessous, une tête thermique fusionne les points.
+
+**L'échelle est annoncée parce qu'elle est un agrandissement.** Une étiquette de
+12 mm mesure 45 px sur un écran, et un QR Code y est injugeable : l'aperçu
+agrandit donc, jusqu'à **quatre fois la taille réelle**. Un facteur de rendu ne
+veut rien dire pour qui lit — quatre fois un rendu de 203 ppp, c'est huit fois et
+demi la taille réelle — d'où un multiple calculé puis écrit dans la légende :
+« aperçu à 4,0 × la taille réelle (12,0 × 24,6 mm) ».
+
+La case **« Aperçu à la taille réelle »** montre l'étiquette à sa dimension
+physique, pour juger de la place qu'elle prendra vraiment. Elle ne change rien à
+ce qui sort : c'est un réglage d'aperçu, et il a pour cette raison sa propre
+ligne, à part des réglages qui s'impriment.
 
 Une fois une imprimante connectée, l'aperçu se cale sur son profil réel, et
 l'impression utilise **toujours** le profil du matériel — jamais celui de

@@ -30,6 +30,11 @@ export const EN_MESSAGES = {
   "Page d'information": "Information page",
   "Découpe": "Cutting",
   "La page": "The page",
+  "Aperçu à la taille réelle": "Preview at real size",
+  " — aperçu à {multiple} × la taille réelle ({width} × {height} mm).":
+    " — preview at {multiple} × real size ({width} × {height} mm).",
+  " — aperçu à la taille réelle ({width} × {height} mm).":
+    " — preview at real size ({width} × {height} mm).",
   "L'étiquette": "The label",
   "En-tête de page": "Page header",
   "Exporter la planche (ZIP)": "Export the sheet (ZIP)",
@@ -129,6 +134,11 @@ export const EN_MESSAGES = {
   "Taille du QR Code": "QR Code size",
   "Orientation de la page": "Page orientation",
   "La page": "The page",
+  "Aperçu à la taille réelle": "Preview at real size",
+  " — aperçu à {multiple} × la taille réelle ({width} × {height} mm).":
+    " — preview at {multiple} × real size ({width} × {height} mm).",
+  " — aperçu à la taille réelle ({width} × {height} mm).":
+    " — preview at real size ({width} × {height} mm).",
   "L'étiquette": "The label",
   "En-tête de page": "Page header",
   "Exporter la planche (ZIP)": "Export the sheet (ZIP)",

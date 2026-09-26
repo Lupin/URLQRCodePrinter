@@ -1286,7 +1286,7 @@ async function main() {
     // 45 px. Au-delà, l'aperçu ment sur l'échelle.
     await evalApp(`[...document.querySelectorAll('.tab')].find((t) => t.dataset.mode === 'single').click()`);
     await new Promise((r) => setTimeout(r, 900));
-    const apercuEtiquette = await evalApp(`(() => {
+    const mesureEtiquette = await evalApp(`(() => {
       const canvas = document.querySelector('#preview canvas');
       if (!canvas) return { absent: true };
       const boite = canvas.getBoundingClientRect();
@@ -1300,6 +1300,7 @@ async function main() {
         hauteurAffichee: Math.round(boite.height),
         largeurCanvas: canvas.width,
         imageRendering: getComputedStyle(canvas).imageRendering,
+        legende: document.querySelector('#preview .hint')?.textContent ?? '',
         profil: document.getElementById('label-profile').value,
         consommable: texte,
         largeurMm,
@@ -1310,22 +1311,55 @@ async function main() {
       };
     })()`);
 
+    const celluleEtiquette = { legende: mesureEtiquette?.legende };
+    const apercuEtiquette = mesureEtiquette;
     const agrandissement = apercuEtiquette?.largeurPhysiquePx
-      ? Number((apercuEtiquette.largeurAffichee / apercuEtiquette.largeurPhysiquePx).toFixed(1))
+      ? Number((apercuEtiquette.largeurAffichee / apercuEtiquette.largeurPhysiquePx).toFixed(2))
       : null;
     record(
       'l\'étiquette est rendue sans imprimante connectée',
       apercuEtiquette?.absent !== true && (apercuEtiquette?.largeurAffichee ?? 0) > 0,
       apercuEtiquette?.absent ? 'aucun canevas' : `${apercuEtiquette?.profil}, ${apercuEtiquette?.consommable}`,
     );
+    // L'aperçu agrandit huit fois et demi à l'origine, sans le dire, borné par
+    // un facteur de rendu — « 4 » — qui ne veut rien dire pour l'utilisateur.
+    // Le contrôle porte maintenant sur ce que la fonctionnalité promet : un
+    // multiple **borné** et **annoncé**.
     record(
-      'l\'aperçu d\'étiquette respecte l\'échelle du rouleau',
-      agrandissement !== null && agrandissement <= 2,
+      'l\'aperçu d\'étiquette est borné à quatre fois la taille réelle',
+      agrandissement !== null && agrandissement <= 4.5,
       agrandissement === null
         ? 'largeur du rouleau illisible'
         : `« ${apercuEtiquette.consommable} » → ${apercuEtiquette.largeurAffichee} px à l'écran `
           + `pour ${apercuEtiquette.largeurPhysiquePx} px réels, soit ${agrandissement}× `
           + `(${apercuEtiquette.imageRendering}, aperçu large de ${apercuEtiquette.surfaceOfferte} px)`,
+    );
+    record(
+      "l'aperçu annonce son échelle et la taille réelle de l'étiquette",
+      /taille réelle/.test(celluleEtiquette?.legende ?? '') && /\d+[.,]\d/.test(celluleEtiquette?.legende ?? ''),
+      `« ${celluleEtiquette?.legende} »`,
+    );
+
+    const tailleReelle = await evalApp(`(async () => {
+      const case_ = document.getElementById('label-real-size');
+      case_.checked = true;
+      case_.dispatchEvent(new Event('change', { bubbles: true }));
+      await new Promise((r) => setTimeout(r, 700));
+      const canvas = document.querySelector('#preview canvas');
+      const boite = canvas.getBoundingClientRect();
+      const texte = document.querySelector('#preview .hint')?.textContent ?? '';
+      case_.checked = false;
+      case_.dispatchEvent(new Event('change', { bubbles: true }));
+      await new Promise((r) => setTimeout(r, 500));
+      return { largeur: Math.round(boite.width), legende: texte };
+    })()`);
+
+    record(
+      "la vue à taille réelle montre l'étiquette à sa taille physique",
+      tailleReelle !== undefined && tailleReelle.largeur > 0
+        && Math.abs(tailleReelle.largeur - (apercuEtiquette?.largeurPhysiquePx ?? -1)) <= 3,
+      `${tailleReelle?.largeur} px à l'écran pour ${apercuEtiquette?.largeurPhysiquePx} px réels `
+        + `— « ${tailleReelle?.legende} »`,
     );
 
     // --- La hiérarchie du panneau de la planche ---------------------------
