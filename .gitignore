@@ -27,6 +27,8 @@ native/niimbot-kit/.build/
 .brave-test/
 .verify-brave/
 .verify-brave-captures/
+.verify-chrome/
+.verify-chrome-captures/
 .tmpm/
 
 # Sondes de mesure ponctuelles

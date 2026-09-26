@@ -26,6 +26,7 @@ are welcome — see [CONTRIBUTING.md](../CONTRIBUTING.md).
 | [site-public.fr.md](site-public.fr.md) | FR | Public site: why the landing page and the app are served separately, how to deploy on Vercel, and what is not verified |
 | [note-capacites-capture-url-safari-brave.md](note-capacites-capture-url-safari-brave.md) | FR | Capability matrix for browser extensions on Safari macOS, Safari iOS and Brave, with sources |
 | [safari-extension-verification.md](safari-extension-verification.md) | FR | What was verified in the real Safari browser, and what cannot be |
+| [verification-chrome.md](verification-chrome.md) | FR | What was measured in the real Chrome browser: rendered contrast, keyboard pass, context menu and badge, and the layout defects the stylesheets concealed |
 
 ## Design
 
