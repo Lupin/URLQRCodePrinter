@@ -23,6 +23,8 @@ import {
   shortenUrl,
   createShortener,
   describeShortenReport,
+  isServiceFailure,
+  suggestShortener,
 } from '../src/core/shorten.js';
 
 import { normalizeUrl } from '../src/core/link.js';
@@ -145,10 +147,13 @@ test('parseShortResponse refuse un statut hors 2xx', () => {
 });
 
 test('parseShortResponse refuse une réponse vide ou illisible', () => {
+  // Une réponse vide vient du **service** : c'est le code qui permet à
+  // l'appelant de savoir s'il doit proposer un autre service, ou soupçonner le
+  // lien.
   assert.throws(() => parseShortResponse('', 200, TINY, 'https://exemple.fr/x'),
-    (error) => error.code === 'invalid');
+    (error) => error.code === 'service');
   assert.throws(() => parseShortResponse('   ', 200, TINY, 'https://exemple.fr/x'),
-    (error) => error.code === 'invalid');
+    (error) => error.code === 'service');
   // JSON annoncé mais tronqué : on retombe sur la recherche de texte, qui échoue.
   assert.throws(() => parseShortResponse('{"short_url":', 200, SPOOME, 'https://exemple.fr/x'),
     (error) => error.code === 'service');
@@ -403,4 +408,61 @@ test('describeShortenReport résume le lot en une phrase', () => {
     describeShortenReport({ ok: [], failed: [{ message: 'panne' }], skipped: [] }),
     '0 lien raccourci, 1 échec — panne',
   );
+});
+
+// ---------------------------------------------------------------------------
+// Ce qui accuse le service, et ce qui accuse le lien
+//
+// La distinction commande tout le reste : « ce lien est déjà court » ne dit rien
+// de la santé du service, alors qu'un délai dépassé ou une réponse qui n'est pas
+// un lien disent qu'il ne répond pas — aujourd'hui, pour ce lien-là, et peut-être
+// pour les suivants.
+// ---------------------------------------------------------------------------
+
+test('un échec de service se distingue d\'un échec de lien', () => {
+  // `network` et `timeout` sont les deux codes de l'injoignable, et ce sont ceux
+  // qu'on rencontre vraiment : la première version de la liste ne retenait que
+  // ce que `shortenUrl` sait produire, et l'épreuve dans Chrome a montré une
+  // requête bloquée — classée `network`, donc ignorée.
+  for (const code of ['http', 'service', 'network', 'timeout']) {
+    assert.equal(isServiceFailure(code), true, `${code} devrait accuser le service`);
+  }
+  // Le lien est mauvais : le service a très bien répondu.
+  assert.equal(isServiceFailure('invalid'), false);
+  // C'est l'utilisateur qui a annulé.
+  assert.equal(isServiceFailure('aborted'), false);
+  // Le lien est déjà court : le service a très bien répondu.
+  assert.equal(isServiceFailure('unchanged'), false);
+  // Le navigateur n'offre pas `fetch` : ce n'est la faute de personne.
+  assert.equal(isServiceFailure('unsupported'), false);
+});
+
+test('un code absent ne fait accuser personne', () => {
+  assert.equal(isServiceFailure(undefined), false);
+  assert.equal(isServiceFailure(''), false);
+});
+
+test('on propose un autre service, sans jamais changer à la place de l\'utilisateur', () => {
+  // Changer de service en silence enverrait l'adresse à un tiers que
+  // l'utilisateur n'a pas choisi : c'est exactement ce que ce produit s'interdit.
+  const autre = suggestShortener('tinyurl', []);
+  assert.equal(autre.id, 'isgd');
+  assert.equal(typeof autre.name, 'string');
+
+  // Un service déjà en échec n'est pas proposé.
+  assert.equal(suggestShortener('tinyurl', ['tinyurl', 'isgd']).id, 'vgd');
+  assert.equal(suggestShortener('tinyurl', ['tinyurl', 'isgd', 'vgd']).id, 'spoome');
+});
+
+test('quand tous les services ont échoué, on ne propose rien', () => {
+  // Mieux vaut ne rien proposer que proposer un service qui vient d'échouer.
+  const tous = SHORTENERS.map((s) => s.id);
+  assert.equal(suggestShortener('tinyurl', tous), undefined);
+});
+
+test('le service courant n\'est jamais proposé à sa place', () => {
+  for (const shortener of SHORTENERS) {
+    const autre = suggestShortener(shortener.id, []);
+    assert.ok(!autre || autre.id !== shortener.id);
+  }
 });

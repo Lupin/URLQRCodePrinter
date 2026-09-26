@@ -24,6 +24,8 @@ import {
   findShortener,
   createShortener,
   describeShortenReport,
+  isServiceFailure,
+  suggestShortener,
 } from './core/shorten.js';
 import { encodeQr, toSvg } from './core/qr.js';
 import { wrapText } from './core/label.js';
@@ -145,6 +147,15 @@ let mode = 'sheet';
  * la déclaration.
  */
 let largeurApercuRendue = 0;
+
+/**
+ * Les services de raccourcissement qui n'ont pas répondu, pour la **session**.
+ *
+ * Rien n'est écrit : une panne d'aujourd'hui ne dit rien de demain, et un
+ * marquage persistant finirait par écarter un service durablement bon. Le
+ * marquage est levé dès qu'un raccourcissement réussit.
+ */
+const servicesEnEchec = new Map();
 
 /** La largeur utile retenue pour ce rendu, ou une mesure de secours. */
 function largeurUtileApercu() {
@@ -1102,8 +1113,14 @@ function fillShorteners() {
   for (const shortener of SHORTENERS) {
     const option = document.createElement('option');
     option.value = shortener.id;
-    option.textContent = t(shortener.label);
-    option.title = shortener.note;
+    const echec = servicesEnEchec.get(shortener.id);
+    // Un service qui vient de ne pas répondre le dit, là où on le choisit.
+    // L'option reste **sélectionnable** : une panne passagère ne doit pas
+    // interdire de réessayer, et c'est le seul moyen de savoir si elle dure.
+    option.textContent = echec
+      ? t('{label} — n\'a pas répondu', { label: t(shortener.label) })
+      : t(shortener.label);
+    option.title = echec ? `${shortener.note} — ${echec.message}` : shortener.note;
     el.shortener.appendChild(option);
   }
 }
@@ -1118,25 +1135,49 @@ function updateShortenStatus(message = '') {
   const shortened = links.filter(hasShortUrl);
   el.shortenClear.hidden = shortened.length === 0;
 
-  if (message !== '') {
-    el.shortenStatus.textContent = message;
-    return;
-  }
-  if (links.length === 0) {
-    el.shortenStatus.textContent = '';
+  /**
+   * La phrase de base : le message fourni, ou ce que le bouton fera.
+   *
+   * @returns {string}
+   */
+  const base = () => {
+    if (message !== '') return message;
+    if (links.length === 0) return '';
+    const scope = selected.size > 0
+      ? tpl(selected.size, '{count} lien coché', '{count} liens cochés')
+      : t('toute la collection');
+    const done = shortened.length > 0
+      ? tpl(shortened.length, ' — {count} raccourci en place', ' — {count} raccourcis en place')
+      : '';
+    return t(
+      "{label} · {scope}{done}. L'URL complète est transmise au service.",
+      { label: t(currentShortener().label), scope, done },
+    );
+  };
+
+  // Le service choisi a déjà échoué dans cette session : on le dit, et on
+  // propose un autre — sans changer à sa place. Changer de service en silence
+  // enverrait l'adresse à un tiers que l'utilisateur n'a pas choisi.
+  //
+  // Cette phrase s'ajoute **au message éventuel**, et ne le remplace pas : le
+  // bilan du lot vient d'être écrit, et l'effacer priverait l'utilisateur de ce
+  // qui vient de se passer.
+  const echec = servicesEnEchec.get(currentShortener().id);
+  if (echec) {
+    const autre = suggestShortener(currentShortener().id, servicesEnEchec.keys());
+    const phrase = autre
+      ? t('{label} n\'a pas répondu à l\'instant : {message} Essayez {autre}.', {
+        label: t(currentShortener().label), message: echec.message, autre: t(autre.label),
+      })
+      : t('{label} n\'a pas répondu à l\'instant : {message} Aucun autre service n\'est proposé.', {
+        label: t(currentShortener().label), message: echec.message,
+      });
+    const avant = base();
+    el.shortenStatus.textContent = avant === '' ? phrase : `${avant} ${phrase}`;
     return;
   }
 
-  const scope = selected.size > 0
-    ? tpl(selected.size, '{count} lien coché', '{count} liens cochés')
-    : t('toute la collection');
-  const done = shortened.length > 0
-    ? tpl(shortened.length, ' — {count} raccourci en place', ' — {count} raccourcis en place')
-    : '';
-  el.shortenStatus.textContent = t(
-    "{label} · {scope}{done}. L'URL complète est transmise au service.",
-    { label: t(currentShortener().label), scope, done },
-  );
+  el.shortenStatus.textContent = base();
 }
 
 /**
@@ -1163,6 +1204,7 @@ async function shortenSelection() {
   const shortener = createShortener({ provider: el.shortener.value });
   const controller = new AbortController();
   shortenJob = controller;
+  const serviceId = shortener.provider.id;
 
   el.shorten.disabled = false;
   el.shorten.textContent = t('Annuler');
@@ -1191,12 +1233,30 @@ async function shortenSelection() {
     }
 
     await refresh();
+
+    // Ce qui accuse le **service** est retenu ; ce qui accuse le lien ne l'est
+    // pas. « Ce lien est déjà court » n'apprend rien sur la santé du service, et
+    // le marquer ferait écarter un service qui fonctionne.
+    const fautes = report.failed.filter((item) => isServiceFailure(item.code));
+    if (fautes.length > 0) {
+      servicesEnEchec.set(serviceId, { message: fautes[0].message, at: Date.now() });
+    } else if (report.ok.length > 0) {
+      // Il a répondu : le marquage d'une panne précédente est levé.
+      servicesEnEchec.delete(serviceId);
+    }
+
     const summary = describeShortenReport(report);
     toast(summary, report.failed.length > 0 ? 'error' : 'info');
+    fillShorteners();
+    el.shortener.value = serviceId;
     updateShortenStatus(summary);
   } catch (error) {
+    // Le lot entier a échoué : c'est le service, par construction.
+    servicesEnEchec.set(serviceId, { message: error.message ?? t('raison inconnue'), at: Date.now() });
+    fillShorteners();
+    el.shortener.value = serviceId;
     toast(t('Raccourcissement impossible : {message}', { message: error.message }), 'error');
-    updateShortenStatus(error.message);
+    updateShortenStatus();
   } finally {
     shortenJob = null;
     el.shorten.textContent = t('Raccourcir');

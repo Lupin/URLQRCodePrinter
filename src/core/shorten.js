@@ -200,6 +200,50 @@ export function findShortener(id) {
 }
 
 /**
+ * Les codes d'échec qui accusent le **service**, et non le lien.
+ *
+ * La distinction commande tout le reste : « ce lien est déjà court » ne dit rien
+ * de la santé du service, alors qu'un délai dépassé, un statut HTTP en erreur ou
+ * une réponse qui n'est pas un lien disent que le service ne répond pas —
+ * aujourd'hui, pour ce lien-là, et peut-être pour les suivants.
+ *
+ * `unsupported` est écarté pour la même raison : il signale que le navigateur
+ * n'offre pas `fetch`, ce qui n'est la faute de personne. `aborted` aussi : c'est
+ * l'utilisateur qui a annulé.
+ *
+ * `network` et `timeout` sont les deux codes de l'injoignable, et ce sont ceux
+ * qu'on rencontre vraiment : un service qui bloque, un délai dépassé. Ils
+ * manquaient à la première version de cette liste, qui ne retenait que ce que
+ * `shortenUrl` sait produire — l'épreuve dans Chrome a montré le vrai cas, une
+ * requête bloquée, classée `network` et donc ignorée.
+ */
+export const SERVICE_FAILURE_CODES = Object.freeze(['http', 'service', 'network', 'timeout']);
+
+/**
+ * @param {string} [code]
+ * @returns {boolean}
+ */
+export function isServiceFailure(code) {
+  return SERVICE_FAILURE_CODES.includes(code);
+}
+
+/**
+ * Le premier service qui n'a pas échoué, en partant du service choisi.
+ *
+ * **Aucune substitution automatique.** Changer de service sans le dire enverrait
+ * l'adresse de l'utilisateur à un tiers qu'il n'a pas choisi : c'est exactement
+ * ce que ce produit s'interdit. On propose, l'utilisateur décide.
+ *
+ * @param {string} currentId
+ * @param {Iterable<string>} failedIds
+ * @returns {object|undefined} Le service à suggérer, ou `undefined` si aucun.
+ */
+export function suggestShortener(currentId, failedIds) {
+  const enEchec = new Set(failedIds);
+  return SHORTENERS.find((shortener) => shortener.id !== currentId && !enEchec.has(shortener.id));
+}
+
+/**
  * Analyse la réponse d'un service et en extrait le lien court.
  *
  * Les services bénévoles signalent leurs pannes par un texte en clair
@@ -223,7 +267,11 @@ export function parseShortResponse(text, status, shortener, originalUrl) {
   }
 
   const body = String(text ?? '').trim();
-  if (body === '') throw fail(`${shortener.name} a renvoyé une réponse vide`, 'invalid');
+  // Une réponse vide est une réponse du **service** : c'est lui qui n'a rien
+  // dit, et non le lien qui serait mauvais. Le code le dit, sinon l'appelant ne
+  // peut pas distinguer les deux — et c'est cette distinction qui décide si l'on
+  // propose un autre service.
+  if (body === '') throw fail(`${shortener.name} a renvoyé une réponse vide`, 'service');
 
   let candidate = '';
   if (body.startsWith('{') || body.startsWith('[')) {
@@ -244,7 +292,7 @@ export function parseShortResponse(text, status, shortener, originalUrl) {
   try {
     short = normalizeUrl(candidate);
   } catch (error) {
-    throw fail(`${shortener.name} a renvoyé un lien inexploitable : ${excerpt(candidate)}`, 'invalid');
+    throw fail(`${shortener.name} a renvoyé un lien inexploitable : ${excerpt(candidate)}`, 'service');
   }
 
   if (shortener.upgradeToHttps && short.startsWith('http://')) {

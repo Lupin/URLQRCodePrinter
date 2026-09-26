@@ -573,6 +573,12 @@ async function main() {
         hauteur: Math.round(box.height),
         anneau,
         visible: box.width > 0 && box.height > 0,
+        // Le fait qui tranche : l'anneau manque-t-il parce que la règle CSS ne
+        // s'applique pas, ou parce que le navigateur ne considère pas ce focus
+        // comme venant du clavier ?
+        focusVisible: node.matches(':focus-visible'),
+        focus: node.matches(':focus'),
+        desactive: node.disabled === true,
       };
     })()`);
 
@@ -611,13 +617,28 @@ async function main() {
       `${parcours.length} arrêt(s) : ${parcours.map((p) => p.id || p.classe || p.tag).join(' → ')}`,
     );
 
+    // Un anneau manquant a deux causes possibles, et les confondre ferait
+    // accuser la feuille de style à tort — ou l'innocenter.
+    //
+    // - `:focus-visible` est faux : le navigateur n'a pas classé ce focus comme
+    //   venant du clavier. C'est son heuristique, pas notre règle, et elle
+    //   dépend de la modalité de la dernière interaction.
+    // - `:focus-visible` est vrai et l'anneau manque : **c'est notre règle** qui
+    //   ne s'applique pas. Cela, il faut le voir.
     const sansAnneau = parcours.filter((p) => p.anneau === '');
+    const fautifs = sansAnneau.filter((p) => p.focusVisible === true);
+    const heuristic = sansAnneau.filter((p) => p.focusVisible !== true);
+
     record(
       'chaque arrêt de tabulation porte un anneau de focus visible',
-      sansAnneau.length === 0,
-      sansAnneau.length
-        ? `sans anneau : ${sansAnneau.map((p) => p.id || p.classe).join(', ')}`
-        : `${parcours.length} arrêt(s) tous cerclés`,
+      fautifs.length === 0,
+      fautifs.length
+        ? `règle en défaut sur : ${fautifs.map((p) => p.id || p.classe).join(', ')}`
+        : `${parcours.length} arrêt(s) tous cerclés`
+          + (heuristic.length
+            ? ` — ${heuristic.length} sans anneau mais hors :focus-visible `
+              + `(${heuristic.map((p) => p.id || p.classe).join(', ')}), heuristique du navigateur`
+            : ''),
     );
 
     // 2.5.8 Target Size (Minimum) : 24 × 24 px, **et son exception d'espacement**.
@@ -1300,6 +1321,47 @@ async function main() {
         + `export ${rapportExporte?.rapportLargeur} × ${rapportExporte?.rapportHauteur} `
         + `(${rapportExporte?.etiquetteMm} sur ${rapportExporte?.largeurPageMm})`,
     );
+
+    // --- Un service de raccourcissement qui ne répond pas ------------------
+    //
+    // On **bloque la requête** au lieu d'attendre qu'un vrai service tombe : le
+    // chemin d'échec est ainsi éprouvé de façon déterministe, sur le code réel,
+    // et sans dépendre de la santé d'un tiers ce jour-là.
+    await app.session.call('Network.enable');
+    await app.session.call('Network.setBlockedURLs', { urls: ['*tinyurl.com*'] });
+
+    const serviceEnPanne = await evalApp(`(async () => {
+      const pause = (ms) => new Promise((r) => setTimeout(r, ms));
+      const select = document.getElementById('shortener');
+      select.value = 'tinyurl';
+      select.dispatchEvent(new Event('change', { bubbles: true }));
+      document.getElementById('shorten').click();
+      await pause(2500);
+      const option = [...select.options].find((o) => o.value === 'tinyurl');
+      return {
+        libelle: option?.textContent.trim(),
+        infoBulle: option?.title ?? '',
+        statut: document.getElementById('shorten-status').textContent.trim(),
+        // L'option reste sélectionnable : une panne passagère ne doit pas
+        // interdire de réessayer.
+        desactivee: option?.disabled,
+      };
+    })()`);
+
+    record(
+      'un service qui ne répond pas le dit, là où on le choisit',
+      /n'a pas répondu/.test(serviceEnPanne?.libelle ?? '')
+        && serviceEnPanne?.desactivee === false,
+      `« ${serviceEnPanne?.libelle} »`,
+    );
+    record(
+      'un autre service est proposé, sans être imposé',
+      /is\.gd/.test(serviceEnPanne?.statut ?? ''),
+      `« ${serviceEnPanne?.statut?.slice(0, 140)} »`,
+    );
+
+    await app.session.call('Network.setBlockedURLs', { urls: [] });
+    await app.session.call('Network.disable');
 
     // --- Le tri et le déplacement -----------------------------------------
     //

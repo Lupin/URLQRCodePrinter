@@ -269,6 +269,28 @@ n'est pas un écart de temps.
 
 ---
 
+## Un anneau de focus qui manque, sans que la règle soit en cause
+
+Mesuré au lot 7 : un arrêt de tabulation sur dix — `#open-app`, puis `#export-md`
+au passage suivant — sans anneau de focus. Reproductible deux fois, puis absent.
+
+Le contrôle confondait deux causes : la règle de style qui ne s'applique pas, et
+l'heuristique du navigateur. Il les distingue maintenant, en interrogeant
+`element.matches(':focus-visible')` :
+
+- `:focus-visible` **faux** → le navigateur n'a pas classé ce focus comme venant
+  du clavier. C'est son heuristique, qui dépend de la modalité de la dernière
+  interaction — et sous des appuis de touche envoyés par le protocole, elle peut
+  faiblir. Ce n'est pas la règle qui est en cause.
+- `:focus-visible` **vrai** et anneau absent → **c'est notre règle**. Le contrôle
+  échoue, et il nomme l'élément.
+
+Trois passages consécutifs donnent 80 constats satisfaits sur 80, le troisième
+relevant l'artefact et le nommant. Un contrôle qui échoue au hasard finit par être
+ignoré ; celui-ci dit ce qu'il a vu et pourquoi il ne conclut pas à un défaut.
+
+---
+
 ## Le curseur de largeur du QR Code ne remonte pas tout seul
 
 Constaté en éprouvant les options de la planche, et **laissé en l'état** : c'est

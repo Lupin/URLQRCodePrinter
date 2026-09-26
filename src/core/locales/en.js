@@ -32,6 +32,12 @@ export const EN_MESSAGES = {
   "La page": "The page",
   "Ce qu'on imprime": "What gets printed",
   "Trier": "Sort",
+  "raison inconnue": "unknown reason",
+  "{label} — n'a pas répondu": "{label} — did not respond",
+  "{label} n'a pas répondu à l'instant : {message} Essayez {autre}.":
+    "{label} did not respond just now: {message} Try {autre}.",
+  "{label} n'a pas répondu à l'instant : {message} Aucun autre service n'est proposé.":
+    "{label} did not respond just now: {message} No other service is offered.",
   "Les flèches déplacent un lien dans la collection, et le tableau imprimé suit cet ordre.":
     "The arrows move a link within the collection, and the printed table follows that order.",
   "Ordre manuel": "Manual order",
@@ -171,6 +177,12 @@ export const EN_MESSAGES = {
   "La page": "The page",
   "Ce qu'on imprime": "What gets printed",
   "Trier": "Sort",
+  "raison inconnue": "unknown reason",
+  "{label} — n'a pas répondu": "{label} — did not respond",
+  "{label} n'a pas répondu à l'instant : {message} Essayez {autre}.":
+    "{label} did not respond just now: {message} Try {autre}.",
+  "{label} n'a pas répondu à l'instant : {message} Aucun autre service n'est proposé.":
+    "{label} did not respond just now: {message} No other service is offered.",
   "Les flèches déplacent un lien dans la collection, et le tableau imprimé suit cet ordre.":
     "The arrows move a link within the collection, and the printed table follows that order.",
   "Ordre manuel": "Manual order",
