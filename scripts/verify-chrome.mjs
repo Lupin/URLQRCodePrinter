@@ -1778,6 +1778,138 @@ async function main() {
         + `« ${sansNote?.planche?.bulle} »`,
     );
 
+    // --- Un refus dit ce qui le ferait disparaître -------------------------
+    //
+    // Signalé : le message rouge « URL trop longue » restait affiché après avoir
+    // décoché les options de texte — et pour cause, le QR Code encode l'URL, ce
+    // que rien ne disait. Le contrôle installe donc le cas : une adresse trop
+    // longue pour une tête de 12 mm, **avec** un raccourci. Il vérifie ensuite
+    // que le refus nomme le remède, dit ce qui n'y change rien, et que le
+    // remède fonctionne.
+    const LONGUE = 'https://www.archiproducts.com/en/products/office-partitions/'
+      + 'double-glass-office-partition-by-dvo-mesure-sur-plan-large';
+    await evalApp(`new Promise((resolve) => chrome.storage.local.get('links', (valeur) => {
+      const liens = valeur.links ?? [];
+      liens.push({
+        id: 'refus-long', url: ${JSON.stringify(LONGUE)}, title: 'Une adresse trop longue',
+        note: '', tags: [], createdAt: Date.now(), updatedAt: Date.now(),
+        source: 'manual', favicon: '', shortUrl: '', shortProvider: '',
+        shortenedAt: 0, order: 0,
+      });
+      chrome.storage.local.set({ links: liens }, resolve);
+    }))`);
+    await recharger(app.session);
+    await forcerPeinture(app.session, 800);
+
+    const conseil = await evalApp(`(async () => {
+      const pause = (ms) => new Promise((r) => setTimeout(r, ms));
+      [...document.querySelectorAll('.tab')].find((t) => t.dataset.mode === 'single').click();
+      await pause(900);
+
+      const choix = document.getElementById('label-link');
+      const option = [...choix.options].find((o) => o.textContent.includes('Une adresse trop longue'));
+      if (option) {
+        choix.value = option.value;
+        choix.dispatchEvent(new Event('change', { bubbles: true }));
+        await pause(1000);
+      }
+
+      const lire = () => {
+        const n = document.querySelector('#preview .hint');
+        return {
+          legende: n ? n.textContent.trim() : null,
+          rouge: n ? getComputedStyle(n).color : null,
+        };
+      };
+      const refus = lire();
+
+      // Décocher le texte : le refus reste, et le dit.
+      for (const id of ['label-show-url', 'label-show-title']) {
+        const n = document.getElementById(id);
+        n.checked = false;
+        n.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+      await pause(900);
+      const sansTexte = lire();
+
+      return { refus, sansTexte };
+    })()`);
+
+    record(
+      'un refus de longueur dit ce qui n\'y change rien : décocher le texte',
+      conseil?.refus?.rouge === 'rgb(179, 18, 43)'
+        && /trop longue/.test(conseil?.refus?.legende ?? '')
+        && /texte imprimé n'y change rien/.test(conseil?.sansTexte?.legende ?? ''),
+      `« ${conseil?.refus?.legende?.slice(0, 150)} » puis, texte décoché : `
+        + `« ${conseil?.sansTexte?.legende?.slice(0, 150)} »`,
+    );
+
+    // Le raccourci arrive : le refus doit alors **nommer le remède**, et le
+    // remède doit marcher.
+    await evalApp(`new Promise((resolve) => chrome.storage.local.get('links', (valeur) => {
+      const liens = (valeur.links ?? []).map((lien) => (lien.id === 'refus-long'
+        ? Object.assign({}, lien, {
+          shortUrl: 'https://spoo.me/abcd', shortProvider: 'spoome', shortenedAt: Date.now(),
+        })
+        : lien));
+      chrome.storage.local.set({ links: liens }, resolve);
+    }))`);
+    await recharger(app.session);
+    await forcerPeinture(app.session, 800);
+
+    const raccourci = await evalApp(`(async () => {
+      const pause = (ms) => new Promise((r) => setTimeout(r, ms));
+      [...document.querySelectorAll('.tab')].find((t) => t.dataset.mode === 'single').click();
+      await pause(900);
+      const choix = document.getElementById('label-link');
+      const option = [...choix.options].find((o) => o.textContent.includes('Une adresse trop longue'));
+      if (option) {
+        choix.value = option.value;
+        choix.dispatchEvent(new Event('change', { bubbles: true }));
+        await pause(1000);
+      }
+      const lire = () => {
+        const n = document.querySelector('#preview .hint');
+        return { legende: n ? n.textContent.trim() : null, rouge: n ? getComputedStyle(n).color : null };
+      };
+      const avant = lire();
+      [...document.querySelectorAll('#list .link')]
+        .find((l) => l.querySelector('.link__title')?.textContent.includes('Une adresse trop longue'))
+        ?.querySelector('.link__target input')?.click();
+      await pause(1200);
+      return { avant, apres: lire() };
+    })()`);
+
+    record(
+      'le refus nomme le raccourci, et l\'encoder le fait disparaître',
+      /raccourci/.test(raccourci?.avant?.legende ?? '')
+        && /trop longue/.test(raccourci?.avant?.legende ?? '')
+        && !/trop longue/.test(raccourci?.apres?.legende ?? '')
+        && raccourci?.apres?.rouge !== 'rgb(179, 18, 43)',
+      `« ${raccourci?.avant?.legende?.slice(0, 160)} » → `
+        + `« ${raccourci?.apres?.legende?.slice(0, 110)} »`,
+    );
+
+    // Remise en état : le lien d'épreuve disparaît, et le texte revient.
+    await evalApp(`new Promise((resolve) => chrome.storage.local.get('links', (valeur) => {
+      chrome.storage.local.set({
+        links: (valeur.links ?? []).filter((lien) => lien.id !== 'refus-long'),
+      }, resolve);
+    }))`);
+    await recharger(app.session);
+    await forcerPeinture(app.session, 700);
+    await evalApp(`(async () => {
+      const pause = (ms) => new Promise((r) => setTimeout(r, ms));
+      for (const id of ['label-show-url', 'label-show-title']) {
+        const n = document.getElementById(id);
+        n.checked = true;
+        n.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+      await pause(700);
+      [...document.querySelectorAll('.tab')].find((t) => t.dataset.mode === 'sheet').click();
+      await pause(600);
+    })()`);
+
     // --- L'éditeur d'un lien ne déborde pas de la liste --------------------
     //
     // Le formulaire gardait sa largeur propre — 364 px, la largeur intrinsèque

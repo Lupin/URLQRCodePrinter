@@ -509,6 +509,21 @@ test('une portée vide reste choisie, et l\'aperçu dit qu\'il n\'y a rien à im
   assert.match(app, /const nommer = impressionChoisie\(\)\.kind !== 'one'/);
 });
 
+test('un refus de longueur dit ce qui le ferait disparaître', () => {
+  // Le message rouge « URL trop longue » restait affiché après avoir décoché
+  // les options de texte — et pour cause : le QR Code encode l'URL, sa largeur
+  // ne change pas. Rien ne le disait, et on cherchait le coupable de ce côté.
+  const app = readFileSync(join(WEB, 'app.js'), 'utf8');
+  assert.match(app, /function conseilPourPanneau\(link, profile, geometry\)/);
+  assert.match(app, /const conseil = verdict\.ok \? '' : conseilPourPanneau\(/);
+  assert.match(app, /\n    \+ conseil/);
+  // Le remède est **vérifié**, pas affirmé : on recompose avec le raccourci.
+  assert.match(app, /const essai = composeLabel\(\{ \.\.\.link, useShort: true \}, profile\)/);
+  // Et le conseil distingue les deux causes : largeur du QR Code, ou hauteur.
+  assert.match(app, /if \(geometry\.qrSize > geometry\.width\)/);
+  assert.match(app, /La place manque en hauteur/);
+});
+
 test("l'éditeur d'un lien tient dans la liste, sur sa propre ligne", () => {
   // Il gardait sa largeur propre — 364 px, la largeur intrinsèque d'un champ de
   // saisie — et débordait dès que le panneau était plus étroit. La liste

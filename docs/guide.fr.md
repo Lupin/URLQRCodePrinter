@@ -678,6 +678,12 @@ disponibles. Si une URL est trop dense pour le format — un lien long sur une
 étiquette de 12 mm — le message nomme le lien fautif : raccourcissez-le, ou prenez
 une étiquette plus grande.
 
+Il dit aussi **ce qui n'y changerait rien**. Le QR Code encode l'adresse : décocher
+le titre ou l'URL sous lui ne change pas sa largeur, et le message le dit plutôt
+que de laisser chercher de ce côté. Quand le lien a un **raccourci**, il nomme le
+remède exact — « Ce lien a un raccourci : encodez-le à sa place » — et cocher la
+case correspondante fait effectivement disparaître le refus.
+
 L'aperçu se met à jour à chaque changement. Le bouton d'export dit la portée et
 le nombre — « Exporter les 12 images (ZIP) », ou « Exporter la sélection (3) »
 quand seuls quelques liens sont cochés — puis produit une archive autonome :

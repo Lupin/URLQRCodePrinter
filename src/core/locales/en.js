@@ -93,6 +93,12 @@ export const EN_MESSAGES = {
   "Avec la date d'impression": "With the print date",
   "Avec la note de collection": "With the collection note",
   "Ajuster l'espacement": "Adjust the spacing",
+  " Ce lien a un raccourci : encodez-le à sa place, avec « Encoder le lien raccourci ».":
+    " This link has a short URL: encode it instead, with \u201cEncode the short link\u201d.",
+  " Le texte imprimé n'y change rien : c'est la largeur du QR Code qui dépasse celle de l'étiquette.":
+    " The printed text changes nothing here: it is the QR Code's width that exceeds the label's.",
+  " La place manque en hauteur : décochez du texte sous le QR Code, ou prenez une étiquette plus longue.":
+    " Height is what runs short: untick some text below the QR Code, or use a longer label.",
   "Disposition précédente": "Previous layout",
   "Disposition suivante": "Next layout",
   "Les {asked} ne peuvent pas tenir sur une page : {columns} × {rows} à la place.":

@@ -191,6 +191,55 @@ async function main() {
       });
       const sansSelection = lire();
 
+      // Le verdict de l'onglet Niimbot suit-il vraiment les options ?
+      [...document.querySelectorAll('.tab')].find((t) => t.dataset.mode === 'single').click();
+      await pause(900);
+      const lireVerdict = () => ({
+        legende: document.querySelector('#preview .hint')?.textContent.trim() ?? null,
+        contenu: document.getElementById('label-content-hint')?.textContent.trim() ?? null,
+        police: document.getElementById('label-font-hint')?.textContent.trim() ?? null,
+        machine: document.getElementById('label-profile')?.value ?? null,
+      });
+      const choixLien = document.getElementById('label-link');
+      const lienLong = [...choixLien.options]
+        .find((o) => /chemin-vraiment|adresse/i.test(o.textContent));
+      if (lienLong) {
+        choixLien.value = lienLong.value;
+        choixLien.dispatchEvent(new Event('change', { bubbles: true }));
+        await pause(800);
+      }
+      const avecTexte = lireVerdict();
+      for (const id of ['label-show-url', 'label-show-title']) {
+        const n = document.getElementById(id);
+        n.checked = false;
+        n.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+      await pause(900);
+      const sansTexte = lireVerdict();
+      // Et le cas ou c'est le **texte** qui gene : une URL courte sur une
+      // etiquette etroite, avec beaucoup de lignes demandees.
+      const court = [...choixLien.options].find((o) => /article-deux|quatre|trois/i.test(o.textContent));
+      if (court) {
+        choixLien.value = court.value;
+        choixLien.dispatchEvent(new Event('change', { bubbles: true }));
+        await pause(700);
+      }
+      for (const id of ['label-show-url', 'label-show-title', 'label-show-host', 'label-show-date']) {
+        const n = document.getElementById(id);
+        n.checked = true;
+        n.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+      await pause(900);
+      const courtAvecTexte = lireVerdict();
+      for (const id of ['label-show-url', 'label-show-title', 'label-show-host', 'label-show-date']) {
+        const n = document.getElementById(id);
+        n.checked = false;
+        n.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+      await pause(900);
+      const courtSansTexte = lireVerdict();
+      window.__verdict = { avecTexte, sansTexte, courtAvecTexte, courtSansTexte };
+
       // L'editeur d'une ligne : champs coupes, texte coupe, et la fenetre
       // redimensionnee n'y change rien. On mesure ce qui deborde, et ou.
       [...document.querySelectorAll('.tab')].find((t) => t.dataset.mode === 'sheet').click();
@@ -313,6 +362,7 @@ async function main() {
     console.log(JSON.stringify(niimbot, null, 2));
     console.log(JSON.stringify(await evaluate('window.__feuille'), null, 2));
     console.log(JSON.stringify(await evaluate('window.__editeur'), null, 2));
+    console.log(JSON.stringify(await evaluate('window.__verdict'), null, 2));
 
     const zoneEtiquette = await evaluate(`(() => {
       const cadre = document.querySelector('#preview .preview__page');

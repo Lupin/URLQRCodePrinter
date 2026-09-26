@@ -687,6 +687,12 @@ lines available. If a URL is too dense for the format — a long link on a 12 mm
 label — the message names the offending link: shorten it, or take a bigger
 label.
 
+It also says **what would change nothing**. The QR Code encodes the address:
+unticking the title or the URL below it does not change its width, and the
+message says so rather than leaving you to look there. When the link has a
+**short URL**, it names the exact remedy — "This link has a short URL: encode it
+instead" — and ticking the matching box does make the refusal disappear.
+
 The preview updates on every change. The export button states the scope and the
 number — "Export 12 images (ZIP)" (« Exporter les 12 images (ZIP) »), or "Export
 selection (3)" (« Exporter la sélection (3) ») when only a few links are checked

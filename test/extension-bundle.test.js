@@ -95,6 +95,26 @@ const settle = async (turns = 5) => {
   }
 };
 
+/**
+ * Attend qu'une condition soit vraie, plutôt qu'un nombre de tours.
+ *
+ * `settle` dit « laissons tourner la boucle » ; il ne dit pas « le démarrage est
+ * fini », et deux tests échouaient encore une fois sur quatre sous charge. Ce qui
+ * est attendu ici est un **état**, et c'est lui qu'on attend.
+ *
+ * @param {() => boolean} check
+ * @param {{ timeout?: number, interval?: number }} [options]
+ * @returns {Promise<boolean>}
+ */
+async function waitFor(check, { timeout = 3000, interval = 10 } = {}) {
+  const fin = Date.now() + timeout;
+  for (;;) {
+    if (check()) return true;
+    if (Date.now() > fin) return false;
+    await new Promise((resolvePromise) => setTimeout(resolvePromise, interval));
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Service worker
 // ---------------------------------------------------------------------------
@@ -554,8 +574,10 @@ test('l\'encart de confidentialité est visible tant que rien n\'est accepté', 
 test('l\'encart disparaît une fois la mention acceptée', async () => {
   installChrome({ stored: acceptedConsent() });
   await loadFresh('popup.js');
-  await settle();
-  await settle();
+  // On attend l'**état**, et non un délai : sous charge, un nombre fixe de tours
+  // laissait le démarrage inachevé, et le test échouait sans que rien ne soit
+  // cassé.
+  await waitFor(() => dom.element('consent-notice')?.hidden === true);
 
   assert.equal(dom.element('consent-notice').hidden, true);
 });
@@ -569,8 +591,11 @@ test('la fenêtre affiche une erreur plutôt que de rester muette', async () => 
   };
 
   await loadFresh('popup.js');
-  await settle();
-  await settle();
+  // Même règle : c'est l'état qu'on attend, pas un délai.
+  await waitFor(() => {
+    const texte = dom.element('current-tab')?.textContent ?? '';
+    return texte !== '' && texte !== 'Chargement…';
+  });
 
   const currentTab = dom.element('current-tab');
   assert.ok(currentTab, 'la fenêtre doit avoir affiché quelque chose');

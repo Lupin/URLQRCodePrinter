@@ -2881,6 +2881,45 @@ function applyPrintPageSize(widthMm, heightMm) {
   style.textContent = `@page { size: ${widthMm}mm ${heightMm}mm; margin: 0; }`;
 }
 
+/**
+ * Ce qui ferait disparaître un refus de longueur, dit à l'endroit du refus.
+ *
+ * Le refus est mesuré, pas deviné : le QR Code encode l'URL, et sa largeur est
+ * celle de l'étiquette, moins les marges. Décocher les options de texte ne
+ * change donc **rien** à sa largeur — ce que rien ne disait, et qu'on cherchait
+ * pourtant de ce côté. Ce qui marche, en revanche :
+ *
+ * - un **raccourci** : c'est le remède direct, et l'application le propose déjà
+ *   pour ce lien. On le vérifie en composant l'étiquette avec, au lieu de
+ *   l'affirmer ;
+ * - une **étiquette plus large** — seul recours quand l'URL n'a pas de raccourci
+ *   et que la largeur est la contrainte ;
+ * - **moins de texte**, mais uniquement quand c'est la hauteur qui manque. Le
+ *   dire dans l'autre cas enverrait décocher des cases pour rien.
+ *
+ * @param {import('./core/link.js').LinkRecord} link
+ * @param {object} profile
+ * @param {object} geometry
+ * @returns {string}
+ */
+function conseilPourPanneau(link, profile, geometry) {
+  if (hasShortUrl(link)) {
+    const essai = composeLabel({ ...link, useShort: true }, profile);
+    if (essai.verdict.ok) {
+      return t(' Ce lien a un raccourci : encodez-le à sa place, avec « Encoder le lien raccourci ».');
+    }
+  }
+  // Le QR Code est plus large que l'étiquette : le texte n'y est pour rien.
+  if (geometry.qrSize > geometry.width) {
+    return t(
+      " Le texte imprimé n'y change rien : c'est la largeur du QR Code qui dépasse celle de l'étiquette.",
+    );
+  }
+  return t(
+    ' La place manque en hauteur : décochez du texte sous le QR Code, ou prenez une étiquette plus longue.',
+  );
+}
+
 /** Aperçu de l'étiquette destinée à l'imprimante Niimbot. */
 function renderSingleLabel(link) {
   if (labelPreviewUrl) {
@@ -2998,6 +3037,12 @@ function renderSingleLabel(link) {
   // Un verdict porte toujours sur **une** étiquette : quand la portée en couvre
   // plusieurs, on nomme celle qui est en cause. Sans le nom, le message
   // ressemblerait à un jugement sur toute l'impression.
+  //
+  // Et il dit **ce qui le ferait disparaître**. Le refus est juste — le QR Code
+  // encode l'URL, et c'est sa largeur qui décide — mais rien ne l'expliquait, si
+  // bien qu'on cherchait le coupable du côté des options de texte, qui n'y
+  // peuvent rien : les décocher ne change pas la taille du QR Code.
+  const conseil = verdict.ok ? '' : conseilPourPanneau(link, profile, geometry);
   const nommer = impressionChoisie().kind !== 'one';
   caption.textContent = (verdict.ok
     ? t('{profile} — {width} × {height} px, {px} px par module', {
@@ -3013,6 +3058,7 @@ function renderSingleLabel(link) {
         reason: t(verdict.reason),
       })
       : t('{profile} — {reason}', { profile: profile.id, reason: t(verdict.reason) })))
+    + conseil
     + orientationNote + dateNote + echelleNote;
   if (!verdict.ok) caption.style.color = 'var(--danger)';
   frame.appendChild(caption);
