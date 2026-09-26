@@ -72,14 +72,23 @@ const SURFACES = [
 ];
 
 test('aucun texte ne dit « QR » là où il parle du QR Code', () => {
+  // Le contrôle porte sur le fichier **entier**, retours à la ligne compris.
+  //
+  // Une première version lisait ligne par ligne, et signalait donc « …under the
+  // QR / Code, option by option » : la prose se replie, « QR » tombait en fin de
+  // ligne et « Code » à la suivante. Un garde-fou qui échoue sur une mise en
+  // page légitime finit par être désactivé — et c'est ainsi qu'une règle se
+  // perd. On analyse donc le texte replié, en gardant de quoi nommer la ligne.
   const manquements = [];
   for (const fichier of SURFACES) {
-    const lignes = readFileSync(fichier, 'utf8').split('\n');
-    lignes.forEach((ligne, index) => {
-      if (SIGLE_SEUL.test(ligne)) {
-        manquements.push(`${fichier.slice(ROOT.length + 1)}:${index + 1} — ${ligne.trim().slice(0, 90)}`);
-      }
-    });
+    const texte = readFileSync(fichier, 'utf8');
+    const replie = texte.replace(/\n/g, ' ');
+
+    for (const trouve of replie.matchAll(new RegExp(SIGLE_SEUL, 'g'))) {
+      const ligne = texte.slice(0, trouve.index).split('\n').length;
+      const extrait = replie.slice(Math.max(0, trouve.index - 40), trouve.index + 50).trim();
+      manquements.push(`${fichier.slice(ROOT.length + 1)}:${ligne} — …${extrait}…`);
+    }
   }
   assert.deepEqual(manquements, [], `sigle seul employé :\n  ${manquements.join('\n  ')}`);
 });

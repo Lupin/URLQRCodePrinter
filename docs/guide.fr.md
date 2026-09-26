@@ -220,6 +220,26 @@ d'avant, et rien ne disait laquelle serait imprimée. La borne haute des deux
 champs suit d'ailleurs celles de la feuille choisie : une A4 accepte 26 colonnes
 à la taille minimale d'étiquette, alors que le champ s'arrêtait à 12.
 
+**Ce qui s'imprime sous le QR Code, case par case.** Le groupe **« Sous chaque
+QR Code »** commande le texte de chaque étiquette de la planche :
+
+| Titre | URL | Ce qui s'imprime |
+|---|---|---|
+| coché | décoché | le titre ; l'URL prend sa place s'il n'y en a pas |
+| coché | coché | « titre URL » |
+| décoché | coché | l'URL seule |
+| décoché | décoché | rien : le QR Code occupe toute l'étiquette |
+
+Le titre était auparavant imprimé **dès qu'il existait** : ni l'URL seule, ni
+l'absence de texte n'étaient atteignables. Décocher les deux laisse d'ailleurs
+plus de place au QR Code — la borne haute du curseur **Largeur du QR Code** monte
+d'environ 81 % à 97 % sur une étiquette de 63,5 mm.
+
+**Tracer une bordure de découpe.** La case du groupe **Découpe** encadre chaque
+étiquette d'un trait de 0,2 mm — le même que celui du tableau imprimé. Utile sur
+du papier ordinaire, pour découper droit ; sur une planche autocollante
+prédécoupée, la bordure s'imprime à l'intérieur de chaque étiquette.
+
 **Une seule présentation, six valeurs.** Le sélecteur **Disposition** ne fait
 que *préremplir* les six champs qui suivent ; vous pouvez ensuite les ajuster
 librement, et la taille des étiquettes est recalculée :

@@ -52,6 +52,7 @@ import {
   qrRatioBounds,
   sheetTextMetrics,
   sheetCellLines,
+  sheetCellText,
   SHEET_CELL_MARGIN_MM,
   SHEET_QR_GAP_MM,
   SHEET_FONT_PT,
@@ -1557,22 +1558,23 @@ function buildSheetPages(items) {
   /**
    * Ce qui s'imprime sous le QR Code.
    *
-   * Un titre absent laissait déjà la place à l'URL ; l'option l'ajoute au
-   * titre. La même fonction sert au calcul des lignes réservées et au rendu :
-   * deux expressions séparées auraient réservé un nombre de lignes qui ne
+   * La décision vit dans `core/sheet.js`, où elle est testable sans navigateur.
+   * Elle est appelée **deux fois** — pour compter les lignes réservées et pour
+   * écrire le texte — et c'est la même fonction aux deux endroits : deux
+   * expressions séparées auraient réservé un nombre de lignes qui ne
    * correspondait pas au texte réellement écrit.
    */
-  const montreUrl = el.sheetUrl.checked;
-  const texteSousLeQr = (item) => {
-    const titre = typeof item.title === 'string' ? item.title.trim() : '';
-    if (!montreUrl) return titre || item.url;
-    return titre === '' ? item.url : `${titre} ${item.url}`;
-  };
+  const choixTexte = { title: el.sheetTitle.checked, url: el.sheetUrl.checked };
+  const texteSousLeQr = (item) => sheetCellText(item, choixTexte);
 
   // Combien de lignes le texte le plus long réclame-t-il à cette taille ?
   const mesurePlanche = cachedTextMeasure(metrics.fontSizePx);
   const largeurInterieurePx =
     ((layout.labelWidthMm - SHEET_CELL_MARGIN_MM * 2) * 96) / 25.4;
+  // Le compte part de **zéro**, et non de un : quand aucune ligne de texte n'est
+  // demandée — ni titre, ni URL — réserver une ligne rétrécissait le QR Code
+  // pour du vide. C'est précisément ce que l'utilisateur vient chercher en
+  // décochant les deux cases.
   const lignesNecessaires = encoded.flat().reduce((plus, entree) => {
     const texte = texteSousLeQr(entree.item);
     return Math.max(plus, sheetCellLines(texte, {
@@ -1580,7 +1582,7 @@ function buildSheetPages(items) {
       innerWidthPx: largeurInterieurePx,
       maxLines: 99,
     }).length);
-  }, 1);
+  }, 0);
 
   // Ce que le format peut réellement offrir : c'est `textLinesAtMin` qui le dit,
   // puisque le QR Code ne descend pas sous la taille où ses modules restent lisibles.
@@ -1647,7 +1649,9 @@ function buildSheetPages(items) {
 
     for (const { item, cell, matrix } of encoded[page.page]) {
       const cellEl = document.createElement('div');
-      cellEl.className = 'print-cell';
+      cellEl.className = el.sheetBorder.checked
+        ? 'print-cell print-cell--bordered'
+        : 'print-cell';
       cellEl.style.left = `${cell.xMm}mm`;
       cellEl.style.top = `${cell.yMm}mm`;
       cellEl.style.width = `${layout.labelWidthMm}mm`;
@@ -3576,6 +3580,9 @@ for (const field of [
     recadrerGrille();
     renderPreview();
   });
+}
+for (const box of [el.sheetTitle, el.sheetUrl, el.sheetBorder]) {
+  box.addEventListener('change', renderPreview);
 }
 el.sheetQr.addEventListener('input', renderPreview);
 el.sheetFont.addEventListener('input', renderPreview);

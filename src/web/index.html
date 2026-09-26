@@ -189,6 +189,14 @@
              d'où une option et non un réglage par défaut. -->
         <fieldset class="columns">
           <legend class="columns__legend" data-i18n="Sous chaque QR Code">Sous chaque QR Code</legend>
+          <!-- Le titre s'imprimait **toujours** quand il existait : aucun moyen
+               d'obtenir l'URL seule, ni de n'avoir aucune ligne de texte. Il est
+               donc le premier de la liste, coché par défaut — l'ancien
+               comportement à l'identique. -->
+          <label class="columns__item field__label">
+            <input id="sheet-title" type="checkbox" checked>
+            <span data-i18n="Titre">Titre</span>
+          </label>
           <!-- L'URL manquait : la planche n'imprimait que le titre, et
                retombait sur l'URL uniquement quand il n'y en avait pas. Sur
                une étiquette, l'URL est pourtant ce qu'on scanne en dernier
@@ -235,6 +243,17 @@
              refusé se signalait donc à l'autre bout du panneau, et l'aperçu
              montrait entre-temps la disposition précédente. -->
         <p id="sheet-grid-hint" class="hint hint--tight"></p>
+
+        <!-- La bordure est une aide à la **découpe**, pas un contenu : elle vit
+             donc à part de ce qui s'imprime sous le QR Code. Elle suit le motif
+             du tableau imprimé, un trait de 0,2 mm. -->
+        <fieldset class="columns">
+          <legend class="columns__legend" data-i18n="Découpe">Découpe</legend>
+          <label class="columns__item field__label">
+            <input id="sheet-border" type="checkbox">
+            <span data-i18n="Tracer une bordure autour de chaque étiquette">Tracer une bordure autour de chaque étiquette</span>
+          </label>
+        </fieldset>
         <div class="fields">
           <label class="field">
             <span class="field__label" data-i18n="Marge gauche et droite (mm)">Marge gauche et droite (mm)</span>

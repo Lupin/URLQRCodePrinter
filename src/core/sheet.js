@@ -277,6 +277,46 @@ export const SHEET_PRESETS = Object.freeze({
  */
 
 /**
+ * Ce qui s'imprime sous le QR Code d'une planche.
+ *
+ * Quatre états, dont deux n'étaient pas atteignables auparavant : le titre
+ * s'imprimait **toujours** quand il existait, et il n'y avait aucun moyen
+ * d'obtenir l'URL seule, ni aucune ligne de texte.
+ *
+ * | titre | URL | résultat |
+ * |---|---|---|
+ * | coché | décoché | le titre ; l'URL prend sa place s'il n'y en a pas |
+ * | coché | coché | « titre URL » |
+ * | décoché | coché | l'URL seule |
+ * | décoché | décoché | rien : le QR Code occupe toute l'étiquette |
+ *
+ * Le repli sur l'URL quand le titre est demandé mais absent n'est pas un détail :
+ * une étiquette sans aucun texte ne dit plus ce qu'elle désigne, et c'est le
+ * comportement d'origine — on le conserve.
+ *
+ * Pure, et appelée aux **deux** endroits qui doivent s'accorder : le calcul du
+ * nombre de lignes réservées et le rendu de la cellule. Deux expressions
+ * séparées auraient réservé un nombre de lignes qui ne correspondait pas au
+ * texte réellement écrit, et le QR Code aurait rogné le texte ou laissé un vide.
+ *
+ * @param {{ title?: string, url?: string }} link
+ * @param {{ title?: boolean, url?: boolean }} [options] `title` est vrai par
+ *   défaut : c'est l'ancien comportement, et l'absence d'option ne doit pas
+ *   changer ce qui s'imprime.
+ * @returns {string}
+ */
+export function sheetCellText(link, options = {}) {
+  const veutTitre = options.title !== false;
+  const veutUrl = options.url === true;
+  const titre = typeof link?.title === 'string' ? link.title.trim() : '';
+  const url = typeof link?.url === 'string' ? link.url : '';
+
+  if (!veutTitre) return veutUrl ? url : '';
+  if (titre === '') return url;
+  return veutUrl ? `${titre} ${url}` : titre;
+}
+
+/**
  * Calcule la disposition d'une planche.
  *
  * `marginXMm` et `marginYMm` situent le coin de la **première** étiquette par

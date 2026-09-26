@@ -384,3 +384,58 @@ test("le formulaire de l'éditeur empile ses commandes sans les étirer", () => 
   assert.ok(boutons, 'les boutons ne sont pas protégés de l\'étirement');
   assert.match(boutons[1], /flex:\s*none/);
 });
+
+// ---------------------------------------------------------------------------
+// Options de la planche : le titre, et la bordure de découpe
+// ---------------------------------------------------------------------------
+
+test('le titre de la planche est optionnel, et coché par défaut', () => {
+  // Il s'imprimait toujours quand il existait : ni l'URL seule, ni l'absence de
+  // texte n'étaient atteignables. Coché par défaut, l'ancien comportement est
+  // conservé pour qui ne touche à rien.
+  const champ = html.match(/<input id="sheet-title"[^>]*>/);
+  assert.ok(champ, 'aucune case pour le titre');
+  assert.match(champ[0], /checked/, 'le titre doit rester imprimé par défaut');
+  assert.match(champ[0], /type="checkbox"/);
+});
+
+test('la composition du texte vient du cœur, pas d\'une expression locale', () => {
+  // Deux expressions séparées — une pour compter les lignes réservées, une pour
+  // écrire le texte — finiraient par diverger, et le QR Code rognerait le texte
+  // ou laisserait un vide.
+  const app = readFileSync(join(WEB, 'app.js'), 'utf8');
+  assert.match(app, /sheetCellText\(item, choixTexte\)/);
+  assert.match(app, /const choixTexte = \{ title: el\.sheetTitle\.checked, url: el\.sheetUrl\.checked \}/);
+});
+
+test('aucune ligne de texte ne réserve une ligne pour du vide', () => {
+  // Le compte partait de 1 : décocher le titre **et** l'URL laissait quand même
+  // une ligne réservée, et le QR Code restait petit pour rien.
+  const app = readFileSync(join(WEB, 'app.js'), 'utf8');
+  const bloc = app.match(/const lignesNecessaires = [\s\S]*?\}, (\d)\);/);
+  assert.ok(bloc, 'calcul du nombre de lignes introuvable');
+  assert.equal(bloc[1], '0', 'le compte doit partir de zéro');
+});
+
+test('la bordure de découpe existe, décochée par défaut', () => {
+  const champ = html.match(/<input id="sheet-border"[^>]*>/);
+  assert.ok(champ, 'aucune case pour la bordure');
+  assert.doesNotMatch(champ[0], /checked/, 'une bordure ne s\'imprime pas sans qu\'on la demande');
+});
+
+test('la bordure suit le motif du tableau imprimé', () => {
+  // Un trait de 1 px disparaît à l'impression — c'est écrit dans la feuille de
+  // style, et le tableau utilise déjà 0,2 mm. Deux épaisseurs pour le même trait
+  // se verraient côte à côte.
+  const css = readFileSync(join(WEB, 'style.css'), 'utf8');
+  const regle = css.match(/\.print-cell--bordered\s*\{([\s\S]*?)\}/);
+  assert.ok(regle, 'aucune règle de bordure');
+  assert.match(regle[1], /border:\s*0\.2mm solid #000/);
+  const tableau = css.match(/\.print-table th,\s*\.print-table td\s*\{([\s\S]*?)\}/);
+  assert.match(tableau[1], /0\.2mm solid #000/);
+});
+
+test('la case de bordure agit sur le rendu, pas seulement sur le formulaire', () => {
+  const app = readFileSync(join(WEB, 'app.js'), 'utf8');
+  assert.match(app, /el\.sheetBorder\.checked[\s\S]{0,80}print-cell--bordered/);
+});

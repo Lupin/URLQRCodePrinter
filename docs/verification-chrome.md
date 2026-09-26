@@ -214,6 +214,32 @@ moins renseigné. Les deux cas posent maintenant le même signal.
 
 ---
 
+## Le curseur de largeur du QR Code ne remonte pas tout seul
+
+Constaté en éprouvant les options de la planche, et **laissé en l'état** : c'est
+un arbitrage, pas un défaut à corriger seul.
+
+Le curseur **Largeur du QR Code** est un réglage de l'utilisateur, mais ses
+bornes sont recalculées à chaque rendu, parce qu'elles dépendent de la place que
+le texte réclame. Quand les options demandent plus de place, la borne haute
+descend et `applyQrSliderBounds` **écrête la valeur du curseur**. Quand la
+contrainte se lève — on décoche le titre et l'URL — la borne remonte, mais la
+valeur reste là où l'écrêtage l'avait laissée.
+
+Mesuré sur une étiquette de 63,5 mm : borne haute **81 %** avec texte, **97 %**
+sans ; le curseur, lui, passe de 81 % à 70 %, et le QR Code **rétrécit** de 62 à
+54 px au lieu de grandir.
+
+Le modèle, lui, est juste : ce que la fonctionnalité promet est de **permettre**
+un QR Code plus grand, et la borne haute le dit. Rétablir automatiquement la
+valeur choisie auparavant demande de décider ce qu'est « la valeur choisie »
+quand elle n'a jamais été touchée, et si un réglage abandonné doit être
+ressuscité. Le contrôle automatique porte donc sur la borne, pas sur la taille
+dessinée — mesurer la seconde reviendrait à mesurer l'écrêtage et à l'appeler un
+défaut.
+
+---
+
 ## Les deux doublons de l'onglet Niimbot, confirmés
 
 Libellés relevés dans l'interface française :

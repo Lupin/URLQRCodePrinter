@@ -219,6 +219,27 @@ typed, the preview kept the layout from before, and nothing said which one would
 be printed. The upper bound of both fields follows the chosen sheet, too: an A4
 takes 26 columns at the smallest label size, where the field used to stop at 12.
 
+**What gets printed under the QR Code, option by option.** The **"Below each QR
+Code" (« Sous chaque QR Code »)** group drives the text on each label of the
+sheet:
+
+| Title | URL | What is printed |
+|---|---|---|
+| checked | unchecked | the title; the URL takes its place when there is none |
+| checked | checked | "title URL" |
+| unchecked | checked | the URL alone |
+| unchecked | unchecked | nothing: the QR Code fills the whole label |
+
+The title used to be printed **whenever it existed**: neither the URL alone nor
+no text at all was reachable. Unchecking both leaves more room for the QR Code,
+too — the upper bound of the **QR Code width** (« Largeur du QR Code ») slider
+rises from about 81 % to 97 % on a 63.5 mm label.
+
+**Drawing a cutting border.** The checkbox in the **Cutting** (« Découpe ») group
+frames each label with a 0.2 mm line — the same as the printed table. Useful on
+plain paper, to cut straight; on a pre-cut adhesive sheet, the border prints
+inside each label.
+
 **A single preset, six values.** The **Layout** (« Disposition ») selector only
 *pre-fills* the six fields that follow; you can then adjust them freely, and the
 label size is recomputed:

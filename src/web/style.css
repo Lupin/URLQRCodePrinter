@@ -914,6 +914,13 @@ body {
    sa couleur. */
 .print-cell__text .print-cell__date { display: block; }
 
+/* Bordure de découpe, en option. Elle suit le motif du tableau imprimé — un
+   trait de 0,2 mm — plutôt qu'un trait de 1 px, qui disparaîtrait à
+   l'impression. `box-sizing: border-box` étant posé pour tout le document, la
+   bordure rentre dans la cellule : la géométrie calculée reste vraie, et sur une
+   planche sans écart elle ne recouvre pas l'étiquette voisine. */
+.print-cell--bordered { border: 0.2mm solid #000; }
+
 .print-table {
   width: 100%;
   border-collapse: collapse;

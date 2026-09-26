@@ -9,6 +9,7 @@ import assert from 'node:assert/strict';
 
 import {
   PAGE_SIZES, SHEET_PRESETS, computeSheet, paginate, fitGrid, clampGrid,
+  sheetCellText, qrRatioBounds,
 } from '../src/core/sheet.js';
 
 /**
@@ -349,4 +350,66 @@ test('clampGrid dit franchement quand il ne reste aucune place', () => {
   assert.equal(resultat.rows, 0);
   assert.equal(resultat.clamped, true);
   assert.match(resultat.reason, /marges/i);
+});
+
+// ---------------------------------------------------------------------------
+// Ce qui s'imprime sous le QR Code
+//
+// Le titre s'imprimait **toujours** quand il existait : il n'y avait aucun moyen
+// d'obtenir l'URL seule, ni de n'avoir aucune ligne de texte. Deux des quatre
+// états ci-dessous étaient donc inatteignables.
+// ---------------------------------------------------------------------------
+
+const LIEN = { title: 'Un article', url: 'https://exemple.fr/a' };
+
+test('sous le QR Code : le titre seul, et l\'URL prend sa place s\'il manque', () => {
+  assert.equal(sheetCellText(LIEN, { title: true, url: false }), 'Un article');
+  // Sans titre, l'URL reste : une étiquette sans aucun texte ne dirait plus ce
+  // qu'elle désigne.
+  assert.equal(sheetCellText({ url: 'https://x.fr' }, { title: true, url: false }), 'https://x.fr');
+});
+
+test('sous le QR Code : titre et URL se cumulent', () => {
+  assert.equal(sheetCellText(LIEN, { title: true, url: true }), 'Un article https://exemple.fr/a');
+  // Un titre vide ne doit pas laisser une espace en tête.
+  assert.equal(sheetCellText({ url: 'https://x.fr' }, { title: true, url: true }), 'https://x.fr');
+});
+
+test('sous le QR Code : l\'URL seule est enfin atteignable', () => {
+  assert.equal(sheetCellText(LIEN, { title: false, url: true }), 'https://exemple.fr/a');
+});
+
+test('sous le QR Code : rien du tout est enfin atteignable', () => {
+  assert.equal(sheetCellText(LIEN, { title: false, url: false }), '');
+});
+
+test('sans option, le titre s\'imprime : l\'ancien comportement est le défaut', () => {
+  // Un appel qui oublie les options ne doit pas changer ce qui sort sur le
+  // papier. C'est la garantie la plus importante de cette fonction.
+  assert.equal(sheetCellText(LIEN), 'Un article');
+  assert.equal(sheetCellText(LIEN, {}), 'Un article');
+  assert.equal(sheetCellText(LIEN, { title: undefined }), 'Un article');
+});
+
+test('sous le QR Code : un titre fait d\'espaces compte comme absent', () => {
+  assert.equal(sheetCellText({ title: '   ', url: 'https://x.fr' }, { title: true }), 'https://x.fr');
+  assert.equal(sheetCellText({ title: '   ', url: 'https://x.fr' }, { title: false, url: true }),
+    'https://x.fr');
+});
+
+test('aucune ligne de texte laisse toute la hauteur au QR Code', () => {
+  // C'est l'intérêt de décocher les deux cases : le QR Code peut grandir.
+  const commun = {
+    labelWidthMm: 63.5, labelHeightMm: 33.9, qrModules: 45,
+    marginMm: 1.6, gapMm: 1, minModuleMm: 0.3, fontSizePt: 7,
+  };
+  const sansTexte = qrRatioBounds({ ...commun, textLines: 0 });
+  const uneLigne = qrRatioBounds({ ...commun, textLines: 1 });
+
+  assert.ok(sansTexte.fits && uneLigne.fits);
+  assert.ok(
+    sansTexte.maxSideMm > uneLigne.maxSideMm,
+    `sans texte ${sansTexte.maxSideMm} mm, une ligne ${uneLigne.maxSideMm} mm : `
+      + 'la hauteur rendue ne doit pas être perdue',
+  );
 });

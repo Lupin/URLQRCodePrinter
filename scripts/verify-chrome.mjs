@@ -965,7 +965,7 @@ async function main() {
       const largeurMm = cellule ? Number.parseFloat(cellule.style.width) : null;
       const hauteurMm = cellule ? Number.parseFloat(cellule.style.height) : null;
 
-      return {
+      const mesure = {
         avant,
         apres: { colonnes: lire('sheet-columns'), rangees: lire('sheet-rows') },
         message: champ('sheet-grid-hint').textContent.trim(),
@@ -973,6 +973,17 @@ async function main() {
         hauteurMm,
         cellules: document.querySelectorAll('#preview .print-cell').length,
       };
+
+      // **Remise en état.** Une grille de 26 × 54 laisse des étiquettes de 5 mm,
+      // où le texte se réduit à « U… » : les contrôles suivants mesureraient une
+      // planche dégénérée et échoueraient pour une raison sans rapport avec ce
+      // qu'ils éprouvent. Chaque contrôle rend donc l'état qu'il a emprunté.
+      const preset = champ('preset');
+      preset.value = avant.preset;
+      preset.dispatchEvent(new Event('change', { bubbles: true }));
+      await pause(500);
+
+      return mesure;
     })()`);
 
     // L'attendu se calcule depuis la **demande**, pas depuis l'état d'avant : le
@@ -1022,6 +1033,89 @@ async function main() {
         && Number(grille?.apres.rangees) === attendu.rows,
       `champs ${grille?.apres.colonnes} × ${grille?.apres.rangees} · `
         + `calcul ${attendu?.columns} × ${attendu?.rows}`,
+    );
+
+    // --- Ce qui s'imprime sous le QR Code, et la bordure -------------------
+    //
+    // Le titre s'imprimait toujours quand il existait : ni l'URL seule, ni
+    // l'absence de texte n'étaient atteignables. On parcourt donc les quatre
+    // états, et l'on vérifie que le QR Code **grandit** quand plus rien ne
+    // s'imprime sous lui — sinon la hauteur rendue l'est pour du vide.
+    const cellule = await evalApp(`(async () => {
+      const champ = (id) => document.getElementById(id);
+      const poser = (id, valeur) => {
+        champ(id).checked = valeur;
+        champ(id).dispatchEvent(new Event('change', { bubbles: true }));
+      };
+      const pause = (ms) => new Promise((r) => setTimeout(r, ms));
+      const mesurer = () => {
+        const boite = document.querySelector('#preview .print-cell');
+        const qr = boite?.querySelector('.print-cell__qr');
+        const texte = boite?.querySelector('.print-cell__text');
+        const style = boite ? getComputedStyle(boite) : null;
+        const curseur = document.getElementById('sheet-qr');
+        return {
+          qr: qr ? Math.round(qr.getBoundingClientRect().height) : 0,
+          texte: texte ? texte.textContent.trim() : null,
+          bordure: style ? style.borderTopWidth : '',
+          bordureStyle: style ? style.borderTopStyle : '',
+          classe: boite ? boite.className : '',
+          // Le curseur de largeur est borné à chaque rendu : c'est la seule
+          // pièce mobile entre deux états, et la mesurer évite d'accuser le
+          // calcul d'un écart qui vient d'ailleurs.
+          curseur: { valeur: curseur?.value, min: curseur?.min, max: curseur?.max },
+          etiquette: boite ? boite.style.width : '',
+        };
+      };
+
+      const etats = {};
+      poser('sheet-title', true); poser('sheet-url', false); await pause(600);
+      etats.titre = mesurer();
+      poser('sheet-title', false); poser('sheet-url', true); await pause(600);
+      etats.url = mesurer();
+      poser('sheet-title', false); poser('sheet-url', false); await pause(600);
+      etats.rien = mesurer();
+      poser('sheet-border', true); await pause(600);
+      etats.bordure = mesurer();
+
+      // Remise en état : la suite du parcours compte sur la planche d'origine.
+      poser('sheet-border', false);
+      poser('sheet-title', true);
+      await pause(400);
+      return etats;
+    })()`);
+
+    record(
+      'le titre et l\'URL se choisissent séparément sous le QR Code',
+      (cellule?.titre?.texte ?? '').includes('Un article de fond')
+        && (cellule?.url?.texte ?? '').startsWith('https://exemple.fr/')
+        && !(cellule?.url?.texte ?? '').includes('Un article de fond'),
+      `titre seul : « ${cellule?.titre?.texte?.slice(0, 40)} » · `
+        + `URL seule : « ${cellule?.url?.texte?.slice(0, 40)} »`,
+    );
+    // Le contrôle porte sur la **borne haute**, pas sur la taille dessinée.
+    //
+    // La taille rendue suit le curseur, qui est un réglage de l'utilisateur :
+    // l'application l'écrête quand les options réclament plus de place, et ne le
+    // remonte pas quand la contrainte se lève. Comparer les hauteurs dessinées
+    // mesurerait donc cet écrêtage, et non ce que la fonctionnalité promet —
+    // qui est de **permettre** un QR Code plus grand quand plus rien ne
+    // s'imprime sous lui.
+    record(
+      'aucune ligne de texte laisse plus de place au QR Code',
+      cellule?.rien?.texte === null
+        && Number(cellule?.rien?.curseur?.max) > Number(cellule?.titre?.curseur?.max),
+      `borne haute ${cellule?.titre?.curseur?.max} % avec texte → `
+        + `${cellule?.rien?.curseur?.max} % sans texte`
+        + ` · curseur ${cellule?.titre?.curseur?.valeur} % → ${cellule?.rien?.curseur?.valeur} %`
+        + ` · dessiné ${cellule?.titre?.qr} px → ${cellule?.rien?.qr} px`,
+    );
+    record(
+      'la bordure de découpe se dessine quand on la demande',
+      Number.parseFloat(cellule?.bordure?.bordure ?? '0') > 0
+        && cellule?.bordure?.bordureStyle === 'solid'
+        && /print-cell--bordered/.test(cellule?.bordure?.classe ?? ''),
+      `trait ${cellule?.bordure?.bordure} ${cellule?.bordure?.bordureStyle}`,
     );
 
     const tousOnglets = geometrie.every(

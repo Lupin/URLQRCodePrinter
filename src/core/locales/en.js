@@ -28,6 +28,8 @@ export const EN_MESSAGES = {
   "Les marges ne laissent aucune place à une étiquette sur cette feuille.":
     "The margins leave no room for a label on this sheet.",
   "Page d'information": "Information page",
+  "Découpe": "Cutting",
+  "Tracer une bordure autour de chaque étiquette": "Draw a border around each label",
   "Tout effacer": "Clear all",
   "Chargement…": "Loading…",
   "lien": "link",
