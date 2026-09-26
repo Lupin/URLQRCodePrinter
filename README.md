@@ -38,7 +38,7 @@ share.
 | Native Swift core (protocol, session, CoreBluetooth) | done, tested |
 | iOS app that uses that core | to do |
 
-**842 tests, all green** — 738 in JavaScript and 104 in Swift — including:
+**851 tests, all green** — 747 in JavaScript and 104 in Swift — including:
 
 - **byte-for-byte** validation of the Niimbot frames against the documented
   records, **in both languages**: two independent implementations that
@@ -107,6 +107,7 @@ src/core/
   spreadsheet.js       .xlsx workbook with embedded QR Codes
   label-export.js      label formats, HTML sheet, ZIP archive
   table-export.js      table folder: JSON model, QR Code PNG, HTML page
+  sheet-archive.js     sheet folder: printable HTML page, manifest, CSV
   shorten.js           URL shortening: services, failures, pacing
   settings.js          remembered preferences (service, QR Code target)
   i18n.js              fr → en interface messages, language resolution
@@ -803,7 +804,7 @@ exists in French and English. Before opening a pull request:
 
 ```bash
 npm install
-npm run test:all   # 738 JavaScript tests + 104 Swift tests
+npm run test:all   # 747 JavaScript tests + 104 Swift tests
 ```
 
 The repository conventions — a core with no DOM and no implicit network, zero

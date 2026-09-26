@@ -349,11 +349,11 @@ test("le survol rempli ne touche que le pied de panneau", () => {
   // On compte les attributs `class`, pas les occurrences de la chaîne : le
   // commentaire qui documente le modificateur le nomme, et un simple
   // `matchAll` sur le texte le comptait comme un porteur.
-  // Quatre exports de collection + le dossier du tableau + « Importer… » +
-  // « Tout effacer ». Le modificateur ne doit pas s'être répandu sur les onglets
-  // ni sur l'éditeur.
+  // Quatre exports de collection + le dossier du tableau + le dossier de la
+  // planche + « Importer… » + « Tout effacer ». Le modificateur ne doit pas
+  // s'être répandu sur les onglets ni sur l'éditeur.
   const porteurs = [...APP_HTML.matchAll(/class="[^"]*\bbtn--fill\b[^"]*"/g)].length;
-  assert.equal(porteurs, 7, `le modificateur touche ${porteurs} boutons au lieu de 7`);
+  assert.equal(porteurs, 8, `le modificateur touche ${porteurs} boutons au lieu de 8`);
 });
 
 test("l'avertissement de « Tout effacer » est visible au repos", () => {

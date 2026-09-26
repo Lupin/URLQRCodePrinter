@@ -38,7 +38,9 @@
  */
 
 import { spawn } from 'node:child_process';
-import { existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import {
+  existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync,
+} from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -50,6 +52,9 @@ import { CONSENT_KEY, DISCLOSURE_VERSION } from '../src/core/privacy.js';
 // dessine à ce que le calcul retient — deux chemins indépendants, qui doivent
 // tomber sur le même nombre.
 import { fitGrid, clampGrid, PAGE_SIZES, SHEET_PRESETS } from '../src/core/sheet.js';
+// Le lecteur d'archives de l'application : l'export est relu par le même code
+// que celui qui relit un dossier importé, et non par un outil externe.
+import { readStoredZip } from '../src/core/zip.js';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const SANDBOX = join(ROOT, '.verify-chrome');
@@ -1101,6 +1106,113 @@ async function main() {
       'une marge trop courte refuse l\'en-tête, en le disant',
       entete?.sans?.present === false && /marge/.test(entete?.sans?.message ?? ''),
       `« ${entete?.sans?.message?.slice(0, 110)} »`,
+    );
+
+    // --- L'export de la planche -------------------------------------------
+    //
+    // Le contrôle qui compte n'est pas « le fichier existe » mais « il rend la
+    // même planche ». On compare donc le **rapport** entre une étiquette et sa
+    // page, dans l'aperçu de l'application et dans le fichier exporté : ce
+    // rapport ne dépend pas de l'échelle, si bien qu'un aperçu réduit et une
+    // page à taille réelle doivent donner le même nombre.
+    const rapportApercu = await evalApp(`(() => {
+      const page = document.querySelector('#preview .print-page');
+      const cellule = page?.querySelector('.print-cell');
+      if (!page || !cellule) return null;
+      const p = page.getBoundingClientRect();
+      const c = cellule.getBoundingClientRect();
+      return {
+        rapportLargeur: Number((c.width / p.width).toFixed(4)),
+        rapportHauteur: Number((c.height / p.height).toFixed(4)),
+        etiquetteMm: page.querySelector('.print-cell').style.width,
+      };
+    })()`);
+
+    const avantExport = await evalApp(`(() => {
+      const bouton = document.getElementById('export-sheet');
+      return {
+        present: Boolean(bouton),
+        desactive: bouton?.disabled,
+        cache: bouton?.hidden,
+        libelle: bouton?.textContent.trim(),
+      };
+    })()`);
+    await evalApp("document.getElementById('export-sheet').click()");
+    await new Promise((r) => setTimeout(r, 2500));
+    const apresExport = await evalApp(`(() => ({
+      toast: document.getElementById('toast').textContent.trim(),
+      libelle: document.getElementById('export-sheet').textContent.trim(),
+      liens: document.querySelectorAll('#list .link').length,
+      mode: [...document.querySelectorAll('.tab')].find((t) => t.getAttribute('aria-selected') === 'true')?.dataset.mode,
+    }))()`);
+    const archive = await waitFor(
+      () => readdirSync(DOWNLOADS).find(
+        (nom) => nom.endsWith('.zip') && !nom.endsWith('.crdownload'),
+      ),
+      { label: `archive de la planche téléchargée — bouton ${JSON.stringify(avantExport)}, `
+        + `après clic ${JSON.stringify(apresExport)}`, timeout: 30000 },
+    );
+
+    const octets = new Uint8Array(readFileSync(join(DOWNLOADS, archive)));
+    const entrees = readStoredZip(octets);
+    const fichiers = [...entrees.keys()].sort();
+
+    record(
+      'l\'export de la planche produit une archive lisible',
+      octets[0] === 0x50 && octets[1] === 0x4b && fichiers.length === 3,
+      `${archive} — ${fichiers.join(', ')}`,
+    );
+
+    // Le manifeste : de quoi reproduire la planche exportée.
+    const manifeste = JSON.parse(new TextDecoder().decode(entrees.get('planche.json')));
+    record(
+      'le manifeste décrit la planche exportée',
+      manifeste.grid?.columns > 0 && manifeste.label?.widthMm > 0
+        && manifeste.page?.widthMm > 0 && typeof manifeste.options === 'object',
+      `${manifeste.grid?.columns} × ${manifeste.grid?.rows}, étiquettes `
+        + `${manifeste.label?.widthMm} × ${manifeste.label?.heightMm} mm, `
+        + `${manifeste.count} lien(s)`,
+    );
+
+    // La page, ouverte telle quelle : c'est le fichier qu'on imprime.
+    const cheminPage = join(SANDBOX, 'planche-exportee.html');
+    writeFileSync(cheminPage, new TextDecoder().decode(entrees.get('planche.html')));
+    const pageExportee = await openPage(`file://${cheminPage}`);
+    const evalPage = evaluateIn(pageExportee.session);
+    await evalPage('document.readyState');
+    await forcerPeinture(pageExportee.session, 500);
+
+    const rapportExporte = await evalPage(`(() => {
+      const page = document.querySelector('.print-root .print-page');
+      const cellule = page?.querySelector('.print-cell');
+      if (!page || !cellule) return null;
+      const p = page.getBoundingClientRect();
+      const c = cellule.getBoundingClientRect();
+      const tete = document.querySelector('.print-page__header');
+      return {
+        rapportLargeur: Number((c.width / p.width).toFixed(4)),
+        rapportHauteur: Number((c.height / p.height).toFixed(4)),
+        etiquetteMm: cellule.style.width,
+        largeurPageMm: page.style.width,
+        visible: p.width > 0,
+        entete: tete ? tete.textContent.trim() : null,
+        pages: document.querySelectorAll('.print-root .print-page').length,
+      };
+    })()`);
+
+    record(
+      'la page exportée s\'affiche à l\'écran',
+      rapportExporte?.visible === true && rapportExporte?.pages >= 1,
+      `${rapportExporte?.pages} page(s) de ${rapportExporte?.largeurPageMm}`,
+    );
+    record(
+      'la page exportée rend la même planche que l\'aperçu',
+      rapportApercu !== null && rapportExporte !== null
+        && Math.abs(rapportExporte.rapportLargeur - rapportApercu.rapportLargeur) < 0.002
+        && Math.abs(rapportExporte.rapportHauteur - rapportApercu.rapportHauteur) < 0.002,
+      `étiquette/page : aperçu ${rapportApercu?.rapportLargeur} × ${rapportApercu?.rapportHauteur}, `
+        + `export ${rapportExporte?.rapportLargeur} × ${rapportExporte?.rapportHauteur} `
+        + `(${rapportExporte?.etiquetteMm} sur ${rapportExporte?.largeurPageMm})`,
     );
 
     const tousOnglets = geometrie.every(

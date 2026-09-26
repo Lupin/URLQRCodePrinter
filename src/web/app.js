@@ -91,6 +91,7 @@ import {
   ptToPx,
 } from './core/label-export.js';
 import { buildTableArchive } from './core/table-export.js';
+import { buildSheetArchive, sheetArchiveName } from './core/sheet-archive.js';
 import {
   probeWebBluetooth,
   explainBluetoothFailure,
@@ -1491,14 +1492,52 @@ function sheetFontPt() {
  * @param {import('./core/link.js').LinkRecord[]} items
  * @returns {HTMLElement[]}
  */
-function buildSheetPages(items) {
+/**
+ * Les réglages et le placement d'une planche, sans construire le DOM.
+ *
+ * Extrait pour que l'export retrouve **exactement** la disposition de l'aperçu.
+ * Le CSV et le manifeste ont besoin du rang de chaque étiquette, et un élément
+ * rendu ne le porte plus : le recalculer ailleurs aurait produit une seconde
+ * formule, qui aurait fini par diverger de la première.
+ *
+ * @param {import('./core/link.js').LinkRecord[]} items
+ */
+function planchePlacement(items) {
   const config = sheetConfig();
   // Une grille issue de « remplir la feuille » occupe exactement la place
   // demandée : lui suggérer de resserrer les marges pour gagner une colonne
   // serait contredire le réglage de l'utilisateur.
   // La grille est toujours une consigne : on ne suggère pas de la densifier.
   const layout = computeSheet({ count: items.length, ...config, adviseDenser: false });
-  const pages = paginate(items, layout);
+  return { config, layout, pages: paginate(items, layout) };
+}
+
+/**
+ * Les feuilles de style réellement appliquées, mises bout à bout.
+ *
+ * C'est la feuille du document, et non une copie écrite pour l'export : la
+ * géométrie d'une planche vit entièrement en CSS — positions absolues en
+ * millimètres, centrage en boîte flexible — et la recopier aurait garanti qu'un
+ * jour les deux divergent. Le fichier exporté ne peut pas être plus juste que
+ * l'aperçu s'il ne partage pas ses règles.
+ *
+ * @returns {string}
+ */
+function feuillesAppliquees() {
+  const morceaux = [];
+  for (const feuille of document.styleSheets) {
+    try {
+      for (const regle of feuille.cssRules) morceaux.push(regle.cssText);
+    } catch {
+      // Feuille d'une autre origine, ou protégée : illisible. Les nôtres ne le
+      // sont pas, et ce sont les seules qui portent sur ces pages.
+    }
+  }
+  return morceaux.join('\n');
+}
+
+function buildSheetPages(items) {
+  const { config, layout, pages } = planchePlacement(items);
   const metrics = sheetTextMetrics({ fontSizePt: sheetFontPt() });
 
   // Chaque URL est encodée une seule fois : sa taille de matrice sert au calcul
@@ -2033,6 +2072,10 @@ function renderPreview() {
   // montre que dans l'onglet Tableau, à côté d'« Imprimer ».
   el.exportTable.hidden = mode !== 'table';
   el.exportTable.disabled = items.length === 0 || !hasAnyTableColumn();
+  // La planche a sa propre sortie, pour la même raison que le tableau : elle a
+  // ses propres réglages, et c'est là qu'ils vivent.
+  el.exportSheet.hidden = mode !== 'sheet';
+  el.exportSheet.disabled = items.length === 0;
   // Niimbot et Étiquette (divers) ont leur propre bouton dans le panneau : la
   // rangée commune disparaît, sans laisser un blanc entre le mode et l'aperçu.
   el.panelActions.hidden = mode === 'single' || mode === 'images';
@@ -3542,11 +3585,80 @@ async function exportTableArchive() {
   }
 }
 
+/**
+ * Exporte la planche en dossier autonome.
+ *
+ * Le HTML n'est pas reconstruit : il est repris tel quel des pages rendues pour
+ * l'aperçu et pour l'impression. Ce que le fichier contient est donc, au pixel
+ * près, ce qui serait sorti de l'imprimante — et non une seconde mise en page
+ * qui lui ressemble.
+ */
+async function exportSheetArchive() {
+  const items = printableLinks();
+  if (items.length === 0) return;
+
+  const libelle = el.exportSheet.textContent;
+  el.exportSheet.disabled = true;
+  el.exportSheet.textContent = t('Génération…');
+
+  try {
+    // Deux objets distincts, et les confondre a coûté une erreur : les pages
+    // **rendues** portent le HTML, le **placement** porte le rang de chaque
+    // étiquette. Un élément du DOM n'a pas de `items`.
+    const pages = buildSheetPages(items);
+    const { layout, pages: placement } = planchePlacement(items);
+
+    const cells = placement.flatMap((page) => page.items.map(({ item, cell }) => ({
+      index: cell.index,
+      page: cell.page,
+      column: cell.column,
+      row: cell.row,
+      url: item.url,
+      title: item.title ?? '',
+    })));
+
+    const ratio = Number(el.sheetQr.value) / 100;
+    const { bytes } = buildSheetArchive({
+      pagesHtml: pages.map((page) => page.outerHTML).join('\n'),
+      css: feuillesAppliquees(),
+      title: collectionName(),
+      pageWidthMm: layout.pageWidthMm,
+      pageHeightMm: layout.pageHeightMm,
+      layout,
+      qrRatio: ratio,
+      qrSideMm: qrSideMm(layout.labelWidthMm, layout.labelHeightMm, ratio),
+      fontPt: sheetFontPt(),
+      options: {
+        title: el.sheetTitle.checked,
+        url: el.sheetUrl.checked,
+        date: dateMode(),
+        index: el.sheetDateIndex.checked,
+        header: el.sheetHeader.checked,
+        headerDate: el.sheetHeaderDate.checked,
+        border: el.sheetBorder.checked,
+      },
+      cells,
+    });
+
+    const filename = sheetArchiveName(Date.now(), collectionName());
+    const ok = downloadBytes(filename, bytes, { mime: 'application/zip' });
+    toast(ok
+      ? t('Planche exportée : {filename}', { filename })
+      : t('Téléchargement impossible'), ok ? 'info' : 'error');
+  } catch (error) {
+    toast(t('Export impossible : {message}', { message: error.message }), 'error');
+  } finally {
+    el.exportSheet.textContent = libelle;
+    el.exportSheet.disabled = printableLinks().length === 0;
+  }
+}
+
 el.exportXlsx.addEventListener('click', exportSpreadsheet);
 el.exportCsv.addEventListener('click', () => exportAs('csv'));
 el.exportMd.addEventListener('click', () => exportAs('md'));
 el.exportJson.addEventListener('click', () => exportAs('json'));
 el.exportTable.addEventListener('click', exportTableArchive);
+el.exportSheet.addEventListener('click', exportSheetArchive);
 
 el.import.addEventListener('click', () => el.importFile.click());
 el.importFile.addEventListener('change', async () => {

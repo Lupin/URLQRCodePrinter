@@ -74,6 +74,7 @@ export const ELEMENT_IDS = Object.freeze([
   'table-grid',
   'table-hint',
   'export-table',
+  'export-sheet',
   'panel-actions',
   'label-profile',
   'profile-hint',

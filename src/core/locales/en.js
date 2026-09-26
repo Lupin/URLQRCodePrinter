@@ -30,6 +30,8 @@ export const EN_MESSAGES = {
   "Page d'information": "Information page",
   "Découpe": "Cutting",
   "En-tête de page": "Page header",
+  "Exporter la planche (ZIP)": "Export the sheet (ZIP)",
+  "Planche exportée : {filename}": "Sheet exported: {filename}",
   "Nom de la collection en haut de chaque page": "Collection name at the top of every page",
   "Avec la date d'impression": "With the print date",
   "L'en-tête a besoin de {need} mm de marge en haut, et la marge actuelle est de {margin} mm. Augmentez la marge, ou décochez l'en-tête.":
@@ -125,6 +127,8 @@ export const EN_MESSAGES = {
   "Taille du QR Code": "QR Code size",
   "Orientation de la page": "Page orientation",
   "En-tête de page": "Page header",
+  "Exporter la planche (ZIP)": "Export the sheet (ZIP)",
+  "Planche exportée : {filename}": "Sheet exported: {filename}",
   "Avec la date d'impression": "With print date",
   "Tableau imprimé": "Printed table",
   "N°": "No.",

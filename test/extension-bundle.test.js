@@ -39,12 +39,35 @@ let loadCount = 0;
  * Le cache d'`import()` est indexé par URL : sans paramètre distinct, le second
  * chargement renverrait le premier sans réexécuter le fichier.
  *
+ * **Le fichier peut manquer pendant un instant.** `test/extension.test.js`
+ * relance `scripts/build.mjs` en parallèle des autres fichiers — le lanceur de
+ * tests exécute les fichiers en concurrence — et ce script commence par
+ * supprimer son dossier de sortie avant de le repeupler. Un chargement qui tombe
+ * dans cet intervalle échoue sur un module absent, en accusant le paquet alors
+ * que la construction était simplement en cours. Mesuré : une fois sur cinq ou
+ * six.
+ *
+ * On réessaie donc, avec une attente courte et un nombre d'essais borné. Si le
+ * fichier ne revient pas, l'échec est réel et le test doit échouer : c'est ce
+ * que garantit la borne.
+ *
  * @param {string} file
  * @returns {Promise<void>}
  */
 async function loadFresh(file) {
-  loadCount += 1;
-  await import(`${pathToFileURL(join(DIST, file)).href}?load=${loadCount}`);
+  const ESSAIS = 40;
+  for (let essai = 1; essai <= ESSAIS; essai++) {
+    loadCount += 1;
+    try {
+      await import(`${pathToFileURL(join(DIST, file)).href}?load=${loadCount}`);
+      return;
+    } catch (error) {
+      const transitoire = error?.code === 'ERR_MODULE_NOT_FOUND'
+        || /Cannot find module/.test(error?.message ?? '');
+      if (!transitoire || essai === ESSAIS) throw error;
+      await settle();
+    }
+  }
 }
 
 /** Laisse s'écouler les chaînes asynchrones en attente.

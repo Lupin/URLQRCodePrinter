@@ -39,7 +39,7 @@ retrouve et se partage facilement.
 | Socle natif Swift (protocole, session, CoreBluetooth) | fait, testé |
 | Application iOS qui utilise ce socle | à faire |
 
-**842 tests, tous verts** — 738 en JavaScript et 104 en Swift — dont :
+**851 tests, tous verts** — 747 en JavaScript et 104 en Swift — dont :
 
 - la validation **octet à octet** des trames Niimbot contre les relevés
   documentés, **dans les deux langages** : deux implémentations indépendantes
@@ -108,6 +108,7 @@ src/core/
   spreadsheet.js       classeur .xlsx avec les QR Codes intégrés
   label-export.js      formats d'étiquettes, planche HTML, archive ZIP
   table-export.js      dossier du tableau : modèle JSON, QR Code PNG, page HTML
+  sheet-archive.js     dossier de la planche : page HTML imprimable, manifeste, CSV
   shorten.js           raccourcissement d'URL : services, pannes, rythme
   settings.js          préférences retenues (service, cible du QR Code)
   i18n.js              messages d'interface fr → en, résolution de la langue
@@ -816,7 +817,7 @@ pull request :
 
 ```bash
 npm install
-npm run test:all   # 738 tests JavaScript + 104 tests Swift
+npm run test:all   # 747 tests JavaScript + 104 tests Swift
 ```
 
 Les conventions du dépôt — cœur sans DOM ni réseau implicite, zéro dépendance,

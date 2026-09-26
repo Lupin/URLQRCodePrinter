@@ -285,6 +285,20 @@ pas reproduire les deux : le **pas** reste exact, donc les colonnes tombent bien
 en face de leurs cases, mais l'ensemble peut être décalé de quelques dixièmes de
 millimètre. Corrigez-le avec **Décalage horizontal**, jamais avec la marge.
 
+**Exporter la planche en dossier.** Le bouton **« Exporter la planche (ZIP) »**,
+à côté d'« Imprimer », produit trois fichiers :
+
+| Fichier | Ce qu'il contient |
+|---|---|
+| `planche.html` | la planche elle-même, autonome et imprimable — ouvrez-la, imprimez-la, ou gardez-la |
+| `planche.json` | les réglages qui l'ont produite : grille, cotes des étiquettes, marges, options cochées, et la place de chaque lien |
+| `liens.csv` | la correspondance entre chaque lien et son étiquette : page, colonne, rangée |
+
+La page exportée **est** celle de l'aperçu : ce n'est pas une seconde mise en
+page qui lui ressemble, mais le même document avec la même feuille de style. Ce
+que vous imprimez depuis le fichier est donc, au pixel près, ce que vous aviez
+sous les yeux.
+
 **Calibrer avant d'imprimer sur une planche.** Aucune cote de fabricant ne
 prévoit le décalage d'entraînement de votre imprimante. La marche à suivre :
 
