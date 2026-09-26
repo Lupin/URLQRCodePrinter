@@ -254,6 +254,23 @@
             <span data-i18n="Tracer une bordure autour de chaque étiquette">Tracer une bordure autour de chaque étiquette</span>
           </label>
         </fieldset>
+
+        <!-- L'en-tête de page, comme en mode tableau : le nom de la collection,
+             et la date d'impression si on la demande. Il vit **dans la marge du
+             haut**, sans déplacer les étiquettes — d'où le refus expliqué quand
+             la marge est trop courte. -->
+        <fieldset class="columns">
+          <legend class="columns__legend" data-i18n="En-tête de page">En-tête de page</legend>
+          <label class="columns__item field__label">
+            <input id="sheet-header" type="checkbox">
+            <span data-i18n="Nom de la collection en haut de chaque page">Nom de la collection en haut de chaque page</span>
+          </label>
+          <label class="columns__item field__label">
+            <input id="sheet-header-date" type="checkbox">
+            <span data-i18n="Avec la date d'impression">Avec la date d'impression</span>
+          </label>
+        </fieldset>
+        <p id="sheet-header-hint" class="hint hint--tight"></p>
         <div class="fields">
           <label class="field">
             <span class="field__label" data-i18n="Marge gauche et droite (mm)">Marge gauche et droite (mm)</span>

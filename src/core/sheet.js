@@ -264,6 +264,8 @@ export const SHEET_PRESETS = Object.freeze({
  * @property {number} pageHeightMm
  * @property {number} labelWidthMm
  * @property {number} labelHeightMm
+ * @property {number} marginXMm  Marge à gauche de la grille, en millimètres.
+ * @property {number} marginYMm  Marge au-dessus de la grille.
  * @property {number} columns
  * @property {number} rows
  * @property {number} perPage
@@ -275,6 +277,50 @@ export const SHEET_PRESETS = Object.freeze({
  * @property {SheetCell[]} cells
  * @property {string[]} warnings
  */
+
+/**
+ * Hauteur de la bande d'en-tête d'une planche, en millimètres.
+ *
+ * 12 pt de titre — environ 4,2 mm — plus 4 mm de respiration au-dessous : les
+ * valeurs qu'emploie déjà la page du tableau (`.print-page__title` et
+ * `.print-page__spacer`). Exportée pour que le contrôle de place et le dessin
+ * partent du même nombre. Une seconde valeur écrite dans la feuille de style
+ * finirait par diverger, et l'en-tête mordrait sur la première rangée
+ * d'étiquettes sans que rien ne le signale.
+ */
+export const SHEET_HEADER_MM = 9;
+
+/**
+ * L'en-tête de page tient-il dans la marge du haut ?
+ *
+ * L'en-tête vit **dans la marge du haut**, comme celui du tableau : les
+ * étiquettes ne bougent pas. C'est une contrainte de cette planche-ci, où les
+ * cellules sont positionnées en absolu — les déplacer pour faire de la place
+ * changerait toutes les cotes calculées, donc la taille des étiquettes, en
+ * fonction d'une case à cocher.
+ *
+ * Une marge plus courte que la bande ferait recouvrir la première rangée. C'est
+ * pire qu'une absence, et c'est refusé avec ses chiffres, comme partout ailleurs
+ * dans ce produit.
+ *
+ * @param {{ marginYMm?: number }} options
+ * @returns {{ fits: boolean, needed: number, reason: string }}
+ */
+export function sheetHeaderFits(options = {}) {
+  const marge = nonNegative(options.marginYMm ?? 0);
+  if (marge >= SHEET_HEADER_MM) {
+    return { fits: true, needed: SHEET_HEADER_MM, reason: '' };
+  }
+  return {
+    fits: false,
+    needed: SHEET_HEADER_MM,
+    reason: t(
+      "L'en-tête a besoin de {need} mm de marge en haut, et la marge actuelle est de {margin} mm. "
+      + "Augmentez la marge, ou décochez l'en-tête.",
+      { need: SHEET_HEADER_MM, margin: round1(marge) },
+    ),
+  };
+}
 
 /**
  * Ce qui s'imprime sous le QR Code d'une planche.
@@ -469,6 +515,17 @@ export function computeSheet(options) {
     pageHeightMm,
     labelWidthMm,
     labelHeightMm,
+    // Les marges sont rendues avec le reste.
+    //
+    // Elles manquaient, et leur absence ne se voyait pas : les positions des
+    // cellules les contiennent déjà. Mais un appelant qui veut savoir où
+    // **commence** la grille — l'en-tête de page, par exemple — n'avait aucun
+    // moyen de les retrouver, sinon en défaisant le calcul de la première
+    // cellule. La première version de l'en-tête lisait `layout.marginYMm`, qui
+    // valait `undefined`, donc zéro, et refusait de se dessiner en annonçant une
+    // marge de 0 mm alors que l'étiquette était à 15.
+    marginXMm,
+    marginYMm,
     columns,
     rows,
     perPage,

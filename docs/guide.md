@@ -240,6 +240,14 @@ frames each label with a 0.2 mm line — the same as the printed table. Useful o
 plain paper, to cut straight; on a pre-cut adhesive sheet, the border prints
 inside each label.
 
+**A page header.** The **Page header** (« En-tête de page ») group prints the
+collection name, and the print date if you ask for it, at the top of every page —
+the same header as the table's. It sits **in the top margin**, without moving the
+labels: their positions are computed, and a checkbox must not change their size.
+It therefore needs **9 mm of top margin**; below that it is not drawn, and the
+sentence under the checkbox says exactly what is missing: "The header needs 9 mm
+of top margin, and the current margin is 3 mm." 
+
 **A single preset, six values.** The **Layout** (« Disposition ») selector only
 *pre-fills* the six fields that follow; you can then adjust them freely, and the
 label size is recomputed:

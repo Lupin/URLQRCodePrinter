@@ -439,3 +439,45 @@ test('la case de bordure agit sur le rendu, pas seulement sur le formulaire', ()
   const app = readFileSync(join(WEB, 'app.js'), 'utf8');
   assert.match(app, /el\.sheetBorder\.checked[\s\S]{0,80}print-cell--bordered/);
 });
+
+// ---------------------------------------------------------------------------
+// En-tête de page de la planche
+// ---------------------------------------------------------------------------
+
+test('la planche offre l\'en-tête de page, comme le tableau', () => {
+  const entete = html.match(/<input id="sheet-header"[^>]*>/);
+  assert.ok(entete, 'aucune case pour l\'en-tête');
+  assert.doesNotMatch(entete[0], /checked/, 'un en-tête ne s\'imprime pas sans qu\'on le demande');
+  assert.ok(html.match(/<input id="sheet-header-date"[^>]*>/), 'aucune case pour la date');
+  assert.ok(html.match(/id="sheet-header-hint"/), 'aucun endroit pour expliquer un refus');
+});
+
+test("l'en-tête de la planche reprend les classes du tableau", () => {
+  // Mêmes classes, donc même apparence : deux mises en forme pour le même
+  // titre finiraient par diverger, et c'est la planche qui paraîtrait
+  // négligée — c'est la sortie que le tableau ne partage pas.
+  const app = readFileSync(join(WEB, 'app.js'), 'utf8');
+  assert.match(app, /print-page__header/);
+  assert.match(app, /className = 'print-page__title'/);
+  assert.match(app, /className = 'print-page__date'/);
+  // Et le même calcul de date que le tableau.
+  assert.match(app, /formatCaptureDate\(Date\.now\(\), 'datetime'\)/);
+});
+
+test("l'en-tête de la planche vit dans la marge, hors du flux", () => {
+  // Les cellules de la planche sont positionnées en absolu aux cotes calculées :
+  // un en-tête dans le flux les déplacerait, et la taille des étiquettes
+  // dépendrait alors d'une case à cocher.
+  const css = readFileSync(join(WEB, 'style.css'), 'utf8');
+  const regle = css.match(/\.print-page__header\s*\{([\s\S]*?)\}/);
+  assert.ok(regle, 'aucune règle pour l\'en-tête de planche');
+  assert.match(regle[1], /position:\s*absolute/);
+  assert.match(regle[1], /top:\s*0/);
+});
+
+test("l'en-tête n'est dessiné que s'il tient dans la marge", () => {
+  const app = readFileSync(join(WEB, 'app.js'), 'utf8');
+  assert.match(app, /sheetHeaderFits\(\{ marginYMm: layout\.marginYMm \}\)/);
+  assert.match(app, /veutEnTete && placeEnTete\.fits/);
+  assert.match(app, /el\.sheetHeaderHint\.textContent = veutEnTete && !placeEnTete\.fits/);
+});

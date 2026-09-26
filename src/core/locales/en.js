@@ -29,6 +29,11 @@ export const EN_MESSAGES = {
     "The margins leave no room for a label on this sheet.",
   "Page d'information": "Information page",
   "Découpe": "Cutting",
+  "En-tête de page": "Page header",
+  "Nom de la collection en haut de chaque page": "Collection name at the top of every page",
+  "Avec la date d'impression": "With the print date",
+  "L'en-tête a besoin de {need} mm de marge en haut, et la marge actuelle est de {margin} mm. Augmentez la marge, ou décochez l'en-tête.":
+    "The header needs {need} mm of top margin, and the current margin is {margin} mm. Increase the margin, or untick the header.",
   "Tracer une bordure autour de chaque étiquette": "Draw a border around each label",
   "Tout effacer": "Clear all",
   "Chargement…": "Loading…",

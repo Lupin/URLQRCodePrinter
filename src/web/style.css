@@ -959,6 +959,20 @@ body {
 
 .print-page__date { font-size: 8pt; font-weight: 400; color: #444; }
 
+/* L'en-tête d'une **planche** vit dans la marge du haut, et non dans le flux.
+ *
+ * C'est la différence avec la page du tableau : là, le titre pousse le tableau
+ * vers le bas, ce qui ne coûte rien puisqu'il est dans le flux. Ici les cellules
+ * sont positionnées en absolu aux cotes calculées : les déplacer pour faire de
+ * la place changerait la taille des étiquettes en fonction d'une case à cocher.
+ * L'en-tête se pose donc dans la marge, et le calcul refuse de le dessiner
+ * quand elle est trop courte. */
+.print-page__header {
+  position: absolute;
+  top: 0;
+  color: #000;
+}
+
 /* Une bande entre le titre et le tableau : sans elle, la première ligne du
    tableau colle au titre. */
 .print-page__spacer { height: 4mm; }

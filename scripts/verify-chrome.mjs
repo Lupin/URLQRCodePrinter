@@ -467,97 +467,14 @@ async function main() {
           ratio: bordure && epaisseur > 0 ? Number(_ratio(bordure, interieur).toFixed(2)) : null,
           epaisseur,
           seuil: 3,
-          // **Un composant inactif est exempté par 1.4.11**, et c'est écrit
-          // noir sur blanc dans le critère. Mesurer un bouton désactivé et
-          // conclure à un échec serait une fausse accusation : le premier
-          // relevé l'a fait, et le seuil n'était pas en cause — la règle
-          // .btn:disabled l'emporte sur .btn--ghost, si bien que la teinte
-          // décorative observée était celle de l'état inactif.
+          // **Un composant inactif est exempté par 1.4.11.** Mesurer un bouton
+          // désactivé et conclure à un échec serait une fausse accusation, et le
+          // premier relevé l'a fait.
           inactif: node.disabled === true || node.getAttribute('aria-disabled') === 'true',
-          diagnostic: {
-            classes: typeof node.className === 'string' ? node.className : '',
-            desactive: node.disabled === true,
-            attributDesactive: node.hasAttribute('disabled'),
-            fond: style.backgroundColor,
-            items: document.querySelectorAll('#list .item').length,
-            correspondDesactive: node.matches(':disabled'),
-            temoin: (() => {
-              const neuf = document.createElement('button');
-              neuf.type = 'button';
-              neuf.className = node.className;
-              document.body.appendChild(neuf);
-              void neuf.offsetWidth;
-              const st = getComputedStyle(neuf);
-              const lecture = st.borderTopColor + ' / ' + st.backgroundColor;
-              neuf.remove();
-              return lecture;
-            })(),
-            jeton: getComputedStyle(node).getPropertyValue('--border-strong').trim()
-              + ' / surface ' + getComputedStyle(node).getPropertyValue('--surface').trim()
-              + ' / racine ' + getComputedStyle(document.documentElement).getPropertyValue('--border-strong').trim(),
-            regles: (() => {
-              const trouvees = [];
-              for (const feuille of document.styleSheets) {
-                let regles = [];
-                try { regles = [...feuille.cssRules]; } catch { continue; }
-                regles.forEach((regle, rang) => {
-                  const texte = regle.selectorText;
-                  if (!texte) return;
-                  for (const part of texte.split(',')) {
-                    const sel = part.trim();
-                    try {
-                      if (sel && node.matches(sel)) {
-                        const valeur = regle.style.getPropertyValue('border-color')
-                          || regle.style.getPropertyValue('border-top-color')
-                          || regle.style.getPropertyValue('border');
-                        const fond = regle.style.getPropertyValue('background')
-                          || regle.style.getPropertyValue('background-color');
-                        if (valeur || fond) trouvees.push(sel + ' = ' + (valeur || '-') + ' / ' + (fond || '-'));
-                      }
-                    } catch { /* sélecteur non évaluable */ }
-                  }
-                });
-              }
-              return trouvees;
-            })(),
-            ancetres: (() => {
-              const noms = [];
-              let courant = node.parentElement;
-              while (courant) {
-                noms.push(courant.tagName.toLowerCase()
-                  + (courant.hasAttribute?.('disabled') ? '[disabled]' : ''));
-                courant = courant.parentElement;
-              }
-              return noms.join(' < ');
-            })(),
-            url: location.href.slice(-40),
-          },
-          etat: epaisseur > 0 ? 'mesuré' : 'sans contour',
         });
       }
       return sortie;
     })()`);
-
-    // --- Diagnostic : qui gagne sur le contour du bouton ------------------
-    await popup.session.call('DOM.enable');
-    await popup.session.call('CSS.enable');
-    const doc = await popup.session.call('DOM.getDocument', {});
-    const cible = await popup.session.call('DOM.querySelector', {
-      nodeId: doc.root.nodeId, selector: '#export-csv',
-    });
-    const styles = await popup.session.call('CSS.getMatchedStylesForNode', {
-      nodeId: cible.nodeId,
-    });
-    for (const entree of styles.matchedCSSRules ?? []) {
-      const props = entree.rule.style.cssProperties
-        .filter((p) => p.name.includes('border') || p.name.includes('background'))
-        .map((p) => `${p.name}:${p.value}${p.implicit ? ' (implicite)' : ''}`);
-      if (!props.length) continue;
-      const ou = entree.rule.origin ? ` [${entree.rule.origin}]` : '';
-      console.log(`    regle${ou} ${entree.rule.selectorList.text} → ${props.join('; ')}`);
-    }
-    const inline = styles.inlineStyle?.cssProperties?.length ?? 0;
-    console.log(`    style en ligne : ${inline} declaration(s)`);
 
     for (const mesure of contrast?.textes ?? []) {
       if (mesure.etat !== 'mesuré') {
@@ -596,13 +513,7 @@ async function main() {
       record(
         `contour — ${mesure.nom}`,
         mesure.ratio >= 3,
-        `${mesure.couleur} (${mesure.epaisseur} px) sur ${mesure.fond} → ${mesure.ratio}:1 (seuil 3)`
-          + ` · ${mesure.diagnostic?.classes} · désactivé ${mesure.diagnostic?.desactive}`
-          + ` · attribut ${mesure.diagnostic?.attributDesactive} · items ${mesure.diagnostic?.items}`
-          + ` · :disabled ${mesure.diagnostic?.correspondDesactive} · ${mesure.diagnostic?.ancetres}`
-          + `\n      règles : ${(mesure.diagnostic?.regles ?? []).join(' | ')}`
-          + ` · jetons : ${mesure.diagnostic?.jeton}`
-          + ` · témoin neuf : ${mesure.diagnostic?.temoin}`,
+        `${mesure.couleur} (${mesure.epaisseur} px) sur ${mesure.fond} → ${mesure.ratio}:1 (seuil 3)`,
       );
     }
 
@@ -1116,6 +1027,80 @@ async function main() {
         && cellule?.bordure?.bordureStyle === 'solid'
         && /print-cell--bordered/.test(cellule?.bordure?.classe ?? ''),
       `trait ${cellule?.bordure?.bordure} ${cellule?.bordure?.bordureStyle}`,
+    );
+
+    // --- L'en-tête de page ------------------------------------------------
+    //
+    // Il vit dans la marge du haut, sans déplacer les étiquettes — leurs
+    // positions sont calculées, et une case à cocher ne doit pas changer leur
+    // taille. Le contrôle qui compte est donc géométrique : le bas de l'en-tête
+    // ne doit pas dépasser le haut de la première étiquette.
+    const entete = await evalApp(`(async () => {
+      const champ = (id) => document.getElementById(id);
+      const poser = (id, valeur) => {
+        champ(id).checked = valeur;
+        champ(id).dispatchEvent(new Event('change', { bubbles: true }));
+      };
+      const nombre = (id, valeur) => {
+        champ(id).value = valeur;
+        champ(id).dispatchEvent(new Event('input', { bubbles: true }));
+        champ(id).dispatchEvent(new Event('change', { bubbles: true }));
+      };
+      const pause = (ms) => new Promise((r) => setTimeout(r, ms));
+
+      // Toute exception du rendu laisserait l'aperçu dans son état précédent :
+      // on la capture plutôt que de l'attribuer au calcul.
+      const lire = () => {
+        const tete = document.querySelector('#preview .print-page__header');
+        const boite = document.querySelector('#preview .print-cell');
+        const bas = tete ? Math.round(tete.getBoundingClientRect().bottom) : null;
+        const haut = boite ? Math.round(boite.getBoundingClientRect().top) : null;
+        return {
+          present: Boolean(tete),
+          texte: tete ? tete.textContent.trim() : null,
+          basEntete: bas,
+          hautCellule: haut,
+          hauteurEntete: document.querySelector('#preview .print-page__header')?.style.height ?? '',
+          message: champ('sheet-header-hint').textContent.trim(),
+          messageGrille: champ('sheet-grid-hint').textContent.trim().slice(0, 80),
+        };
+      };
+
+      // Marge haute confortable : l'en-tête doit tenir.
+      nombre('sheet-margin-y', '15');
+      poser('sheet-header', true);
+      await pause(800);
+      const avec = lire();
+
+      // Marge trop courte : rien n'est dessiné, et le refus est expliqué.
+      nombre('sheet-margin-y', '3');
+      await pause(800);
+      const sans = lire();
+
+      // Remise en état.
+      poser('sheet-header', false);
+      nombre('sheet-margin-y', '12.9');
+      await pause(500);
+      return { avec, sans };
+    })()`);
+
+    const nomCollection = await evalApp("document.getElementById('collection-name').value");
+    record(
+      'l\'en-tête de page s\'imprime quand la marge le permet',
+      entete?.avec?.present === true && (entete?.avec?.texte ?? '').includes(nomCollection),
+      `« ${entete?.avec?.texte} » en tête de page`
+        + (entete?.avec?.messageGrille ? ` · ${entete.avec.messageGrille}` : ''),
+    );
+    record(
+      'l\'en-tête ne recouvre pas la première étiquette',
+      entete?.avec?.basEntete !== null && entete?.avec?.basEntete <= entete?.avec?.hautCellule,
+      `bas de l\'en-tête ${entete?.avec?.basEntete} px, haut de la première étiquette `
+        + `${entete?.avec?.hautCellule} px`,
+    );
+    record(
+      'une marge trop courte refuse l\'en-tête, en le disant',
+      entete?.sans?.present === false && /marge/.test(entete?.sans?.message ?? ''),
+      `« ${entete?.sans?.message?.slice(0, 110)} »`,
     );
 
     const tousOnglets = geometrie.every(

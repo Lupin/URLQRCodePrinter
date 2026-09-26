@@ -240,6 +240,15 @@ d'environ 81 % à 97 % sur une étiquette de 63,5 mm.
 du papier ordinaire, pour découper droit ; sur une planche autocollante
 prédécoupée, la bordure s'imprime à l'intérieur de chaque étiquette.
 
+**Un en-tête de page.** Le groupe **En-tête de page** imprime le nom de la
+collection, et la date d'impression si vous la demandez, en haut de chaque page —
+le même en-tête que celui du tableau. Il se place **dans la marge du haut**, sans
+déplacer les étiquettes : leurs positions sont calculées, et une case à cocher ne
+doit pas changer leur taille. Il lui faut donc **9 mm de marge en haut** ; en
+dessous, il n'est pas dessiné et la phrase sous la case dit exactement ce qui
+manque : « L'en-tête a besoin de 9 mm de marge en haut, et la marge actuelle est
+de 3 mm. »
+
 **Une seule présentation, six valeurs.** Le sélecteur **Disposition** ne fait
 que *préremplir* les six champs qui suivent ; vous pouvez ensuite les ajuster
 librement, et la taille des étiquettes est recalculée :

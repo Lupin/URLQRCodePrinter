@@ -53,6 +53,8 @@ import {
   sheetTextMetrics,
   sheetCellLines,
   sheetCellText,
+  sheetHeaderFits,
+  SHEET_HEADER_MM,
   SHEET_CELL_MARGIN_MM,
   SHEET_QR_GAP_MM,
   SHEET_FONT_PT,
@@ -1624,6 +1626,15 @@ function buildSheetPages(items) {
     offsetYMm: Number(el.sheetOffsetY.value) || 0,
   });
 
+  // L'en-tête de page vit dans la marge du haut : on vérifie qu'il y tient
+  // avant de le dessiner. Le message est posé sous la case qui le demande, et
+  // non à l'autre bout du panneau, comme pour la grille.
+  const veutEnTete = el.sheetHeader.checked;
+  const placeEnTete = sheetHeaderFits({ marginYMm: layout.marginYMm });
+  if (el.sheetHeaderHint) {
+    el.sheetHeaderHint.textContent = veutEnTete && !placeEnTete.fits ? placeEnTete.reason : '';
+  }
+
   const warnings = [...layout.warnings];
   if (!bounds.fits) {
     // Nommer le lien fautif évite de chercher lequel, sur une planche de trente
@@ -1646,6 +1657,26 @@ function buildSheetPages(items) {
     pageEl.className = 'print-page';
     pageEl.style.width = `${layout.pageWidthMm}mm`;
     pageEl.style.height = `${layout.pageHeightMm}mm`;
+
+    if (veutEnTete && placeEnTete.fits) {
+      const entete = document.createElement('div');
+      entete.className = 'print-page__header';
+      entete.style.left = `${layout.marginXMm}mm`;
+      entete.style.right = `${layout.marginXMm}mm`;
+      entete.style.height = `${SHEET_HEADER_MM}mm`;
+
+      const titre = document.createElement('h1');
+      titre.className = 'print-page__title';
+      titre.textContent = collectionName();
+      if (el.sheetHeaderDate.checked) {
+        const quand = document.createElement('span');
+        quand.className = 'print-page__date';
+        quand.textContent = formatCaptureDate(Date.now(), 'datetime');
+        titre.appendChild(quand);
+      }
+      entete.appendChild(titre);
+      pageEl.appendChild(entete);
+    }
 
     for (const { item, cell, matrix } of encoded[page.page]) {
       const cellEl = document.createElement('div');
@@ -3581,7 +3612,10 @@ for (const field of [
     renderPreview();
   });
 }
-for (const box of [el.sheetTitle, el.sheetUrl, el.sheetBorder]) {
+for (const box of [
+  el.sheetTitle, el.sheetUrl, el.sheetBorder,
+  el.sheetHeader, el.sheetHeaderDate,
+]) {
   box.addEventListener('change', renderPreview);
 }
 el.sheetQr.addEventListener('input', renderPreview);

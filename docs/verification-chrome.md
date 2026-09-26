@@ -214,6 +214,30 @@ moins renseigné. Les deux cas posent maintenant le même signal.
 
 ---
 
+## La disposition ne rendait pas ses marges
+
+Le premier en-tête de page ne s'imprimait jamais, et refusait de le faire en
+annonçant « la marge actuelle est de **0** mm » alors que la première étiquette
+était posée à 15,02 mm.
+
+La cause : `computeSheet` ne rendait **pas** les marges. Les positions des
+cellules les contiennent — `yMm` vaut la marge plus les rangées précédentes —
+si bien que leur absence ne se voyait nulle part. Un appelant qui veut savoir où
+**commence** la grille n'avait donc aucun moyen de les retrouver, sinon en
+défaisant le calcul de la première cellule. L'en-tête lisait `layout.marginYMm`,
+qui valait `undefined` : `nonNegative(undefined ?? 0)` en faisait zéro, et le
+refus était fondé sur un chiffre qui n'existait pas.
+
+Deux enseignements. D'abord, **le produit a dit la vérité** : c'est le message du
+refus, affiché sous la case, qui a nommé le chiffre fautif — « 0 mm » là où
+l'étiquette était à 15. Sans lui, la recherche aurait porté sur la géométrie,
+puis sur le CSS, puis sur la position de l'élément. Ensuite, un objet de retour
+qui n'expose que les conséquences d'un calcul oblige chaque appelant à le
+refaire : la disposition rend maintenant `marginXMm` et `marginYMm`, et un test
+vérifie qu'elles situent bien la première cellule.
+
+---
+
 ## Le curseur de largeur du QR Code ne remonte pas tout seul
 
 Constaté en éprouvant les options de la planche, et **laissé en l'état** : c'est

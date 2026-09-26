@@ -9,7 +9,7 @@ import assert from 'node:assert/strict';
 
 import {
   PAGE_SIZES, SHEET_PRESETS, computeSheet, paginate, fitGrid, clampGrid,
-  sheetCellText, qrRatioBounds,
+  sheetCellText, qrRatioBounds, sheetHeaderFits, SHEET_HEADER_MM,
 } from '../src/core/sheet.js';
 
 /**
@@ -412,4 +412,71 @@ test('aucune ligne de texte laisse toute la hauteur au QR Code', () => {
     `sans texte ${sansTexte.maxSideMm} mm, une ligne ${uneLigne.maxSideMm} mm : `
       + 'la hauteur rendue ne doit pas être perdue',
   );
+});
+
+// ---------------------------------------------------------------------------
+// En-tête de page
+//
+// Il vit dans la marge du haut : les étiquettes ne bougent pas, parce que leurs
+// positions sont calculées et qu'une case à cocher ne doit pas changer la taille
+// des étiquettes. Une marge trop courte le ferait donc recouvrir la première
+// rangée — pire qu'une absence, et refusé avec ses chiffres.
+// ---------------------------------------------------------------------------
+
+test('l\'en-tête tient dès que la marge atteint sa hauteur', () => {
+  assert.equal(sheetHeaderFits({ marginYMm: SHEET_HEADER_MM }).fits, true);
+  assert.equal(sheetHeaderFits({ marginYMm: 12.9 }).fits, true);
+  assert.equal(sheetHeaderFits({ marginYMm: SHEET_HEADER_MM }).reason, '');
+});
+
+test("l'en-tête refuse une marge trop courte, en nommant les deux chiffres", () => {
+  const refus = sheetHeaderFits({ marginYMm: 5 });
+  assert.equal(refus.fits, false);
+  assert.equal(refus.needed, SHEET_HEADER_MM);
+  // « Ça ne tient pas » sans les nombres oblige à chercher lequel des deux
+  // réglages corriger.
+  assert.match(refus.reason, new RegExp(`${SHEET_HEADER_MM} mm`));
+  assert.match(refus.reason, /5 mm/);
+});
+
+test("l'en-tête refuse aussi une marge absente ou négative", () => {
+  assert.equal(sheetHeaderFits({}).fits, false);
+  assert.equal(sheetHeaderFits({ marginYMm: 0 }).fits, false);
+  assert.equal(sheetHeaderFits({ marginYMm: -4 }).fits, false);
+});
+
+test("la hauteur d'en-tête couvre le titre et la bande du tableau", () => {
+  // Elle est confrontée aux valeurs écrites dans la feuille de style : un titre
+  // de 12 pt et une bande de 4 mm. Sans ce contrôle, agrandir la police un jour
+  // ferait mordre l'en-tête sur la première rangée sans que rien ne le dise.
+  const titreMm = (12 * 25.4) / 72;
+  const bandeMm = 4;
+  assert.ok(
+    SHEET_HEADER_MM >= titreMm + bandeMm,
+    `${SHEET_HEADER_MM} mm ne couvrent pas ${(titreMm + bandeMm).toFixed(2)} mm`,
+  );
+});
+
+test('la disposition rend les marges, et non seulement les cellules', () => {
+  // Elles manquaient. Leur absence ne se voyait pas — les positions des cellules
+  // les contiennent — mais un appelant qui veut savoir où **commence** la grille
+  // n'avait aucun moyen de les retrouver. L'en-tête de page s'y est trompé : il
+  // lisait `undefined`, donc zéro, et refusait de se dessiner en annonçant une
+  // marge de 0 mm alors que la première étiquette était à 15.
+  const layout = computeSheet({ count: 3, ...BASE });
+  assert.equal(typeof layout.marginXMm, 'number');
+  assert.equal(typeof layout.marginYMm, 'number');
+  // Et elles doivent être celles qui ont servi : la première cellule est posée
+  // exactement dessus.
+  const premiere = layout.cells[0];
+  // Les positions sont arrondies au centième : on compare à cette précision.
+  assert.ok(Math.abs(premiere.xMm - (layout.marginXMm + layout.offsetXMm)) < 0.005);
+  assert.ok(Math.abs(premiere.yMm - (layout.marginYMm + layout.offsetYMm)) < 0.005);
+});
+
+test('la marge rendue tient compte du recentrage de la grille', () => {
+  // `fitGrid` répartit l'espace restant en marge : la valeur rendue n'est donc
+  // pas celle demandée, et c'est bien celle-là qui situe la grille.
+  const layout = computeSheet({ count: 1, ...BASE });
+  assert.ok(layout.marginYMm >= BASE.marginYMm, `${layout.marginYMm} < ${BASE.marginYMm}`);
 });
