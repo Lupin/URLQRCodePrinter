@@ -207,6 +207,11 @@ export const EN_MESSAGES = {
   "Imprimez d'abord sur papier ordinaire, superposez la feuille obtenue à votre planche : si le texte est trop haut ou trop à gauche, corrigez ici.": "Print on plain paper first and overlay the result on your sheet: if the text is too high or too far left, correct it here.",
   "Taille du QR Code": "QR Code size",
   "Orientation de la page": "Page orientation",
+  // Le sens de la feuille, sous « Orientation de la page ». Les deux libellés
+  // sont donnés à `t()` par variable : ils échappaient au relevé des clés, et
+  // « Paysage » s'affichait en français dans l'interface anglaise.
+  "Portrait": "Portrait",
+  "Paysage": "Landscape",
   "Tableau imprimé": "Printed table",
   "N°": "No.",
   "QR Code": "QR Code",
@@ -224,6 +229,15 @@ export const EN_MESSAGES = {
   "Densité": "Density",
   "Copies": "Copies",
   "Disposition du texte": "Text orientation",
+  // Les cinq dispositions de texte. Mêmes mots que le guide anglais, qui les
+  // portait déjà : les libellés vivent dans un tableau d'`app.js` et sont donnés
+  // à `t()` par variable, donc le relevé des clés ne les voyait pas — la liste
+  // entière s'affichait en français dans l'interface anglaise.
+  "Texte droit, sous le QR Code": "Text upright, below the QR Code",
+  "Texte droit, au-dessus du QR Code": "Text upright, above the QR Code",
+  "Texte tourné, se lit de bas en haut": "Rotated text, read bottom to top",
+  "Texte tourné, se lit de haut en bas": "Rotated text, read top to bottom",
+  "Texte à droite du QR Code": "Text to the right of the QR Code",
   "Lien à imprimer": "Link to print",
   "Consommable": "Supply",
   "Taille du texte (mm)": "Text size (mm)",
@@ -437,6 +451,22 @@ export const EN_MESSAGES = {
   "trop large pour cette tête": "too wide for this printhead",
   "plus longue que la fenêtre d'impression": "longer than the print window",
   "marge non imprimée sur les côtés": "unprinted margin on the sides",
+  // Les consommables dont le libellé porte un mot français — les cotes seules
+  // s'écrivent pareil dans les deux langues et n'ont pas besoin d'entrée. Ces
+  // libellés sont eux aussi donnés à `t()` par variable : ils manquaient sans
+  // que rien ne le signale, et s'affichaient en français.
+  "25 × 9,5 mm": "25 × 9.5 mm",
+  "36,5 × 9,5 mm": "36.5 × 9.5 mm",
+  "30 × 70 mm (bijouterie)": "30 × 70 mm (jewellery)",
+  "25 × 78 mm (câble)": "25 × 78 mm (cable)",
+  "35,25 × 50 mm (auto-pelliculé)": "35.25 × 50 mm (self-laminating)",
+  "20 × 20 mm (rond)": "20 × 20 mm (round)",
+  "24 × 13 mm (rond)": "24 × 13 mm (round)",
+  "28 × 14 mm (rond)": "28 × 14 mm (round)",
+  "28 × 15 mm (rond)": "28 × 15 mm (round)",
+  "31 × 31 mm (rond)": "31 × 31 mm (round)",
+  "34 × 17 mm (rond)": "34 × 17 mm (round)",
+  "50 × 50 mm (rond)": "50 × 50 mm (round)",
   "Niimbot D110 — 12 mm utile (203 dpi)": "Niimbot D110 — 12 mm usable (203 dpi)",
   "Zebra 2 pouces — 54 mm (203 dpi)": "Zebra 2 inches — 54 mm (203 dpi)",
   "Générique — 50 × 30 mm (300 dpi)": "Generic — 50 × 30 mm (300 dpi)",

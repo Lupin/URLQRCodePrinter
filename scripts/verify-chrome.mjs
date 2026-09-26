@@ -3283,6 +3283,64 @@ async function main() {
         [...document.querySelectorAll('.tab')].find((t) => t.dataset.mode === 'sheet').click();
         await pause(600);
       })()`);
+
+      // --- L'interface anglaise ne montre plus de français --------------------
+      //
+      // Signalé : « la traduction anglaise de Orientation de la page > Paysage
+      // est fausse, utiliser Landscape ». Mesuré : la clé n'existait **pas** dans
+      // le catalogue anglais, et l'interface affichait donc le mot français.
+      //
+      // Le défaut n'était pas seul. Cinq dispositions de texte et douze
+      // consommables manquaient aussi, pour la même raison : ces libellés sont
+      // donnés à `t()` par variable — `t(entree.label)` — si bien que le relevé
+      // des clés, qui ne lit que les chaînes littérales, ne les voyait pas. Le
+      // contrôle lit donc les listes **telles qu'elles s'affichent**, en anglais.
+      await evalApp(`new Promise((resolve) => chrome.storage.local.set({ locale: 'en' }, resolve))`);
+      await recharger(app.session);
+      await forcerPeinture(app.session, 900);
+
+      const anglais = await evalApp(`(async () => {
+        const pause = (ms) => new Promise((r) => setTimeout(r, ms));
+        const ouvrir = async (onglet) => {
+          [...document.querySelectorAll('.tab')].find((t) => t.dataset.mode === onglet).click();
+          await pause(1000);
+        };
+        await ouvrir('table');
+        const orientation = [...document.getElementById('table-orientation').options]
+          .map((o) => o.textContent.trim());
+        await ouvrir('single');
+        const dispositions = [...document.getElementById('label-rotation').options]
+          .map((o) => o.textContent.trim());
+        const consommables = [...document.getElementById('label-supply').options]
+          .map((o) => o.textContent.trim());
+        return { orientation, dispositions, consommables };
+      })()`);
+
+      // Ce qu'on cherche : des **mots français** restés dans l'interface
+      // anglaise. La liste est courte et nomme le défaut signalé, plutôt que de
+      // prétendre juger l'anglais.
+      const MOTS_FRANCAIS = /Paysage|Texte|rond\b|bijouterie|câble|auto-pelliculé/i;
+      const restes = [
+        ...(anglais?.orientation ?? []),
+        ...(anglais?.dispositions ?? []),
+        ...(anglais?.consommables ?? []),
+      ].filter((libelle) => MOTS_FRANCAIS.test(libelle));
+
+      record(
+        'l\'interface anglaise ne montre plus de mot français dans ces trois listes',
+        (anglais?.orientation ?? []).includes('Landscape')
+          && !(anglais?.orientation ?? []).includes('Paysage')
+          && restes.length === 0,
+        `orientation : ${(anglais?.orientation ?? []).join(', ')} — `
+          + `${(anglais?.dispositions ?? []).length} disposition(s), `
+          + `${(anglais?.consommables ?? []).length} consommable(s)`
+          + (restes.length ? ` — restes français : ${restes.join(' | ')}` : ''),
+      );
+
+      // Remise en état : la langue française, comme le reste du relevé.
+      await evalApp(`new Promise((resolve) => chrome.storage.local.set({ locale: 'fr' }, resolve))`);
+      await recharger(app.session);
+      await forcerPeinture(app.session, 700);
     }
   } finally {
     // Les sessions se referment avant le navigateur : une socket ouverte sur un

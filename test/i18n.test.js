@@ -14,6 +14,9 @@ import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { EN_MESSAGES } from '../src/core/locales/en.js';
+import { LABEL_ALIGNMENTS } from '../src/core/label.js';
+import { LABEL_FORMATS } from '../src/core/label-export.js';
+import { PROFILES, compatibleSupplies } from '../src/core/printer/profiles.js';
 import {
   SUPPORTED_LOCALES,
   normalizeLocale,
@@ -76,7 +79,72 @@ function collectKeys() {
   for (const shortener of SHORTENERS) {
     if (shortener.label) keys.add(shortener.label);
   }
+
+  // **Même angle mort pour toutes les autres listes.** Un libellé déclaré dans un
+  // tableau, puis donné à `t()` par variable — `t(entree.label)` — échappe à
+  // l'expression régulière ci-dessus, qui ne voit que les chaînes littérales.
+  // C'est ainsi que « Paysage » s'affichait en français dans l'interface
+  // anglaise, avec les cinq dispositions de texte et douze consommables : rien
+  // ne les reliait à une clé de traduction. On relève donc les libellés à la
+  // source, module par module — en écartant ceux qui n'ont pas besoin de l'être.
+  const libelles = [
+    ...LABEL_ALIGNMENTS.map((entree) => entree.label),
+    ...LABEL_FORMATS.map((format) => format.name),
+    ...PROFILES.flatMap((profil) => compatibleSupplies(profil)
+      .flatMap((consommable) => [consommable.label, consommable.reason])),
+    ...libellesDeAppJs(),
+  ];
+  for (const libelle of libelles) {
+    if (libelle && demandeTraduction(libelle)) keys.add(libelle);
+  }
   return [...keys];
+}
+
+/**
+ * Vocabulaire neutre : marques, modèles et unités, écrits pareil dans les deux
+ * langues.
+ */
+const NEUTRE = /\b(niimbot|brother|dymo|labelwriter|zebra|ql|dk|d110|m2|m3|a4|letter|mm|dpi)\b/gi;
+
+/**
+ * Un libellé a-t-il besoin d'une traduction ?
+ *
+ * Les cotes et les noms de modèles s'écrivent pareil des deux côtés : exiger une
+ * entrée pour « 12 × 22 mm » ou « Brother QL — 62 mm (300 dpi) » remplirait le
+ * catalogue de traductions sans effet — et un contrôle qui réclame pour rien
+ * finit par être ignoré. On retire donc les nombres, les unités et les marques,
+ * puis on regarde s'il reste un **mot** : c'est lui qui demanderait à être
+ * traduit. Sur le catalogue actuel, le partage tombe juste — 47 libellés à
+ * traduire, 35 neutres.
+ *
+ * @param {string} texte
+ * @returns {boolean}
+ */
+function demandeTraduction(texte) {
+  const reste = String(texte)
+    .replace(NEUTRE, ' ')
+    .replace(/[\d.,×°()\-–—:;/]/g, ' ')
+    .trim();
+  return /[a-zà-ÿ]/i.test(reste);
+}
+
+/**
+ * Les libellés déclarés dans `app.js`, qui n'est pas importable sans DOM.
+ *
+ * Ils se relèvent dans la source, entre deux ancres. Le compte est vérifié par
+ * le test qui suit : un tableau déplacé rendrait ce relevé **vide**, et un
+ * contrôle vide ne contrôle rien.
+ *
+ * @returns {string[]}
+ */
+function libellesDeAppJs() {
+  const app = readFileSync(join(ROOT, 'src/web/app.js'), 'utf8');
+  const bloc = app.slice(app.indexOf('const LABEL_LAYOUTS'), app.indexOf('function layoutsFor'));
+  const dispositions = [...bloc.matchAll(/label: '((?:[^'\\]|\\.)*)'/g)]
+    .map((match) => unescapeKey(match[1]));
+  const orientations = [...app.matchAll(/\['(?:portrait|landscape)', '((?:[^'\\]|\\.)*)'\]/g)]
+    .map((match) => unescapeKey(match[1]));
+  return [...dispositions, ...orientations];
 }
 
 /** Espace de stockage en mémoire pour setLocale / initI18n. */
@@ -115,6 +183,16 @@ test('la langue du navigateur est respectée, avec le français par défaut', ()
 test('aucune clé du catalogue anglais ne manque', () => {
   const missing = collectKeys().filter((key) => !(key in EN_MESSAGES));
   assert.deepEqual(missing, [], 'traduction manquante : ' + missing.join(' | '));
+});
+
+test('le relevé des libellés atteint bien les listes données à t() par variable', () => {
+  // Un contrôle vide ne contrôle rien : si un tableau de libellés change de nom
+  // ou de forme, le relevé rendrait une liste vide et le test précédent
+  // passerait en silence — exactement le défaut qu'il est là pour attraper.
+  const libelles = libellesDeAppJs();
+  assert.equal(libelles.length, 7, `libellés relevés dans app.js : ${libelles.join(' | ')}`);
+  assert.ok(libelles.includes('Paysage'), 'le sens de la feuille');
+  assert.ok(libelles.includes('Texte droit, sous le QR Code'), 'les dispositions de texte');
 });
 
 test('aucune clé n\'est déclarée deux fois dans le catalogue anglais', () => {

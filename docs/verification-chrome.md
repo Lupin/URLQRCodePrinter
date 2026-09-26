@@ -77,7 +77,7 @@ protocole : elle répond.
 Les quatre constats sont désormais traités : le contour des boutons était une
 fausse accusation, les deux cibles satisfont l'exception d'espacement, et les
 deux aperçus ont été repris. Le relevé passe à **72 constats sur 72**, et à
-**116 sur 116** après les lots suivants.
+**117 sur 117** après les lots suivants.
 
 ### Le constat 1 : la fenêtre la plus courante est la plus mal servie
 
@@ -286,7 +286,7 @@ l'heuristique du navigateur. Il les distingue maintenant, en interrogeant
 - `:focus-visible` **vrai** et anneau absent → **c'est notre règle**. Le contrôle
   échoue, et il nomme l'élément.
 
-Trois passages consécutifs donnent 116 constats satisfaits sur 116, le troisième
+Trois passages consécutifs donnent 117 constats satisfaits sur 117, le troisième
 relevant l'artefact et le nommant. Un contrôle qui échoue au hasard finit par être
 ignoré ; celui-ci dit ce qu'il a vu et pourquoi il ne conclut pas à un défaut.
 
@@ -414,6 +414,49 @@ longueur a donc été poussée plus loin**, hors relevé, avec l'instrument :
 page, 0 adresse manquante, PDF de 9 pages — et la planche sur **7 pages**, 150
 étiquettes dont aucune hors page. Le nombre de pages suit donc bien la longueur,
 et pas seulement le cas de 45.
+
+---
+
+## « Paysage » dans l'interface anglaise, ou l'angle mort du relevé des clés
+
+Signalé : « la traduction anglaise de *Orientation de la page > Paysage* est
+fausse, utiliser *Landscape* ». La mesure a donné autre chose qu'une faute de
+traduction : **la clé n'existait pas**. Le catalogue anglais ne portait aucune
+entrée pour « Paysage », et `t()` retombait donc sur le français — ce que le
+produit fait exprès, et qu'un test couvre.
+
+Pourquoi rien ne l'avait vu : le relevé des clés de `test/i18n.test.js` lit les
+appels `t('…')` **littéraux** et les attributs `data-i18n`. Or ces libellés-là ne
+sont pas écrits à l'endroit où ils s'affichent — ils vivent dans des tableaux, et
+sont donnés à `t()` par variable : `t(entree.label)`. L'expression régulière ne
+les voit pas. Ils étaient donc invisibles **et** non traduits.
+
+L'inventaire, fait en parcourant ces listes une à une, en a trouvé dix-huit
+autres du même genre :
+
+| Liste | Libellés sans traduction |
+|---|---|
+| Sens de la feuille | « Paysage » |
+| Dispositions du texte | les **cinq** |
+| Consommables | douze — `(bijouterie)`, `(câble)`, `(auto-pelliculé)`, et les sept `(rond)` |
+
+Dans l'interface anglaise, la liste des dispositions s'affichait donc **entièrement
+en français**, et quatre consommables portaient un mot français. Le relevé mesure
+désormais les listes **telles qu'elles s'affichent**, en anglais :
+`orientation : Portrait, Landscape — 4 disposition(s), 15 consommable(s)`, sans
+aucun reste français.
+
+Le contrôle de clés a été étendu à ces listes, avec un partage explicite : un
+libellé qui ne contient que des nombres, des unités et des marques — « 12 × 22 mm »,
+« Brother QL — 62 mm (300 dpi) » — n'a pas besoin d'entrée, et l'exiger
+remplirait le catalogue de traductions sans effet. Le partage tombe juste : **47
+libellés à traduire, 35 neutres, aucun manquant**. Un contrôle qui réclame pour
+rien finit par être ignoré ; c'est la raison du tri.
+
+**Ce que le contrôle ne dit pas.** Il vérifie que chaque libellé **a** une
+traduction, jamais qu'elle est **bonne** : « Landscape » est présent, et c'est
+l'anglais. Juger la qualité d'une traduction demande un lecteur, pas une
+expression régulière.
 
 ---
 
