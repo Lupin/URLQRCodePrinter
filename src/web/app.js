@@ -15,7 +15,9 @@ import {
 } from './core/link.js';
 import { resolveDefaultStore } from './core/store.js';
 import { ELEMENT_IDS } from './element-ids.js';
-import { createSettingsStore, DEFAULT_SETTINGS, COLLECTION_NAME_MAX } from './core/settings.js';
+import {
+  createSettingsStore, DEFAULT_SETTINGS, COLLECTION_NAME_MAX, COLLECTION_NOTE_MAX,
+} from './core/settings.js';
 import {
   SHORTENERS,
   findShortener,
@@ -852,6 +854,16 @@ function collectionName() {
   return typed === '' ? t(DEFAULT_SETTINGS.collectionName) : typed.slice(0, COLLECTION_NAME_MAX);
 }
 
+/**
+ * La note de collection, telle qu'elle sera exportée et imprimée.
+ *
+ * Vide est un état normal : contrairement au nom, il n'y a pas de texte par
+ * défaut à lui substituer.
+ */
+function collectionNote() {
+  return (el.collectionNote?.value ?? '').trim().slice(0, COLLECTION_NOTE_MAX);
+}
+
 /** Reporte le nom de collection sur le titre de la page. */
 function applyCollectionName() {
   document.title = `${collectionName()} — URLQRCodePrinter`;
@@ -905,16 +917,20 @@ function exportAs(format) {
   if (links.length === 0) return;
 
   const name = collectionName();
+  const note = collectionNote();
   const specs = {
+    // Le CSV n'a que des lignes de liens : la note décrit la collection, elle
+    // n'a pas de ligne où se mettre. Elle va dans les sorties qui portent un
+    // en-tête — Markdown et archive.
     csv: { text: toCsv(links), ext: 'csv', mime: 'text/csv;charset=utf-8' },
     // Le titre du Markdown est le nom de la collection : ce que l'utilisateur a
     // nommé, et non un libellé choisi par le programme.
     md: {
-      text: toMarkdown(links, { title: name }),
+      text: toMarkdown(links, { title: name, note }),
       ext: 'md',
       mime: 'text/markdown;charset=utf-8',
     },
-    json: { text: toJson(links), ext: 'json', mime: 'application/json' },
+    json: { text: toJson(links, { title: name, note }), ext: 'json', mime: 'application/json' },
   };
   const spec = specs[format];
   const filename = exportFilename(name, spec.ext);
@@ -1747,6 +1763,15 @@ function buildSheetPages(items) {
         titre.appendChild(quand);
       }
       entete.appendChild(titre);
+      // La note vient sous le nom : elle décrit la collection, c'est donc sa
+      // place. Elle ne s'imprime que si elle existe.
+      const note = collectionNote();
+      if (note !== '') {
+        const sous = document.createElement('p');
+        sous.className = 'print-page__note';
+        sous.textContent = note;
+        entete.appendChild(sous);
+      }
       pageEl.appendChild(entete);
     }
 
@@ -1941,6 +1966,15 @@ function buildTablePage(table, options = {}) {
       title.appendChild(quand);
     }
     page.appendChild(title);
+    // La note suit le nom, comme sur la planche : deux sorties qui décrivent la
+    // même collection ne doivent pas en dire des choses différentes.
+    const note = collectionNote();
+    if (note !== '') {
+      const sous = document.createElement('p');
+      sous.className = 'print-page__note';
+      sous.textContent = note;
+      page.appendChild(sous);
+    }
     // Le titre occupe une bande : le tableau se place dessous, sans le recouvrir.
     const spacer = document.createElement('div');
     spacer.className = 'print-page__spacer';
@@ -3589,6 +3623,15 @@ el.collectionName.addEventListener('input', () => {
   settings.save({ collectionName: collectionName() });
 });
 
+// La note suit la même règle, à la frappe : c'est un paragraphe, pas une
+// commande, et rien n'oblige à valider. Elle est réenregistrée telle quelle —
+// bornée à la longueur admise — et redessine l'aperçu, puisque les en-têtes
+// imprimés la portent.
+el.collectionNote.addEventListener('input', () => {
+  settings.save({ collectionNote: collectionNote() });
+  renderPreview();
+});
+
 el.selectAllBox.addEventListener('change', () => {
   // Une case indéterminée devient cochée au clic : la cocher sélectionne tout,
   // la décocher vide la sélection. Dans les deux cas l'état de la case dit
@@ -3817,6 +3860,7 @@ async function exportSheetArchive() {
       pagesHtml: pages.map((page) => page.outerHTML).join('\n'),
       css: feuillesAppliquees(),
       title: collectionName(),
+      note: collectionNote(),
       pageWidthMm: layout.pageWidthMm,
       pageHeightMm: layout.pageHeightMm,
       layout,
@@ -4105,6 +4149,8 @@ el.qrTarget.value = preferences.targetMode;
 el.collectionName.value = preferences.collectionName === DEFAULT_SETTINGS.collectionName
   ? t(DEFAULT_SETTINGS.collectionName)
   : preferences.collectionName;
+// Une note vide reste vide : elle n'a pas de valeur par défaut à traduire.
+el.collectionNote.value = preferences.collectionNote;
 applyCollectionName();
 updateDateHint();
 

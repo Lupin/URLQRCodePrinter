@@ -1301,6 +1301,86 @@ async function main() {
         + `(${rapportExporte?.etiquetteMm} sur ${rapportExporte?.largeurPageMm})`,
     );
 
+    // --- La note de collection --------------------------------------------
+    //
+    // Elle décrit l'ensemble, et doit donc se retrouver partout où l'ensemble est
+    // nommé : l'en-tête de page de la planche, celui du tableau, et le manifeste
+    // du dossier exporté.
+    const NOTE_TEST = 'Pour le rangement du garage.';
+    await evalApp(`(() => {
+      const champ = document.getElementById('collection-note');
+      champ.value = ${JSON.stringify(NOTE_TEST)};
+      champ.dispatchEvent(new Event('input', { bubbles: true }));
+    })()`);
+    await forcerPeinture(app.session, 700);
+
+    // Sur la planche : on active l'en-tête de page, avec une marge qui le porte.
+    const notePlanche = await evalApp(`(async () => {
+      const pause = (ms) => new Promise((r) => setTimeout(r, ms));
+      const nombre = (id, valeur) => {
+        const n = document.getElementById(id);
+        n.value = valeur;
+        n.dispatchEvent(new Event('input', { bubbles: true }));
+        n.dispatchEvent(new Event('change', { bubbles: true }));
+      };
+      const poser = (id, valeur) => {
+        const n = document.getElementById(id);
+        n.checked = valeur;
+        n.dispatchEvent(new Event('change', { bubbles: true }));
+      };
+      nombre('sheet-margin-y', '15');
+      poser('sheet-header', true);
+      await pause(900);
+      const note = document.querySelector('#preview .print-page__note');
+      return { texte: note ? note.textContent.trim() : null };
+    })()`);
+
+    record(
+      'la note de collection s\'imprime sous le nom, sur la planche',
+      notePlanche?.texte === NOTE_TEST,
+      `« ${notePlanche?.texte} »`,
+    );
+
+    // Sur le tableau.
+    const noteTableau = await evalApp(`(async () => {
+      [...document.querySelectorAll('.tab')].find((t) => t.dataset.mode === 'table').click();
+      await new Promise((r) => setTimeout(r, 500));
+      const poser = (id, valeur) => {
+        const n = document.getElementById(id);
+        n.checked = valeur;
+        n.dispatchEvent(new Event('change', { bubbles: true }));
+      };
+      poser('table-title', true);
+      await new Promise((r) => setTimeout(r, 800));
+      const note = document.querySelector('#preview .print-page__note');
+      const titre = document.querySelector('#preview .print-page__title');
+      return { texte: note ? note.textContent.trim() : null, titre: titre ? titre.textContent.trim() : null };
+    })()`);
+
+    record(
+      'la note suit le nom sur la page du tableau',
+      noteTableau?.texte === NOTE_TEST && (noteTableau?.titre ?? '').length > 0,
+      `« ${noteTableau?.titre} » puis « ${noteTableau?.texte} »`,
+    );
+
+    // Remise en état, et retour à la planche pour la suite du parcours.
+    await evalApp(`(async () => {
+      const pause = (ms) => new Promise((r) => setTimeout(r, ms));
+      [...document.querySelectorAll('.tab')].find((t) => t.dataset.mode === 'sheet').click();
+      await pause(400);
+      const note = document.getElementById('collection-note');
+      note.value = '';
+      note.dispatchEvent(new Event('input', { bubbles: true }));
+      const tete = document.getElementById('sheet-header');
+      tete.checked = false;
+      tete.dispatchEvent(new Event('change', { bubbles: true }));
+      const marge = document.getElementById('sheet-margin-y');
+      marge.value = '12.9';
+      marge.dispatchEvent(new Event('input', { bubbles: true }));
+      marge.dispatchEvent(new Event('change', { bubbles: true }));
+      await pause(600);
+    })()`);
+
     const tousOnglets = geometrie.every(
       (g) => g.onglets.length === 4 && g.onglets.every(Boolean),
     );

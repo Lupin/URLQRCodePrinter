@@ -453,3 +453,53 @@ test('le format de date sans heure ne dépend pas de la locale', () => {
   assert.equal(formatDate(stamp), '02/01/2026', 'zéros de tête conservés');
   assert.equal(formatDate(NaN), '');
 });
+
+// ---------------------------------------------------------------------------
+// La note de collection dans les exports
+//
+// Elle décrit la **collection**, pas un lien : elle n'a donc de place que dans
+// les sorties qui portent un en-tête. Un CSV n'a que des lignes de liens, et y
+// glisser une note inventerait une ligne qui n'existe pas.
+// ---------------------------------------------------------------------------
+
+test('l\'archive JSON range la note à côté des liens, pas parmi eux', () => {
+  const links = [createLink({ url: 'https://e.com/a' }, { now: T0 })];
+  const texte = toJson(links, { title: 'Ma veille', note: 'Pour le rangement du garage.' });
+  const parsed = JSON.parse(texte);
+
+  assert.deepEqual(parsed.collection, { name: 'Ma veille', note: 'Pour le rangement du garage.' });
+  // Les liens n'ont pas hérité de la note : elle ne leur appartient pas.
+  assert.equal(parsed.links.length, 1);
+  assert.equal(parsed.links[0].note, '');
+});
+
+test("l'archive JSON sans note n'invente pas de clé", () => {
+  const parsed = JSON.parse(toJson([createLink({ url: 'https://e.com/a' }, { now: T0 })], { title: 'Ma veille' }));
+  assert.ok(!('note' in parsed.collection), 'une clé vide a été ajoutée');
+  assert.equal(parsed.collection.name, 'Ma veille');
+});
+
+test("le Markdown porte la note sous son titre, en citation", () => {
+  const links = [createLink({ url: 'https://e.com/a', title: 'Un article' }, { now: T0 })];
+  const md = toMarkdown(links, { title: 'Ma veille', note: 'Deux lignes :\nla seconde.' });
+
+  assert.match(md, /^title: "Ma veille"$/m);
+  assert.match(md, /^note: "Deux lignes :\\nla seconde\."$/m);
+  assert.match(md, /^> Deux lignes :$/m);
+  // Chaque ligne est citée : sans cela, un retour à la ligne casserait la mise
+  // en forme du document.
+  assert.match(md, /^> la seconde\.$/m);
+});
+
+test("le Markdown sans note ne laisse ni citation ni clé", () => {
+  const md = toMarkdown([createLink({ url: 'https://e.com/a' }, { now: T0 })], { title: 'Ma veille' });
+  assert.doesNotMatch(md, /^note:/m);
+  assert.doesNotMatch(md, /^> /m);
+});
+
+test('le CSV ignore la note, faute de ligne où la mettre', () => {
+  // Ce n'est pas un oubli : un CSV est une suite de liens, et la note décrit
+  // l'ensemble. La forcer dans une colonne la répéterait à chaque ligne.
+  const csv = toCsv([createLink({ url: 'https://e.com/a' }, { now: T0 })]);
+  assert.ok(!csv.includes('note'), 'la note s\'est glissée dans le CSV');
+});

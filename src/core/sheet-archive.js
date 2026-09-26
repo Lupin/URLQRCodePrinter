@@ -62,6 +62,7 @@ export function escapeSheetHtml(value) {
  *   pagesHtml: string,
  *   css: string,
  *   title?: string,
+ *   note?: string,
  *   pageWidthMm: number,
  *   pageHeightMm: number,
  * }} options
@@ -117,6 +118,7 @@ ${options.pagesHtml}
  *   pagesHtml: string,
  *   css: string,
  *   title?: string,
+ *   note?: string,
  *   pageWidthMm: number,
  *   pageHeightMm: number,
  *   layout: { columns: number, rows: number, perPage: number, pages: number,
@@ -162,6 +164,9 @@ export function buildSheetArchive(options) {
     version: 1,
     exportedAt: new Date(now).toISOString(),
     title: options.title ?? '',
+    // La note décrit la collection : elle appartient au manifeste, sans quoi le
+    // dossier ne dirait pas de quoi il parle.
+    ...(options.note ? { note: options.note } : {}),
     page: { widthMm: options.pageWidthMm, heightMm: options.pageHeightMm },
     grid: {
       columns: layout.columns,

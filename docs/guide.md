@@ -41,10 +41,28 @@ targeted link whatever the choice: on YouTube's home page or a channel page —
 grids of thumbnails — "Add this page" saved the video, and the page you asked for
 never arrived.
 
-**Naming the collection.** The "Collection name" (« Nom de la collection »)
-field (under the panel title) gives its title to the Markdown export and to the
+**Naming the collection, and describing it.** The **"Collection name" (« Nom de
+la collection »)** field (under the panel title) gives its title to the Markdown
+export and to the
 HTML sheet of the image archive, and gives its name to the exported files —
 `Veille-du-vendredi-20260915-1741.md` rather than `liens-qr-….md`.
+
+The **"Collection note (optional)" (« Note de la collection (facultative) »)**
+field, just below, describes the whole — what it is for, where it comes from. It
+is not a link's note: it belongs to the collection, and therefore appears
+wherever the collection is named:
+
+| Output | Where the note appears |
+|---|---|
+| Markdown | as a quotation under the title, and in the file's front matter |
+| JSON archive | in a `collection` object, next to the name |
+| Label sheet, page header | under the name, as a second line |
+| Table, page header | under the name, as a second line |
+| Sheet folder (ZIP) | the manifest's `note` key |
+
+The **CSV** does not carry it: it is made only of link rows, and slipping the note
+in would repeat it on every one. That is not an oversight — the note describes the
+whole, and has no row to sit in.
 
 **Title, tags and note.** The **✎** button on each row opens the three fields
 that go into the exports:

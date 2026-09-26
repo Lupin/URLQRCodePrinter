@@ -176,3 +176,15 @@ test("le nom de l'archive porte la collection et se distingue du tableau", () =>
   const nom = sheetArchiveName(Date.UTC(2025, 0, 15, 11, 30), 'Mes liens');
   assert.match(nom, /^Mes-liens-planche-\d{8}-\d{4}\.zip$/);
 });
+
+test('le manifeste porte la note de collection quand il y en a une', () => {
+  // Sans elle, le dossier ne dit pas de quoi il parle — et c'est précisément ce
+  // qu'une note de collection sert à dire.
+  const { manifest } = archiver({ note: 'Pour le rangement du garage.' });
+  assert.equal(manifest.note, 'Pour le rangement du garage.');
+});
+
+test("une note absente n'ajoute pas de clé vide au manifeste", () => {
+  const { manifest } = archiver();
+  assert.ok(!('note' in manifest), 'une clé vide a été ajoutée');
+});

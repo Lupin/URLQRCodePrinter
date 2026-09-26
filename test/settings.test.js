@@ -15,6 +15,7 @@ import {
   COLLECTION_NAME_MAX,
   sanitizeSettings,
   createSettingsStore,
+  COLLECTION_NOTE_MAX,
 } from '../src/core/settings.js';
 
 /** Stockage factice, avec compteur d'écritures. */
@@ -138,4 +139,42 @@ test('sans stockage injecté, le repli mémoire reste cohérent', () => {
   assert.equal(typeof store.load, 'function');
   store.save({ targetMode: 'short' });
   assert.equal(store.load().targetMode, 'short');
+});
+
+// ---------------------------------------------------------------------------
+// Note de collection
+//
+// Elle décrit l'ensemble, là où le nom ne fait que le nommer. Facultative : une
+// collection n'a pas toujours quelque chose à dire, et une note inventée serait
+// pire qu'une absence.
+// ---------------------------------------------------------------------------
+
+test('une note absente reste vide, et ne retombe sur aucun texte par défaut', () => {
+  // C'est la différence avec le nom : un nom vide donnerait un export sans
+  // titre, donc un défaut s'impose. Une note vide est un état normal.
+  assert.equal(DEFAULT_SETTINGS.collectionNote, '');
+  const reglages = sanitizeSettings({});
+  assert.equal(reglages.collectionNote, '');
+  assert.equal(sanitizeSettings({ collectionNote: '   ' }).collectionNote, '');
+  assert.equal(sanitizeSettings({ collectionNote: 42 }).collectionNote, '');
+});
+
+test('une note est conservée, bornée, et ses retours à la ligne aussi', () => {
+  const texte = 'Deux lignes :\nla première, puis la seconde.';
+  assert.equal(sanitizeSettings({ collectionNote: texte }).collectionNote, texte);
+
+  // Les bords sont rognés ; l'intérieur ne l'est pas.
+  assert.equal(
+    sanitizeSettings({ collectionNote: '  une note  ' }).collectionNote,
+    'une note',
+  );
+
+  const longue = 'x'.repeat(COLLECTION_NOTE_MAX + 50);
+  assert.equal(sanitizeSettings({ collectionNote: longue }).collectionNote.length, COLLECTION_NOTE_MAX);
+});
+
+test('la note tolère plus de caractères que le nom', () => {
+  // Ce ne sont pas les mêmes contraintes : le nom tient dans un nom de fichier
+  // et sous un en-tête, la note est un paragraphe qui explique.
+  assert.ok(COLLECTION_NOTE_MAX > COLLECTION_NAME_MAX);
 });

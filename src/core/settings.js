@@ -24,11 +24,24 @@ export const SETTINGS_KEY = 'url-qr-code-printer/settings';
 /** Longueur maximale du nom de collection : au-delà, il ne tient plus nulle part. */
 export const COLLECTION_NAME_MAX = 80;
 
+/**
+ * Longueur maximale de la note de collection.
+ *
+ * Plus large que le nom, parce que ce n'est pas la même chose : le nom tient
+ * dans un nom de fichier et sous un en-tête imprimé, la note est un paragraphe
+ * qui explique de quoi la collection parle. Elle reste bornée — elle finit dans
+ * un fichier et sur une page, et rien ne justifie d'y verser un roman.
+ */
+export const COLLECTION_NOTE_MAX = 600;
+
 /** Valeurs par défaut : aucun raccourcissement, le QR Code encode l'URL collectée. */
 export const DEFAULT_SETTINGS = Object.freeze({
   shortener: DEFAULT_SHORTENER,
   targetMode: 'original',
   collectionName: 'Mes liens',
+  // Vide par défaut : une collection n'a pas toujours quelque chose à dire, et
+  // une note inventée serait pire qu'une absence.
+  collectionNote: '',
   dateMode: 'none',
 });
 
@@ -39,7 +52,8 @@ export const DEFAULT_SETTINGS = Object.freeze({
  * refusée : un réglage corrompu ne doit pas bloquer l'application.
  *
  * @param {unknown} value
- * @returns {{ shortener: string, targetMode: 'original'|'short', collectionName: string, dateMode: string }}
+ * @returns {{ shortener: string, targetMode: 'original'|'short',
+ *   collectionName: string, collectionNote: string, dateMode: string }}
  */
 export function sanitizeSettings(value) {
   const source = value && typeof value === 'object' ? value : {};
@@ -61,7 +75,12 @@ export function sanitizeSettings(value) {
     ? source.dateMode
     : DEFAULT_SETTINGS.dateMode;
 
-  return { shortener, targetMode, collectionName, dateMode };
+  // Une note vide est un état normal, contrairement au nom : on ne retombe pas
+  // sur un texte par défaut, on garde le vide.
+  const rawNote = typeof source.collectionNote === 'string' ? source.collectionNote.trim() : '';
+  const collectionNote = rawNote.slice(0, COLLECTION_NOTE_MAX);
+
+  return { shortener, targetMode, collectionName, collectionNote, dateMode };
 }
 
 /**

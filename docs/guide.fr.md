@@ -40,10 +40,26 @@ la priorité au lien visé quel que soit le choix : sur l'accueil de YouTube ou
 d'une chaîne — des grilles de vignettes — « Ajouter cette page » enregistrait la
 vidéo, et la page demandée n'arrivait jamais.
 
-**Nommer la collection.** Le champ « Nom de la collection » (sous le titre du
-panneau) donne son titre à l'export Markdown, à la planche HTML de l'archive
-d'images, et son nom aux fichiers exportés — `Veille-du-vendredi-20260915-1741.md`
-plutôt que `liens-qr-….md`.
+**Nommer la collection, et la décrire.** Le champ **« Nom de la collection »**
+(sous le titre du panneau) donne son titre à l'export Markdown, à la planche HTML
+de l'archive d'images, et son nom aux fichiers exportés —
+`Veille-du-vendredi-20260915-1741.md` plutôt que `liens-qr-….md`.
+
+Le champ **« Note de la collection (facultative) »**, juste en dessous, décrit
+l'ensemble — à quoi il sert, d'où il vient. Ce n'est pas la note d'un lien : elle
+appartient à la collection, et se retrouve donc là où la collection est nommée :
+
+| Sortie | Où la note apparaît |
+|---|---|
+| Markdown | en citation sous le titre, et dans l'en-tête du fichier |
+| Archive JSON | dans un objet `collection`, à côté du nom |
+| Planche d'étiquettes, en-tête de page | sous le nom, en second |
+| Tableau, en-tête de page | sous le nom, en second |
+| Dossier de la planche (ZIP) | clé `note` du manifeste |
+
+Le **CSV** ne la porte pas : il n'est fait que de lignes de liens, et y glisser la
+note la répéterait sur chacune. Ce n'est pas un oubli — la note décrit l'ensemble,
+elle n'a pas de ligne où se mettre.
 
 **Titre, tags et note.** Le bouton **✎** de chaque ligne ouvre les trois champs
 qui partent dans les exports :

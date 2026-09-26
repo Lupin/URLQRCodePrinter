@@ -231,6 +231,10 @@ export function escapeMarkdownCell(value) {
 export function toMarkdown(links, options = {}) {
   const {
     title = 'Mes liens QR Code',
+    // La note de collection n'est pas un lien : elle décrit l'ensemble. Elle
+    // n'apparaît donc que dans les sorties qui portent un en-tête — Markdown et
+    // archive — et jamais dans un CSV, qui n'a que des lignes de liens.
+    note = '',
     layout = 'table',
     frontmatter = true,
     includeQr = false,
@@ -242,6 +246,7 @@ export function toMarkdown(links, options = {}) {
   if (frontmatter) {
     out.push('---');
     out.push(`title: ${JSON.stringify(title)}`);
+    if (note) out.push(`note: ${JSON.stringify(note)}`);
     out.push(`count: ${links.length}`);
     out.push(`generated: ${new Date(now).toISOString()}`);
     out.push('---');
@@ -250,6 +255,12 @@ export function toMarkdown(links, options = {}) {
 
   out.push(`# ${title}`);
   out.push('');
+  if (note) {
+    // Chaque ligne du paragraphe est citée : sans cela, un retour à la ligne
+    // dans la note casserait la mise en forme du document.
+    for (const ligne of note.split('\n')) out.push(ligne === '' ? '>' : `> ${ligne}`);
+    out.push('');
+  }
   out.push(`_${links.length} lien${links.length > 1 ? 's' : ''} — exporté le ${formatDateTime(now)}_`);
   out.push('');
 
@@ -315,6 +326,9 @@ export function toMarkdown(links, options = {}) {
  * @param {{ now?: number, app?: string }} [options]
  * @returns {string}
  */
+/** Nom de collection par défaut, partagé avec l'export Markdown. */
+export const DEFAULT_COLLECTION_TITLE = 'Mes liens QR Code';
+
 export function toJson(links, options = {}) {
   return JSON.stringify(
     {
@@ -322,6 +336,12 @@ export function toJson(links, options = {}) {
       version: 1,
       exportedAt: new Date(options.now ?? Date.now()).toISOString(),
       app: options.app ?? 'url-qr-code-printer',
+      // Le nom et la note décrivent la **collection**, pas les liens : ils sont
+      // donc à côté d'eux, et non mêlés à eux.
+      collection: {
+        name: options.title ?? DEFAULT_COLLECTION_TITLE,
+        ...(options.note ? { note: options.note } : {}),
+      },
       count: links.length,
       links,
     },
