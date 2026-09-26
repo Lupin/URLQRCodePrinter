@@ -108,7 +108,8 @@ async function main() {
       { id: 'a', url: 'https://exemple.fr/un-article-assez-long-pour-compter', title: 'Un article de fond sur la question', tags: ['lecture'], createdAt: Date.now() - 90000000 },
       { id: 'b', url: 'https://exemple.fr/article-deux', title: 'Un second article', tags: [], createdAt: Date.now() - 80000000 },
       { id: 'c', url: 'https://exemple.fr/trois', title: 'Le troisième, avec un titre qui dépasse', tags: ['maison'], createdAt: Date.now() - 70000000 },
-      { id: 'd', url: 'https://exemple.fr/quatre', title: 'Quatrième', tags: [], createdAt: Date.now() - 60000000 }
+      { id: 'd', url: 'https://exemple.fr/quatre', title: 'Quatrième', tags: [], createdAt: Date.now() - 60000000 },
+      { id: 'e', url: 'https://exemple.fr/un-chemin-vraiment-tres-long-pour-eprouver-la-largeur-disponible/et-encore-un-peu-pour-etre-sur/avec-un-dernier-segment', title: 'Une adresse très longue', tags: [], createdAt: Date.now() - 50000000 }
     ] }, resolve))`);
 
     await session.call('Page.reload');
@@ -167,6 +168,97 @@ async function main() {
     console.log(JSON.stringify(ligne, null, 2));
 
     await evaluate(`(() => { document.getElementById('reorder')?.click(); return true; })()`);
+
+    // L'onglet Niimbot, rien de coché : c'est là que l'aperçu et son verdict se
+    // lisent, et l'état « aucune case cochée » est celui qui prête à confusion.
+    const niimbot = await evaluate(`(async () => {
+      const pause = (ms) => new Promise((r) => setTimeout(r, ms));
+      [...document.querySelectorAll('.tab')].find((t) => t.dataset.mode === 'single').click();
+      await pause(1200);
+      const lire = () => ({
+        legende: document.querySelector('#preview .hint')?.textContent.trim() ?? null,
+        couleurLegende: (() => {
+          const n = document.querySelector('#preview .hint');
+          return n ? getComputedStyle(n).color : null;
+        })(),
+        lienChoisi: document.getElementById('label-link')?.value ?? null,
+        lienOption: document.getElementById('label-link')?.selectedOptions?.[0]?.textContent?.trim() ?? null,
+        consommable: document.getElementById('label-supply')?.selectedOptions?.[0]?.textContent?.trim() ?? null,
+        coches: document.querySelectorAll('#list .link__check:checked').length,
+        liens: document.querySelectorAll('#list .link').length,
+        texteFontHint: document.getElementById('label-font-hint')?.textContent.trim() ?? null,
+        profil: document.getElementById('label-profile')?.value ?? null,
+      });
+      const sansSelection = lire();
+      // **Tous** les messages visibles du panneau, et pas seulement la légende de
+      // l'aperçu : c'est ce que l'utilisateur a sous les yeux.
+      sansSelection.messages = [...document.querySelectorAll('#panel-layout .hint, .panel .hint')]
+        .filter((n) => !n.hidden && n.offsetParent !== null && n.textContent.trim() !== '')
+        .map((n) => n.id + ' : ' + n.textContent.trim());
+
+      // Le verdict suit-il les **paramètres** ? On parcourt les consommables et
+      // les formats, en gardant le même lien : si le message ne change jamais,
+      // c'est qu'il ne dépend pas de ce qui sera imprimé.
+      const parcours = [];
+      const consommable = document.getElementById('label-supply');
+      const profil = document.getElementById('label-profile');
+      for (const choisir of [consommable, profil]) {
+        const avant = choisir.value;
+        for (const option of [...choisir.options]) {
+          choisir.value = option.value;
+          choisir.dispatchEvent(new Event('change', { bubbles: true }));
+          await pause(220);
+          const t = lire();
+          parcours.push({
+            reglage: choisir.id,
+            choix: option.textContent.trim(),
+            legende: t.legende,
+            couleur: t.couleurLegende,
+          });
+        }
+        choisir.value = avant;
+        choisir.dispatchEvent(new Event('change', { bubbles: true }));
+        await pause(220);
+      }
+      // Le relevé part avec le reste : un console.log écrit dans la page reste
+      // dans la page, et ne dit rien à qui lance le script.
+
+      // Puis la portée « seulement ceux que je coche », sans rien de coché :
+      // c'est l'état où rien ne sortira.
+      const select = document.getElementById('label-link');
+      const option = [...select.options].find((o) => /coche|tick/i.test(o.textContent));
+      const portee = option ? option.value : null;
+      if (portee) {
+        select.value = portee;
+        select.dispatchEvent(new Event('change', { bubbles: true }));
+        await pause(1200);
+      }
+      const porteeSansCoche = { portee, ...lire() };
+
+      // Puis une case cochée, pour comparer les deux états. On coche la
+      // **dernière** ligne, dont l'adresse est courte : si l'aperçu suit la
+      // portée, le message de longueur doit disparaître.
+      const cases = [...document.querySelectorAll('#list .link__check')];
+      cases[cases.length - 1]?.click();
+      await pause(1200);
+      return { sansSelection, parcours, porteeSansCoche, avecSelection: lire() };
+    })()`);
+    console.log(JSON.stringify(niimbot, null, 2));
+
+    const zoneEtiquette = await evaluate(`(() => {
+      const cadre = document.querySelector('#preview .preview__page');
+      if (!cadre) return null;
+      const r = cadre.getBoundingClientRect();
+      return { x: Math.round(r.left), y: Math.round(r.top), width: Math.round(r.width), height: Math.round(r.height) };
+    })()`);
+    if (zoneEtiquette) {
+      const nomEtiquette = join(DOSSIER, `niimbot-${LARGEUR}.png`);
+      const image = await session.call('Page.captureScreenshot', {
+        format: 'png', clip: { ...zoneEtiquette, scale: 2 }, captureBeyondViewport: true,
+      });
+      writeFileSync(nomEtiquette, Buffer.from(image.data, 'base64'));
+      console.log(nomEtiquette);
+    }
 
     // La hauteur des champs : `.field` porte un `flex-basis` de 160 px, pensé
     // pour une **rangée** — dans une colonne, cette base devient une hauteur, et

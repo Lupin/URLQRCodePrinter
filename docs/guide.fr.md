@@ -564,6 +564,13 @@ Le sélecteur **« Ce qu'on imprime »** range ses réponses en deux groupes :
 - **Plusieurs** — *Toute la collection*, ou *Seulement ceux que je coche* dans la
   liste. L'aperçu montre le premier des étiquettes qui sortiront.
 
+Une portée vide — *Seulement ceux que je coche* sans aucune case cochée — **le
+reste** : le sélecteur ne retombe pas sur un lien au hasard, l'aperçu le dit
+(« Rien à imprimer… ») et le bouton s'appelle « Aucun lien à imprimer ». Le
+verdict de longueur, lui, ne s'affiche que pour une étiquette qui va réellement
+sortir : quand la portée en couvre plusieurs, le message **nomme** celle qui est
+en cause, pour qu'il ne passe pas pour un jugement sur toute l'impression.
+
 Le champ **Exemplaires** va de 1 à 20, et vaut dans les deux cas : dix liens à
 deux exemplaires font vingt étiquettes, et un seul lien à trois exemplaires en
 fait trois. C'est ce qui manquait — on ne pouvait pas demander plusieurs

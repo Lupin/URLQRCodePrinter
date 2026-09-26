@@ -558,6 +558,13 @@ two:
 - **Several** (« Plusieurs ») — *The whole collection*, or *Only the ones I tick*
   in the list. The preview shows the first of the labels that will come out.
 
+An empty scope — *Only the ones I tick* with nothing ticked — **stays** as it is:
+the selector does not fall back to a link at random, the preview says so
+("Nothing to print…") and the button reads "Aucun lien à imprimer". The length
+verdict, for its part, only appears for a label that will really come out: when
+the scope covers several, the message **names** the one at fault, so it cannot
+pass for a verdict on the whole print run.
+
 The **Copies** (« Exemplaires ») field runs from 1 to 20 and applies in both
 cases: ten links at two copies make twenty labels, and a single link at three
 copies makes three. That was the missing piece — there was no way to ask for

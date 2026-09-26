@@ -319,7 +319,9 @@ export const EN_MESSAGES = {
   "Stockage temporaire : IndexedDB indisponible, les liens seront perdus": "Temporary storage: IndexedDB unavailable, links will be lost",
   "Supprimer {title}": "Delete {title}",
   "Sélectionner {title}": "Select {title}",
-  "Sélectionnez un lien pour voir l'étiquette.": "Select a link to see the label.",
+  "Rien à imprimer : cochez au moins un lien dans la liste, ou choisissez « Toute la collection ».":
+    "Nothing to print: tick at least one link in the list, or choose \u201cThe whole collection\u201d.",
+  "{profile} — « {title} » : {reason}": "{profile} — \u201c{title}\u201d: {reason}",
   "Taille des étiquettes déduite de ces six valeurs : {size}, {columns} × {rows} par feuille.": "Label size derived from these six values: {size}, {columns} × {rows} per sheet.",
   "Texte de {size} mm de haut, {lines} de texte.": "Text {size} mm high, {lines} of text.",
   "Titre de la page": "Page title",

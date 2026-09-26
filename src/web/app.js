@@ -2671,9 +2671,13 @@ function renderSingleLabel(link) {
   }
 
   if (!link) {
+    // Rien à imprimer : on le dit, sans verdict rouge. Un verdict de longueur
+    // n'a de sens que pour une étiquette qui va sortir.
     const note = document.createElement('p');
     note.className = 'hint';
-    note.textContent = t('Sélectionnez un lien pour voir l\'étiquette.');
+    note.textContent = t(
+      'Rien à imprimer : cochez au moins un lien dans la liste, ou choisissez « Toute la collection ».',
+    );
     el.preview.appendChild(note);
     return;
   }
@@ -2773,6 +2777,10 @@ function renderSingleLabel(link) {
       height: hauteurMm,
     });
 
+  // Un verdict porte toujours sur **une** étiquette : quand la portée en couvre
+  // plusieurs, on nomme celle qui est en cause. Sans le nom, le message
+  // ressemblerait à un jugement sur toute l'impression.
+  const nommer = impressionChoisie().kind !== 'one';
   caption.textContent = (verdict.ok
     ? t('{profile} — {width} × {height} px, {px} px par module', {
       profile: profile.id,
@@ -2780,7 +2788,13 @@ function renderSingleLabel(link) {
       height: geometry.height,
       px: decimal(verdict.pxPerModule),
     })
-    : t('{profile} — {reason}', { profile: profile.id, reason: t(verdict.reason) }))
+    : (nommer
+      ? t('{profile} — « {title} » : {reason}', {
+        profile: profile.id,
+        title: link.title || hostOf(link.url) || link.url,
+        reason: t(verdict.reason),
+      })
+      : t('{profile} — {reason}', { profile: profile.id, reason: t(verdict.reason) })))
     + orientationNote + dateNote + echelleNote;
   if (!verdict.ok) caption.style.color = 'var(--danger)';
   frame.appendChild(caption);
@@ -3798,16 +3812,19 @@ function fillLabelLinks() {
     const option = document.createElement('option');
     option.value = valeur;
     option.textContent = libelle;
-    // Une sélection vide ne peut pas être imprimée : l'option le dit plutôt que
-    // de laisser le bouton inerte sans explication.
-    if (valeur === PORTEE_COCHEE && coches === 0) option.disabled = true;
     plusieurs.appendChild(option);
   }
   el.labelLink.appendChild(plusieurs);
 
+  // La portée « seulement ceux que je coche » **reste choisie même sans rien de
+  // coché**. Elle était désactivée dans ce cas, et le sélecteur retombait
+  // silencieusement sur le premier lien : l'aperçu se mettait alors à juger un
+  // lien que personne n'avait choisi, message rouge compris, alors que
+  // l'intention — « rien de coché » — était de n'imprimer rien. Le panneau dit
+  // maintenant ce qui se passe : rien ne sortira, et pourquoi.
   const encoreValable = links.some((link) => link.id === previous)
     || previous === PORTEE_TOUT
-    || (previous === PORTEE_COCHEE && coches > 0);
+    || previous === PORTEE_COCHEE;
   if (encoreValable) el.labelLink.value = previous;
   el.labelLink.disabled = links.length === 0;
   updateLabelContentHint();

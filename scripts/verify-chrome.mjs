@@ -1778,6 +1778,69 @@ async function main() {
         + `« ${sansNote?.planche?.bulle} »`,
     );
 
+    // --- Une portée vide dans l'onglet Niimbot -----------------------------
+    //
+    // Le défaut signalé : avec rien de coché, le sélecteur retombait sur le
+    // premier lien et l'aperçu jugeait **ce lien** — message rouge compris —
+    // alors que l'intention était de n'imprimer rien. Le contrôle tient donc en
+    // deux temps : la portée choisie survit à la désélection, et le verdict
+    // laisse la place à une phrase neutre.
+    const porteeVide = await evalApp(`(async () => {
+      const pause = (ms) => new Promise((r) => setTimeout(r, ms));
+      [...document.querySelectorAll('.tab')].find((t) => t.dataset.mode === 'single').click();
+      await pause(800);
+
+      // On coche un lien, on choisit « seulement ceux que je coche », puis on
+      // décoche : c'est la suite de gestes qui produisait le défaut.
+      document.querySelector('#list .link__check')?.click();
+      await pause(700);
+      const select = document.getElementById('label-link');
+      const rangee = [...select.options].find((o) => o.value === '__selected');
+      select.value = '__selected';
+      select.dispatchEvent(new Event('change', { bubbles: true }));
+      await pause(900);
+      const choisi = select.value;
+
+      document.querySelector('#list .link__check')?.click();
+      await pause(900);
+      const legende = document.querySelector('#preview .hint');
+      return {
+        choisi,
+        apresDecochage: select.value,
+        texte: legende ? legende.textContent.trim() : null,
+        couleur: legende ? getComputedStyle(legende).color : null,
+        bouton: document.getElementById('print-label')?.textContent.trim() ?? null,
+        boutonInactif: document.getElementById('print-label')?.disabled ?? null,
+        portee: document.getElementById('print-scope-hint').textContent.trim(),
+      };
+    })()`);
+
+    record(
+      'décocher tout ne fait pas retomber le sélecteur sur un lien',
+      porteeVide?.choisi === '__selected' && porteeVide?.apresDecochage === '__selected',
+      `portée choisie « ${porteeVide?.choisi} », après décochage « ${porteeVide?.apresDecochage} »`,
+    );
+    record(
+      'sans rien de coché, l\'aperçu annonce qu\'il n\'y a rien à imprimer, sans verdict',
+      /rien à imprimer/i.test(porteeVide?.texte ?? '')
+        && porteeVide?.couleur !== 'rgb(179, 18, 43)'
+        && porteeVide?.boutonInactif === true,
+      `« ${porteeVide?.texte} » en ${porteeVide?.couleur}, bouton « ${porteeVide?.bouton} » `
+        + `(inactif : ${porteeVide?.boutonInactif})`,
+    );
+
+    // Remise en état : la portée repart sur un lien, comme à l'ouverture.
+    await evalApp(`(async () => {
+      const pause = (ms) => new Promise((r) => setTimeout(r, ms));
+      const select = document.getElementById('label-link');
+      select.value = [...select.options].find((o) => o.value !== '__all'
+        && o.value !== '__selected')?.value ?? select.value;
+      select.dispatchEvent(new Event('change', { bubbles: true }));
+      await pause(600);
+      [...document.querySelectorAll('.tab')].find((t) => t.dataset.mode === 'sheet').click();
+      await pause(600);
+    })()`);
+
     // --- Le premier numéro de la collection --------------------------------
     //
     // Le cas d'usage tient en une phrase : on termine un lot, on efface les

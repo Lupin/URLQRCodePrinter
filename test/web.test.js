@@ -493,6 +493,22 @@ test('ranger est impossible sous un tri, et le bouton le dit', () => {
   assert.match(app, /el\.reorder\.disabled = !peutRanger/);
 });
 
+test('une portée vide reste choisie, et l\'aperçu dit qu\'il n\'y a rien à imprimer', () => {
+  // Le sélecteur retombait sur le premier lien dès qu'on décochait tout : le
+  // panneau jugeait alors un lien que personne n'avait choisi — message rouge
+  // compris — alors que l'intention était de n'imprimer rien.
+  const app = readFileSync(join(WEB, 'app.js'), 'utf8');
+  const remplir = app.match(/function fillLabelLinks\(\)[\s\S]*?\n\}/)[0];
+  assert.match(remplir, /previous === PORTEE_COCHEE;/, 'la portée cochée doit rester retenue');
+  assert.doesNotMatch(remplir, /option\.disabled = true/,
+    'une portée vide reste choisissable : c\'est elle qui dit « rien »');
+
+  assert.match(app, /'Rien à imprimer : cochez au moins un lien dans la liste, ou choisissez « Toute la collection »\.'/);
+  // Le verdict de longueur porte sur une étiquette qui va sortir : il nomme
+  // laquelle quand la portée en couvre plusieurs.
+  assert.match(app, /const nommer = impressionChoisie\(\)\.kind !== 'one'/);
+});
+
 test('la collection peut commencer à un numéro choisi', () => {
   // Continuer une série après avoir vidé la collection : le numéro est un
   // réglage, pas une conséquence des liens présents.
