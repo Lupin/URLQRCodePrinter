@@ -7,7 +7,7 @@
  *
  *   list(): Promise<LinkRecord[]>
  *   get(id): Promise<LinkRecord|undefined>
- *   add(record): Promise<{ link, duplicate }>
+ *   add(record): Promise<{ link, duplicate, updated }>
  *   put(record): Promise<LinkRecord>
  *   putMany(records): Promise<number>
  *   remove(id): Promise<void>
@@ -18,7 +18,7 @@
  */
 
 import {
-  createLink, findDuplicate, newId, sortByManualOrder,
+  createLink, findDuplicate, mergeDuplicate, newId, sortByManualOrder,
 } from './link.js';
 
 const DB_NAME = 'url-qr-code-printer';
@@ -29,12 +29,32 @@ const STORE = 'links';
  * @typedef {Object} LinkStore
  * @property {() => Promise<import('./link.js').LinkRecord[]>} list
  * @property {(id: string) => Promise<import('./link.js').LinkRecord|undefined>} get
- * @property {(record: Partial<import('./link.js').LinkRecord> & {url: string}, options?: object) => Promise<{link: import('./link.js').LinkRecord, duplicate: boolean}>} add
+ * @property {(record: Partial<import('./link.js').LinkRecord> & {url: string}, options?: object) => Promise<{link: import('./link.js').LinkRecord, duplicate: boolean, updated: boolean}>} add
  * @property {(record: import('./link.js').LinkRecord) => Promise<import('./link.js').LinkRecord>} put
  * @property {(records: import('./link.js').LinkRecord[]) => Promise<number>} putMany
  * @property {(id: string) => Promise<void>} remove
  * @property {() => Promise<void>} clear
  */
+
+/**
+ * Tranche le cas du lien déjà présent, et l'enregistre si le titre a changé.
+ *
+ * La décision elle-même vit dans le cœur (`mergeDuplicate`) : les trois
+ * implémentations la partagent, et ne diffèrent que par leur façon d'écrire.
+ * L'écriture passe par le `put` du magasin plutôt que dans son dos — chaque
+ * implémentation range ses enregistrements à sa manière, et `put` pose aussi
+ * `updatedAt`, ce qui est exactement ce qu'on veut dire : le lien a changé.
+ *
+ * @param {{ put: (record: object) => Promise<object> }} store
+ * @param {import('./link.js').LinkRecord} existing
+ * @param {{ title?: unknown }} record
+ * @returns {Promise<{ link: import('./link.js').LinkRecord, duplicate: true, updated: boolean }>}
+ */
+async function mergeOrKeep(store, existing, record) {
+  const { link, updated } = mergeDuplicate(existing, record);
+  if (!updated) return { link, duplicate: true, updated: false };
+  return { link: await store.put(link), duplicate: true, updated: true };
+}
 
 /**
  * Trie les liens du plus récent au plus ancien.
@@ -147,7 +167,7 @@ export function createIndexedDbStore(options = {}) {
     async add(record, addOptions = {}) {
       const existing = await this.list();
       const duplicate = addOptions.allowDuplicate ? undefined : findDuplicate(existing, record.url);
-      if (duplicate) return { link: duplicate, duplicate: true };
+      if (duplicate) return mergeOrKeep(this, duplicate, record);
 
       const link = createLink(record, addOptions);
       await withStore('readwrite', (os) => os.put(link));
@@ -199,7 +219,7 @@ export function createMemoryStore(initial = []) {
       const duplicate = addOptions.allowDuplicate
         ? undefined
         : findDuplicate([...map.values()], record.url);
-      if (duplicate) return { link: duplicate, duplicate: true };
+      if (duplicate) return mergeOrKeep(this, duplicate, record);
       const link = createLink(record, addOptions);
       map.set(link.id, link);
       return { link, duplicate: false };
@@ -258,7 +278,7 @@ export function createChromeStorageStore(options = {}) {
     async add(record, addOptions = {}) {
       const all = await readAll();
       const duplicate = addOptions.allowDuplicate ? undefined : findDuplicate(all, record.url);
-      if (duplicate) return { link: duplicate, duplicate: true };
+      if (duplicate) return mergeOrKeep(this, duplicate, record);
       const link = createLink(record, addOptions);
       all.push(link);
       await writeAll(all);

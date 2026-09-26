@@ -404,10 +404,13 @@ async function addCurrentTab() {
     return;
   }
 
-  const { duplicate } = await store.add(capture);
+  // Un titre différent de celui déjà enregistré est **adopté**, et on le dit :
+  // refuser la correction obligeait à supprimer le lien pour le rajouter.
+  const { duplicate, updated } = await store.add(capture);
   await notifyBadge();
   await render();
-  toast(duplicate ? t('Déjà enregistré') : t('Page ajoutée'));
+  if (updated) toast(t('Lien mis à jour'));
+  else toast(duplicate ? t('Déjà enregistré') : t('Page ajoutée'));
 }
 
 /**

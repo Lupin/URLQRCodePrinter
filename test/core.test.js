@@ -22,6 +22,8 @@ import {
   sortLinks,
   sortByManualOrder,
   applyVisibleOrder,
+  mergeDuplicate,
+  DEFAULT_TITLE_MAX,
   isSortMode,
 } from '../src/core/link.js';
 
@@ -586,6 +588,42 @@ test('sous une recherche, seules les lignes déplacées changent de place', () =
   // Un identifiant que la collection ne connaît pas est ignoré, sans décaler
   // les suivants.
   assert.equal(ordre(applyVisibleOrder(LIENS, ['b', 'inconnu', 'c'])), 'abc');
+});
+
+test('un lien déjà présent adopte le titre transmis', () => {
+  // Recollecter une page n'est pas forcément un doublon : c'est souvent une
+  // correction. Le titre est la seule chose que l'appelant apporte, donc la
+  // seule qui change.
+  const existant = createLink(
+    { id: 'a', url: 'https://exemple.fr/a', title: 'Ancien', note: 'à relire', tags: ['veille'] },
+    { now: 1000 },
+  );
+  const fusion = mergeDuplicate(existant, { url: 'https://exemple.fr/a', title: '  Corrigé  ' });
+
+  assert.equal(fusion.updated, true);
+  assert.equal(fusion.link.title, 'Corrigé', 'le titre est rangé, comme à la création');
+  assert.equal(fusion.link.id, 'a');
+  assert.equal(fusion.link.createdAt, 1000);
+  // Rien d'autre ne bouge : ni la note, ni les tags, ni le rang.
+  assert.equal(fusion.link.note, 'à relire');
+  assert.deepEqual(fusion.link.tags, ['veille']);
+});
+
+test('un titre vide, identique ou trop long est traité comme il faut', () => {
+  const existant = createLink({ id: 'a', url: 'https://exemple.fr/a', title: 'Le mien' }, { now: 1000 });
+
+  // Une absence n'est pas une correction : on ne remplace pas un titre choisi.
+  for (const titre of ['', '   ', undefined, 42, null]) {
+    const fusion = mergeDuplicate(existant, { title: titre });
+    assert.equal(fusion.updated, false, `titre ${JSON.stringify(titre)}`);
+    assert.equal(fusion.link, existant, 'le même objet, donc aucune écriture');
+  }
+
+  assert.equal(mergeDuplicate(existant, { title: 'Le mien' }).updated, false);
+
+  const long = mergeDuplicate(existant, { title: 'x'.repeat(DEFAULT_TITLE_MAX + 50) });
+  assert.equal(long.updated, true);
+  assert.equal(long.link.title.length, DEFAULT_TITLE_MAX, 'même borne que createLink');
 });
 
 test('un ordre vide ou inconnu ne touche à rien', () => {

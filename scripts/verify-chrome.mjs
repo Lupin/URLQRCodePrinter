@@ -2336,16 +2336,19 @@ async function main() {
         };
         const pause = (ms) => new Promise((r) => setTimeout(r, ms));
 
-        // Un ajout neuf, puis le **même** lien deux fois : c'est ainsi qu'un
-        // doublon se produit. Chaque lecture suit immédiatement la réponse, car
-        // le retour transitoire est remplacé par le compteur au bout de 1,5 s.
+        // Un ajout neuf, le **même** lien avec un autre titre, puis le même
+        // encore sans rien changer : trois issues distinctes, et trois retours.
+        // Chaque lecture suit immédiatement la réponse, car le retour
+        // transitoire est remplacé par le compteur au bout de 1,5 s.
         const neuf = 'https://exemple.fr/sonde-' + Date.now();
         const premier = await ajouter(neuf, 'Sonde');
         await pause(3000);
-        const doublon = await ajouter(neuf, 'Sonde');
+        const corrige = await ajouter(neuf, 'Sonde corrigée');
+        await pause(3000);
+        const doublon = await ajouter(neuf, 'Sonde corrigée');
         await pause(3000);
         const repos = await lire();
-        return { premier, doublon, repos };
+        return { premier, corrige, doublon, repos };
       })()`);
 
       const perm = await evalWorker(
@@ -2357,6 +2360,11 @@ async function main() {
       } else {
         record('un ajout affiche « + » sur le badge', badges?.premier?.texte === '+',
           `« ${badges?.premier?.texte} » sur ${badges?.premier?.couleur}`);
+        record(
+          'un titre corrigé affiche « ✎ » sur le badge, et se distingue du doublon',
+          badges?.corrige?.texte === '✎' && badges?.corrige?.texte !== badges?.doublon?.texte,
+          `« ${badges?.corrige?.texte} » sur ${badges?.corrige?.couleur}`,
+        );
         record("un doublon affiche « = » sur le badge", badges?.doublon?.texte === '=',
           `« ${badges?.doublon?.texte} » sur ${badges?.doublon?.couleur}`);
         // Le doublon est un **résultat**, pas un ajout : si sa couleur est celle

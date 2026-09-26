@@ -411,6 +411,37 @@ export function findDuplicate(links, url) {
 }
 
 /**
+ * Décide de ce qu'on fait d'un lien **déjà présent**.
+ *
+ * Recollecter une page déjà enregistrée était un refus sec : « déjà
+ * enregistré ». Or le cas courant n'est pas un doublon mais une **correction** —
+ * la page a changé de titre, ou on en a saisi un meilleur dans la fenêtre avant
+ * d'enregistrer — et se voir refuser sa correction oblige à supprimer le lien
+ * pour le rajouter. Le titre différent est donc adopté.
+ *
+ * Ce qui n'est **pas** touché : la date de collecte, le rang, les tags, la note,
+ * le raccourci. Seul le titre change, parce que c'est la seule chose que
+ * l'appelant apporte ; écraser une note ou un tag par leur absence serait une
+ * perte silencieuse.
+ *
+ * Un titre vide, ou identique, ne change rien : on ne remplace pas un titre
+ * choisi par une absence, et un enregistrement identique ne mérite pas une
+ * écriture.
+ *
+ * @param {LinkRecord} existing
+ * @param {{ title?: unknown }} record
+ * @returns {{ link: LinkRecord, updated: boolean }}
+ */
+export function mergeDuplicate(existing, record) {
+  const titre = typeof record?.title === 'string'
+    ? record.title.trim().slice(0, DEFAULT_TITLE_MAX)
+    : '';
+
+  if (titre === '' || titre === existing.title) return { link: existing, updated: false };
+  return { link: { ...existing, title: titre }, updated: true };
+}
+
+/**
  * Indique si un enregistrement possède un lien raccourci exploitable.
  * @param {Partial<LinkRecord>} [link]
  * @returns {boolean}

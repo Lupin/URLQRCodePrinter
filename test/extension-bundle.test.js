@@ -15,6 +15,10 @@ import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 import { CONSENT_KEY, DISCLOSURE_VERSION } from '../src/core/privacy.js';
+// Le texte attendu se demande à la table de traduction, et non écrit en clair :
+// sous Node, l'interface s'affiche en anglais, et une chaîne française en dur ne
+// dirait rien du message réellement montré.
+import { initI18n, t } from '../src/core/i18n.js';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const DIST = join(ROOT, 'dist', 'extension-safari');
@@ -174,6 +178,49 @@ test('un clic contextuel enregistre bien le lien', async () => {
   // rallongerait le test d'une seconde et demie sans rien vérifier de plus.
   assert.ok(
     state.badge.includes('+'),
+    `retour attendu sur l'icône, observés : ${JSON.stringify(state.badge)}`,
+  );
+});
+
+test('un titre changé est adopté, et l\'icône le dit', async () => {
+  // Recollecter une page déjà enregistrée était un refus sec. Le cas courant
+  // n'est pourtant pas un doublon, c'est une correction : la page a changé de
+  // titre. On l'adopte, et l'icône annonce ce qui s'est passé — un ajout, une
+  // correction et un doublon ne se ressemblent pas.
+  const state = installChrome({ stored: acceptedConsent() });
+  await loadFresh('background.js');
+
+  // L'onglet est le second argument : c'est le navigateur qui le fournit, et
+  // c'est de lui que vient le titre.
+  const onglet = (titre) => ({ url: 'https://exemple.fr/page', title: titre });
+  const clic = (titre) => state.onClicked(
+    { menuItemId: 'urq-add-page', pageUrl: 'https://exemple.fr/page' },
+    onglet(titre),
+  );
+
+  await clic('Un titre');
+  await settle();
+  assert.equal((state.stored.links ?? []).length, 1);
+  assert.equal(state.stored.links[0].title, 'Un titre');
+
+  await clic('Un titre corrigé');
+  await settle();
+
+  const stored = state.stored.links ?? [];
+  assert.equal(stored.length, 1, 'une correction ne crée pas un second lien');
+  assert.equal(stored[0].title, 'Un titre corrigé', 'le titre corrigé doit être adopté');
+  assert.ok(
+    state.badge.includes('✎'),
+    `retour attendu sur l'icône, observés : ${JSON.stringify(state.badge)}`,
+  );
+
+  // Recollecter la même chose, sans rien changer : c'est un doublon, et l'icône
+  // le dit autrement.
+  state.badge.length = 0;
+  await clic('Un titre corrigé');
+  await settle();
+  assert.ok(
+    state.badge.includes('='),
     `retour attendu sur l'icône, observés : ${JSON.stringify(state.badge)}`,
   );
 });
@@ -418,6 +465,48 @@ test('l\'ajout de l\'onglet courant écrit dans le stockage', async () => {
   assert.equal(stored.length, 1, 'le lien doit être enregistré');
   assert.equal(stored[0].url, 'https://exemple.fr/page');
   assert.equal(dom.element('count').textContent, '1', 'le compteur doit suivre');
+});
+
+test('un titre corrigé dans la fenêtre met le lien à jour', async () => {
+  // C'est le geste signalé : on ajoute une page déjà là, après avoir changé son
+  // titre dans la fenêtre. Répondre « déjà enregistré » obligeait à supprimer le
+  // lien pour le rajouter.
+  //
+  // La langue est **fixée** : le message est traduit, et sous Node elle dépend
+  // de celle du système. Un test qui lit le texte affiché doit savoir dans
+  // quelle langue il le lit.
+  const langue = globalThis.navigator?.language;
+  Object.defineProperty(globalThis, 'navigator', {
+    value: { language: 'fr-FR', languages: ['fr-FR'] }, configurable: true,
+  });
+  try {
+    const state = installChrome({ stored: acceptedConsent() });
+    await loadFresh('popup.js');
+    await settle();
+    await settle();
+
+    await dom.fire('add-current', 'click');
+    await settle();
+    assert.equal((state.stored.links ?? []).length, 1);
+
+    dom.element('link-title').value = 'Le titre que je préfère';
+    await dom.fire('add-current', 'click');
+    await settle();
+
+    const stored = state.stored.links ?? [];
+    assert.equal(stored.length, 1, 'corriger un titre ne crée pas un second lien');
+    assert.equal(stored[0].title, 'Le titre que je préfère');
+    assert.equal(
+      dom.element('toast').textContent,
+      t('Lien mis à jour'),
+      'le message doit dire ce qui s\'est passé, et non « Déjà enregistré »',
+    );
+  } finally {
+    Object.defineProperty(globalThis, 'navigator', {
+      value: { language: langue ?? 'en-US', languages: [langue ?? 'en-US'] },
+      configurable: true,
+    });
+  }
 });
 
 test('sans consentement, la fenêtre n\'enregistre rien et ouvre la mention', async () => {

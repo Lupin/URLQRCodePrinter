@@ -82,8 +82,20 @@ are not printed on labels: they classify the collection.
 
 URLs are normalized on entry: `https://` added if missing, fragment removed,
 campaign parameters (`utm_*`, `fbclid`, `gclid`…) stripped — they make the QR Code
-code longer without adding anything on paper. A duplicate is not added twice;
-the application tells you so instead of staying silent.
+code longer without adding anything on paper.
+
+**Re-collecting a page you already saved does not duplicate it.** If the title
+has changed — the page was retitled, or you typed a better one in the extension
+window before saving — the **existing title is corrected**: "Link updated"
+(« Lien mis à jour »), and the icon shows it. Nothing else moves: the collection
+date, the rank, the tags, the note and the short link are kept. If the title is
+identical, or empty, the link is simply left alone and the application says so
+("Already saved"): an empty title does not replace a chosen one, and an absence
+is not a correction.
+
+The toolbar icon announces the outcome without opening anything: **+** the link
+just arrived, **✎** its title was corrected, **=** it was already there and
+nothing changed.
 
 **Dating the labels.** The "Date below the QR Code" (« Date sous le QR Code »)
 selector prints the link's collection date — `None` by default,

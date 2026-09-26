@@ -49,6 +49,10 @@ const api = resolveApi();
 const BADGE_COUNT = { fond: '#1a1a1a', texte: '#ffffff' };
 const BADGE_ADDED = { fond: '#1c7c4a', texte: '#ffffff' };
 const BADGE_DUPLICATE = { fond: '#f4f4f4', texte: '#161616' };
+// Un titre adopté **change** la collection, comme un ajout : mêmes teintes que
+// l'ajout, et c'est le signe qui les sépare. Le fond clair reste réservé à ce
+// qui ne change rien.
+const BADGE_UPDATED = { fond: '#1c7c4a', texte: '#ffffff' };
 const BADGE_ERROR = { fond: '#b3122b', texte: '#ffffff' };
 
 const store = createChromeStorageStore({ area: api?.storage?.local });
@@ -165,8 +169,12 @@ async function record(capture) {
   }
 
   try {
-    const { duplicate } = await store.add(capture);
-    await flashBadge(duplicate ? '=' : '+', duplicate ? BADGE_DUPLICATE : BADGE_ADDED);
+    const { duplicate, updated } = await store.add(capture);
+    // Trois retours distincts, du plus informatif au plus plat : le titre a été
+    // adopté, le lien était déjà là, ou il vient d'arriver.
+    if (updated) await flashBadge('✎', BADGE_UPDATED);
+    else if (duplicate) await flashBadge('=', BADGE_DUPLICATE);
+    else await flashBadge('+', BADGE_ADDED);
     return { recorded: true };
   } catch {
     await flashBadge('!', BADGE_ERROR);

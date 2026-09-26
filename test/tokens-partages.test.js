@@ -289,7 +289,7 @@ test("le compteur de la barre d'outils vient de la palette, pas d'une teinte inv
 
 test('le texte du badge tient son seuil sur les quatre fonds', () => {
   const badge = badgeTokens();
-  for (const nom of ['BADGE_COUNT', 'BADGE_ADDED', 'BADGE_DUPLICATE', 'BADGE_ERROR']) {
+  for (const nom of ['BADGE_COUNT', 'BADGE_ADDED', 'BADGE_DUPLICATE', 'BADGE_UPDATED', 'BADGE_ERROR']) {
     const etat = badge[nom];
     assert.ok(etat, `${nom} absent`);
     const rapport = contraste(etat.texte, etat.fond);
@@ -315,6 +315,17 @@ test('un doublon se distingue du compteur au repos', () => {
   const badge = badgeTokens();
   assert.notEqual(badge.BADGE_DUPLICATE.fond, badge.BADGE_COUNT.fond);
   assert.notEqual(badge.BADGE_DUPLICATE.texte, badge.BADGE_COUNT.texte);
+});
+
+test('un titre adopté compte comme un changement, pas comme un doublon', () => {
+  // La pastille répond à une seule question : la collection a-t-elle changé ?
+  // Une correction de titre la change, donc elle prend les teintes de l'ajout —
+  // c'est le **signe** qui la distingue, comme pour les autres états. Le fond
+  // clair reste réservé à ce qui ne change rien.
+  const badge = badgeTokens();
+  assert.equal(badge.BADGE_UPDATED.fond, badge.BADGE_ADDED.fond);
+  assert.equal(badge.BADGE_UPDATED.texte, badge.BADGE_ADDED.texte);
+  assert.notEqual(badge.BADGE_UPDATED.fond, badge.BADGE_DUPLICATE.fond);
 });
 
 test('un doublon ne se confond pas avec un échec', () => {

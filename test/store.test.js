@@ -39,6 +39,58 @@ test('add refuse un doublon et renvoie l\'existant', async () => {
   assert.equal((await store.list()).length, 1);
 });
 
+test('add adopte un titre différent, au lieu de refuser le doublon', async () => {
+  // Le cas courant d'une recollecte n'est pas un doublon, c'est une correction :
+  // la page a changé de titre, ou on en a saisi un meilleur avant d'enregistrer.
+  const store = createMemoryStore();
+  const first = await store.add(
+    { url: 'https://example.com/a', title: 'Ancien titre' },
+    { now: T0 },
+  );
+  await store.put({ ...first.link, tags: ['veille'], order: 3 });
+
+  const second = await store.add(
+    { url: 'https://www.example.com/a/', title: 'Titre corrigé' },
+    { now: T0 + 5000 },
+  );
+
+  assert.equal(second.duplicate, true);
+  assert.equal(second.updated, true);
+  assert.equal(second.link.id, first.link.id, 'le même lien, pas un second');
+  assert.equal(second.link.title, 'Titre corrigé');
+  // Ce qui n'était pas transmis ne bouge pas : une correction de titre ne doit
+  // pas effacer un tag ni changer le rang.
+  assert.deepEqual(second.link.tags, ['veille']);
+  assert.equal(second.link.order, 3);
+  assert.equal(second.link.createdAt, first.link.createdAt, 'la date de collecte est conservée');
+  // La modification passe par le `put` du magasin, qui pose l'horloge réelle —
+  // comme partout ailleurs. On vérifie donc qu'elle a bougé, pas sa valeur.
+  assert.ok(second.link.updatedAt > first.link.updatedAt, 'la date de modification suit');
+
+  const tous = await store.list();
+  assert.equal(tous.length, 1);
+  assert.equal(tous[0].title, 'Titre corrigé', 'la correction doit être persistée');
+});
+
+test('un titre identique, ou vide, ne réécrit rien', async () => {
+  const store = createMemoryStore();
+  const first = await store.add({ url: 'https://example.com/a', title: 'Le mien' }, { now: T0 });
+
+  const identique = await store.add(
+    { url: 'https://example.com/a', title: 'Le mien' },
+    { now: T0 + 1000 },
+  );
+  assert.equal(identique.duplicate, true);
+  assert.equal(identique.updated, false);
+  assert.equal(identique.link.updatedAt, first.link.updatedAt, 'rien n\'a été écrit');
+
+  // Un titre vide ne remplace pas un titre choisi : une absence n'est pas une
+  // correction.
+  const vide = await store.add({ url: 'https://example.com/a', title: '   ' }, { now: T0 + 2000 });
+  assert.equal(vide.updated, false);
+  assert.equal((await store.list())[0].title, 'Le mien');
+});
+
 test('add avec allowDuplicate force l\'insertion', async () => {
   const store = createMemoryStore();
   await store.add({ url: 'https://example.com/a' }, { now: T0 });

@@ -80,8 +80,20 @@ classent la collection.
 
 Les URL sont normalisées à l'entrée : `https://` ajouté si absent, fragment
 retiré, paramètres de campagne (`utm_*`, `fbclid`, `gclid`…) supprimés — ils
-allongent le QR Code sans rien apporter au papier. Un doublon n'est pas ajouté deux
-fois ; l'application vous le dit au lieu de rester silencieuse.
+allongent le QR Code sans rien apporter au papier.
+
+**Recollecter une page déjà enregistrée ne la duplique pas.** Si le titre a
+changé — la page a été retitrée, ou vous en avez saisi un meilleur dans la
+fenêtre de l'extension avant d'enregistrer — c'est **le titre existant qui est
+corrigé** : « Lien mis à jour », et l'icône le montre. Rien d'autre ne bouge :
+la date de collecte, le rang, les tags, la note et le raccourci sont conservés.
+Si le titre est identique, ou vide, le lien est simplement laissé tel quel et
+l'application le dit (« Déjà enregistré ») : un titre vide ne remplace pas un
+titre choisi, et une absence n'est pas une correction.
+
+L'icône de la barre d'outils annonce l'issue sans qu'on ait à ouvrir quoi que ce
+soit : **+** le lien vient d'arriver, **✎** son titre a été corrigé, **=** il
+était déjà là et rien n'a changé.
 
 **Dater les étiquettes.** Le sélecteur « Date sous le QR Code » imprime la date
 de collecte du lien — `Aucune` par défaut, `Date de collecte` (`15/09/2026`) ou
