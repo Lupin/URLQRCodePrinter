@@ -283,6 +283,13 @@
               <input id="sheet-header-date" type="checkbox">
               <span data-i18n="Avec la date d'impression">Avec la date d'impression</span>
             </label>
+            <!-- Comme sur le tableau : la note s'imprimait sans qu'on puisse la
+                 retirer. Cochée par défaut — c'est ce qui se faisait — mais
+                 décochable, et inerte tant qu'il n'y a pas de note. -->
+            <label class="columns__item field__label">
+              <input id="sheet-header-note" type="checkbox" checked>
+              <span data-i18n="Avec la note de collection">Avec la note de collection</span>
+            </label>
           </fieldset>
           <p id="sheet-header-hint" class="hint hint--tight"></p>
         </fieldset>
@@ -396,6 +403,14 @@
           <label class="columns__item field__label">
             <input id="table-title-date" type="checkbox">
             <span data-i18n="Avec la date d'impression">Avec la date d'impression</span>
+          </label>
+          <!-- La note s'imprimait dès qu'elle existait, sans qu'on puisse la
+               retirer : un texte qu'on a écrit pour soi se retrouve sur chaque
+               page. Cochée par défaut — c'est ce qui se faisait — mais désormais
+               décochable, et inerte tant qu'il n'y a pas de note à imprimer. -->
+          <label class="columns__item field__label">
+            <input id="table-title-note" type="checkbox" checked>
+            <span data-i18n="Avec la note de collection">Avec la note de collection</span>
           </label>
         </fieldset>
 

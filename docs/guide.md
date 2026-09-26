@@ -56,8 +56,8 @@ wherever the collection is named:
 |---|---|
 | Markdown | as a quotation under the title, and in the file's front matter |
 | JSON archive | in a `collection` object, next to the name |
-| Label sheet, page header | under the name, as a second line |
-| Table, page header | under the name, as a second line |
+| Label sheet, page header | under the name, as a second line, if its checkbox is ticked |
+| Table, page header | under the name, as a second line, if its checkbox is ticked |
 | Sheet folder (ZIP) | the manifest's `note` key |
 
 The **CSV** does not carry it: it is made only of link rows, and slipping the note
@@ -268,8 +268,11 @@ plain paper, to cut straight; on a pre-cut adhesive sheet, the border prints
 inside each label.
 
 **A page header.** The **Page header** (« En-tête de page ») group prints the
-collection name, and the print date if you ask for it, at the top of every page —
-the same header as the table's. It sits **in the top margin**, without moving the
+collection name, the print date and the collection note — each on its own
+checkbox — at the top of every page: the same header as the table's. The note is
+ticked **by default**, because it was already printed with no way to remove it;
+unticking it takes it off every page. While there is no note, its checkbox is
+inert and its tooltip points at the field in the left-hand panel. It sits **in the top margin**, without moving the
 labels: their positions are computed, and a checkbox must not change their size.
 It therefore needs **9 mm of top margin**; below that it is not drawn, and the
 sentence under the checkbox says exactly what is missing: "The header needs 9 mm
@@ -377,8 +380,8 @@ paper.
 - **Margins** (« Marges ») — top and bottom, left and right, in millimeters.
   They used to be fixed: a wide table got clipped with no recourse.
 - **Page header** (« En-tête de page ») — the collection name is printed at the
-  top, with the print date if you ask for it. On a stack of paper, this is what
-  tells you which collection it comes from.
+  top, with the print date and the collection note if you ask for them. On a
+  stack of paper, this is what tells you which collection it comes from.
 - **Columns** (« Colonnes ») — No., QR Code, URL, Title, Tags, Note, Date. Tags and
   the note are only offered if the collection contains any.
 - **Export table (ZIP)** (« Exporter le tableau (ZIP) ») — a self-contained

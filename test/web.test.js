@@ -543,6 +543,36 @@ test("l'en-tête de la planche reprend les classes du tableau", () => {
   assert.match(app, /formatCaptureDate\(Date\.now\(\), 'datetime'\)/);
 });
 
+test("l'en-tête offre la note de collection, sur la planche comme au tableau", () => {
+  // Elle s'imprimait dès qu'elle existait : un texte écrit pour soi se
+  // retrouvait sur chaque page, sans moyen de l'enlever. Cochée par défaut,
+  // pour que rien ne change pour qui ne touche à rien.
+  for (const id of ['sheet-header-note', 'table-title-note']) {
+    const case_ = html.match(new RegExp(`<input id="${id}"[^>]*>`));
+    assert.ok(case_, `aucune case « note » pour ${id}`);
+    assert.match(case_[0], /checked/, 'la note s\'imprimait déjà : le défaut ne doit pas changer');
+    assert.doesNotMatch(case_[0], /disabled/, 'la disponibilité se règle au rendu, pas dans le balisage');
+  }
+
+  const app = readFileSync(join(WEB, 'app.js'), 'utf8');
+  // Les deux en-têtes suivent la même règle, et lisent la même note.
+  assert.match(app, /note !== '' && el\.sheetHeaderNote\.checked/);
+  assert.match(app, /note !== '' && el\.tableTitleNote\.checked/);
+  // La case redessine l'aperçu, et son état suit la note à la frappe.
+  assert.match(app, /el\.sheetHeader, el\.sheetHeaderDate, el\.sheetHeaderNote,/);
+  assert.match(app, /el\.tableTitle, el\.tableTitleDate, el\.tableTitleNote/);
+});
+
+test('la case « note » est inerte tant qu\'il n\'y a pas de note, et le dit', () => {
+  const app = readFileSync(join(WEB, 'app.js'), 'utf8');
+  assert.match(app, /function updateHeaderNoteOptions\(\)/);
+  assert.match(app, /const disponible = collectionNote\(\) !== ''/);
+  assert.match(app, /box\.disabled = !disponible/);
+  // L'état de la case n'est **pas** effacé : le choix doit survivre à une note
+  // vidée puis réécrite.
+  assert.doesNotMatch(app, /box\.disabled = !disponible;\s*\n\s*box\.checked = false/);
+});
+
 test("l'en-tête de la planche vit dans la marge, hors du flux", () => {
   // Les cellules de la planche sont positionnées en absolu aux cotes calculées :
   // un en-tête dans le flux les déplacerait, et la taille des étiquettes

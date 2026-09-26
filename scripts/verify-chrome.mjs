@@ -1275,10 +1275,13 @@ async function main() {
     record(
       'le manifeste décrit la planche exportée',
       manifeste.grid?.columns > 0 && manifeste.label?.widthMm > 0
-        && manifeste.page?.widthMm > 0 && typeof manifeste.options === 'object',
+        && manifeste.page?.widthMm > 0 && typeof manifeste.options === 'object'
+        // La case de la note fait partie de ce qui décrit la planche : sans
+        // elle, rejouer le manifeste ne rendrait pas la même page.
+        && manifeste.options.headerNote === true,
       `${manifeste.grid?.columns} × ${manifeste.grid?.rows}, étiquettes `
         + `${manifeste.label?.widthMm} × ${manifeste.label?.heightMm} mm, `
-        + `${manifeste.count} lien(s)`,
+        + `${manifeste.count} lien(s), en-tête note : ${manifeste.options?.headerNote}`,
     );
 
     // La page, ouverte telle quelle : c'est le fichier qu'on imprime.
@@ -1652,17 +1655,43 @@ async function main() {
         n.checked = valeur;
         n.dispatchEvent(new Event('change', { bubbles: true }));
       };
+      const lire = () => {
+        const note = document.querySelector('#preview .print-page__note');
+        const titre = document.querySelector('#preview .print-page__title');
+        return {
+          texte: note ? note.textContent.trim() : null,
+          titre: titre ? titre.textContent.trim() : null,
+        };
+      };
       nombre('sheet-margin-y', '15');
       poser('sheet-header', true);
       await pause(900);
-      const note = document.querySelector('#preview .print-page__note');
-      return { texte: note ? note.textContent.trim() : null };
+      const avec = lire();
+
+      // La case de la note : elle doit la retirer, et la rendre.
+      poser('sheet-header-note', false);
+      await pause(800);
+      const sans = lire();
+      poser('sheet-header-note', true);
+      await pause(800);
+      const retour = lire();
+
+      return { avec, sans, retour };
     })()`);
 
     record(
       'la note de collection s\'imprime sous le nom, sur la planche',
-      notePlanche?.texte === NOTE_TEST,
-      `« ${notePlanche?.texte} »`,
+      notePlanche?.avec?.texte === NOTE_TEST,
+      `« ${notePlanche?.avec?.texte} »`,
+    );
+    record(
+      'décocher la note la retire de l\'en-tête, et la recocher la rend',
+      notePlanche?.sans?.texte === null
+        && notePlanche?.sans?.titre === notePlanche?.avec?.titre
+        && notePlanche?.retour?.texte === NOTE_TEST,
+      `« ${notePlanche?.avec?.texte} » → ${notePlanche?.sans?.texte} → `
+        + `« ${notePlanche?.retour?.texte} », nom conservé : `
+        + `${notePlanche?.sans?.titre === notePlanche?.avec?.titre}`,
     );
 
     // Sur le tableau.
@@ -1674,17 +1703,29 @@ async function main() {
         n.checked = valeur;
         n.dispatchEvent(new Event('change', { bubbles: true }));
       };
+      const lire = () => {
+        const note = document.querySelector('#preview .print-page__note');
+        const titre = document.querySelector('#preview .print-page__title');
+        return {
+          texte: note ? note.textContent.trim() : null,
+          titre: titre ? titre.textContent.trim() : null,
+        };
+      };
       poser('table-title', true);
       await new Promise((r) => setTimeout(r, 800));
-      const note = document.querySelector('#preview .print-page__note');
-      const titre = document.querySelector('#preview .print-page__title');
-      return { texte: note ? note.textContent.trim() : null, titre: titre ? titre.textContent.trim() : null };
+      const avec = lire();
+      poser('table-title-note', false);
+      await new Promise((r) => setTimeout(r, 800));
+      const sans = lire();
+      return { avec, sans };
     })()`);
 
     record(
-      'la note suit le nom sur la page du tableau',
-      noteTableau?.texte === NOTE_TEST && (noteTableau?.titre ?? '').length > 0,
-      `« ${noteTableau?.titre} » puis « ${noteTableau?.texte} »`,
+      'la note suit le nom sur la page du tableau, et sa case la retire aussi',
+      noteTableau?.avec?.texte === NOTE_TEST && (noteTableau?.avec?.titre ?? '').length > 0
+        && noteTableau?.sans?.texte === null,
+      `« ${noteTableau?.avec?.titre} » puis « ${noteTableau?.avec?.texte} » → `
+        + `${noteTableau?.sans?.texte}`,
     );
 
     // Remise en état, et retour à la planche pour la suite du parcours.
@@ -1695,6 +1736,25 @@ async function main() {
       const note = document.getElementById('collection-note');
       note.value = '';
       note.dispatchEvent(new Event('input', { bubbles: true }));
+      await pause(400);
+
+      // Sans note, la case n'a plus rien à imprimer : elle doit être inerte, et
+      // le dire — plutôt que d'annoncer une commande sans effet. On relève aussi
+      // son état, qui doit survivre : le choix se retrouve dès la note réécrite.
+      const caseNote = document.getElementById('sheet-header-note');
+      const caseTableau = document.getElementById('table-title-note');
+      window.__sansNote = {
+        planche: { inactif: caseNote.disabled, coche: caseNote.checked,
+                   bulle: caseNote.parentNode?.title ?? '' },
+        tableau: { inactif: caseTableau.disabled, coche: caseTableau.checked,
+                   bulle: caseTableau.parentNode?.title ?? '' },
+      };
+
+      // Et l'on remet la case du tableau telle qu'on l'a trouvée, puisqu'on l'a
+      // décochée pour l'éprouver.
+      const remise = document.getElementById('table-title-note');
+      remise.checked = true;
+      remise.dispatchEvent(new Event('change', { bubbles: true }));
       const tete = document.getElementById('sheet-header');
       tete.checked = false;
       tete.dispatchEvent(new Event('change', { bubbles: true }));
@@ -1704,6 +1764,19 @@ async function main() {
       marge.dispatchEvent(new Event('change', { bubbles: true }));
       await pause(600);
     })()`);
+
+    // Le relevé se fait **ici** : les parcours suivants rechargent la page, et
+    // une variable posée sur `window` ne survivrait pas au rechargement.
+    const sansNote = await evalApp('window.__sansNote ?? null');
+    record(
+      'sans note, la case est inerte et l\'explique — sur la planche comme au tableau',
+      sansNote?.planche?.inactif === true && sansNote?.tableau?.inactif === true
+        && /panneau de gauche/.test(sansNote?.planche?.bulle ?? '')
+        && /panneau de gauche/.test(sansNote?.tableau?.bulle ?? '')
+        && sansNote?.planche?.coche === true,
+      `planche : inactif ${sansNote?.planche?.inactif}, coché ${sansNote?.planche?.coche}, `
+        + `« ${sansNote?.planche?.bulle} »`,
+    );
 
     // --- Le raccourcissement, réglé lien par lien -------------------------
     //

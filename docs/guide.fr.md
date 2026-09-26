@@ -53,8 +53,8 @@ appartient à la collection, et se retrouve donc là où la collection est nomm�
 |---|---|
 | Markdown | en citation sous le titre, et dans l'en-tête du fichier |
 | Archive JSON | dans un objet `collection`, à côté du nom |
-| Planche d'étiquettes, en-tête de page | sous le nom, en second |
-| Tableau, en-tête de page | sous le nom, en second |
+| Planche d'étiquettes, en-tête de page | sous le nom, en second, si la case est cochée |
+| Tableau, en-tête de page | sous le nom, en second, si la case est cochée |
 | Dossier de la planche (ZIP) | clé `note` du manifeste |
 
 Le **CSV** ne la porte pas : il n'est fait que de lignes de liens, et y glisser la
@@ -266,8 +266,11 @@ du papier ordinaire, pour découper droit ; sur une planche autocollante
 prédécoupée, la bordure s'imprime à l'intérieur de chaque étiquette.
 
 **Un en-tête de page.** Le groupe **En-tête de page** imprime le nom de la
-collection, et la date d'impression si vous la demandez, en haut de chaque page —
-le même en-tête que celui du tableau. Il se place **dans la marge du haut**, sans
+collection, la date d'impression et la note de collection — chacune sur sa case —
+en haut de chaque page : le même en-tête que celui du tableau. La note est cochée
+d'**avance**, parce qu'elle s'imprimait déjà sans qu'on puisse l'enlever ; la
+décocher la retire de toutes les pages. Tant qu'il n'y a pas de note, sa case est
+inerte et l'infobulle renvoie au champ du panneau de gauche. Il se place **dans la marge du haut**, sans
 déplacer les étiquettes : leurs positions sont calculées, et une case à cocher ne
 doit pas changer leur taille. Il lui faut donc **9 mm de marge en haut** ; en
 dessous, il n'est pas dessiné et la phrase sous la case dit exactement ce qui
@@ -390,8 +393,8 @@ papier.
 - **Marges** — haut et bas, gauche et droite, en millimètres. Elles étaient
   fixes : un tableau large se faisait rogner sans recours.
 - **En-tête de page** — le nom de la collection s'imprime en tête, avec la date
-  d'impression si vous la demandez. Sur une liasse, c'est ce qui dit de quelle
-  collection elle vient.
+  d'impression et la note de la collection si vous les demandez. Sur une liasse,
+  c'est ce qui dit de quelle collection elle vient.
 - **Colonnes** — N°, QR Code, URL, Titre, Tags, Note, Date. Les tags et la note ne
   sont proposés que si la collection en contient.
 - **Exporter le tableau (ZIP)** — un dossier autonome : `table.json` (le

@@ -142,6 +142,32 @@ async function main() {
     console.log(nom);
     console.log(JSON.stringify(ecarts, null, 2));
 
+    // Le mode rangement, ouvert : c'est la disposition des commandes qu'on veut
+    // voir, et elle ne se juge pas sur une capture au repos.
+    await evaluate(`(async () => {
+      const pause = (ms) => new Promise((r) => setTimeout(r, ms));
+      document.getElementById('reorder')?.click();
+      await pause(600);
+      return true;
+    })()`);
+    const nomRange = join(DOSSIER, `app-${LARGEUR}-rangement.png`);
+    const captureRange = await session.call('Page.captureScreenshot', { format: 'png' });
+    writeFileSync(nomRange, Buffer.from(captureRange.data, 'base64'));
+    console.log(nomRange);
+
+    const ligne = await evaluate(`(() => {
+      const premier = document.querySelector('#list .link');
+      return {
+        enfants: [...(premier?.children ?? [])].map((n) => n.className),
+        commandes: document.querySelectorAll('#list .link__move').length,
+        poignees: document.querySelectorAll('#list .link__grip').length,
+        libelle: document.getElementById('reorder')?.textContent.trim(),
+      };
+    })()`);
+    console.log(JSON.stringify(ligne, null, 2));
+
+    await evaluate(`(() => { document.getElementById('reorder')?.click(); return true; })()`);
+
     // La hauteur des champs : `.field` porte un `flex-basis` de 160 px, pensé
     // pour une **rangée** — dans une colonne, cette base devient une hauteur, et
     // chaque champ s'étire en laissant un vide sous son libellé.

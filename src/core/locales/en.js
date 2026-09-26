@@ -88,6 +88,10 @@ export const EN_MESSAGES = {
   "Planche exportée : {filename}": "Sheet exported: {filename}",
   "Nom de la collection en haut de chaque page": "Collection name at the top of every page",
   "Avec la date d'impression": "With the print date",
+  "Avec la note de collection": "With the collection note",
+  "Imprimer la note de collection sous le nom": "Print the collection note under the name",
+  "Écrivez d'abord la note de collection, dans le panneau de gauche.":
+    "Write the collection note first, in the left-hand panel.",
   "L'en-tête a besoin de {need} mm de marge en haut, et la marge actuelle est de {margin} mm. Augmentez la marge, ou décochez l'en-tête.":
     "The header needs {need} mm of top margin, and the current margin is {margin} mm. Increase the margin, or untick the header.",
   "Tracer une bordure autour de chaque étiquette": "Draw a border around each label",

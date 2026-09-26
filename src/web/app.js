@@ -499,6 +499,7 @@ async function refresh() {
   // Les colonnes « Tags » et « Note » ne sont proposées que si la collection en
   // contient : une colonne vide sur toute une page n'apprend rien.
   updateTableOptions();
+  updateHeaderNoteOptions();
   const ids = new Set(links.map((link) => link.id));
   // On conserve les cases cochées qui existent encore.
   selected = new Set([...selected].filter((id) => ids.has(id)));
@@ -2084,9 +2085,11 @@ function buildSheetPages(items) {
       }
       entete.appendChild(titre);
       // La note vient sous le nom : elle décrit la collection, c'est donc sa
-      // place. Elle ne s'imprime que si elle existe.
+      // place. Elle ne s'imprime que si elle existe **et** qu'on la demande :
+      // elle était imposée dès qu'elle existait, ce qui mettait un texte écrit
+      // pour soi sur chaque page d'une planche affichée.
       const note = collectionNote();
-      if (note !== '') {
+      if (note !== '' && el.sheetHeaderNote.checked) {
         const sous = document.createElement('p');
         sous.className = 'print-page__note';
         sous.textContent = note;
@@ -2287,9 +2290,10 @@ function buildTablePage(table, options = {}) {
     }
     page.appendChild(title);
     // La note suit le nom, comme sur la planche : deux sorties qui décrivent la
-    // même collection ne doivent pas en dire des choses différentes.
+    // même collection ne doivent pas en dire des choses différentes — y compris
+    // pour la case qui l'autorise.
     const note = collectionNote();
-    if (note !== '') {
+    if (note !== '' && el.tableTitleNote.checked) {
       const sous = document.createElement('p');
       sous.className = 'print-page__note';
       sous.textContent = note;
@@ -2446,6 +2450,28 @@ function updateTableOptions() {
   el.tableHint.textContent = hasAnyNote(links) || hasAnyTag(links)
     ? t('Les tags et la note saisis dans la liste (bouton ✎) peuvent être imprimés ici.')
     : t('Ajoutez un tag ou une note depuis la liste (bouton ✎) pour pouvoir les imprimer.');
+}
+
+/**
+ * La case « Avec la note de collection » n'a de sens que s'il y a une note.
+ *
+ * Même traitement que les colonnes « tag » et « note » du tableau : la case
+ * reste visible — elle apprend que la note peut s'imprimer — mais elle est
+ * inerte, et l'infobulle dit pourquoi. Son état, lui, n'est pas touché : le
+ * décocher d'office effacerait un choix que l'utilisateur veut retrouver dès
+ * qu'il aura écrit sa note.
+ */
+function updateHeaderNoteOptions() {
+  const disponible = collectionNote() !== '';
+  for (const box of [el.sheetHeaderNote, el.tableTitleNote]) {
+    box.disabled = !disponible;
+    const label = box.parentNode;
+    if (label) {
+      label.title = disponible
+        ? t('Imprimer la note de collection sous le nom')
+        : t("Écrivez d'abord la note de collection, dans le panneau de gauche.");
+    }
+  }
 }
 
 /** Redessine l'aperçu selon le mode actif. */
@@ -3969,6 +3995,9 @@ el.collectionName.addEventListener('input', () => {
 // imprimés la portent.
 el.collectionNote.addEventListener('input', () => {
   settings.save({ collectionNote: collectionNote() });
+  // La note décide de l'état de la case qui l'imprime : elle doit suivre à la
+  // frappe, et pas seulement au prochain rendu de la liste.
+  updateHeaderNoteOptions();
   renderPreview();
 });
 
@@ -4214,6 +4243,7 @@ async function exportSheetArchive() {
         index: el.sheetDateIndex.checked,
         header: el.sheetHeader.checked,
         headerDate: el.sheetHeaderDate.checked,
+        headerNote: el.sheetHeaderNote.checked,
         border: el.sheetBorder.checked,
       },
       cells,
@@ -4305,7 +4335,7 @@ for (const field of [
 }
 for (const box of [
   el.sheetTitle, el.sheetUrl, el.sheetBorder,
-  el.sheetHeader, el.sheetHeaderDate,
+  el.sheetHeader, el.sheetHeaderDate, el.sheetHeaderNote,
 ]) {
   box.addEventListener('change', renderPreview);
 }
@@ -4359,7 +4389,7 @@ for (const node of [
   node.addEventListener('input', renderPreview);
   node.addEventListener('change', renderPreview);
 }
-for (const box of [el.tableTitle, el.tableTitleDate]) {
+for (const box of [el.tableTitle, el.tableTitleDate, el.tableTitleNote]) {
   box.addEventListener('change', renderPreview);
 }
 
