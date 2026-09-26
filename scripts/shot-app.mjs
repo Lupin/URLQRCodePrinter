@@ -190,6 +190,24 @@ async function main() {
         profil: document.getElementById('label-profile')?.value ?? null,
       });
       const sansSelection = lire();
+      window.__legende = (() => {
+        const caption = document.querySelector('.preview__caption');
+        const canvas = document.querySelector('#preview canvas');
+        if (!caption) return { absent: true };
+        const faits = [...caption.querySelectorAll('.preview__fact')];
+        return {
+          lignes: faits.length,
+          textes: faits.map((n) => n.textContent.trim()),
+          hauteurs: faits.map((n) => Math.round(n.getBoundingClientRect().height)),
+          dessus: faits.map((n) => Math.round(n.getBoundingClientRect().top)),
+          sousLApercu: canvas
+            ? Math.round(caption.getBoundingClientRect().top - canvas.getBoundingClientRect().bottom) >= 0
+            : null,
+          ecart: canvas
+            ? Math.round(caption.getBoundingClientRect().top - canvas.getBoundingClientRect().bottom)
+            : null,
+        };
+      })();
 
       // Le verdict de l'onglet Niimbot suit-il vraiment les options ?
       [...document.querySelectorAll('.tab')].find((t) => t.dataset.mode === 'single').click();
@@ -363,6 +381,7 @@ async function main() {
     console.log(JSON.stringify(await evaluate('window.__feuille'), null, 2));
     console.log(JSON.stringify(await evaluate('window.__editeur'), null, 2));
     console.log(JSON.stringify(await evaluate('window.__verdict'), null, 2));
+    console.log(JSON.stringify(await evaluate('window.__legende'), null, 2));
 
     const zoneEtiquette = await evaluate(`(() => {
       const cadre = document.querySelector('#preview .preview__page');

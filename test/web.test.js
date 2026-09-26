@@ -516,7 +516,7 @@ test('un refus de longueur dit ce qui le ferait disparaître', () => {
   const app = readFileSync(join(WEB, 'app.js'), 'utf8');
   assert.match(app, /function conseilPourPanneau\(link, profile, geometry\)/);
   assert.match(app, /const conseil = verdict\.ok \? '' : conseilPourPanneau\(/);
-  assert.match(app, /\n    \+ conseil/);
+  assert.match(app, /if \(conseil !== ''\) faits\.push\(conseil\)/);
   // Le remède est **vérifié**, pas affirmé : on recompose avec le raccourci.
   assert.match(app, /const essai = composeLabel\(\{ \.\.\.link, useShort: true \}, profile\)/);
   // Et le conseil distingue les deux causes : largeur du QR Code, ou hauteur.
@@ -555,8 +555,10 @@ test("l'onglet des images offre le même aperçu que celui des étiquettes", () 
   assert.match(apercu, /labelPreviewZoom\(\{/, 'l\'échelle doit venir du cœur');
   assert.doesNotMatch(apercu, /Math\.min\(6,/, 'plus de plafond inventé');
   // Et elle est annoncée, comme de l'autre côté.
-  assert.match(apercu, /aperçu à \{multiple\} × la taille réelle/);
-  assert.match(apercu, /aperçu à la taille réelle/);
+  assert.match(apercu, /Aperçu à \{multiple\} × la taille réelle/);
+  assert.match(apercu, /Aperçu à la taille réelle/);
+  // Une information par ligne, et non un seul paragraphe.
+  assert.match(apercu, /caption\.replaceChildren\(\.\.\.faits\.map\(\(fait\) => ligneDeLegende\(fait\)\)\)/);
   // Les deux cases portent le même état.
   assert.match(app, /function setRealSizePreview\(valeur\)/);
   assert.match(app, /el\.labelRealSize\.checked = valeur/);

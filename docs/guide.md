@@ -473,7 +473,9 @@ The preview is composed **even without a connected printer**: dimensions,
 module count and legibility are exact. That is what lets you judge a rendering,
 or check that a URL fits, before buying the hardware.
 
-Under the preview, a caption gives the profile used, the number of pixels per
+Under the preview, a caption gives **one fact per line** — the machine and the
+drawing, then the preview's scale — rather than a single sentence where three
+facts drowned one another. It gives the profile used, the number of pixels per
 module, **and the preview's scale**. Two pixels per module is the minimum: below
 that, a thermal printhead merges the dots.
 

@@ -2631,6 +2631,32 @@ async function main() {
           + `pour ${apercuEtiquette.largeurPhysiquePx} px réels, soit ${agrandissement}× `
           + `(${apercuEtiquette.imageRendering}, aperçu large de ${apercuEtiquette.surfaceOfferte} px)`,
     );
+    // La légende : **une information par ligne**, sous l'aperçu.
+    //
+    // Elle était d'un seul tenant — « D110 — 96 × 176 px, 2 px par module —
+    // aperçu à la taille réelle (12,0 × 22,0 mm) » — et trois informations
+    // distinctes à la queue leu leu se lisent mal.
+    const legende = await evalApp(`(() => {
+      const caption = document.querySelector('.preview__caption');
+      const canvas = document.querySelector('#preview canvas');
+      if (!caption || !canvas) return null;
+      const faits = [...caption.querySelectorAll('.preview__fact')];
+      return {
+        lignes: faits.length,
+        textes: faits.map((n) => n.textContent.trim()),
+        empilees: faits.every((n, i) => i === 0
+          || n.getBoundingClientRect().top >= faits[i - 1].getBoundingClientRect().bottom - 1),
+        ecart: Math.round(caption.getBoundingClientRect().top - canvas.getBoundingClientRect().bottom),
+      };
+    })()`);
+
+    record(
+      'la légende met une information par ligne, sous l\'aperçu',
+      (legende?.lignes ?? 0) >= 2 && legende?.empilees === true && (legende?.ecart ?? -1) >= 0,
+      `${legende?.lignes} ligne(s), empilées : ${legende?.empilees}, `
+        + `${legende?.ecart} px sous l'aperçu — « ${(legende?.textes ?? []).join(' | ').slice(0, 140)} »`,
+    );
+
     record(
       "l'aperçu annonce son échelle et la taille réelle de l'étiquette",
       /taille réelle/.test(celluleEtiquette?.legende ?? '') && /\d+[.,]\d/.test(celluleEtiquette?.legende ?? ''),

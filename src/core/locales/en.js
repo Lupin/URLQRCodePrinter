@@ -81,10 +81,6 @@ export const EN_MESSAGES = {
   "le lien affiché": "the displayed link",
   "Arrêter": "Stop",
   "Aperçu à la taille réelle": "Preview at real size",
-  " — aperçu à {multiple} × la taille réelle ({width} × {height} mm).":
-    " — preview at {multiple} × real size ({width} × {height} mm).",
-  " — aperçu à la taille réelle ({width} × {height} mm).":
-    " — preview at real size ({width} × {height} mm).",
   "L'étiquette": "The label",
   "En-tête de page": "Page header",
   "Exporter la planche (ZIP)": "Export the sheet (ZIP)",
@@ -93,12 +89,23 @@ export const EN_MESSAGES = {
   "Avec la date d'impression": "With the print date",
   "Avec la note de collection": "With the collection note",
   "Ajuster l'espacement": "Adjust the spacing",
-  " Ce lien a un raccourci : encodez-le à sa place, avec « Encoder le lien raccourci ».":
-    " This link has a short URL: encode it instead, with \u201cEncode the short link\u201d.",
-  " Le texte imprimé n'y change rien : c'est la largeur du QR Code qui dépasse celle de l'étiquette.":
-    " The printed text changes nothing here: it is the QR Code's width that exceeds the label's.",
-  " La place manque en hauteur : décochez du texte sous le QR Code, ou prenez une étiquette plus longue.":
-    " Height is what runs short: untick some text below the QR Code, or use a longer label.",
+  "Aperçu à {multiple} × la taille réelle ({width} × {height} mm).":
+    "Preview at {multiple} × real size ({width} × {height} mm).",
+  "Aperçu à la taille réelle ({width} × {height} mm).":
+    "Preview at real size ({width} × {height} mm).",
+  "Date non imprimée : elle exigerait un texte trop petit pour être lu.":
+    "Date not printed: it would need text too small to read.",
+  "Date non imprimée : elle ne tient pas sur ce format, réduisez la taille du texte.":
+    "Date not printed: it does not fit this format, reduce the text size.",
+  "Texte empilé : le QR Code laisse trop peu de largeur pour une colonne de texte.":
+    "Text stacked: the QR Code leaves too little width for a text column.",
+  "Orientation : {label}": "Orientation: {label}",
+  "Ce lien a un raccourci : encodez-le à sa place, avec « Encoder le lien raccourci ».":
+    "This link has a short URL: encode it instead, with \u201cEncode the short link\u201d.",
+  "Le texte imprimé n'y change rien : c'est la largeur du QR Code qui dépasse celle de l'étiquette.":
+    "The printed text changes nothing here: it is the QR Code's width that exceeds the label's.",
+  "La place manque en hauteur : décochez du texte sous le QR Code, ou prenez une étiquette plus longue.":
+    "Height is what runs short: untick some text below the QR Code, or use a longer label.",
   "Disposition précédente": "Previous layout",
   "Disposition suivante": "Next layout",
   "Les {asked} ne peuvent pas tenir sur une page : {columns} × {rows} à la place.":
@@ -247,7 +254,6 @@ export const EN_MESSAGES = {
   " et ": " and ",
   " — aucune date : elle ne tient pas sur une ligne à cette taille de texte.": " — no date: it does not fit on one line at this text size.",
   " — date non imprimée : elle exigerait un texte trop petit pour être lu.": " — date not printed: it would require text too small to read.",
-  " — orientation : {label}": " — orientation: {label}",
   " — texte empilé : le QR Code laisse trop peu de largeur pour une colonne de texte.": " — stacked text: the QR Code leaves too little width for a text column.",
   " — {count} raccourci en place": " — {count} short link in place",
   " — {count} raccourcis en place": " — {count} short links in place",

@@ -490,7 +490,11 @@ L'aperçu est composé **même sans imprimante connectée** : dimensions, nombre
 modules et lisibilité sont exacts. C'est ce qui permet de juger un rendu, ou de
 vérifier qu'une URL tient, avant d'acheter le matériel.
 
-Sous l'aperçu, une légende indique le profil utilisé, le nombre de pixels par
+Sous l'aperçu, une légende donne **une information par ligne** — la machine et le
+dessin, puis l'échelle de l'aperçu — plutôt qu'une phrase unique où trois faits se
+noyaient l'un dans l'autre.
+
+Elle indique le profil utilisé, le nombre de pixels par
 module, **et l'échelle de l'aperçu**. Deux pixels par module est le minimum : en
 dessous, une tête thermique fusionne les points.
 

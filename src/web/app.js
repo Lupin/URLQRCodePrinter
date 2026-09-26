@@ -2882,6 +2882,24 @@ function applyPrintPageSize(widthMm, heightMm) {
 }
 
 /**
+ * Une ligne de légende sous un aperçu.
+ *
+ * Chaque fait occupe **sa** ligne : côte à côte, ils se noient les uns dans les
+ * autres, et c'est celui qu'on cherche qui disparaît. Le bloc est distinct de
+ * l'aperçu — il vient après lui, dans le même cadre — pour qu'on ne le confonde
+ * pas avec ce qui sera imprimé.
+ *
+ * @param {string} texte
+ * @returns {HTMLSpanElement}
+ */
+function ligneDeLegende(texte) {
+  const ligne = document.createElement('span');
+  ligne.className = 'preview__fact';
+  ligne.textContent = texte;
+  return ligne;
+}
+
+/**
  * Ce qui ferait disparaître un refus de longueur, dit à l'endroit du refus.
  *
  * Le refus est mesuré, pas deviné : le QR Code encode l'URL, et sa largeur est
@@ -2906,17 +2924,17 @@ function conseilPourPanneau(link, profile, geometry) {
   if (hasShortUrl(link)) {
     const essai = composeLabel({ ...link, useShort: true }, profile);
     if (essai.verdict.ok) {
-      return t(' Ce lien a un raccourci : encodez-le à sa place, avec « Encoder le lien raccourci ».');
+      return t('Ce lien a un raccourci : encodez-le à sa place, avec « Encoder le lien raccourci ».');
     }
   }
   // Le QR Code est plus large que l'étiquette : le texte n'y est pour rien.
   if (geometry.qrSize > geometry.width) {
     return t(
-      " Le texte imprimé n'y change rien : c'est la largeur du QR Code qui dépasse celle de l'étiquette.",
+      "Le texte imprimé n'y change rien : c'est la largeur du QR Code qui dépasse celle de l'étiquette.",
     );
   }
   return t(
-    ' La place manque en hauteur : décochez du texte sous le QR Code, ou prenez une étiquette plus longue.',
+    'La place manque en hauteur : décochez du texte sous le QR Code, ou prenez une étiquette plus longue.',
   );
 }
 
@@ -3002,12 +3020,12 @@ function renderSingleLabel(link) {
 
   frame.appendChild(canvas);
 
-  const caption = document.createElement('p');
-  caption.className = 'hint';
+  const caption = document.createElement('div');
+  caption.className = 'hint preview__caption';
   // `composeLabel` sait si la date a été écartée : on le dit, plutôt que de
   // laisser croire que l'option n'a pas d'effet.
   const dateNote = dateTropPetite
-    ? t(' — date non imprimée : elle exigerait un texte trop petit pour être lu.')
+    ? t('Date non imprimée : elle exigerait un texte trop petit pour être lu.')
     : (dateOmitted ? composeDateNote() : '');
   // La taille réellement retenue peut différer de celle demandée : la géométrie
   // réduit plutôt que de tronquer. On le dit, sinon le réglage semble sans effet.
@@ -3017,19 +3035,19 @@ function renderSingleLabel(link) {
     lines: tpl(geometry.lines.length + (content.titleLines?.length ?? 0), '{count} ligne', '{count} lignes'),
   });
   const orientationNote = lateralRefused
-    ? t(' — texte empilé : le QR Code laisse trop peu de largeur pour une colonne de texte.')
-    : (turns === 0 ? '' : t(' — orientation : {label}', { label: t(labelRotation().label) }));
+    ? t('Texte empilé : le QR Code laisse trop peu de largeur pour une colonne de texte.')
+    : (turns === 0 ? '' : t('Orientation : {label}', { label: t(labelRotation().label) }));
   // L'échelle est **dite**. C'est le défaut d'origine : l'aperçu agrandissait
   // huit fois et demi sans l'annoncer, et rien ne permettait de s'en apercevoir.
   const largeurMm = pxToMm(geometry.width, profile.dpi).toFixed(1);
   const hauteurMm = pxToMm(geometry.height, profile.dpi).toFixed(1);
   const echelleNote = echelle.multiple > 1.05
-    ? t(' — aperçu à {multiple} × la taille réelle ({width} × {height} mm).', {
+    ? t('Aperçu à {multiple} × la taille réelle ({width} × {height} mm).', {
       multiple: echelle.multiple.toFixed(1),
       width: largeurMm,
       height: hauteurMm,
     })
-    : t(' — aperçu à la taille réelle ({width} × {height} mm).', {
+    : t('Aperçu à la taille réelle ({width} × {height} mm).', {
       width: largeurMm,
       height: hauteurMm,
     });
@@ -3044,7 +3062,15 @@ function renderSingleLabel(link) {
   // peuvent rien : les décocher ne change pas la taille du QR Code.
   const conseil = verdict.ok ? '' : conseilPourPanneau(link, profile, geometry);
   const nommer = impressionChoisie().kind !== 'one';
-  caption.textContent = (verdict.ok
+
+  // **Une information par ligne.**
+  //
+  // Elles étaient bout à bout, séparées par des tirets cadratins : sur une ligne
+  // longue, « D110 — 96 × 176 px, 2 px par module — aperçu à la taille réelle
+  // (12,0 × 22,0 mm) » se lit mal et noie ce qu'on cherche. Trois faits
+  // distincts — la machine, le dessin, l'échelle — méritent trois lignes, même
+  // quand la place permettrait de les mettre côte à côte.
+  const faits = [verdict.ok
     ? t('{profile} — {width} × {height} px, {px} px par module', {
       profile: profile.id,
       width: geometry.width,
@@ -3057,9 +3083,13 @@ function renderSingleLabel(link) {
         title: link.title || hostOf(link.url) || link.url,
         reason: t(verdict.reason),
       })
-      : t('{profile} — {reason}', { profile: profile.id, reason: t(verdict.reason) })))
-    + conseil
-    + orientationNote + dateNote + echelleNote;
+      : t('{profile} — {reason}', { profile: profile.id, reason: t(verdict.reason) }))];
+  if (conseil !== '') faits.push(conseil);
+  if (orientationNote !== '') faits.push(orientationNote);
+  if (dateNote !== '') faits.push(dateNote);
+  faits.push(echelleNote);
+
+  caption.replaceChildren(...faits.map((fait) => ligneDeLegende(fait)));
   if (!verdict.ok) caption.style.color = 'var(--danger)';
   frame.appendChild(caption);
 
@@ -3490,19 +3520,21 @@ function renderImagePreview(link) {
   const largeurMm = options.format.widthMm.toFixed(1);
   const hauteurMm = pxToMm(plan.heightPx, options.format.dpi).toFixed(1);
   const echelleNote = echelle.multiple > 1.05
-    ? t(' — aperçu à {multiple} × la taille réelle ({width} × {height} mm).', {
+    ? t('Aperçu à {multiple} × la taille réelle ({width} × {height} mm).', {
       multiple: echelle.multiple.toFixed(1),
       width: largeurMm,
       height: hauteurMm,
     })
-    : t(' — aperçu à la taille réelle ({width} × {height} mm).', {
+    : t('Aperçu à la taille réelle ({width} × {height} mm).', {
       width: largeurMm,
       height: hauteurMm,
     });
 
-  const caption = document.createElement('p');
-  caption.className = 'hint';
-  caption.textContent = (plan.fits
+  // Même légende que l'onglet Niimbot : **une information par ligne**, sous
+  // l'aperçu. Une seule ligne les noyait les unes dans les autres.
+  const caption = document.createElement('div');
+  caption.className = 'hint preview__caption';
+  const faits = [plan.fits
     ? t('{width} mm × {height} px — {widthPx} × {heightPx} px à {dpi} dpi', {
       width: options.format.widthMm,
       height: plan.heightPx,
@@ -3513,10 +3545,11 @@ function renderImagePreview(link) {
     : t('URL trop longue pour ce format : le QR Code fait {size} px pour {width} px de large.', {
       size: plan.qrSizePx,
       width: plan.widthPx,
-    })) + echelleNote
-    + (plan.dateOmitted
-      ? t(' — date non imprimée : elle ne tient pas sur ce format, réduisez la taille du texte.')
-      : '');
+    }), echelleNote];
+  if (plan.dateOmitted) {
+    faits.push(t('Date non imprimée : elle ne tient pas sur ce format, réduisez la taille du texte.'));
+  }
+  caption.replaceChildren(...faits.map((fait) => ligneDeLegende(fait)));
   if (!plan.fits) caption.style.color = 'var(--danger)';
   frame.appendChild(caption);
 

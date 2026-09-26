@@ -958,6 +958,22 @@ body {
 .link--clickable:focus-visible { text-decoration: underline; }
 .link--clickable:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
+/* La légende d'un aperçu d'étiquette : un fait par ligne.
+ *
+ * Elle était d'un seul tenant — « D110 — 96 × 176 px, 2 px par module — aperçu à
+ * la taille réelle (12,0 × 22,0 mm) » — et se lisait mal : trois informations
+ * différentes à la queue leu leu. Chacune prend sa ligne, et la marge au-dessus
+ * la sépare de ce qui sera imprimé. */
+.preview__caption {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: 8px;
+  text-align: left;
+}
+
+.preview__fact { display: block; }
+
 /* --- Imprimante --- */
 
 .printer {

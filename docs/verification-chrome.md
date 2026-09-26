@@ -77,7 +77,7 @@ protocole : elle répond.
 Les quatre constats sont désormais traités : le contour des boutons était une
 fausse accusation, les deux cibles satisfont l'exception d'espacement, et les
 deux aperçus ont été repris. Le relevé passe à **72 constats sur 72**, et à
-**107 sur 107** après les lots suivants.
+**108 sur 108** après les lots suivants.
 
 ### Le constat 1 : la fenêtre la plus courante est la plus mal servie
 
@@ -286,7 +286,7 @@ l'heuristique du navigateur. Il les distingue maintenant, en interrogeant
 - `:focus-visible` **vrai** et anneau absent → **c'est notre règle**. Le contrôle
   échoue, et il nomme l'élément.
 
-Trois passages consécutifs donnent 107 constats satisfaits sur 107, le troisième
+Trois passages consécutifs donnent 108 constats satisfaits sur 108, le troisième
 relevant l'artefact et le nommant. Un contrôle qui échoue au hasard finit par être
 ignoré ; celui-ci dit ce qu'il a vu et pourquoi il ne conclut pas à un défaut.
 
