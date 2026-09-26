@@ -191,6 +191,38 @@ async function main() {
       });
       const sansSelection = lire();
 
+      // L'editeur d'une ligne : champs coupes, texte coupe, et la fenetre
+      // redimensionnee n'y change rien. On mesure ce qui deborde, et ou.
+      [...document.querySelectorAll('.tab')].find((t) => t.dataset.mode === 'sheet').click();
+      await pause(500);
+      const liste = document.getElementById('list');
+      const mesureListe = () => ({
+        clientWidth: liste.clientWidth,
+        scrollWidth: liste.scrollWidth,
+        scrollLeft: liste.scrollLeft,
+        debordement: liste.scrollWidth - liste.clientWidth,
+      });
+      const avant = mesureListe();
+      document.querySelector('#list .link__edit')?.click();
+      await pause(600);
+      // Le champ est focalise : le navigateur fait defiler l'ancetre scrollable
+      // pour le reveler — horizontalement compris.
+      const apres = mesureListe();
+
+      // Qui est plus large que la liste ?
+      const coupables = [...liste.querySelectorAll('*')]
+        .filter((n) => n.getBoundingClientRect().width > liste.clientWidth + 1)
+        .slice(0, 6)
+        .map((n) => n.tagName.toLowerCase() + '.' + (n.className || '(sans classe)')
+          + ' → ' + Math.round(n.getBoundingClientRect().width) + ' px');
+      window.__editeur = {
+        avant, apres,
+        ligneLargeur: Math.round(document.querySelector('#list .link')?.getBoundingClientRect().width ?? 0),
+        formulaireLargeur: Math.round(document.querySelector('.link__editor-form')?.getBoundingClientRect().width ?? 0),
+        champLargeur: Math.round(document.querySelector('.link__editor-form .input')?.getBoundingClientRect().width ?? 0),
+        coupables,
+      };
+
       // Ce qu'un changement d'espacement fait vraiment : la grille est-elle
       // tranchée, ou la taille des étiquettes (et donc leur contenu) ?
       [...document.querySelectorAll('.tab')].find((t) => t.dataset.mode === 'sheet').click();
@@ -280,6 +312,7 @@ async function main() {
     })()`);
     console.log(JSON.stringify(niimbot, null, 2));
     console.log(JSON.stringify(await evaluate('window.__feuille'), null, 2));
+    console.log(JSON.stringify(await evaluate('window.__editeur'), null, 2));
 
     const zoneEtiquette = await evaluate(`(() => {
       const cadre = document.querySelector('#preview .preview__page');

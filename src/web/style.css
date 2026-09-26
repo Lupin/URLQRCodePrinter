@@ -601,6 +601,16 @@ body {
 
 .link {
   display: flex;
+  /* La ligne **se replie** : l'éditeur d'un lien prend toute une ligne à lui.
+   *
+   * Sans le repli, il se posait à côté du titre en gardant sa largeur propre —
+   * 364 px, la largeur intrinsèque d'un champ de saisie — et débordait de la
+   * liste dès que le panneau était plus étroit. La liste, elle, défilait
+   * horizontalement (le navigateur suit le champ qu'on vient de focaliser), si
+   * bien que **toutes** les lignes se retrouvaient coupées à gauche : « UBLE
+   * GLASS Office partition » au lieu de « DOUBLE GLASS… ». Redimensionner la
+   * fenêtre ne réparait rien, le défilement restant où il était. */
+  flex-wrap: wrap;
   align-items: baseline;
   gap: 8px;
   padding: 8px 0;
@@ -895,7 +905,16 @@ body {
   color: var(--text-2);
 }
 
-.link__editor { flex: none; }
+/* L'éditeur occupe **sa** ligne, sur toute la largeur de la liste : ses champs
+   se mesurent alors contre une largeur définie, et non contre la largeur
+   intrinsèque d'un champ de saisie. `min-width: 0` est ce qui autorise le
+   rétrécissement sous cette largeur intrinsèque. */
+.link__editor {
+  flex: 1 0 100%;
+  min-width: 0;
+}
+
+.link__editor-field .input { min-width: 0; }
 
 .link__editor-form {
   display: flex;

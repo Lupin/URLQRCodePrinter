@@ -509,6 +509,24 @@ test('une portée vide reste choisie, et l\'aperçu dit qu\'il n\'y a rien à im
   assert.match(app, /const nommer = impressionChoisie\(\)\.kind !== 'one'/);
 });
 
+test("l'éditeur d'un lien tient dans la liste, sur sa propre ligne", () => {
+  // Il gardait sa largeur propre — 364 px, la largeur intrinsèque d'un champ de
+  // saisie — et débordait dès que le panneau était plus étroit. La liste
+  // défilait horizontalement, et toutes ses lignes se retrouvaient coupées à
+  // gauche ; redimensionner ne réparait rien.
+  const css = readFileSync(join(WEB, 'style.css'), 'utf8');
+  const ligne = css.match(/\n\.link\s*\{([\s\S]*?)\}/)[1];
+  assert.match(ligne, /flex-wrap:\s*wrap/, 'la ligne doit pouvoir se replier');
+
+  const editeur = css.match(/\.link__editor\s*\{([\s\S]*?)\}/)[1];
+  assert.match(editeur, /flex:\s*1 0 100%/, 'l\'éditeur occupe sa ligne');
+  assert.match(editeur, /min-width:\s*0/, 'et peut rétrécir sous sa largeur intrinsèque');
+
+  const app = readFileSync(join(WEB, 'app.js'), 'utf8');
+  // La croix reste sur la ligne du titre : l'éditeur vient après elle.
+  assert.match(app, /item\.append\(check, rank, body, remove, linkEditor\(link\)\)/);
+});
+
 test("l'onglet des images offre le même aperçu que celui des étiquettes", () => {
   // Il agrandissait jusqu'à six fois sans le dire, et sans offrir la taille
   // réelle : le réglage existait d'un côté et manquait de l'autre.

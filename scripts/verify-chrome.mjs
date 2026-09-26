@@ -1778,6 +1778,58 @@ async function main() {
         + `« ${sansNote?.planche?.bulle} »`,
     );
 
+    // --- L'éditeur d'un lien ne déborde pas de la liste --------------------
+    //
+    // Le formulaire gardait sa largeur propre — 364 px, la largeur intrinsèque
+    // d'un champ de saisie — et débordait dès que le panneau était plus étroit.
+    // La liste défilait alors horizontalement, et **toutes** ses lignes se
+    // retrouvaient coupées à gauche : « UBLE GLASS Office partition » au lieu de
+    // « DOUBLE GLASS… ». Redimensionner ne réparait rien, le défilement restant
+    // où il était.
+    const editeur = await evalApp(`(async () => {
+      const pause = (ms) => new Promise((r) => setTimeout(r, ms));
+      const liste = document.getElementById('list');
+      const lire = () => ({
+        clientWidth: liste.clientWidth,
+        scrollWidth: liste.scrollWidth,
+        scrollLeft: liste.scrollLeft,
+      });
+      const avant = lire();
+      document.querySelector('#list .link__edit').click();
+      await pause(700);
+      const apres = lire();
+      const coupables = [...liste.querySelectorAll('*')]
+        .filter((n) => n.getBoundingClientRect().width > liste.clientWidth + 1)
+        .slice(0, 4)
+        .map((n) => n.tagName.toLowerCase() + '.' + (n.className || 'sans-classe')
+          + ' ' + Math.round(n.getBoundingClientRect().width));
+      const formule = document.querySelector('.link__editor-form');
+      return {
+        avant, apres, coupables,
+        formulaire: formule ? Math.round(formule.getBoundingClientRect().width) : 0,
+        champ: formule ? Math.round(formule.querySelector('.input').getBoundingClientRect().width) : 0,
+      };
+    })()`);
+
+    record(
+      'le formulaire d\'un lien reste dans la liste, et la liste ne défile pas',
+      editeur?.apres?.scrollLeft === 0
+        && editeur?.apres?.scrollWidth <= editeur?.apres?.clientWidth
+        && (editeur?.coupables ?? []).length === 0
+        && editeur?.formulaire <= editeur?.apres?.clientWidth,
+      `liste ${editeur?.apres?.clientWidth} px, contenu ${editeur?.apres?.scrollWidth} px, `
+        + `défilement ${editeur?.apres?.scrollLeft} ; formulaire ${editeur?.formulaire} px, `
+        + `champ ${editeur?.champ} px`
+        + ((editeur?.coupables ?? []).length ? ` — trop larges : ${editeur.coupables.join(', ')}` : ''),
+    );
+
+    // Remise en état : l'éditeur se referme.
+    await evalApp(`(async () => {
+      const pause = (ms) => new Promise((r) => setTimeout(r, ms));
+      document.querySelector('.link__editor-actions .btn--ghost')?.click();
+      await pause(500);
+    })()`);
+
     // --- Le même aperçu dans les deux onglets d'étiquettes -----------------
     //
     // L'onglet des images agrandissait jusqu'à six fois **sans le dire**, et

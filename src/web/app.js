@@ -908,11 +908,13 @@ function renderLink(link) {
   // de la ligne. Deux flèches permanentes sur chaque ligne encombraient la liste
   // pour une action qu'on fait une fois, puis qu'on quitte.
   if (reorderMode) {
-    item.append(moveControls(link), check, rank, body, linkEditor(link), remove);
+    item.append(moveControls(link), check, rank, body, remove, linkEditor(link));
     return item;
   }
 
-  item.append(check, rank, body, linkEditor(link), remove);
+  // L'éditeur vient **après** la croix : il se replie sur sa propre ligne, et
+  // la croix reste ainsi sur celle du titre, où on la cherche.
+  item.append(check, rank, body, remove, linkEditor(link));
   return item;
 }
 
