@@ -123,6 +123,30 @@ let links = [];
 /** Identifiants cochés pour l'impression. @type {Set<string>} */
 let selected = new Set();
 let mode = 'sheet';
+/**
+ * Largeur utile du rendu en cours de l'aperçu.
+ *
+ * Mesurée **une fois**, au début de `renderPreview`, et avant que l'aperçu ne
+ * soit vidé.
+ *
+ * C'est ce qui corrige une boucle de rétroaction mesurée dans Chrome : vider
+ * l'aperçu fait disparaître sa barre de défilement verticale, donc la largeur
+ * utile augmente de quinze pixels ; l'échelle était alors calculée sur cette
+ * largeur-là, le nouveau contenu rappelait la barre, et le cadre se retrouvait
+ * plus large que la place réelle — 685 px dessinés pour 670 offerts, de façon
+ * stable, un redimensionnement explicite n'y changeant rien. Mesurer avant de
+ * vider donne la largeur que le contenu occupera réellement.
+ *
+ * Déclarée avec l'état du module, et non près de l'observateur qui s'en sert :
+ * `renderPreview` l'écrit, et un appel plus tôt tomberait dans la zone morte de
+ * la déclaration.
+ */
+let largeurApercuRendue = 0;
+
+/** La largeur utile retenue pour ce rendu, ou une mesure de secours. */
+function largeurUtileApercu() {
+  return largeurApercuRendue > 0 ? largeurApercuRendue : previewViewportWidth();
+}
 let transport = null;
 /** @type {NiimbotPrinter|null} */
 let printer = null;
@@ -2072,6 +2096,10 @@ function updateTableOptions() {
 
 /** Redessine l'aperçu selon le mode actif. */
 function renderPreview() {
+  // La largeur utile de ce rendu, retenue pour que l'observateur de taille plus
+  // bas sache si elle a changé.
+  largeurApercuRendue = previewViewportWidth();
+
   const items = printableLinks().slice(0, 400);
   el.preview.textContent = '';
   el.print.disabled = items.length === 0;
@@ -2184,8 +2212,20 @@ function previewViewportWidth() {
 function scaleForScreen(page) {
   const widthMm = Number.parseFloat(page.style.width);
   const heightMm = Number.parseFloat(page.style.height);
-  const available = previewViewportWidth();
-  const scale = Math.min(0.6, available / (widthMm * PX_PER_MM));
+  const available = largeurUtileApercu();
+  const tailleReelle = widthMm * PX_PER_MM;
+  // **La place disponible fait l'échelle**, et le plafond est la taille réelle.
+  //
+  // Un plafond de 0,6 était appliqué ici : une A4 n'occupait donc jamais plus de
+  // 476 px, quel que soit l'espace offert — 74 % du panneau sur un écran de
+  // 1280 px, et moins encore au-delà. Sur un aperçu de tableau, dont le texte
+  // fait 8 pt, cela donnait une page qu'on ne pouvait pas lire : c'était le
+  // grief.
+  //
+  // La borne haute reste 1 : l'aperçu ne grossit pas la page au-delà de sa
+  // taille physique. Au-delà, il n'apprend plus rien et fait croire à un
+  // document plus grand qu'il n'est.
+  const scale = Math.min(1, available / tailleReelle);
 
   const frame = document.createElement('div');
   frame.className = 'preview__frame';
@@ -2280,7 +2320,7 @@ function renderSingleLabel(link) {
   // désormais bornée par un **multiple de la taille réelle** plutôt que par un
   // facteur de rendu. Plafonner à « 4 » donnait 8,5 × sur une tête de 203 ppp et
   // 2,2 × sur une tête de 300 ppp, sans que rien ne relie le chiffre au résultat.
-  const available = Math.max(1, previewViewportWidth() - 20);
+  const available = Math.max(1, largeurUtileApercu() - 20);
   const echelle = labelPreviewZoom({
     widthPx: shown.width,
     dpi: profile.dpi,
@@ -2751,7 +2791,7 @@ function renderImagePreview(link) {
   // La largeur réelle va de 12 mm à 104 mm : on met à l'échelle pour l'écran,
   // en gardant des proportions exactes et sans jamais dépasser la place
   // disponible — un minimum de 1 faisait déborder les formats larges.
-  const available = Math.max(1, previewViewportWidth() - 20);
+  const available = Math.max(1, largeurUtileApercu() - 20);
   const scale = Math.min(6, available / plan.widthPx);
 
   const frame = document.createElement('div');
@@ -3980,6 +4020,28 @@ el.printLabel.addEventListener('click', () => {
 // rappel, une planche composée pour une grande fenêtre débordait après
 // réduction, et gardait une petite échelle après agrandissement. Le délai
 // regroupe les événements d'un redimensionnement continu.
+/**
+ * Observe la taille de l'aperçu, et non seulement celle de la fenêtre.
+ *
+ * Une barre de défilement qui apparaît retire une quinzaine de pixels à la
+ * largeur utile **sans** provoquer d'événement `resize` sur la fenêtre : le
+ * cadre gardait alors l'échelle du rendu précédent et dépassait la place
+ * offerte de la largeur du défilement. Mesuré : 685 px dessinés pour 670 px
+ * offerts.
+ *
+ * On ne redessine que si la largeur a réellement changé : `renderPreview`
+ * remplace le contenu de l'aperçu, et un observateur naïf se rappellerait
+ * lui-même.
+ */
+if (typeof ResizeObserver === 'function' && el.preview) {
+  const observateur = new ResizeObserver(() => {
+    if (Math.abs(previewViewportWidth() - largeurApercuRendue) < 1) return;
+    clearTimeout(previewResizeTimer);
+    previewResizeTimer = setTimeout(() => renderPreview(), 150);
+  });
+  observateur.observe(el.preview);
+}
+
 let previewResizeTimer = null;
 window.addEventListener('resize', () => {
   clearTimeout(previewResizeTimer);

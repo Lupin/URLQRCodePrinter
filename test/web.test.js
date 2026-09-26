@@ -627,3 +627,78 @@ test('le bouton unique porte le libellé de ce qui sortira', () => {
   // l'un devient l'autre.
   assert.match(app, /el\.printLabel\.textContent = t\('Arrêter'\)/);
 });
+
+// ---------------------------------------------------------------------------
+// L'aperçu, et la mise en page qui le porte
+//
+// Trois défauts mesurés dans Chrome, corrigés ensemble parce qu'ils se
+// mesuraient au même endroit : l'aperçu n'occupait que 74 % de la place offerte,
+// les libellés d'onglets passaient à la ligne entre 900 et 1100 px de fenêtre, et
+// la page débordait horizontalement sous 448 px.
+// ---------------------------------------------------------------------------
+
+test("l'aperçu prend la place offerte, sans dépasser la taille réelle", () => {
+  const app = readFileSync(join(WEB, 'app.js'), 'utf8');
+  // Le plafond de 0,6 faisait qu'une A4 n'occupait jamais plus de 476 px.
+  assert.doesNotMatch(app, /Math\.min\(0\.6,/);
+  assert.match(app, /const scale = Math\.min\(1, available \/ tailleReelle\)/);
+  // Et les trois rendus qui mettent à l'échelle partagent la même mesure.
+  const usages = [...app.matchAll(/largeurUtileApercu\(\)/g)].length;
+  assert.ok(usages >= 3, `seulement ${usages} usage(s) de la largeur utile`);
+});
+
+test("la largeur utile est mesurée avant que l'aperçu ne soit vidé", () => {
+  // C'est une boucle de rétroaction, mesurée dans Chrome : vider l'aperçu fait
+  // disparaître sa barre de défilement, donc la largeur augmente de quinze
+  // pixels ; l'échelle était calculée sur cette largeur-là, le contenu rappelait
+  // la barre, et le cadre restait plus large que la place — 685 px dessinés pour
+  // 670 offerts, de façon stable, un redimensionnement n'y changeant rien.
+  const app = readFileSync(join(WEB, 'app.js'), 'utf8');
+  const mesure = app.indexOf('largeurApercuRendue = previewViewportWidth();');
+  const vidage = app.indexOf("el.preview.textContent = '';");
+  assert.ok(mesure !== -1, 'la largeur utile n\'est pas mesurée');
+  assert.ok(vidage !== -1, 'l\'aperçu n\'est pas vidé');
+  assert.ok(mesure < vidage, 'la largeur est mesurée après le vidage : la barre de défilement manque');
+  // Et elle n'est mesurée qu'une fois par rendu.
+  assert.equal(
+    [...app.matchAll(/largeurApercuRendue = previewViewportWidth\(\)/g)].length, 1,
+    'la largeur est remesurée en cours de rendu',
+  );
+});
+
+test("l'aperçu se recale quand sa propre largeur change", () => {
+  // Une barre de défilement qui apparaît retire une quinzaine de pixels sans
+  // provoquer d'événement `resize` sur la fenêtre.
+  const app = readFileSync(join(WEB, 'app.js'), 'utf8');
+  assert.match(app, /new ResizeObserver\(/);
+  assert.match(app, /observateur\.observe\(el\.preview\)/);
+  // Et l'observateur ne se rappelle pas lui-même : il ne redessine que si la
+  // largeur a réellement changé.
+  assert.match(app, /Math\.abs\(previewViewportWidth\(\) - largeurApercuRendue\) < 1/);
+});
+
+test('la bande d\'onglets se replie, et non ses libellés', () => {
+  // Quatre onglets à un quart de 400 px : « Étiquette (divers) » passait à deux
+  // lignes à l'intérieur de sa case, 43 px de haut au lieu de 29.
+  const css = readFileSync(join(WEB, 'style.css'), 'utf8');
+  const bande = css.match(/\.tabs\s*\{([\s\S]*?)\}/)[1];
+  assert.match(bande, /flex-wrap:\s*wrap/);
+  const onglet = css.match(/\.tab\s*\{([\s\S]*?)\}/)[1];
+  assert.match(onglet, /flex:\s*1 1 auto/);
+  assert.match(onglet, /white-space:\s*nowrap/);
+});
+
+test('les colonnes de la mise en page peuvent rétrécir', () => {
+  // `1fr` vaut `minmax(auto, 1fr)` : son minimum est le contenu minimal, et la
+  // page débordait de 83 px sous 448 px de fenêtre.
+  const css = readFileSync(join(WEB, 'style.css'), 'utf8');
+  const mobile = css.match(/@media \(max-width: 900px\)\s*\{([\s\S]*?)\n\}/)[1];
+  assert.match(mobile, /grid-template-columns:\s*minmax\(0, 1fr\)/);
+  assert.doesNotMatch(mobile, /grid-template-columns:\s*1fr;/);
+
+  // Et les boîtes flexibles qui portent le contenu portent aussi leur minimum.
+  for (const selecteur of ['\\.panel\\s*\\{', '\\.sheet-group\\s*\\{']) {
+    const regle = css.match(new RegExp(`${selecteur}([\\s\\S]*?)\\}`))[1];
+    assert.match(regle, /min-width:\s*0/, `${selecteur} n'a pas de minimum à zéro`);
+  }
+});

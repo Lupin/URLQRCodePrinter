@@ -177,9 +177,10 @@ Pour les planches autocollantes A4 et Letter. Deux familles de dispositions :
 | Avery 5163 / 8163 | 2 × 5 = 10 | 101,6 × 50,8 mm | Letter |
 | Avery 6871 | 3 × 6 = 18 | 60,3 × 31,8 mm | Letter |
 
-> **L'aperçu est à l'échelle de la fenêtre**, pas à 100 % : le texte y paraît
-> donc petit. C'est la *disposition* qu'il faut y vérifier. Pour juger du rendu
-> réel, imprimez sur papier ordinaire — ou regardez l'onglet « Images à
+> **L'aperçu est à l'échelle de la fenêtre**, pas à 100 % — sauf quand la place
+> le permet : il atteint alors la taille réelle, et ne la dépasse jamais. C'est la
+> *disposition* qu'il faut y vérifier. Pour juger du rendu réel, imprimez sur
+> papier ordinaire — ou regardez l'onglet « Images à
 > imprimer », qui affiche une étiquette en grand.
 
 **Choisir les colonnes du tableau.** Dans l'onglet « Tableau », le groupe

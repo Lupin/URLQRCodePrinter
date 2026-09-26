@@ -212,12 +212,22 @@ body {
 }
 
 @media (max-width: 900px) {
-  .layout { grid-template-columns: 1fr; }
+  /* `minmax(0, 1fr)` et non `1fr`.
+     `1fr` vaut `minmax(auto, 1fr)`, et son minimum est donc le **contenu
+     minimal** de la colonne : la grille refusait de descendre sous 432 px, et la
+     page débordait horizontalement dès que la fenêtre faisait moins de 448 px.
+     Un minimum à zéro laisse la colonne se réduire ; c'est au contenu de
+     s'adapter, et il en est capable — les rangées de champs s'enroulent. */
+  .layout { grid-template-columns: minmax(0, 1fr); }
 }
 
 .panel {
   display: flex;
   flex-direction: column;
+  /* Un élément de grille a `min-width: auto` par défaut : sans cette ligne, le
+     panneau refuse de descendre sous la largeur de son contenu le plus large,
+     et la grille déborde avec lui. */
+  min-width: 0;
   gap: 12px;
   padding: 16px;
   border: 1px solid var(--border-line);
@@ -277,6 +287,11 @@ body {
 .sheet-group {
   display: flex;
   flex-direction: column;
+  /* Même raison que sur `.panel` : un enfant de boîte flexible a un minimum
+     automatique égal à sa largeur de contenu. Sans cette ligne, le groupe
+     refusait de descendre sous 338 px et débordait de 6 px une fenêtre de
+     380 px — le dernier reste d'un débordement de 83 px. */
+  min-width: 0;
   gap: 12px;
   margin: 0;
   padding: 12px;
@@ -505,10 +520,20 @@ body {
   padding: 3px;
   border-radius: var(--radius);
   background: var(--bg);
+  /* La bande se replie **elle**, plutôt que de replier ses libellés.
+     « Étiquette (divers) » ne tient pas dans un quart de 400 px : les quatre
+     onglets passaient donc à deux lignes de texte à l'intérieur de leur case —
+     43 px de haut au lieu de 29 — et l'onglet se lisait mal. Avec un
+     enroulement de la bande et des libellés insécables, c'est la disposition qui
+     s'adapte : quatre onglets sur une ligne quand la place le permet, deux
+     rangées sinon. */
+  flex-wrap: wrap;
 }
 
 .tab {
-  flex: 1;
+  /* `auto` et non `1` : chaque onglet réclame au moins la largeur de son
+     libellé, au lieu d'un quart de la bande quelle que soit sa longueur. */
+  flex: 1 1 auto;
   padding: 7px 8px;
   border: 0;
   border-radius: var(--radius);
@@ -517,6 +542,7 @@ body {
   cursor: pointer;
   font-family: inherit;
   font-size: 12.5px;
+  white-space: nowrap;
 }
 
 .tab--active {

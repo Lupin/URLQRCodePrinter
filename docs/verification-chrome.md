@@ -71,8 +71,12 @@ protocole : elle répond.
 |---|---------|--------|---------|-----|
 | 1 | Libellés des quatre onglets | **43 px de haut au lieu de 29** : le libellé passe à la ligne | lisibilité | 3 et 5 |
 | 2 | Panneau de gauche de l'application | refuse de descendre sous **432 px** : débordement horizontal dès que la fenêtre fait moins de ~448 px | 1.4.10 Reflow | 5 |
-| 3 | Aperçu de la planche | **476 px dessinés sur 642 offerts, soit 74 %** : la transformation relevée est `scale(0.6)`, le plafond est atteint | — | 3 |
-| 4 | Aperçu de l'étiquette Niimbot | **384 px à l'écran pour 45 px réels, soit 8,5 ×**, en rendu `pixelated` | — | 4 |
+| 3 | Aperçu de la planche | **476 px dessinés sur 642 offerts, soit 74 %** : la transformation relevée est `scale(0.6)`, le plafond est atteint | — | **corrigé (lot 5)** |
+| 4 | Aperçu de l'étiquette Niimbot | **384 px à l'écran pour 45 px réels, soit 8,5 ×**, en rendu `pixelated` | — | **corrigé (lot 4)** |
+
+Les quatre constats sont désormais traités : le contour des boutons était une
+fausse accusation, les deux cibles satisfont l'exception d'espacement, et les
+deux aperçus ont été repris. Le relevé passe à **72 constats sur 72**.
 
 ### Le constat 1 : la fenêtre la plus courante est la plus mal servie
 
@@ -235,6 +239,33 @@ puis sur le CSS, puis sur la position de l'élément. Ensuite, un objet de retou
 qui n'expose que les conséquences d'un calcul oblige chaque appelant à le
 refaire : la disposition rend maintenant `marginXMm` et `marginYMm`, et un test
 vérifie qu'elles situent bien la première cellule.
+
+---
+
+## Une boucle de rétroaction dans l'aperçu
+
+Corrigé au lot 5, et le diagnostic vaut d'être conservé parce que la mesure
+accusait l'aperçu d'un écart dont la cause était dans l'ordre des opérations.
+
+Le cadre de l'aperçu se dessinait à **685 px** dans une place de **670**. Stable,
+reproductible, et un redimensionnement explicite n'y changeait rien : ni un
+retard de mesure, ni un déclencheur manquant.
+
+La cause tient en deux lignes :
+
+1. `renderPreview` **vide** l'aperçu avant de le reconstruire ;
+2. le vider fait disparaître sa barre de défilement verticale, donc la largeur
+   utile augmente de quinze pixels — exactement l'écart mesuré.
+
+L'échelle était donc calculée sur la largeur *sans* barre, le nouveau contenu
+rappelait la barre, et le cadre restait plus large que la place réelle. La
+correction : mesurer la largeur **une fois, avant de vider**, et s'en servir pour
+tous les rendus de ce passage.
+
+Ce que la mesure a coûté, et ce qu'elle apprend : trois hypothèses successives —
+un retard de rendu, un déclencheur manquant, un observateur absent — ont été
+écartées par la mesure avant que la bonne ne soit trouvée. Un écart **stable**
+n'est pas un écart de temps.
 
 ---
 

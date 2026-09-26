@@ -835,13 +835,22 @@ async function main() {
             ? champsSerie.every((c) => c.y === champsSerie[0].y)
             : null,
           serieChamps: champsSerie,
-          debordement: document.documentElement.scrollWidth > document.documentElement.clientWidth,
+          // Une tolérance de 1 px : l'arrondi sous-pixel d'une largeur émulée
+          // peut dépasser d'un pixel sans qu'aucun élément ne franchisse la
+          // limite — la liste des coupables est alors vide, ce qui le confirme.
+          debordement: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
           largeurVisible: document.documentElement.clientWidth,
           largeurDocument: document.documentElement.scrollWidth,
           coupables: [...document.querySelectorAll('body *')]
             .map((n) => ({ n, box: n.getBoundingClientRect() }))
             .filter(({ box }) => box.right > document.documentElement.clientWidth + 1 || box.left < -1)
-            .slice(0, 5)
+            .slice(-3)
+            .reverse()
+            .map(({ n, box }) => n)
+            .flatMap((n) => [n, ...n.children])
+            .filter((n, i, tout) => tout.indexOf(n) === i)
+            .slice(0, 6)
+            .map((n) => ({ n, box: n.getBoundingClientRect() }))
             .map(({ n, box }) => \`\${n.tagName}.\${(typeof n.className === 'string' ? n.className : '').split(' ')[0]}\`
               + \` \${Math.round(box.left)}→\${Math.round(box.right)}\`
               + \` « \${(n.querySelector?.('.field__label')?.textContent || n.textContent || '').trim().slice(0, 34)} »\`),
@@ -1330,28 +1339,68 @@ async function main() {
     });
     await new Promise((r) => setTimeout(r, 400));
 
-    const apercuPlanche = await evalApp(`(() => {
+    // On fixe la largeur, on **attend le rendu**, puis on lit le cadre et la
+    // place offerte dans la même évaluation. Mesurer le cadre d'un rendu
+    // antérieur au redimensionnement comparerait deux largeurs, pas ce que
+    // l'aperçu occupe — et accuserait l'aperçu d'un écart qui vient de la mesure.
+    await app.session.call('Emulation.setDeviceMetricsOverride', {
+      width: 1280, height: 900, deviceScaleFactor: 1, mobile: false,
+    });
+    await new Promise((r) => setTimeout(r, 1200));
+
+    // On attend que le cadre se **stabilise** : une barre de défilement peut
+    // apparaître après le rendu qui l'a fait naître, et la largeur utile change
+    // alors d'un coup. On lit deux fois à 250 ms d'intervalle, et l'on ne retient
+    // que la valeur qui ne bouge plus.
+    const apercuPlanche = await evalApp(`(async () => {
+      const lire = () => {
+        const cadre = document.querySelector('#preview .preview__frame');
+        return cadre ? Math.round(cadre.getBoundingClientRect().width) : -1;
+      };
+      let precedent = lire();
+      for (let essai = 0; essai < 12; essai++) {
+        await new Promise((r) => setTimeout(r, 250));
+        const courant = lire();
+        if (courant === precedent) break;
+        precedent = courant;
+      }
+
       const surface = document.getElementById('preview');
       const cadre = surface.querySelector('.preview__frame');
       const page = cadre?.firstElementChild;
       const box = (n) => { const b = n.getBoundingClientRect(); return { l: Math.round(b.width), h: Math.round(b.height) }; };
+      // Le rembourrage reel, mesure : la fonction d'apercu fait de meme, et une
+      // constante recopiee ici finirait par diverger de la feuille de style.
+      const st = getComputedStyle(surface);
+      const padX = (Number.parseFloat(st.paddingLeft) || 0) + (Number.parseFloat(st.paddingRight) || 0);
       return {
-        largeurOfferte: surface.clientWidth - 28,
+        largeurOfferte: Math.max(120, surface.clientWidth - padX),
         cadre: cadre ? box(cadre) : null,
         page: page ? box(page) : null,
         transformation: page ? page.style.transform : '',
+        largeurPageMm: Number.parseFloat(page?.style.width ?? '0'),
         hauteurApercu: Math.round(surface.getBoundingClientRect().height),
       };
     })()`);
 
-    const ratioPlanche = apercuPlanche?.cadre && apercuPlanche?.largeurOfferte
-      ? Number((apercuPlanche.cadre.l / apercuPlanche.largeurOfferte).toFixed(2))
+    // Le contrôle porte sur la **règle** : le cadre vaut la place offerte, ou la
+    // taille réelle de la page si elle est plus petite.
+    //
+    // Un pourcentage ne suffisait pas : il passait au-dessus de 100 % quand le
+    // panneau avait été redimensionné depuis le dernier rendu, ce qui mesurait
+    // un décalage entre deux largeurs et non ce que l'aperçu occupe.
+    const largeurCssPage = (apercuPlanche?.largeurPageMm ?? 0) * (96 / 25.4);
+    const attenduCadre = Math.min(apercuPlanche?.largeurOfferte ?? 0, largeurCssPage);
+    const ecartCadre = apercuPlanche?.cadre
+      ? Math.abs(apercuPlanche.cadre.l - attenduCadre)
       : null;
+
     record(
-      'la planche à l\'écran occupe la place offerte',
-      ratioPlanche !== null && ratioPlanche >= 0.9,
-      `${apercuPlanche?.cadre?.l} px dessinés sur ${apercuPlanche?.largeurOfferte} px offerts `
-        + `→ ${Math.round((ratioPlanche ?? 0) * 100)} %, transformation ${apercuPlanche?.transformation}`,
+      'la planche à l\'écran occupe la place offerte, sans la dépasser',
+      ecartCadre !== null && ecartCadre <= 2,
+      `${apercuPlanche?.cadre?.l} px dessinés pour ${Math.round(attenduCadre)} px attendus `
+        + `(offerts ${apercuPlanche?.largeurOfferte}, page ${Math.round(largeurCssPage)} px réels) `
+        + `→ ${apercuPlanche?.transformation}`,
     );
 
     // L'étiquette Niimbot : c'est ici que le soupçon de « trop gros » se mesure.
