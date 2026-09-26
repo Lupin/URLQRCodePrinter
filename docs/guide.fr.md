@@ -46,7 +46,7 @@ de l'archive d'images, et son nom aux fichiers exportés —
 `Veille-du-vendredi-20260915-1741.md` plutôt que `liens-qr-….md`.
 
 Le champ **« Note de la collection (facultative) »**, juste en dessous, décrit
-l'ensemble — à quoi il sert, d'où il vient. Ce n'est pas la note d'un lien : elle
+l'ensemble — de quoi il parle, d'où il vient. Ce n'est pas la note d'un lien : elle
 appartient à la collection, et se retrouve donc là où la collection est nommée :
 
 | Sortie | Où la note apparaît |

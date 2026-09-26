@@ -65,7 +65,7 @@ export const EN_MESSAGES = {
   "Numéroter à partir de": "Number from",
   "Le numéro du premier lien. Il s'affiche dans la liste et s'imprime avec la planche et le tableau ; effacer les liens ne le remet pas à 1.":
     "The number of the first link. It shows in the list and prints with the sheet and the table; clearing the links does not reset it to 1.",
-  "À quoi sert cette collection…": "What this collection is for…",
+  "De quoi parle cette collection…": "What this collection is about…",
   "Exporter ces étiquettes (ZIP)": "Export these labels (ZIP)",
   "Export impossible": "Export failed",
   "Étiquettes exportées : {filename}": "Labels exported: {filename}",

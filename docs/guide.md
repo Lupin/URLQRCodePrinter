@@ -48,7 +48,7 @@ HTML sheet of the image archive, and gives its name to the exported files —
 `Veille-du-vendredi-20260915-1741.md` rather than `liens-qr-….md`.
 
 The **"Collection note (optional)" (« Note de la collection (facultative) »)**
-field, just below, describes the whole — what it is for, where it comes from. It
+field, just below, describes the whole — what it is about, where it comes from. It
 is not a link's note: it belongs to the collection, and therefore appears
 wherever the collection is named:
 
