@@ -153,6 +153,40 @@ même protocole, la même séquence d'impression, les mêmes vecteurs de test qu
 l'implémentation JavaScript. Il est indépendant de toute interface, donc
 réutilisable aussi bien par une app iOS que par un compagnon macOS.
 
+## Où vivent les liens
+
+La collection n'a pas de serveur : la couche de stockage est donc tout ce
+qu'elle a. Une interface — `list`, `get`, `add`, `put`, `putMany`, `remove`,
+`clear` — et trois implémentations, choisies au démarrage par
+`resolveDefaultStore()` :
+
+- dans l'extension, `chrome.storage.local`, sous une seule clé `links` : c'est
+  la seule zone que le service worker et les pages lisent à l'identique ;
+- ailleurs, IndexedDB : base `url-qr-code-printer`, magasin `links`, clé `id`,
+  indexé sur `createdAt` et `url`. La connexion est ouverte une fois, puis
+  réutilisée ;
+- à défaut des deux — fenêtre privée restrictive — une `Map` en mémoire, et
+  l'interface le dit : les liens seront perdus. Elle ne fait pas semblant
+  d'enregistrer.
+
+`chrome.storage.sync` n'est jamais écrit. Il n'y a pas de compte, donc pas de
+second appareil avec lequel synchroniser.
+
+Le plafond est de 10 Mo, parce que `chrome.storage.local` est limité à cela et
+que le manifeste ne demande pas `unlimitedStorage`. La marge vient de ce que
+contient un enregistrement : une adresse, un titre, des tags, une note, une
+date. Du texte, rien d'autre. **L'image du QR n'est jamais stockée** : elle est
+recalculée depuis l'adresse au moment de l'impression. L'étiquette est
+dérivable, donc elle n'est pas conservée.
+
+Chaque écriture est une transaction attendue jusqu'à sa complétion : « ajouté »
+veut dire validé, pas mis en file.
+
+Ce que coûte le tout-local n'est pas la place, c'est la perte. Désinstaller
+l'extension, ou effacer les données de navigation, efface la collection. Le seul
+recours est l'archive exportée — un fichier conservé hors du navigateur — et
+l'import la relit en ignorant les liens déjà présents.
+
 ## Utilisation
 
 ```bash

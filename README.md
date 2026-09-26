@@ -152,6 +152,37 @@ core: the same protocol, the same print sequence, the same test vectors as the
 JavaScript implementation. It is independent of any interface, so it can be
 reused by an iOS app as well as by a macOS companion.
 
+## Where the links live
+
+The collection has no server, so the storage layer is the whole of it. One
+interface — `list`, `get`, `add`, `put`, `putMany`, `remove`, `clear` — and
+three implementations, chosen at startup by `resolveDefaultStore()`:
+
+- in the extension, `chrome.storage.local`, under a single `links` key: it is
+  the only area the service worker and the pages read identically;
+- elsewhere, IndexedDB: database `url-qr-code-printer`, store `links`, keyed by
+  `id`, indexed on `createdAt` and `url`. The connection is opened once and
+  reused;
+- failing both — a locked-down private window — an in-memory `Map`, and the
+  interface says so: links will be lost. It does not pretend to save.
+
+`chrome.storage.sync` is never written to. There is no account, so there is no
+second device to synchronise with.
+
+The ceiling is 10 MB, because `chrome.storage.local` is capped there and the
+manifest does not request `unlimitedStorage`. The margin comes from what a
+record holds: an address, a title, tags, a note, a date. Text only. **The QR
+image is never stored** — it is recomputed from the address at print time. The
+label is derivable, so it is not kept.
+
+Every write is a transaction awaited to completion, so "added" means committed,
+not queued.
+
+What local-only costs is not space but loss. Uninstall the extension, or clear
+your browsing data, and the collection is gone. The only backup is the Archive
+export — a file you keep yourself — and the import reads it back, skipping the
+links already present.
+
 ## Usage
 
 ```bash

@@ -51,82 +51,187 @@ politique publiée, les déclarations du portail et le comportement réel.
 
 ### Description détaillée
 
+Le champ du portail **n'interprète pas le Markdown** : les textes ci-dessous sont
+en texte brut exprès — pas de `**`, pas de `#`, pas d'astérisques de liste, qui
+s'afficheraient littéralement sur la fiche. À coller tels quels.
+
 Le point 4 de la politique *Limited Use* impose que la collecte d'activité de
 navigation soit **décrite de façon prominente sur la fiche**. C'est pourquoi
-l'encadré ci-dessous doit rester dans les premiers paragraphes, et non relégué en
-bas de page.
+l'encadré « Ce que l'extension lit » reste dans les premiers paragraphes, et non
+relégué en bas de page.
+
+> **Rejet « Yellow Argon » — spam dans les mots clés.** La version précédente de
+> cette description énumérait les références de planches d'étiquettes et les
+> codes de consommables (« Avery L7160, L7159, … Zweckform 3475 … »). Le magasin
+> y a vu du bourrage de mots clés, à raison : une énumération de références
+> commerciales n'est pas une description. **Règle qui en découle : aucun
+> catalogue de références ni de codes produit dans les métadonnées de la fiche.**
+> La compatibilité se dit en une phrase, sans liste. Ces catalogues restent dans
+> l'application, où ils servent à quelque chose, mais pas sur la fiche.
 
 **FR**
 
-> URLQRCodePrinter transforme les adresses que vous croisez en étiquettes QR à
-> coller sur vos affaires, vos dossiers ou vos câbles.
->
-> **Ce que l'extension lit.** Quand vous cliquez sur « Ajouter cette page »,
-> « Ajouter ce lien » ou sur le bouton de la barre d'outils, l'extension lit
-> l'adresse et le titre de la page concernée — **uniquement celle sur laquelle
-> vous agissez, uniquement à ce moment-là**. Elle n'a accès ni à votre
-> historique, ni aux onglets que vous ne visez pas, et ne lit rien en
-> arrière-plan.
->
-> **Où vont ces données.** Nulle part. Les liens collectés restent sur votre
-> appareil, dans le stockage local du navigateur. Il n'y a ni compte, ni serveur,
-> ni mesure d'audience.
->
-> **Le seul envoi réseau.** Si vous demandez le raccourcissement d'un lien,
-> celui-ci est transmis au service que vous avez choisi (TinyURL, is.gd, v.gd ou
-> spoo.me). Seule l'adresse est envoyée. Sans cette action, l'extension n'émet
-> aucune requête.
->
-> **Ce que vous pouvez en faire**
->
-> - Collecter un lien au clic droit, depuis la fenêtre, ou en sélectionnant du texte.
-> - Retrouver, rechercher et organiser vos liens.
-> - Générer la planche d'étiquettes et l'imprimer en PDF.
-> - Exporter en CSV, Markdown ou JSON.
-> - Imprimer directement sur une imprimante Niimbot D110 ou M2 en Bluetooth.
-> - Raccourcir un lien pour obtenir un QR plus court, donc plus rapide à scanner.
->
-> **Vie privée.** Aucune donnée ne quitte votre appareil en dehors du
-> raccourcissement que vous déclenchez vous-même. Le code est ouvert (licence
-> MIT) et vérifiable : `https://github.com/Lupin/URLQRCodePrinter`
->
-> **Ce qu'il vous faut.** Chrome sur ordinateur. L'impression Bluetooth directe
-> exige une imprimante Niimbot compatible ; à défaut, l'export d'images et
-> l'impression PDF fonctionnent avec n'importe quelle imprimante.
+```
+URLQRCodePrinter transforme les adresses que vous croisez en étiquettes QR à coller sur vos affaires, vos dossiers, vos câbles ou vos étagères. Il en fait aussi une collection de liens que vous pouvez rechercher, classer, raccourcir, exporter et imprimer : sur une planche d'étiquettes autocollantes, sur une imprimante d'étiquettes thermique en Bluetooth, ou sous forme de dossier d'images prêt à imprimer.
+
+Ce que l'extension lit
+
+Quand vous cliquez sur « Ajouter cette page », sur « Ajouter ce lien », sur une image, sur un texte sélectionné, ou sur le bouton de la barre d'outils, l'extension lit l'adresse et le titre de la page que vous visez : uniquement celle-là, et uniquement à ce moment-là. Elle n'a accès ni à votre historique, ni aux onglets que vous ne visez pas, et ne lit rien en arrière-plan.
+
+Où vont ces données
+
+Nulle part. Les liens collectés, leurs titres, leurs tags, leurs notes et leurs dates restent dans le stockage local du navigateur. Il n'y a ni compte, ni serveur, ni mesure d'audience, ni publicité.
+
+Le seul envoi réseau
+
+Le raccourcissement d'un lien est la seule fonction qui envoie quoi que ce soit : l'adresse à raccourcir part alors vers le service que vous avez choisi, et rien d'autre ne l'accompagne. Si vous ne l'utilisez pas, l'extension n'émet aucune requête et fonctionne entièrement hors ligne.
+
+Collecter un lien en un geste
+
+- Clic droit sur un lien, une page, une image ou un texte sélectionné.
+- Bouton de la barre d'outils : enregistre l'onglet courant.
+- Champ d'ajout : saisie manuelle d'une adresse.
+- Importation : relit une archive exportée d'ici, un dossier d'étiquettes ou un fichier CSV, même retravaillé dans un tableur. Les liens déjà présents sont ignorés, jamais dupliqués.
+
+Les adresses sont normalisées à l'entrée : le schéma est complété si besoin, le fragment de navigation est retiré et les paramètres de campagne publicitaire sont supprimés, car ils allongent le QR code sans rien apporter sur le papier.
+
+Retrouver et organiser
+
+- Recherche instantanée dans toute la collection.
+- Titre, tags et note libres sur chaque lien, par le bouton crayon de la ligne.
+- Les tags s'affichent en pastilles : un clic filtre la collection.
+- Nom de la collection, repris dans les exports et dans le nom des fichiers.
+- Titres et adresses cliquables : ils ouvrent l'onglet.
+- Date de collecte conservée pour chaque lien, imprimable avec ou sans l'heure.
+
+Imprimer sur une planche d'étiquettes
+
+- Dispositions génériques réglables au millimètre près, ou planches du commerce en A4 et en Letter, préconfigurées aux dimensions publiées par leur fabricant.
+- Aperçu fidèle de la planche, en-tête de page avec le nom de la collection et la date d'impression, choix des colonnes imprimées.
+- Calibration par décalage horizontal et vertical en millimètres : aucune dimension constructeur ne connaît le décalage d'entraînement de votre imprimante. La marche à suivre est écrite dans l'interface.
+- Un mode tableau dense, avec grille optionnelle, orientation portrait ou paysage et marges réglables, pour relire ou archiver sur papier.
+
+Imprimer directement sur une imprimante d'étiquettes
+
+- Imprimantes Niimbot compatibles, avec les rouleaux réellement vendus pour chacune.
+- Densité, nombre d'exemplaires, taille du texte et orientation du texte : droit, tourné dans les deux sens, ou en colonne à côté du QR code.
+- Contenu de l'étiquette composable : numéro, titre, adresse, domaine, date, heure.
+- Longueur d'étiquette renseignée : la composition remplit la bande au lieu de s'arrêter après le contenu.
+- Impression en série de toute la collection ou de la sélection cochée, plusieurs exemplaires par lien, avec un bouton d'arrêt qui termine proprement l'étiquette en cours.
+- Aperçu exact sans imprimante connectée : dimensions, nombre de modules et pixels par module sont calculés depuis le profil du modèle. Vous pouvez juger un rendu, ou savoir si une adresse tient sur une étiquette étroite, avant même d'acheter le matériel.
+- Une étiquette illisible est refusée avec un message explicite, plutôt que d'imprimer un QR code qui ne se scannerait pas.
+
+Sous Brave, l'accès Bluetooth doit être activé dans les réglages avancés du navigateur ; l'application détecte ce cas et affiche la procédure. Chrome et Edge n'ont pas cette contrainte.
+
+Exporter vers n'importe quelle imprimante
+
+- Dossier d'images : une image par étiquette à la résolution du format choisi, une planche prête à imprimer, la correspondance entre les adresses et les fichiers, et les réglages utilisés. Utilisable avec les rouleaux du commerce ou sur papier ordinaire.
+- Tableur : un vrai classeur où chaque ligne porte son QR code en image et son adresse cliquable. Un CSV ne peut pas transporter d'image.
+- Dossier de tableau : le modèle des données, les QR codes en images et la table en page web.
+- CSV lisible par un tableur, Markdown en tableau ou en liste, et archive complète réimportable.
+
+Raccourcir un lien (optionnel)
+
+Quatre services au choix, sans clé d'API ni compte. L'adresse d'origine n'est jamais remplacée : le lien court est conservé à côté. Moins de caractères, donc moins de modules : le QR code devient plus lisible et peut être imprimé plus petit. Vous choisissez ce que le QR code encode, l'adresse d'origine ou le lien court, et ce choix vaut pour toutes les sorties.
+
+Ce que l'extension ne fait pas
+
+- Aucun compte, aucune inscription, aucun serveur de l'éditeur.
+- Aucune mesure d'audience, aucun rapport de plantage, aucune publicité.
+- Aucune donnée vendue ni transmise à des courtiers en données.
+- Aucun historique de navigation lu en dehors du lien que vous visez.
+- Aucun code distant : tout ce que l'extension exécute est embarqué dans le paquet. Le code est ouvert, sous licence MIT, et vérifiable.
+
+Interface
+
+Français et anglais, au choix dans l'application.
+
+Prérequis
+
+Chrome sur ordinateur ; fonctionne aussi dans Brave et Edge. L'impression Bluetooth directe exige une imprimante compatible. À défaut, l'export d'images, le classeur, les planches d'étiquettes et l'impression PDF fonctionnent avec n'importe quelle imprimante.
+```
 
 **EN**
 
-> URLQRCodePrinter turns the addresses you come across into QR labels you can
-> stick on your belongings, folders or cables.
->
-> **What the extension reads.** When you click "Add this page", "Add this link",
-> or the toolbar button, the extension reads the address and title of that page
-> — **only the one you act on, and only at that moment**. It has no access to
-> your history or to tabs you did not target, and reads nothing in the
-> background.
->
-> **Where that data goes.** Nowhere. Collected links stay on your device, in the
-> browser's local storage. There is no account, no server, and no analytics.
->
-> **The only network request.** If you ask for a link to be shortened, that link
-> is sent to the service you chose (TinyURL, is.gd, v.gd or spoo.me). Only the
-> address is sent. Without that action, the extension makes no request at all.
->
-> **What you can do with it**
->
-> - Collect a link by right-click, from the popup, or from a text selection.
-> - Find, search and organise your links.
-> - Generate the label sheet and print it to PDF.
-> - Export to CSV, Markdown or JSON.
-> - Print directly to a Niimbot D110 or M2 over Bluetooth.
-> - Shorten a link so the QR code is smaller and scans faster.
->
-> **Privacy.** No data leaves your device other than the shortening you trigger
-> yourself. The code is open (MIT licence) and auditable.
->
-> **Requirements.** Chrome on desktop. Direct Bluetooth printing needs a
-> compatible Niimbot printer; otherwise image export and PDF printing work with
-> any printer.
+```
+URLQRCodePrinter turns the addresses you come across into QR labels you can stick on your belongings, folders, cables or shelves. It also keeps them as a collection of links you can search, tag, shorten, export and print: on a sheet of self-adhesive labels, on a thermal label printer over Bluetooth, or as a folder of print-ready images.
+
+What the extension reads
+
+When you click "Add this page", "Add this link", an image or a piece of selected text, or the toolbar button, the extension reads the address and title of the page you act on: only that one, and only at that moment. It has no access to your history or to tabs you did not target, and it reads nothing in the background.
+
+Where that data goes
+
+Nowhere. Collected links, their titles, tags, notes and dates stay in the browser's local storage. There is no account, no server, no analytics and no advertising.
+
+The only network request
+
+Shortening a link is the only feature that sends anything: the address to be shortened then goes to the service you chose, and nothing else accompanies it. If you do not use it, the extension makes no request at all and works fully offline.
+
+Collect a link in one gesture
+
+- Right-click a link, a page, an image or selected text.
+- Toolbar button: saves the current tab.
+- Add field: type an address by hand.
+- Import: reads back an archive exported from here, a label folder or a CSV file, even one edited in a spreadsheet. Links already present are skipped, never duplicated.
+
+Addresses are normalised on entry: the scheme is completed when missing, the navigation fragment is removed and advertising campaign parameters are stripped, since they lengthen the QR code without adding anything on paper.
+
+Find and organise
+
+- Instant search across the whole collection.
+- A free title, tags and a note on every link, through the pencil button on the row.
+- Tags appear as chips: one click filters the collection.
+- A collection name, reused in the exports and in the file names.
+- Titles and addresses are clickable and open in a tab.
+- A collection date on every link, printable with or without the time.
+
+Print on a sheet of labels
+
+- Generic layouts adjustable to the millimetre, or commercial A4 and Letter sheets preconfigured to the dimensions published by their manufacturer.
+- Faithful sheet preview, page header with the collection name and the print date, and a choice of printed columns.
+- Calibration by horizontal and vertical offset in millimetres: no manufacturer's dimension knows your printer's feed offset. The procedure is written in the interface.
+- A dense table mode, with an optional grid, portrait or landscape orientation and adjustable margins, for reviewing or archiving on paper.
+
+Print directly on a label printer
+
+- Compatible Niimbot printers, with the rolls actually sold for each of them.
+- Density, copies, text size and text orientation: upright, rotated either way, or a column beside the QR code.
+- Composable label content: number, title, address, host, date, time.
+- A label length field: the composition fills the band instead of stopping after the content.
+- Batch printing of the whole collection or the checked selection, several copies per link, with a stop button that ends cleanly after the current label.
+- Exact preview with no printer connected: dimensions, module count and pixels per module are computed from the model's profile. You can judge a rendering, or find out whether an address fits on a narrow label, before buying the hardware.
+- An illegible label is refused with an explicit message, rather than printing a QR code that will not scan.
+
+In Brave, Bluetooth access has to be enabled in the browser's advanced settings; the app detects this case and shows the procedure. Chrome and Edge have no such constraint.
+
+Export to any printer
+
+- Image folder: one image per label at the resolution of the chosen format, a ready-to-print sheet, the mapping between addresses and files, and the settings used. Works with commercial rolls or plain paper.
+- Spreadsheet: a real workbook where each row carries its QR code as an image and its clickable address. A CSV cannot carry an image.
+- Table folder: the data model, the QR codes as images and the table as a web page.
+- Spreadsheet-readable CSV, Markdown as a table or a list, and a complete archive that can be imported back.
+
+Shorten a link (optional)
+
+Four services to choose from, with no API key and no account. The original address is never replaced: the short link is kept alongside it. Fewer characters means fewer modules, so the QR code is more legible and can be printed smaller. You choose what the QR code encodes, the original address or the short link, and that choice applies to every output.
+
+What the extension does not do
+
+- No account, no sign-up, no server operated by the publisher.
+- No analytics, no crash reporting, no advertising.
+- No data sold or transferred to data brokers.
+- No browsing history read beyond the link you act on.
+- No remote code: everything the extension executes ships inside the package. The code is open source (MIT licence) and auditable.
+
+Language
+
+French and English, selectable in the app.
+
+Requirements
+
+Chrome on desktop; also works in Brave and Edge. Direct Bluetooth printing needs a compatible printer. Otherwise, image export, the workbook, label sheets and PDF printing work with any printer.
+```
 
 ### Objectif unique (*single purpose*)
 
