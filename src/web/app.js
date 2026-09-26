@@ -3171,7 +3171,14 @@ function renderSingleLabel(link) {
   const tailleObtenue = pxToMm(geometry.fontSize, profile.dpi).toFixed(1);
   el.labelFontHint.textContent = t('Texte de {size} mm de haut, {lines} de texte.', {
     size: tailleObtenue,
-    lines: tpl(geometry.lines.length + (content.titleLines?.length ?? 0), '{count} ligne', '{count} lignes'),
+    // Le compte suit ce que la bande a **retenu** : en disposition tournée,
+    // elle redécoupe le titre elle-même, et celui de la composition empilée
+    // n'est plus celui qui est écrit.
+    lines: tpl(
+      geometry.lines.length + (geometry.titleLines?.length ?? content.titleLines?.length ?? 0),
+      '{count} ligne',
+      '{count} lignes',
+    ),
   });
   const orientationNote = lateralRefused
     ? t('Texte empilé : le QR Code laisse trop peu de largeur pour une colonne de texte.')
@@ -3226,6 +3233,12 @@ function renderSingleLabel(link) {
   if (conseil !== '') faits.push(conseil);
   if (orientationNote !== '') faits.push(orientationNote);
   if (dateNote !== '') faits.push(dateNote);
+  // **Ce que la composition a laissé de côté.** Le calcul le savait et le
+  // taisait : une adresse tronquée sortait sans un mot, comme si elle tenait
+  // entière. Le refus nomme le remède, comme celui de la largeur du QR Code.
+  if (geometry.textCut === true) {
+    faits.push(t('Texte coupé : il ne tient pas entier sur cette étiquette. Raccourcissez l\'adresse, décochez du contenu, ou prenez une étiquette plus longue.'));
+  }
   faits.push(echelleNote);
 
   caption.replaceChildren(...faits.map((fait) => ligneDeLegende(fait)));
@@ -3392,6 +3405,19 @@ function composeLabel(link, profile) {
       // Le titre fait partie de la bande : sans lui, il n'était pas réservé et
       // ne s'imprimait pas du tout dans cette disposition.
       titleLines: content.titleLines,
+      // **Le titre, en clair, en plus de ses lignes.** Celles-ci sont découpées à
+      // la **largeur** de l'étiquette, parce que c'est la contrainte de la
+      // disposition empilée. Dans la bande tournée, chaque rangée court sur la
+      // **longueur** : réutiliser ces lignes tronquait le titre à deux rangées
+      // étroites alors que la bande avait de quoi l'écrire entier. Mesuré sur un
+      // 12 × 75 mm : deux rangées de 72 px occupées sur 490 px disponibles, et la
+      // moitié du titre perdue. La bande redécoupe donc le titre elle-même, comme
+      // elle redécoupe déjà le corps du texte.
+      title: titreVoulu,
+      // Les lignes de la date, telles quelles : le titre peut occuper plusieurs
+      // rangées, et les déduire de `extraLines` se trompait dès qu'il en prenait
+      // deux.
+      dateLines: content.extraText,
       gap: geometry.padding,
     });
   }

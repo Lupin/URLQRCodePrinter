@@ -703,7 +703,22 @@ export function layoutLabelRotated(geometry, options) {
 
   // Les lignes du titre font partie de la bande : les oublier laissait le titre
   // sans place réservée, et il ne s'imprimait pas du tout en mode tourné.
+  //
+  // Mais ces lignes viennent de l'appelant, qui les a découpées à la **largeur**
+  // de l'étiquette — la contrainte de la disposition empilée. Ici, chaque rangée
+  // court sur la **longueur** : réutiliser ces lignes tronquait le titre à deux
+  // rangées étroites alors que la bande avait de quoi l'écrire entier. Mesuré sur
+  // un 12 × 75 mm : deux rangées de 72 px occupées dans une bande de 490 px, et la
+  // moitié du titre perdue. Quand l'appelant fournit le titre **en clair**, la
+  // bande le redécoupe donc elle-même, comme elle redécoupe déjà le corps du
+  // texte. Sans lui, les lignes fournies sont conservées telles quelles : les
+  // appelants qui ne passent que des lignes ne changent pas de comportement.
+  const titreTexte = typeof options.title === 'string' ? options.title.trim() : '';
   const titleLines = Array.isArray(options.titleLines) ? options.titleLines.filter(Boolean) : [];
+  const titreRangeesMax = Math.max(1, Math.trunc(options.titleMaxLines ?? 2));
+  // Les lignes de la date, s'il en reste : le titre peut occuper plusieurs
+  // rangées, et les compter par déduction se trompait dès qu'il en prenait deux.
+  const dateLignes = Array.isArray(options.dateLines) ? options.dateLines.filter(Boolean) : null;
 
   // Le nombre de lignes n'est pas un réglage : c'est la largeur de la bande qui
   // le décide, et le texte est découpé à nouveau ici. Réutiliser les lignes de
@@ -752,12 +767,19 @@ export function layoutLabelRotated(geometry, options) {
     // texte prend ce qui reste. Sans cette réservation, le corps occupait toute
     // la bande et la date — écrite en dernier — débordait et se faisait rogner.
     const rangees = Math.max(1, Math.floor(bandWidth / height));
-    // `geometry.extraLines` compte déjà le titre (0 ou 1) et les lignes de date.
-    // L'ajouter de nouveau à `titleLines.length` comptait le titre deux fois :
-    // la bande réservait une rangée de trop et le bloc se retrouvait décalé d'un
-    // demi-interligne — d'un bord dans un sens, de l'autre dans l'autre sens.
-    const titreRangees = titleLines.length;
-    const dateRangees = Math.max(0, geometry.extraLines - (titreRangees > 0 ? 1 : 0));
+    // Le titre est redécoupé à la **longueur de la bande**, pas à la largeur de
+    // l'étiquette : c'est ici que se perdait la moitié d'un titre sur une
+    // étiquette large, sans que rien ne le dise.
+    const titreEssai = titreTexte !== ''
+      ? wrapText(mesure, titreTexte, available, { maxLines: titreRangeesMax })
+      : titleLines;
+    const titreRangees = titreEssai.length;
+    // Les lignes de la date se comptent d'elles-mêmes quand l'appelant les
+    // fournit. Sinon on retombe sur la déduction d'avant, qui suppose le titre
+    // sur une seule rangée.
+    const dateRangees = dateLignes !== null
+      ? dateLignes.length
+      : Math.max(0, geometry.extraLines - titreRangees);
     const reservees = titreRangees + dateRangees;
     const essai = wrapText(mesure, options.text ?? '', available, {
       maxLines: Math.max(1, rangees - reservees),
@@ -765,8 +787,15 @@ export function layoutLabelRotated(geometry, options) {
     // L'épaisseur compte les lignes du titre et de la date, pas seulement le
     // corps : ce sont elles qui décident si la bande déborde.
     const epaisseur = (essai.length + reservees) * height;
-    const complet = essai.join('').replace(/\s/g, '') === (options.text ?? '').replace(/\s/g, '');
-    last = { lines: essai, lineHeight: height, fontSize: size, thickness: epaisseur };
+    const corpsComplet = essai.join('').replace(/\s/g, '')
+      === (options.text ?? '').replace(/\s/g, '');
+    const titreComplet = titreTexte === ''
+      || titreEssai.join('').replace(/\s/g, '') === titreTexte.replace(/\s/g, '');
+    const complet = corpsComplet && titreComplet;
+    last = {
+      lines: essai, lineHeight: height, fontSize: size, thickness: epaisseur,
+      titleLines: titreEssai, complet, corpsComplet, titreComplet,
+    };
     if (epaisseur <= bandWidth && (complet || options.text === '')) {
       chosen = last;
       break;
@@ -785,9 +814,14 @@ export function layoutLabelRotated(geometry, options) {
     lineHeight: Math.ceil(floor * (options.lineSpacing ?? 1.15)),
     fontSize: floor,
     thickness: Math.ceil(floor * (options.lineSpacing ?? 1.15)),
+    titleLines,
   };
   const lines = placed.lines;
   const thickness = placed.thickness;
+  // **Le texte a-t-il été coupé ?** La boucle le savait — `complet` — et le
+  // résultat le taisait : une adresse tronquée sortait sans un mot, comme si la
+  // composition avait tout gardé. L'appelant peut désormais le dire.
+  const texteCoupe = placed.complet === false;
 
   // Le texte est dessiné depuis le **bas** de sa bande, en remontant : c'est
   // donc `textTop + textWidth` qui doit tomber sur la marge basse. Placer la
@@ -811,8 +845,13 @@ export function layoutLabelRotated(geometry, options) {
     textWidth: available,
     lines,
     // Les lignes du titre voyagent avec la géométrie : `drawLabel` les écrit
-    // dans le même repère tourné que le corps du texte.
-    titleLines,
+    // dans le même repère tourné que le corps du texte. Ce sont celles **que la
+    // bande a découpées**, et non celles de la disposition empilée.
+    titleLines: placed.titleLines ?? titleLines,
+    // Ce que la composition a dû laisser de côté, faute de place : l'appelant le
+    // dit à l'utilisateur au lieu de laisser une adresse tronquée passer pour
+    // une adresse entière.
+    textCut: texteCoupe,
     // La police retenue peut être plus petite que celle de la composition
     // empilée : c'est elle qui est dessinée.
     fontSize: placed.fontSize,

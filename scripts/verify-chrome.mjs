@@ -3341,6 +3341,99 @@ async function main() {
       await evalApp(`new Promise((resolve) => chrome.storage.local.set({ locale: 'fr' }, resolve))`);
       await recharger(app.session);
       await forcerPeinture(app.session, 700);
+
+      // --- Le titre dans la bande tournée ------------------------------------
+      //
+      // Signalé : « en fonction de la taille du supply on est coupé, alors qu'on a
+      // de la place pour afficher du texte — surtout avec le texte tourné ».
+      //
+      // Mesuré avant correction, sur un 12 × 75 mm tourné : le titre occupait
+      // **deux** rangées de 72 px dans une bande de 490 px, et la moitié du titre
+      // était perdue. Les lignes du titre venaient de la disposition empilée, où
+      // elles sont découpées à la largeur de l'étiquette ; dans la bande tournée,
+      // chaque rangée court sur sa **longueur**.
+      //
+      // Le contrôle mesure le coût du titre en rangees : total avec le titre moins
+      // total sans. Il doit valoir une rangee, pas deux.
+      const texteTourne = await evalApp(`(async () => {
+        const pause = (ms) => new Promise((r) => setTimeout(r, ms));
+        const el = (id) => document.getElementById(id);
+        [...document.querySelectorAll('.tab')].find((t) => t.dataset.mode === 'single').click();
+        await pause(1400);
+        el('label-profile').value = 'niimbot-d110';
+        el('label-profile').dispatchEvent(new Event('change', { bubbles: true }));
+        await pause(1200);
+        el('label-supply').value = '12x30';
+        for (const option of el('label-supply').options) {
+          if (/75 mm/.test(option.textContent)) el('label-supply').value = option.value;
+        }
+        el('label-supply').dispatchEvent(new Event('change', { bubbles: true }));
+        await pause(800);
+        for (const option of el('label-rotation').options) {
+          if (/bas en haut|bottom to top/i.test(option.textContent)) el('label-rotation').value = option.value;
+        }
+        el('label-rotation').dispatchEvent(new Event('change', { bubbles: true }));
+        await pause(800);
+
+        const rangees = () => {
+          const m = /(\\d+)\\s*(?:lignes?|lines?)/.exec(el('label-font-hint').textContent);
+          return m ? Number(m[1]) : null;
+        };
+        const lire = () => ({
+          rangees: rangees(),
+          encre: (() => {
+            const canvas = document.querySelector('#preview canvas');
+            if (!canvas || !canvas.width) return 0;
+            const donnees = canvas.getContext('2d')
+              .getImageData(0, 0, canvas.width, canvas.height).data;
+            let n = 0;
+            for (let i = 0; i < donnees.length; i += 4) if (donnees[i] < 128) n += 1;
+            return n;
+          })(),
+          faits: [...document.querySelectorAll('#preview .preview__fact')].map((n) => n.textContent.trim()),
+        });
+
+        const titre = el('label-show-title');
+        titre.checked = true;
+        titre.dispatchEvent(new Event('change', { bubbles: true }));
+        await pause(900);
+        const avec = lire();
+        titre.checked = false;
+        titre.dispatchEvent(new Event('change', { bubbles: true }));
+        await pause(900);
+        const sans = lire();
+        titre.checked = true;
+        titre.dispatchEvent(new Event('change', { bubbles: true }));
+        await pause(600);
+
+        // Puis une etiquette courte, ou le texte ne peut pas tenir : le refus doit
+        // apparaitre, au lieu d'une adresse tronquee en silence.
+        for (const option of el('label-supply').options) {
+          if (/22 mm/.test(option.textContent)) el('label-supply').value = option.value;
+        }
+        el('label-supply').dispatchEvent(new Event('change', { bubbles: true }));
+        await pause(1000);
+        const court = lire();
+
+        return { avec, sans, court };
+      })()`);
+
+      const coutDuTitre = (texteTourne?.avec?.rangees ?? 0) - (texteTourne?.sans?.rangees ?? 0);
+      record(
+        'dans la bande tournée, le titre coûte une rangée et non deux',
+        coutDuTitre === 1
+          && (texteTourne?.avec?.encre ?? 0) > (texteTourne?.sans?.encre ?? 0),
+        `${texteTourne?.avec?.rangees} rangée(s) avec le titre, `
+          + `${texteTourne?.sans?.rangees} sans : coût ${coutDuTitre} — encre `
+          + `${texteTourne?.avec?.encre} contre ${texteTourne?.sans?.encre}`,
+      );
+
+      record(
+        'un texte qui ne tient pas est annoncé, au lieu d\'être coupé en silence',
+        (texteTourne?.court?.faits ?? []).some((fait) => /coup|cut/i.test(fait)),
+        `sur une étiquette courte : `
+          + `« ${(texteTourne?.court?.faits ?? []).join(' | ').slice(0, 190)} »`,
+      );
     }
   } finally {
     // Les sessions se referment avant le navigateur : une socket ouverte sur un

@@ -77,7 +77,7 @@ protocole : elle répond.
 Les quatre constats sont désormais traités : le contour des boutons était une
 fausse accusation, les deux cibles satisfont l'exception d'espacement, et les
 deux aperçus ont été repris. Le relevé passe à **72 constats sur 72**, et à
-**117 sur 117** après les lots suivants.
+**119 sur 119** après les lots suivants.
 
 ### Le constat 1 : la fenêtre la plus courante est la plus mal servie
 
@@ -286,7 +286,7 @@ l'heuristique du navigateur. Il les distingue maintenant, en interrogeant
 - `:focus-visible` **vrai** et anneau absent → **c'est notre règle**. Le contrôle
   échoue, et il nomme l'élément.
 
-Trois passages consécutifs donnent 117 constats satisfaits sur 117, le troisième
+Trois passages consécutifs donnent 119 constats satisfaits sur 119, le troisième
 relevant l'artefact et le nommant. Un contrôle qui échoue au hasard finit par être
 ignoré ; celui-ci dit ce qu'il a vu et pourquoi il ne conclut pas à un défaut.
 
@@ -355,6 +355,60 @@ C'est la leçon, et elle est l'inverse de celle du piège de peinture : là, qua
 constats concordants **fabriquaient** un défaut ; ici, un constat unique
 **cachait** une fonctionnalité qui marchait. Dans les deux cas, la cause est la
 même — la mesure portait sur autre chose que ce qu'elle croyait mesurer.
+
+---
+
+## Le titre était coupé à la largeur, dans une bande qui court sur la longueur
+
+Signalé : « en fonction de la taille du supply on est coupé, alors qu'on a de la
+place pour afficher du texte — surtout avec le texte tourné ».
+
+**Mesuré avant correction**, sur la disposition *texte tourné* d'un 12 × 75 mm :
+
+| | Avec le titre | Sans le titre |
+|---|---|---|
+| Rangées composées | **4** | 2 |
+| Encre du canevas | 20 268 px | 18 272 px |
+
+Le titre (63 caractères) coûtait donc **deux** rangées, et l'encre n'augmentait
+que de 1 996 px là où le titre entier en vaut près du double : **la moitié du
+titre était perdue**, et la bande avait de quoi l'écrire — chaque rangée de titre
+n'occupait que 72 px sur les 490 px que la bande offrait.
+
+La cause se lit dans le code : les lignes du titre étaient découpées, par
+`composeLabel`, à la **largeur** de l'étiquette — la contrainte de la disposition
+empilée, où les rangées s'empilent effectivement sur cette largeur. Dans la bande
+tournée, chaque rangée court sur la **longueur**. La bande redécoupait bien le
+corps du texte pour cette raison, et son commentaire le disait ; le titre, lui,
+gardait la découpe de l'autre disposition.
+
+**Correction** : quand l'appelant fournit le titre **en clair**, la bande le
+redécoupe elle-même à sa longueur, comme elle le fait du corps. Sans titre en
+clair, les lignes fournies sont conservées — les appelants qui ne passent que des
+lignes ne changent pas de comportement.
+
+| | Avant | Après |
+|---|---|---|
+| Rangées pour le titre (12 × 75 mm) | 2 | **1** |
+| Rangées au total | 4 | **3** |
+| Encre | 20 268 px | **24 261 px** |
+| Même mesure sur 12 × 109 mm | 3 rangées, 20 417 px | **2 rangées, 24 373 px** |
+
+Sur l'étiquette la plus longue, **une rangée de moins et 3 956 px d'encre de
+plus** : c'est le titre qui revient.
+
+**Et quand le texte ne peut réellement pas tenir**, le produit le dit désormais.
+Le calcul le savait — la boucle de composition cherche une taille où tout entre —
+et le taisait : une adresse tronquée sortait sans un mot. L'aperçu affiche
+« Texte coupé : il ne tient pas entier sur cette étiquette. Raccourcissez
+l'adresse, décochez du contenu, ou prenez une étiquette plus longue. », du même
+genre que le refus de largeur du QR Code.
+
+**Ce que le contrôle ne dit pas.** Il mesure le coût du titre en rangées et
+l'encre déposée, sur un 12 × 75 mm ; il ne juge pas la lisibilité du résultat ni
+la bonne coupe des mots. Une étiquette de 12 × 22 mm avec un titre long et une
+adresse longue ne peut pas tout porter à une taille lisible : le produit le dit,
+il ne le résout pas.
 
 ---
 

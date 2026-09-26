@@ -452,6 +452,93 @@ test('les deux sens occupent la meme bande', () => {
 });
 
 // ---------------------------------------------------------------------------
+// Le titre dans la bande tournée
+//
+// Signalé : « en fonction de la taille du supply on est coupé, alors qu'on a de
+// la place pour afficher du texte — surtout avec le texte tourné ». Mesuré sur un
+// 12 × 75 mm : deux rangées de 72 px occupées dans une bande de 490 px, et la
+// moitié du titre perdue. Les lignes du titre venaient de la disposition empilée,
+// où elles sont découpées à la **largeur** de l'étiquette ; dans la bande
+// tournée, chaque rangée court sur sa **longueur**.
+// ---------------------------------------------------------------------------
+
+test('la bande tournée redécoupe le titre à sa longueur, pas à la largeur', () => {
+  const measureFactory = (size) => (texte) => texte.length * size * 0.55;
+  const base = {
+    text: 'https://exemple.fr/article', qrText: 'https://exemple.fr/article',
+    widthPx: 96, dpi: 203, maxHeightPx: 597, measureFactory,
+  };
+  const g0 = computeLabelGeometry(base);
+  const titre = 'DOUBLE GLASS Office partition By DVO — cloison vitree sur mesure';
+  const largeurEtiquette = g0.width - g0.padding * 2;
+
+  // Ce que la disposition empilée aurait fourni : deux rangées étroites.
+  const lignesEmpilees = wrapText(measureFactory(g0.fontSize), titre, largeurEtiquette, { maxLines: 2 });
+  const bande = layoutLabelRotated(g0, {
+    measure: measureFactory(13),
+    measureFactory,
+    text: base.text,
+    titleLines: lignesEmpilees,
+    title: titre,
+  });
+
+  assert.equal(lignesEmpilees.length, 2, 'le titre doit d\'abord être coupé par la largeur');
+  // L'invariant est la **longueur admise par rangée** : chaque rangée du titre
+  // tient dans la bande, et au moins une dépasse la largeur de l'étiquette —
+  // c'est exactement ce que la découpe à la largeur rendait impossible.
+  const mesure = measureFactory(bande.fontSize);
+  assert.ok(
+    bande.titleLines.every((ligne) => mesure(ligne) <= bande.textWidth + 1),
+    `rangées plus longues que la bande : ${bande.titleLines.map((l) => mesure(l)).join(', ')}`,
+  );
+  assert.ok(
+    bande.titleLines.some((ligne) => mesure(ligne) > largeurEtiquette),
+    'au moins une rangée doit dépasser la largeur de l\'étiquette',
+  );
+  assert.notDeepEqual(bande.titleLines, lignesEmpilees);
+});
+
+test('sans le titre en clair, les lignes fournies sont conservées', () => {
+  // Les appelants qui ne passent que des lignes ne changent pas de
+  // comportement : c'est ce qui protège la disposition latérale et les autres.
+  const measureFactory = (size) => (texte) => texte.length * size * 0.55;
+  const base = {
+    text: 'https://exemple.fr/article', qrText: 'https://exemple.fr/article',
+    widthPx: 96, dpi: 203, maxHeightPx: 597, measureFactory,
+  };
+  const g0 = computeLabelGeometry(base);
+  const lignes = ['Un titre', 'sur deux lignes'];
+  const bande = layoutLabelRotated(g0, {
+    measure: measureFactory(13), measureFactory, text: base.text, titleLines: lignes,
+  });
+  assert.deepEqual(bande.titleLines, lignes);
+});
+
+test('un texte trop long pour la bande est signalé, pas coupé en silence', () => {
+  const measureFactory = (size) => (texte) => texte.length * size * 0.55;
+  const long = 'https://exemple.fr/un/chemin/vraiment/tres/long/pour/une/petite/etiquette/qui/ne/peut/pas/tout/garder';
+  const base = {
+    text: long, qrText: long,
+    widthPx: 96, dpi: 203, maxHeightPx: 176, measureFactory,
+  };
+  const g0 = computeLabelGeometry(base);
+  const bande = layoutLabelRotated(g0, {
+    measure: measureFactory(13), measureFactory, text: long,
+  });
+
+  // Le texte ne tient pas : la géométrie le dit, et l'écran le répète.
+  assert.equal(bande.textCut, true);
+  const joint = bande.lines.join('').replace(/\s/g, '');
+  assert.notEqual(joint, long.replace(/\s/g, ''), 'une partie du texte est bien perdue');
+
+  // À l'inverse, ce qui tient ne crie pas.
+  const court = 'https://a.fr';
+  const g1 = computeLabelGeometry({ ...base, text: court, qrText: court });
+  const tenu = layoutLabelRotated(g1, { measure: measureFactory(13), measureFactory, text: court });
+  assert.equal(tenu.textCut, false);
+});
+
+// ---------------------------------------------------------------------------
 // Ce qui est réellement dessiné dans la disposition tournée
 // ---------------------------------------------------------------------------
 

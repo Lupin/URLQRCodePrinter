@@ -357,6 +357,7 @@ export const EN_MESSAGES = {
   "{profile} — « {title} » : {reason}": "{profile} — \u201c{title}\u201d: {reason}",
   "Taille des étiquettes déduite de ces six valeurs : {size}, {columns} × {rows} par feuille.": "Label size derived from these six values: {size}, {columns} × {rows} per sheet.",
   "Texte de {size} mm de haut, {lines} de texte.": "Text {size} mm high, {lines} of text.",
+  "Texte coupé : il ne tient pas entier sur cette étiquette. Raccourcissez l'adresse, décochez du contenu, ou prenez une étiquette plus longue.": "Text cut off: it does not fit whole on this label. Shorten the address, untick some content, or take a longer label.",
   "Titre de la page": "Page title",
   "Tous les liens visés sont déjà raccourcis.": "All targeted links are already shortened.",
   "bas": "bottom",
