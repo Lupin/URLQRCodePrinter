@@ -481,3 +481,78 @@ test("l'en-tête n'est dessiné que s'il tient dans la marge", () => {
   assert.match(app, /veutEnTete && placeEnTete\.fits/);
   assert.match(app, /el\.sheetHeaderHint\.textContent = veutEnTete && !placeEnTete\.fits/);
 });
+
+// ---------------------------------------------------------------------------
+// Hiérarchie du panneau de la planche
+//
+// Les réglages se suivaient à plat — largeur du QR Code, cases de contenu,
+// grille, marges, bordure, en-tête — sans que rien ne distingue ce qui décrit la
+// **feuille** de ce qui décrit **l'étiquette**. Ces tests tiennent la
+// séparation : déplacer un champ d'un groupe à l'autre les fait échouer.
+// ---------------------------------------------------------------------------
+
+/** Le contenu d'un groupe de la planche, d'après sa légende. */
+function groupePlanche(légende) {
+  const marqueur = `<legend data-i18n="${légende}">`;
+  const debut = html.indexOf(marqueur);
+  assert.ok(debut !== -1, `groupe « ${légende} » introuvable`);
+  // Le groupe se termine au fieldset suivant : un autre groupe, ou la fin du
+  // panneau. On découpe donc sur la balise ouvrante, jamais sur un texte.
+  const suite = html.indexOf('<fieldset class="sheet-group">', debut + marqueur.length);
+  const finPanneau = html.indexOf('<!-- Tableau -->', debut);
+  return html.slice(debut, suite === -1 ? finPanneau : Math.min(suite, finPanneau));
+}
+
+test('le panneau de la planche range la page dans un groupe, et l\'étiquette dans un autre', () => {
+  const page = groupePlanche('La page');
+  const etiquette = groupePlanche("L'étiquette");
+
+  // Ce qui décide de la **feuille**.
+  for (const id of [
+    'preset', 'sheet-columns', 'sheet-rows',
+    'sheet-margin-x', 'sheet-margin-y', 'sheet-gap-x', 'sheet-gap-y',
+    'sheet-offset-x', 'sheet-offset-y', 'sheet-header', 'sheet-header-date',
+  ]) {
+    assert.ok(page.includes(`id="${id}"`), `${id} n'est pas dans le groupe de la page`);
+  }
+
+  // Ce qui décide de **l'étiquette**.
+  for (const id of [
+    'sheet-qr', 'sheet-font',
+    'sheet-title', 'sheet-url', 'sheet-date', 'sheet-date-time', 'sheet-date-index',
+    'sheet-border',
+  ]) {
+    assert.ok(etiquette.includes(`id="${id}"`), `${id} n'est pas dans le groupe de l'étiquette`);
+  }
+});
+
+test('la page vient avant l\'étiquette, dans l\'ordre du calcul', () => {
+  // La taille des étiquettes découle de la grille et des marges : présenter
+  // d'abord ce qui se règle en second obligerait à revenir en arrière.
+  assert.ok(
+    html.indexOf('data-i18n="La page"') < html.indexOf('data-i18n="L\'étiquette"'),
+    'le groupe de l\'étiquette précède celui de la page',
+  );
+});
+
+test('chaque message d\'aide reste dans le groupe qui le concerne', () => {
+  // C'est la leçon des lots précédents : un refus expliqué à l'autre bout du
+  // panneau ne sert à rien.
+  const page = groupePlanche('La page');
+  const etiquette = groupePlanche("L'étiquette");
+  for (const id of ['sheet-grid-hint', 'sheet-fit-hint', 'sheet-header-hint']) {
+    assert.ok(page.includes(`id="${id}"`), `${id} a quitté le groupe de la page`);
+  }
+  for (const id of ['sheet-qr-info', 'sheet-date-hint']) {
+    assert.ok(etiquette.includes(`id="${id}"`), `${id} a quitté le groupe de l'étiquette`);
+  }
+});
+
+test('les deux groupes se voient sans être lus', () => {
+  const css = readFileSync(join(WEB, 'style.css'), 'utf8');
+  const regle = css.match(/\.sheet-group\s*\{([\s\S]*?)\}/);
+  assert.ok(regle, 'aucune règle pour les groupes de la planche');
+  assert.match(regle[1], /border:\s*1px solid var\(--border-line\)/);
+  assert.match(regle[1], /flex-direction:\s*column/);
+  assert.ok(css.match(/\.sheet-group\s*>\s*legend\s*\{/), 'aucune légende pour les groupes');
+});

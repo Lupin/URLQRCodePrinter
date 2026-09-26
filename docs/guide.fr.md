@@ -263,6 +263,16 @@ et le bouton lui-même l'annonce : « Imprimer les 31 liens » ou
 > devinable de l'application : « Tout décocher » n'imprime pas *rien*, il imprime
 > *tout*. Elle est écrite sous les boutons pour cette raison.
 
+Les réglages sont rangés en **deux groupes**, et l'ordre suit le calcul : la
+taille des étiquettes découle de la grille et des marges, donc **La page** vient
+d'abord, et **L'étiquette** ensuite.
+
+**Groupe « La page »** — ce qui décide de la feuille : la disposition, la
+grille, les marges, les écarts, les décalages, et l'en-tête de page.
+
+**Groupe « L'étiquette »** — ce qui décide d'une étiquette : la largeur du QR
+Code, la taille du texte, ce qui s'imprime sous lui, et la bordure de découpe.
+
 | Champ | Ce qu'il fait |
 |---|---|
 | **Colonnes** / **Rangées** | la grille voulue sur la feuille |

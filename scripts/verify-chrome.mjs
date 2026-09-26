@@ -1328,6 +1328,53 @@ async function main() {
           + `(${apercuEtiquette.imageRendering}, aperçu large de ${apercuEtiquette.surfaceOfferte} px)`,
     );
 
+    // --- La hiérarchie du panneau de la planche ---------------------------
+    //
+    // Deux groupes : la page, puis l'étiquette. Le contrôle porte sur ce qui se
+    // voit — deux cadres distincts, avec leur légende — et sur ce qui ne doit
+    // pas arriver : un champ resté hors des deux groupes.
+    const groupes = await evalApp(`(() => {
+      const panneau = document.querySelector('[data-mode-panel="sheet"]');
+      if (!panneau) return { absent: true };
+      const groupes = [...panneau.querySelectorAll('fieldset.sheet-group')];
+      const lus = groupes.map((groupe) => {
+        const style = getComputedStyle(groupe);
+        const boite = groupe.getBoundingClientRect();
+        return {
+          legende: groupe.querySelector('legend')?.textContent.trim() ?? '',
+          bordure: style.borderTopWidth,
+          largeur: Math.round(boite.width),
+          champs: groupe.querySelectorAll('input, select').length,
+          messages: groupe.querySelectorAll('.hint').length,
+        };
+      });
+      // Ce qui reste hors des deux groupes : les messages généraux de la
+      // planche, et rien d'autre. Un champ égaré se verrait ici.
+      const dansGroupes = new Set(
+        groupes.flatMap((groupe) => [...groupe.querySelectorAll('input, select')]),
+      );
+      const orphelins = [...panneau.querySelectorAll('input, select')]
+        .filter((champ) => !dansGroupes.has(champ))
+        .map((champ) => champ.id || champ.tagName);
+      return { groupes: lus, orphelins };
+    })()`);
+
+    record(
+      'la planche présente deux groupes, la page puis l\'étiquette',
+      groupes?.groupes?.length === 2
+        && groupes.groupes[0].legende.length > 0
+        && groupes.groupes[1].legende.length > 0,
+      (groupes?.groupes ?? []).map((g) => `« ${g.legende} » (${g.champs} champs, `
+        + `${g.messages} messages, bordure ${g.bordure})`).join(' · '),
+    );
+    record(
+      'aucun réglage de la planche ne reste hors des deux groupes',
+      (groupes?.orphelins ?? ['inconnu']).length === 0,
+      (groupes?.orphelins ?? []).length
+        ? `hors groupe : ${groupes.orphelins.join(', ')}`
+        : 'tous les champs sont rangés',
+    );
+
     // --- Les deux sélecteurs qui se ressemblent --------------------------
     //
     // « Lien à imprimer » et « Quels liens » répondent à la même question, à

@@ -265,6 +265,39 @@ body {
   flex: 1 1 0;
 }
 
+/* --- Groupes du panneau de la planche --- */
+
+/* Deux groupes : la page, puis l'étiquette.
+ *
+ * Les réglages se suivaient à plat — largeur du QR Code, cases de contenu,
+ * grille, marges, bordure, en-tête — sans que rien ne distingue ce qui décrit
+ * la **feuille** de ce qui décrit **l'étiquette**. Ils portent la même bordure
+ * et la même légende que les groupes de cases, pour que la séparation se voie
+ * sans avoir à lire. */
+.sheet-group {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 0;
+  padding: 12px;
+  border: 1px solid var(--border-line);
+  border-radius: var(--radius);
+  background: var(--bg);
+}
+
+.sheet-group > legend {
+  padding: 0 4px;
+  color: var(--text-2);
+  font-size: 12px;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+/* Les groupes de cases imbriqués n'ont pas besoin de leur propre fond : ils
+   héritent de celui du groupe, et deux bordures imbriquées feraient du bruit. */
+.sheet-group .columns { background: none; }
+
 /* --- Formulaires --- */
 
 .add-form { display: flex; gap: 6px; }

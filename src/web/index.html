@@ -162,150 +162,171 @@
         <button class="tab" role="tab" data-mode="images" aria-selected="false" data-i18n="Étiquette (divers)">Étiquette (divers)</button>
       </div>
 
-      <!-- Planche -->
+      <!-- Planche : deux groupes, la page puis l'étiquette.
+           Les réglages se suivaient à plat, sans hiérarchie : la largeur du QR
+           Code, puis les cases de contenu, puis la grille, puis les marges,
+           puis la bordure, puis l'en-tête. Rien ne distinguait ce qui décrit la
+           **feuille** de ce qui décrit **l'étiquette**. Les deux groupes le
+           disent, et l'ordre suit le calcul : la taille des étiquettes découle
+           de la grille et des marges, donc la page vient d'abord. -->
       <div class="mode" data-mode-panel="sheet">
-        <div class="fields">
-          <label class="field">
-            <span class="field__label" data-i18n="Disposition">Disposition</span>
-            <select id="preset" class="input"></select>
-          </label>
-          <label class="field">
-            <span class="field__label" data-i18n="Largeur du QR Code">Largeur du QR Code</span>
-            <!-- Les bornes sont recalculées à chaque rendu : un QR Code plus petit
-                 ne serait plus lisible une fois imprimé, un QR Code plus grand
-                 chasserait le texte hors de l'étiquette. -->
-            <input id="sheet-qr" class="input" type="range" min="30" max="100" value="70">
-          </label>
-          <!-- La taille du texte était figée à 7 pt : sur une A4, la place
-               disponible restait inutilisée. -->
-          <label class="field">
-            <span class="field__label" data-i18n="Taille du texte (pt)">Taille du texte (pt)</span>
-            <input id="sheet-font" class="input" type="number" min="4" max="20"
-                   step="0.5" value="7">
-          </label>
-        </div>
-        <p id="sheet-qr-info" class="hint hint--tight"></p>
-        <!-- Une ligne de plus sous le QR Code : chaque ligne prend la place du code,
-             d'où une option et non un réglage par défaut. -->
-        <fieldset class="columns">
-          <legend class="columns__legend" data-i18n="Sous chaque QR Code">Sous chaque QR Code</legend>
-          <!-- Le titre s'imprimait **toujours** quand il existait : aucun moyen
-               d'obtenir l'URL seule, ni de n'avoir aucune ligne de texte. Il est
-               donc le premier de la liste, coché par défaut — l'ancien
-               comportement à l'identique. -->
-          <label class="columns__item field__label">
-            <input id="sheet-title" type="checkbox" checked>
-            <span data-i18n="Titre">Titre</span>
-          </label>
-          <!-- L'URL manquait : la planche n'imprimait que le titre, et
-               retombait sur l'URL uniquement quand il n'y en avait pas. Sur
-               une étiquette, l'URL est pourtant ce qu'on scanne en dernier
-               recours quand le QR Code est abîmé. -->
-          <label class="columns__item field__label">
-            <input id="sheet-url" type="checkbox">
-            <span data-i18n="URL">URL</span>
-          </label>
-          <label class="columns__item field__label">
-            <input id="sheet-date" type="checkbox">
-            <span data-i18n="Date de collecte">Date de collecte</span>
-          </label>
-          <label class="columns__item field__label">
-            <input id="sheet-date-time" type="checkbox">
-            <span data-i18n="Avec l'heure">Avec l'heure</span>
-          </label>
-          <label class="columns__item field__label">
-            <input id="sheet-date-index" type="checkbox">
-            <span data-i18n="N° du lien">N° du lien</span>
-          </label>
-        </fieldset>
-        <p id="sheet-date-hint" class="hint hint--tight"></p>
-        <!-- Une seule présentation : la grille, les marges et les écarts. La
-             taille des étiquettes en découle, et le choix de planche ci-dessus
-             ne fait que préremplir ces valeurs. -->
-        <div class="fields">
-          <!-- La borne haute est **posée par le script**, à la plus grande
-               grille qui tienne sur la feuille choisie. Elle était figée à 12 et
-               30 : une A4 accepte 26 colonnes à la taille minimale d'étiquette,
-               et le calcul ne voyait donc jamais ce qui dépassait — la valeur
-               était écrêtée en silence, le champ gardait le nombre tapé, et
-               l'aperçu en montrait un troisième. -->
-          <label class="field">
-            <span class="field__label" data-i18n="Colonnes">Colonnes</span>
-            <input id="sheet-columns" class="input" type="number" min="1" step="1" value="3">
-          </label>
-          <label class="field">
-            <span class="field__label" data-i18n="Rangées">Rangées</span>
-            <input id="sheet-rows" class="input" type="number" min="1" step="1" value="8">
-          </label>
-        </div>
-        <!-- Le message est **ici**, sous les deux champs qu'il concerne.
-             Il vivait plus bas, mêlé aux avertissements du rendu : un nombre
-             refusé se signalait donc à l'autre bout du panneau, et l'aperçu
-             montrait entre-temps la disposition précédente. -->
-        <p id="sheet-grid-hint" class="hint hint--tight"></p>
+        <fieldset class="sheet-group">
+          <legend data-i18n="La page">La page</legend>
 
-        <!-- La bordure est une aide à la **découpe**, pas un contenu : elle vit
-             donc à part de ce qui s'imprime sous le QR Code. Elle suit le motif
-             du tableau imprimé, un trait de 0,2 mm. -->
-        <fieldset class="columns">
-          <legend class="columns__legend" data-i18n="Découpe">Découpe</legend>
-          <label class="columns__item field__label">
-            <input id="sheet-border" type="checkbox">
-            <span data-i18n="Tracer une bordure autour de chaque étiquette">Tracer une bordure autour de chaque étiquette</span>
-          </label>
+          <div class="fields">
+            <label class="field">
+              <span class="field__label" data-i18n="Disposition">Disposition</span>
+              <select id="preset" class="input"></select>
+            </label>
+          </div>
+
+          <!-- Une seule présentation : la grille, les marges et les écarts. La
+               taille des étiquettes en découle, et le choix de planche ci-dessus
+               ne fait que préremplir ces valeurs. -->
+          <div class="fields">
+            <!-- La borne haute est **posée par le script**, à la plus grande
+                 grille qui tienne sur la feuille choisie. Elle était figée à 12 et
+                 30 : une A4 accepte 26 colonnes à la taille minimale d'étiquette,
+                 et le calcul ne voyait donc jamais ce qui dépassait — la valeur
+                 était écrêtée en silence, le champ gardait le nombre tapé, et
+                 l'aperçu en montrait un troisième. -->
+            <label class="field">
+              <span class="field__label" data-i18n="Colonnes">Colonnes</span>
+              <input id="sheet-columns" class="input" type="number" min="1" step="1" value="3">
+            </label>
+            <label class="field">
+              <span class="field__label" data-i18n="Rangées">Rangées</span>
+              <input id="sheet-rows" class="input" type="number" min="1" step="1" value="8">
+            </label>
+          </div>
+          <!-- Le message est **ici**, sous les deux champs qu'il concerne.
+               Il vivait plus bas, mêlé aux avertissements du rendu : un nombre
+               refusé se signalait donc à l'autre bout du panneau, et l'aperçu
+               montrait entre-temps la disposition précédente. -->
+          <p id="sheet-grid-hint" class="hint hint--tight"></p>
+
+          <div class="fields">
+            <label class="field">
+              <span class="field__label" data-i18n="Marge gauche et droite (mm)">Marge gauche et droite (mm)</span>
+              <input id="sheet-margin-x" class="input" type="number" min="0" max="40" step="0.25" value="7.25">
+            </label>
+            <label class="field">
+              <span class="field__label" data-i18n="Marge haut et bas (mm)">Marge haut et bas (mm)</span>
+              <input id="sheet-margin-y" class="input" type="number" min="0" max="40" step="0.25" value="12.9">
+            </label>
+          </div>
+          <div class="fields">
+            <!-- « Rangées » et « colonnes » se lisaient comme des lignes de
+                 texte : sur une planche, ce sont les étiquettes qu'ils
+                 espacent. Le nom le dit maintenant, et l'axe est explicite. -->
+            <label class="field">
+              <span class="field__label" data-i18n="Écart entre étiquettes — horizontal (mm)">Écart entre étiquettes — horizontal (mm)</span>
+              <input id="sheet-gap-x" class="input" type="number" min="0" max="10" step="0.25" value="2.5">
+            </label>
+            <label class="field">
+              <span class="field__label" data-i18n="Écart entre étiquettes — vertical (mm)">Écart entre étiquettes — vertical (mm)</span>
+              <input id="sheet-gap-y" class="input" type="number" min="0" max="10" step="0.25" value="0">
+            </label>
+          </div>
+          <div class="fields">
+            <label class="field">
+              <span class="field__label" data-i18n="Décalage horizontal (mm)">Décalage horizontal (mm)</span>
+              <input id="sheet-offset-x" class="input" type="number" min="-10" max="10" step="0.5" value="0">
+            </label>
+            <label class="field">
+              <span class="field__label" data-i18n="Décalage vertical (mm)">Décalage vertical (mm)</span>
+              <input id="sheet-offset-y" class="input" type="number" min="-10" max="10" step="0.5" value="0">
+            </label>
+          </div>
+          <p class="hint hint--tight" data-i18n="Imprimez d'abord sur papier ordinaire, superposez la feuille obtenue à votre planche : si le texte est trop haut ou trop à gauche, corrigez ici.">Imprimez d'abord sur papier ordinaire, superposez la feuille obtenue à votre planche : si le texte est trop haut ou trop à gauche, corrigez ici.</p>
+          <p id="sheet-fit-hint" class="hint hint--tight"></p>
+
+          <!-- L'en-tête de page, comme en mode tableau : le nom de la
+               collection, et la date d'impression si on la demande. Il vit
+               **dans la marge du haut**, sans déplacer les étiquettes — d'où le
+               refus expliqué quand la marge est trop courte. -->
+          <fieldset class="columns">
+            <legend class="columns__legend" data-i18n="En-tête de page">En-tête de page</legend>
+            <label class="columns__item field__label">
+              <input id="sheet-header" type="checkbox">
+              <span data-i18n="Nom de la collection en haut de chaque page">Nom de la collection en haut de chaque page</span>
+            </label>
+            <label class="columns__item field__label">
+              <input id="sheet-header-date" type="checkbox">
+              <span data-i18n="Avec la date d'impression">Avec la date d'impression</span>
+            </label>
+          </fieldset>
+          <p id="sheet-header-hint" class="hint hint--tight"></p>
         </fieldset>
 
-        <!-- L'en-tête de page, comme en mode tableau : le nom de la collection,
-             et la date d'impression si on la demande. Il vit **dans la marge du
-             haut**, sans déplacer les étiquettes — d'où le refus expliqué quand
-             la marge est trop courte. -->
-        <fieldset class="columns">
-          <legend class="columns__legend" data-i18n="En-tête de page">En-tête de page</legend>
-          <label class="columns__item field__label">
-            <input id="sheet-header" type="checkbox">
-            <span data-i18n="Nom de la collection en haut de chaque page">Nom de la collection en haut de chaque page</span>
-          </label>
-          <label class="columns__item field__label">
-            <input id="sheet-header-date" type="checkbox">
-            <span data-i18n="Avec la date d'impression">Avec la date d'impression</span>
-          </label>
+        <fieldset class="sheet-group">
+          <legend data-i18n="L'étiquette">L'étiquette</legend>
+
+          <div class="fields">
+            <label class="field">
+              <span class="field__label" data-i18n="Largeur du QR Code">Largeur du QR Code</span>
+              <!-- Les bornes sont recalculées à chaque rendu : un QR Code plus petit
+                   ne serait plus lisible une fois imprimé, un QR Code plus grand
+                   chasserait le texte hors de l'étiquette. -->
+              <input id="sheet-qr" class="input" type="range" min="30" max="100" value="70">
+            </label>
+            <!-- La taille du texte était figée à 7 pt : sur une A4, la place
+                 disponible restait inutilisée. -->
+            <label class="field">
+              <span class="field__label" data-i18n="Taille du texte (pt)">Taille du texte (pt)</span>
+              <input id="sheet-font" class="input" type="number" min="4" max="20"
+                     step="0.5" value="7">
+            </label>
+          </div>
+          <p id="sheet-qr-info" class="hint hint--tight"></p>
+
+          <!-- Une ligne de plus sous le QR Code : chaque ligne prend la place du code,
+               d'où une option et non un réglage par défaut. -->
+          <fieldset class="columns">
+            <legend class="columns__legend" data-i18n="Sous chaque QR Code">Sous chaque QR Code</legend>
+            <!-- Le titre s'imprimait **toujours** quand il existait : aucun moyen
+                 d'obtenir l'URL seule, ni de n'avoir aucune ligne de texte. Il est
+                 donc le premier de la liste, coché par défaut — l'ancien
+                 comportement à l'identique. -->
+            <label class="columns__item field__label">
+              <input id="sheet-title" type="checkbox" checked>
+              <span data-i18n="Titre">Titre</span>
+            </label>
+            <!-- L'URL manquait : la planche n'imprimait que le titre, et
+                 retombait sur l'URL uniquement quand il n'y en avait pas. Sur
+                 une étiquette, l'URL est pourtant ce qu'on scanne en dernier
+                 recours quand le QR Code est abîmé. -->
+            <label class="columns__item field__label">
+              <input id="sheet-url" type="checkbox">
+              <span data-i18n="URL">URL</span>
+            </label>
+            <label class="columns__item field__label">
+              <input id="sheet-date" type="checkbox">
+              <span data-i18n="Date de collecte">Date de collecte</span>
+            </label>
+            <label class="columns__item field__label">
+              <input id="sheet-date-time" type="checkbox">
+              <span data-i18n="Avec l'heure">Avec l'heure</span>
+            </label>
+            <label class="columns__item field__label">
+              <input id="sheet-date-index" type="checkbox">
+              <span data-i18n="N° du lien">N° du lien</span>
+            </label>
+          </fieldset>
+          <p id="sheet-date-hint" class="hint hint--tight"></p>
+
+          <!-- La bordure est une aide à la **découpe**, pas un contenu : elle vit
+               donc à part de ce qui s'imprime sous le QR Code. Elle suit le motif
+               du tableau imprimé, un trait de 0,2 mm. -->
+          <fieldset class="columns">
+            <legend class="columns__legend" data-i18n="Découpe">Découpe</legend>
+            <label class="columns__item field__label">
+              <input id="sheet-border" type="checkbox">
+              <span data-i18n="Tracer une bordure autour de chaque étiquette">Tracer une bordure autour de chaque étiquette</span>
+            </label>
+          </fieldset>
         </fieldset>
-        <p id="sheet-header-hint" class="hint hint--tight"></p>
-        <div class="fields">
-          <label class="field">
-            <span class="field__label" data-i18n="Marge gauche et droite (mm)">Marge gauche et droite (mm)</span>
-            <input id="sheet-margin-x" class="input" type="number" min="0" max="40" step="0.25" value="7.25">
-          </label>
-          <label class="field">
-            <span class="field__label" data-i18n="Marge haut et bas (mm)">Marge haut et bas (mm)</span>
-            <input id="sheet-margin-y" class="input" type="number" min="0" max="40" step="0.25" value="12.9">
-          </label>
-        </div>
-        <div class="fields">
-          <!-- « Rangées » et « colonnes » se lisaient comme des lignes de
-               texte : sur une planche, ce sont les étiquettes qu'ils
-               espacent. Le nom le dit maintenant, et l'axe est explicite. -->
-          <label class="field">
-            <span class="field__label" data-i18n="Écart entre étiquettes — horizontal (mm)">Écart entre étiquettes — horizontal (mm)</span>
-            <input id="sheet-gap-x" class="input" type="number" min="0" max="10" step="0.25" value="2.5">
-          </label>
-          <label class="field">
-            <span class="field__label" data-i18n="Écart entre étiquettes — vertical (mm)">Écart entre étiquettes — vertical (mm)</span>
-            <input id="sheet-gap-y" class="input" type="number" min="0" max="10" step="0.25" value="0">
-          </label>
-        </div>
-        <p id="sheet-fit-hint" class="hint hint--tight"></p>
-        <div class="fields">
-          <label class="field">
-            <span class="field__label" data-i18n="Décalage horizontal (mm)">Décalage horizontal (mm)</span>
-            <input id="sheet-offset-x" class="input" type="number" min="-10" max="10" step="0.5" value="0">
-          </label>
-          <label class="field">
-            <span class="field__label" data-i18n="Décalage vertical (mm)">Décalage vertical (mm)</span>
-            <input id="sheet-offset-y" class="input" type="number" min="-10" max="10" step="0.5" value="0">
-          </label>
-        </div>
-        <p class="hint hint--tight" data-i18n="Imprimez d'abord sur papier ordinaire, superposez la feuille obtenue à votre planche : si le texte est trop haut ou trop à gauche, corrigez ici.">Imprimez d'abord sur papier ordinaire, superposez la feuille obtenue à votre planche : si le texte est trop haut ou trop à gauche, corrigez ici.</p>
+
         <p id="sheet-info" class="hint"></p>
       </div>
 

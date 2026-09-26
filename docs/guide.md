@@ -264,6 +264,16 @@ it: "Print the 31 links" (« Imprimer les 31 liens ») or "Print the selection (
 > print *nothing*, it prints *everything*. It is written under the buttons for
 > that reason.
 
+The settings are arranged in **two groups**, and the order follows the
+computation: the label size comes from the grid and the margins, so **The page**
+(« La page ») comes first and **The label** (« L'étiquette ») after it.
+
+**The "The page" (« La page ») group** — what decides the sheet: the layout, the
+grid, the margins, the gaps, the offsets, and the page header.
+
+**The "The label" (« L'étiquette ») group** — what decides a label: the QR Code
+width, the text size, what is printed below it, and the cutting border.
+
 | Field | What it does |
 |---|---|
 | **Columns** (« Colonnes ») / **Rows** (« Rangées ») | the desired grid on the sheet |
