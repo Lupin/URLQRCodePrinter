@@ -28,7 +28,7 @@ retrouve et se partage facilement.
 | Cœur métier (liens, QR, étiquettes, stockage, exports) | fait, testé |
 | Protocole Niimbot (trames, profils D110 / M2 / M3) | fait, testé |
 | Transport Web Bluetooth + session d'impression D110 / M2 / M3 | fait, testé, **impression réelle sur une D110** |
-| Extension Brave / Chrome (clic droit, popup, liens cliquables) | fait, vérifié dans Brave |
+| Extension Brave / Chrome (clic droit, popup, liens cliquables) | fait, vérifié dans Brave et dans Chrome |
 | Application web autonome (liste, exports, mises en page) | fait, vérifié dans Brave |
 | Raccourcissement d'URL en option (TinyURL, is.gd, v.gd, spoo.me) | fait, vérifié dans Brave |
 | Planches Avery A4 et Letter, calibrage d'impression | fait, géométrie confrontée aux cotes publiées |
@@ -39,7 +39,7 @@ retrouve et se partage facilement.
 | Socle natif Swift (protocole, session, CoreBluetooth) | fait, testé |
 | Application iOS qui utilise ce socle | à faire |
 
-**792 tests, tous verts** — 688 en JavaScript et 104 en Swift — dont :
+**808 tests, tous verts** — 704 en JavaScript et 104 en Swift — dont :
 
 - la validation **octet à octet** des trames Niimbot contre les relevés
   documentés, **dans les deux langages** : deux implémentations indépendantes
@@ -688,6 +688,7 @@ npm run test:swift # socle natif NiimbotKit
 npm run test:all   # les deux
 
 npm run verify:brave  # parcours complet dans Brave, sur un profil isolé
+npm run verify:chrome # éprouve la fenêtre dans le Chrome réel, mesures à l'appui
 npm run verify:safari # parcours de la page d'extension dans le Safari réel
 ```
 
@@ -695,6 +696,13 @@ npm run verify:safari # parcours de la page d'extension dans le Safari réel
 TinyURL). Il travaille dans `.verify-brave/`, redirige les téléchargements pour
 ne jamais toucher à vos Téléchargements, tourne hors écran et supprime tout en
 sortant.
+
+`verify:chrome` exige Google Chrome. Il relève les contrastes **sur le document
+rendu** plutôt que sur les jetons, parcourt la fenêtre au clavier par de vrais
+appuis de touche, et sonde le menu contextuel réellement installé. Il charge
+l'extension par `Extensions.loadUnpacked` : Chrome 153 ignore `--load-extension`,
+et démarre alors sans un mot avec un profil vide. Le relevé écrit est décrit dans
+[`docs/verification-chrome.md`](docs/verification-chrome.md).
 
 `verify:safari` exige Safari et `safaridriver`. Il n'existe pas de profil isolé
 pour Safari : le script pilote le Safari réel, c'est pourquoi il ne modifie
@@ -808,7 +816,7 @@ pull request :
 
 ```bash
 npm install
-npm run test:all   # 688 tests JavaScript + 104 tests Swift
+npm run test:all   # 704 tests JavaScript + 104 tests Swift
 ```
 
 Les conventions du dépôt — cœur sans DOM ni réseau implicite, zéro dépendance,

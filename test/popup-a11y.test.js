@@ -377,3 +377,92 @@ test("l'accent n'est pas porté par plus de deux éléments visibles", () => {
   const porteurs = [...cssCode.matchAll(/background:\s*var\(--accent\)/g)].length;
   assert.ok(porteurs <= 2, `trop de porteurs de l'accent : ${porteurs}`);
 });
+
+// ---------------------------------------------------------------------------
+// Le titre, et le lien vers la page d'information
+// ---------------------------------------------------------------------------
+
+test('le titre est modifiable avant l\'enregistrement', () => {
+  // Sans champ, le titre partait tel quel dans la collection et il fallait
+  // rouvrir l'application pour le corriger. Le champ est le seul endroit où
+  // l'utilisateur peut nommer ce qu'il collecte au moment où il le collecte.
+  assert.match(html, /<input id="link-title"/, 'aucun champ de titre');
+  assert.match(script, /captureTitle: document\.getElementById\('link-title'\)/);
+  // Le titre enregistré vient du champ, pas de l'onglet.
+  assert.match(script, /const saisi = el\.captureTitle \? el\.captureTitle\.value : activeTab\.title/);
+  assert.match(script, /captureFromTab\(\{ url: activeTab\.url, title: saisi \}\)/);
+});
+
+test('le champ du titre n\'est actif que si la page est capturable', () => {
+  // Un champ ouvert sur une page non enregistrable inviterait à saisir un titre
+  // qui ne partirait nulle part.
+  const bloc = script.slice(script.indexOf('async function loadActiveTab'));
+  assert.match(bloc, /el\.captureTitle\.disabled = false/);
+  assert.match(bloc, /el\.captureTitle\.disabled = true/);
+});
+
+test('la borne du champ vient de la constante qui borne les titres', () => {
+  // Deux valeurs écrites séparément finiraient par diverger, et la saisie se
+  // ferait couper sans que rien ne l'annonce.
+  const lien = readFileSync(join(ROOT, 'src', 'core', 'link.js'), 'utf8');
+  const borne = Number(lien.match(/export const DEFAULT_TITLE_MAX = (\d+)/)[1]);
+  assert.match(script, /el\.captureTitle\.maxLength = DEFAULT_TITLE_MAX/);
+  assert.match(html, new RegExp(`id="link-title"[^>]*maxlength="${borne}"`));
+});
+
+test('le titre saisi reste annoncé par une étiquette, même invisible', () => {
+  // L'étiquette est visuellement masquée — le contexte de la fenêtre dit déjà de
+  // quoi il s'agit — mais elle existe : sans elle, le champ serait annoncé
+  // « champ de saisie » et rien de plus.
+  const debut = html.lastIndexOf('<label', html.indexOf('id="link-title"'));
+  const bloc = html.slice(debut, html.indexOf('id="link-title"'));
+  assert.match(bloc, /data-i18n="Titre du lien"/, 'aucune étiquette pour le champ');
+  assert.match(bloc, /class="sr-only"/, 'étiquette non masquée : elle doublerait ce qui est déjà écrit');
+});
+
+test('le lien vers la page d\'information suit la langue de l\'interface', () => {
+  // La page française vit à la racine du site, l'anglaise sous /en/. Une adresse
+  // écrite en dur enverrait la moitié des utilisateurs sur la mauvaise page.
+  assert.match(html, /<a id="site-link"/, 'aucun lien vers le site');
+  assert.match(script, /https:\/\/lupin\.github\.io\/URLQRCodePrinter\//);
+  assert.match(script, /https:\/\/lupin\.github\.io\/URLQRCodePrinter\/en\//);
+  assert.match(script, /link\.href = SITE_URLS\[getLocale\(\)\]/);
+  // Posée par le script : c'est la seule façon de tenir compte de la langue.
+  assert.doesNotMatch(html, /href="https:\/\/lupin\.github\.io/, 'adresse en dur dans le balisage');
+});
+
+test('le lien du pied ouvre un nouvel onglet, et le dit', () => {
+  assert.match(html, /id="site-link"[^>]*target="_blank"/);
+  assert.match(html, /id="site-link"[^>]*rel="noopener noreferrer"/);
+  assert.match(script, /\(ouvre un nouvel onglet\)/);
+});
+
+test('le lien du pied n\'ajoute pas un troisième porteur de l\'accent', () => {
+  // Le plafond de deux usages visibles est déjà atteint par le compteur et
+  // l'action principale. Un lien n'est pas une action : il ne prend pas
+  // l'accent, et le test précédent compte les porteurs.
+  const regle = cssCode.match(/\.site-link\s*\{([\s\S]*?)\}/)[1];
+  assert.doesNotMatch(regle, /var\(--accent\)/);
+  assert.match(regle, /color:\s*var\(--text-2\)/);
+});
+
+test('aucun identifiant n\'est porté par deux éléments du balisage', () => {
+  // Un identifiant en double ne casse rien visiblement, et casse tout
+  // silencieusement : `getElementById` rend le premier trouvé, et un
+  // `aria-labelledby` peut désigner le mauvais nœud. Le cas s'est produit en
+  // ajoutant le champ du titre, qui a d'abord repris l'identifiant du titre de
+  // section — `el.captureTitle` désignait alors un `<h2>`, et rien ne le disait.
+  const identifiants = [...html.matchAll(/\sid="([^"]+)"/g)].map((m) => m[1]);
+  const vus = new Set();
+  const doubles = identifiants.filter((id) => (vus.has(id) ? true : (vus.add(id), false)));
+  assert.deepEqual(doubles, [], `identifiants en double : ${doubles.join(', ')}`);
+});
+
+test('chaque identifiant lu par le script existe dans le balisage', () => {
+  // Le contrôle inverse : un `getElementById` sur un identifiant absent rend
+  // `null`, et le défaut n'apparaît qu'à l'usage, sur le chemin concerné.
+  const lus = [...script.matchAll(/getElementById\('([^']+)'\)/g)].map((m) => m[1]);
+  const presents = new Set([...html.matchAll(/\sid="([^"]+)"/g)].map((m) => m[1]));
+  const manquants = [...new Set(lus)].filter((id) => !presents.has(id));
+  assert.deepEqual(manquants, [], `identifiants absents du balisage : ${manquants.join(', ')}`);
+});

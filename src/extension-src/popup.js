@@ -21,7 +21,9 @@ import { createChromeStorageStore, createMemoryStore } from './core/store.js';
 import { captureFromTab } from './core/capture.js';
 import { toCsv, toMarkdown, exportFilename } from './core/exporters.js';
 import { downloadText } from './core/download.js';
-import { hostOf, hasShortUrl, safeHref } from './core/link.js';
+import {
+  hostOf, hasShortUrl, safeHref, DEFAULT_TITLE_MAX,
+} from './core/link.js';
 import { resolveApi, readTabContext } from './api.js';
 import { initI18n, applyTranslations, setLocale, getLocale, t, tpl } from './core/i18n.js';
 import { readConsent, isAccepted } from './core/privacy.js';
@@ -126,7 +128,9 @@ const el = {
   count: document.getElementById('count'),
   countUnit: document.getElementById('count-unit'),
   currentTab: document.getElementById('current-tab'),
+  captureTitle: document.getElementById('link-title'),
   addCurrent: document.getElementById('add-current'),
+  siteLink: document.getElementById('site-link'),
   list: document.getElementById('list'),
   empty: document.getElementById('empty'),
   startupError: document.getElementById('startup-error'),
@@ -192,10 +196,22 @@ async function loadActiveTab() {
     el.currentTab.textContent = capture.title || capture.url;
     el.currentTab.title = capture.url;
     el.addCurrent.disabled = false;
+    // Le titre proposé est celui de la page, tel quel. C'est un point de départ
+    // à corriger, pas une valeur à subir : il est pré-rempli et modifiable.
+    if (el.captureTitle) {
+      el.captureTitle.value = capture.title;
+      el.captureTitle.disabled = false;
+    }
   } else {
     el.currentTab.textContent = t('Cette page ne peut pas être enregistrée.');
     el.currentTab.title = '';
     el.addCurrent.disabled = true;
+    // Champ et bouton disent la même chose : rien à saisir s'il n'y a rien à
+    // enregistrer.
+    if (el.captureTitle) {
+      el.captureTitle.value = '';
+      el.captureTitle.disabled = true;
+    }
   }
 }
 
@@ -379,7 +395,10 @@ async function addCurrentTab() {
     return;
   }
 
-  const capture = captureFromTab(activeTab);
+  // Le titre vient du champ, l'adresse de l'onglet : c'est l'utilisateur qui a
+  // le dernier mot sur le titre, et lui seul sait comment il retrouvera ce lien.
+  const saisi = el.captureTitle ? el.captureTitle.value : activeTab.title;
+  const capture = captureFromTab({ url: activeTab.url, title: saisi });
   if (!capture) {
     toast(t('Rien à enregistrer sur cette page'));
     return;
@@ -491,6 +510,42 @@ function reportStartupFailure(error) {
  * rattrapé et affiché.
  */
 /**
+ * Adresse publique de la page d'information, par langue.
+ *
+ * La page française vit à la racine du site, l'anglaise sous `/en/`. Le choix
+ * suit celui de l'interface, et non celui du navigateur : un utilisateur qui a
+ * réglé l'extension en français n'a rien à faire sur la page anglaise.
+ */
+const SITE_URLS = Object.freeze({
+  fr: 'https://lupin.github.io/URLQRCodePrinter/',
+  en: 'https://lupin.github.io/URLQRCodePrinter/en/',
+});
+
+/**
+ * Pose l'adresse de la page d'information, et annonce le nouvel onglet.
+ *
+ * Le `href` est écrit ici plutôt que dans le HTML : il dépend de la langue, et
+ * une adresse écrite en dur enverrait la moitié des utilisateurs sur la
+ * mauvaise page. Le texte, lui, reste dans le HTML, où `applyTranslations` le
+ * traduit avec le reste.
+ */
+function wireSiteLink() {
+  const link = el.siteLink;
+  if (!link) return;
+
+  link.href = SITE_URLS[getLocale()] ?? SITE_URLS.fr;
+
+  // Le changement de contexte est annoncé : sans cela, un utilisateur de lecteur
+  // d'écran ne sait pas qu'un onglet va s'ouvrir.
+  if (!link.querySelector('.sr-only')) {
+    const hint = document.createElement('span');
+    hint.className = 'sr-only';
+    hint.textContent = t(' (ouvre un nouvel onglet)');
+    link.appendChild(hint);
+  }
+}
+
+/**
  * Branche le sélecteur de langue.
  *
  * Le changement mémorise la langue puis recharge la fenêtre : toute
@@ -528,6 +583,12 @@ async function main() {
     await initI18n();
     applyTranslations(document);
     wireLocaleSwitcher();
+    wireSiteLink();
+
+    // La borne du champ vient de la constante qui borne déjà les titres
+    // enregistrés. Recopiée dans le HTML, elle aurait fini par diverger, et la
+    // saisie se serait fait couper sans que rien ne l'annonce.
+    if (el.captureTitle) el.captureTitle.maxLength = DEFAULT_TITLE_MAX;
     await syncConsentNotice();
     await loadActiveTab();
     await render();

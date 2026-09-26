@@ -109,6 +109,68 @@ async function connect(url) {
   return { ws, send, call };
 }
 
+/**
+ * Recharge une page et attend qu'elle soit de nouveau interrogeable.
+ *
+ * `await eval('location.reload()')` **ne répond jamais** : la navigation détruit
+ * le contexte d'exécution avant que la réponse ne soit écrite, et la promesse
+ * reste en suspens indéfiniment. Le script s'y arrêtait, sans message, après la
+ * dernière ligne écrite. `Page.reload` est une commande du protocole : elle
+ * répond. Il reste à attendre le nouveau document, et l'on réessaie au lieu de
+ * dormir un temps fixe, parce que le contexte neuf met un temps variable à
+ * accepter une évaluation.
+ *
+ * @param {{ call: Function }} session
+ */
+async function recharger(session) {
+  await session.call('Page.reload', { ignoreCache: false });
+
+  const limite = Date.now() + 15000;
+  while (Date.now() < limite) {
+    try {
+      const etat = await session.call('Runtime.evaluate', {
+        expression: 'document.readyState',
+        returnByValue: true,
+      });
+      if (etat?.result?.value === 'complete') return;
+    } catch {
+      // Contexte en cours de destruction : on réessaie.
+    }
+    await new Promise((r) => setTimeout(r, 250));
+  }
+  throw new Error('la page rechargée n\'est jamais redevenue interrogeable');
+}
+
+/**
+ * Force une occasion de rendu sur une page.
+ *
+ * Chrome diffère le calcul de style d'un onglet qui n'est pas rendu — et nos
+ * onglets de vérification sont hors écran. Sans cela, `getComputedStyle` rend
+ * les valeurs de l'état **précédent**, alors que la peinture, elle, est juste :
+ * c'est ce qui a fait accuser les boutons du pied d'un contraste de 1,08:1
+ * qu'ils n'avaient pas.
+ *
+ * Une capture d'un pixel suffit : le recalcul de style est global, seul le
+ * dessin est restreint. Une capture pleine page coûtait vingt fois plus cher
+ * pour le même effet.
+ *
+ * @param {{ call: Function }} session
+ * @param {number} [pause] attente après la peinture, en millisecondes
+ */
+async function forcerPeinture(session, pause = 250) {
+  try {
+    await session.call('Page.captureScreenshot', {
+      format: 'jpeg',
+      quality: 1,
+      clip: { x: 0, y: 0, width: 8, height: 8, scale: 1 },
+    });
+  } catch {
+    // Une capture refusée n'est pas un échec du contrôle : on continue, et la
+    // mesure qui suit dira elle-même si elle est exploitable.
+  }
+  await new Promise((r) => setTimeout(r, pause));
+}
+
 /** Ferme le navigateur sans déclencher sa boîte de confirmation. */
 function shutdown(browser) {
   try {
@@ -264,11 +326,43 @@ async function main() {
       capture: { url: 'https://exemple.fr/article-deux', title: 'Un second article' }
     }, resolve)))`);
 
-    await evalPopup('location.reload()');
-    await new Promise((r) => setTimeout(r, 2500));
+    await recharger(popup.session);
+    await new Promise((r) => setTimeout(r, 1500));
+
+    // **Forcer une occasion de rendu avant toute mesure.**
+    //
+    // L'onglet est hors écran, et Chrome diffère le calcul de style d'une page
+    // qui n'est pas rendue. `getComputedStyle` rendait donc les valeurs de
+    // l'état précédent — celui du HTML livré, où les boutons du pied portent
+    // l'attribut `disabled` — alors que la peinture, elle, était juste.
+    //
+    // Le piège est traître : les règles correspondantes étaient les bonnes,
+    // `:disabled` ne correspondait plus, un bouton neuf portant les mêmes
+    // classes donnait la bonne valeur, et la capture montrait un bouton noir à
+    // texte blanc là où la mesure lisait gris sur gris. Trois constats
+    // concordants accusaient le produit d'un défaut de contraste qu'il n'avait
+    // pas. Une capture jetable, avant de mesurer, lève l'ambiguïté.
+    await forcerPeinture(popup.session, 400);
 
     const rows = await evalPopup("document.querySelectorAll('#list .item').length");
     record('la fenêtre affiche les liens collectés', rows === 2, `${rows} ligne(s)`);
+
+    // Les commandes du pied ne se mesurent qu'**actives** : inactives, 1.4.11
+    // les exempte, et le contrôle de contraste ne dirait plus rien. On le
+    // vérifie au lieu de l'espérer — c'est ce qui manquait au premier relevé.
+    const etatPied = await evalPopup(`(() => {
+      const lire = (id) => {
+        const node = document.getElementById(id);
+        return node ? { desactive: node.disabled, libelle: node.textContent.trim() } : null;
+      };
+      return { csv: lire('export-csv'), md: lire('export-md'), clear: lire('clear'), app: lire('open-app') };
+    })()`);
+    const piedActif = Object.values(etatPied ?? {}).every((b) => b && b.desactive === false);
+    record(
+      'les commandes du pied sont actives, donc mesurables',
+      piedActif,
+      Object.entries(etatPied ?? {}).map(([nom, b]) => `${nom}:${b?.desactive ? 'inactif' : 'actif'}`).join(' · '),
+    );
 
     // --- Les mesures de rendu ---------------------------------------------
     //
@@ -276,8 +370,28 @@ async function main() {
     // document rendu au lieu des jetons. Le contrôle des composants ne vise que
     // les commandes : un séparateur décoratif est explicitement exempté par le
     // critère 1.4.11, et le compter ferait échouer la mesure pour rien.
-    const contrast = await evalPopup(`(() => {
+    //
+    // **La valeur n'est lue qu'une fois stable.** Les boutons portent une
+    // transition de 140 ms sur `border-color`, et `getComputedStyle` rend la
+    // valeur *interpolée* tant qu'elle court. Le passage de l'état inactif à
+    // l'état actif — que `render()` provoque après le chargement de l'onglet —
+    // faisait donc lire la teinte de l'état précédent : un premier relevé a
+    // accusé les trois boutons du pied sur une couleur qu'ils n'avaient déjà
+    // plus. On lit donc deux fois, à 250 ms d'intervalle, et l'on ne retient la
+    // valeur que si elle ne bouge plus.
+    const contrast = await evalPopup(`(async () => {
       ${CONTRAST_HELPER}
+      const stable = async (lire) => {
+        let precedent = lire();
+        const limite = Date.now() + 2500;
+        while (Date.now() < limite) {
+          await new Promise((r) => setTimeout(r, 250));
+          const courant = lire();
+          if (courant === precedent) return courant;
+          precedent = courant;
+        }
+        return precedent;
+      };
       const textes = [
         { nom: 'titre de la fenêtre', sel: '.app-header__title' },
         { nom: 'page courante', sel: '.capture__page' },
@@ -328,23 +442,118 @@ async function main() {
         if (!node) { sortie.composants.push({ nom: cible.nom, etat: 'absent' }); continue; }
         const { style, peint } = lire(node);
         if (!peint) { sortie.composants.push({ nom: cible.nom, etat: 'non peint' }); continue; }
-        const bordure = _parseColour(style.borderTopColor);
+        // Forcer un recalcul de style : la valeur calculée d'un element dont
+        // l'attribut disabled a ete retire depuis le script peut rester celle de
+        // l'etat precedent tant qu'aucune lecture de geometrie n'a relance le
+        // calcul. C'est l'ecart observe entre l'element de la page et un bouton
+        // neuf portant les memes classes.
+        void node.offsetHeight;
+        // Le contour est la valeur qui bouge le plus : il dépend de l'état
+        // actif ou inactif, et il est animé. On attend qu'il se pose.
+        const teinteContour = await stable(() => getComputedStyle(node).borderTopColor);
+        const bordure = _parseColour(teinteContour);
         const epaisseur = Number.parseFloat(style.borderTopWidth);
         // Le contour se juge contre ce qu'il borde : le fond du composant s'il
         // est opaque, sinon le fond peint derrière lui.
         const interieur = _parseColour(style.backgroundColor) ?? _paintedBackground(node);
         sortie.composants.push({
           nom: cible.nom,
-          couleur: style.borderTopColor,
+          couleur: teinteContour,
           fond: \`rgb(\${interieur.r}, \${interieur.g}, \${interieur.b})\`,
           ratio: bordure && epaisseur > 0 ? Number(_ratio(bordure, interieur).toFixed(2)) : null,
           epaisseur,
           seuil: 3,
+          // **Un composant inactif est exempté par 1.4.11**, et c'est écrit
+          // noir sur blanc dans le critère. Mesurer un bouton désactivé et
+          // conclure à un échec serait une fausse accusation : le premier
+          // relevé l'a fait, et le seuil n'était pas en cause — la règle
+          // .btn:disabled l'emporte sur .btn--ghost, si bien que la teinte
+          // décorative observée était celle de l'état inactif.
+          inactif: node.disabled === true || node.getAttribute('aria-disabled') === 'true',
+          diagnostic: {
+            classes: typeof node.className === 'string' ? node.className : '',
+            desactive: node.disabled === true,
+            attributDesactive: node.hasAttribute('disabled'),
+            fond: style.backgroundColor,
+            items: document.querySelectorAll('#list .item').length,
+            correspondDesactive: node.matches(':disabled'),
+            temoin: (() => {
+              const neuf = document.createElement('button');
+              neuf.type = 'button';
+              neuf.className = node.className;
+              document.body.appendChild(neuf);
+              void neuf.offsetWidth;
+              const st = getComputedStyle(neuf);
+              const lecture = st.borderTopColor + ' / ' + st.backgroundColor;
+              neuf.remove();
+              return lecture;
+            })(),
+            jeton: getComputedStyle(node).getPropertyValue('--border-strong').trim()
+              + ' / surface ' + getComputedStyle(node).getPropertyValue('--surface').trim()
+              + ' / racine ' + getComputedStyle(document.documentElement).getPropertyValue('--border-strong').trim(),
+            regles: (() => {
+              const trouvees = [];
+              for (const feuille of document.styleSheets) {
+                let regles = [];
+                try { regles = [...feuille.cssRules]; } catch { continue; }
+                regles.forEach((regle, rang) => {
+                  const texte = regle.selectorText;
+                  if (!texte) return;
+                  for (const part of texte.split(',')) {
+                    const sel = part.trim();
+                    try {
+                      if (sel && node.matches(sel)) {
+                        const valeur = regle.style.getPropertyValue('border-color')
+                          || regle.style.getPropertyValue('border-top-color')
+                          || regle.style.getPropertyValue('border');
+                        const fond = regle.style.getPropertyValue('background')
+                          || regle.style.getPropertyValue('background-color');
+                        if (valeur || fond) trouvees.push(sel + ' = ' + (valeur || '-') + ' / ' + (fond || '-'));
+                      }
+                    } catch { /* sélecteur non évaluable */ }
+                  }
+                });
+              }
+              return trouvees;
+            })(),
+            ancetres: (() => {
+              const noms = [];
+              let courant = node.parentElement;
+              while (courant) {
+                noms.push(courant.tagName.toLowerCase()
+                  + (courant.hasAttribute?.('disabled') ? '[disabled]' : ''));
+                courant = courant.parentElement;
+              }
+              return noms.join(' < ');
+            })(),
+            url: location.href.slice(-40),
+          },
           etat: epaisseur > 0 ? 'mesuré' : 'sans contour',
         });
       }
       return sortie;
     })()`);
+
+    // --- Diagnostic : qui gagne sur le contour du bouton ------------------
+    await popup.session.call('DOM.enable');
+    await popup.session.call('CSS.enable');
+    const doc = await popup.session.call('DOM.getDocument', {});
+    const cible = await popup.session.call('DOM.querySelector', {
+      nodeId: doc.root.nodeId, selector: '#export-csv',
+    });
+    const styles = await popup.session.call('CSS.getMatchedStylesForNode', {
+      nodeId: cible.nodeId,
+    });
+    for (const entree of styles.matchedCSSRules ?? []) {
+      const props = entree.rule.style.cssProperties
+        .filter((p) => p.name.includes('border') || p.name.includes('background'))
+        .map((p) => `${p.name}:${p.value}${p.implicit ? ' (implicite)' : ''}`);
+      if (!props.length) continue;
+      const ou = entree.rule.origin ? ` [${entree.rule.origin}]` : '';
+      console.log(`    regle${ou} ${entree.rule.selectorList.text} → ${props.join('; ')}`);
+    }
+    const inline = styles.inlineStyle?.cssProperties?.length ?? 0;
+    console.log(`    style en ligne : ${inline} declaration(s)`);
 
     for (const mesure of contrast?.textes ?? []) {
       if (mesure.etat !== 'mesuré') {
@@ -372,10 +581,24 @@ async function main() {
         record(`contour — ${mesure.nom}`, null, mesure.etat);
         continue;
       }
+      if (mesure.inactif) {
+        record(
+          `contour — ${mesure.nom}`,
+          null,
+          `${mesure.ratio}:1, mais le composant est inactif : 1.4.11 l'exempte`,
+        );
+        continue;
+      }
       record(
         `contour — ${mesure.nom}`,
         mesure.ratio >= 3,
-        `${mesure.couleur} (${mesure.epaisseur} px) sur ${mesure.fond} → ${mesure.ratio}:1 (seuil 3)`,
+        `${mesure.couleur} (${mesure.epaisseur} px) sur ${mesure.fond} → ${mesure.ratio}:1 (seuil 3)`
+          + ` · ${mesure.diagnostic?.classes} · désactivé ${mesure.diagnostic?.desactive}`
+          + ` · attribut ${mesure.diagnostic?.attributDesactive} · items ${mesure.diagnostic?.items}`
+          + ` · :disabled ${mesure.diagnostic?.correspondDesactive} · ${mesure.diagnostic?.ancetres}`
+          + `\n      règles : ${(mesure.diagnostic?.regles ?? []).join(' | ')}`
+          + ` · jetons : ${mesure.diagnostic?.jeton}`
+          + ` · témoin neuf : ${mesure.diagnostic?.temoin}`,
       );
     }
 
@@ -462,18 +685,64 @@ async function main() {
         : `${parcours.length} arrêt(s) tous cerclés`,
     );
 
-    // 2.5.8 Target Size (Minimum) : 24 × 24 px. On ne juge que les commandes
-    // dont la cible est le contrôle lui-même — un lien en ligne en est exempté.
-    const tropPetits = parcours.filter(
-      (p) => ['BUTTON', 'SELECT', 'INPUT', 'A'].includes(p.tag)
-        && p.visible && (p.largeur < 24 || p.hauteur < 24),
-    );
+    // 2.5.8 Target Size (Minimum) : 24 × 24 px, **et son exception d'espacement**.
+    //
+    // Le critère prévoit qu'une cible plus petite reste conforme si un cercle de
+    // 24 px de diamètre centré sur elle n'intersecte aucune autre cible. Sans
+    // implémenter cette exception, on déclare en échec des commandes qui
+    // satisfont le critère — et l'on réclame une correction qui n'a pas lieu
+    // d'être. Le calcul est donc fait, plutôt que supposé.
+    const cibles = await evalPopup(`(() => {
+      // Une cible se désigne : on écarte le document lui-même et tout ce qui
+      // porte un tabindex négatif. Le parcours au clavier, plus haut, pose
+      // tabindex="-1" sur le corps de la page pour repartir d'un état neutre —
+      // sans ce filtre, le corps de page devenait « une cible trop proche » et
+      // faisait échouer le critère pour tout le document.
+      const interactifs = [...document.querySelectorAll(
+        'a[href], button, select, input, textarea, [role="button"], [role="tab"], [tabindex]',
+      )].filter((n) => {
+        if (n === document.body || n === document.documentElement) return false;
+        const natif = ['A', 'BUTTON', 'SELECT', 'INPUT', 'TEXTAREA'].includes(n.tagName);
+        return natif || n.tabIndex >= 0;
+      });
+      const boites = interactifs.map((n) => {
+        const b = n.getBoundingClientRect();
+        const st = getComputedStyle(n);
+        return {
+          nom: n.id || (typeof n.className === 'string' && n.className.trim())
+            || n.tagName.toLowerCase() + (n.type ? '[' + n.type + ']' : ''),
+          x: b.x, y: b.y, l: b.width, h: b.height,
+          visible: b.width > 0 && b.height > 0 && st.visibility !== 'hidden',
+          centre: { x: b.x + b.width / 2, y: b.y + b.height / 2 },
+        };
+      }).filter((b) => b.visible);
+
+      // Un cercle de rayon 12 centré sur la cible touche-il le rectangle visé ?
+      const touche = (cercle, rect) => {
+        const procheX = Math.max(rect.x, Math.min(cercle.x, rect.x + rect.l));
+        const procheY = Math.max(rect.y, Math.min(cercle.y, rect.y + rect.h));
+        const dx = cercle.x - procheX;
+        const dy = cercle.y - procheY;
+        return Math.hypot(dx, dy) < 12;
+      };
+
+      return boites
+        .filter((b) => b.l < 24 || b.h < 24)
+        .map((b) => ({
+          nom: b.nom,
+          taille: \`\${Math.round(b.l)}×\${Math.round(b.h)}\`,
+          voisines: boites.filter((autre) => autre !== b && touche(b.centre, autre)).map((a) => a.nom),
+        }));
+    })()`);
+
+    const sansEspacement = (cibles ?? []).filter((c) => c.voisines.length > 0);
     record(
-      'chaque commande atteinte tient la cible de 24 × 24 px',
-      tropPetits.length === 0,
-      tropPetits.length
-        ? tropPetits.map((p) => `${p.id || p.classe} ${p.largeur}×${p.hauteur}`).join(' · ')
-        : `${parcours.filter((p) => p.visible).length} commande(s) mesurée(s)`,
+      'les cibles sous 24 px satisfont l\'exception d\'espacement de 2.5.8',
+      cibles !== undefined && sansEspacement.length === 0,
+      (cibles ?? []).length === 0
+        ? 'aucune cible sous 24 px'
+        : (cibles ?? []).map((c) => `${c.nom} ${c.taille}`
+          + (c.voisines.length ? ` → trop près de ${c.voisines.join(', ')}` : ' → isolée')).join(' · '),
     );
 
     // Le cycle s'est refermé : le focus ne s'échappe pas vers un élément
@@ -526,7 +795,8 @@ async function main() {
       features: [{ name: 'prefers-color-scheme', value: 'dark' }],
     });
     if (!sombre.error) {
-      await new Promise((r) => setTimeout(r, 400));
+      // Même précaution qu'en thème clair : forcer une peinture avant de lire.
+      await forcerPeinture(popup.session, 400);
       const shotDark = await popup.session.call('Page.captureScreenshot', { format: 'png', captureBeyondViewport: true });
       writeFileSync(join(CAPTURES, 'fenetre-sombre.png'), Buffer.from(shotDark.data, 'base64'));
       const darkContrast = await evalPopup(`(() => {
@@ -564,30 +834,39 @@ async function main() {
     // pourrait passer à la ligne, et un bloc « série » dont les champs
     // pourraient s'empiler. Aucun n'est démontrable sur le papier : ils
     // dépendent de la largeur réellement calculée par le navigateur.
+    console.log('  … ouverture de l\'application embarquée');
     const app = await openPage(`chrome-extension://${extensionId}/app.html`);
+    console.log('  … page ouverte');
     const evalApp = evaluateIn(app.session);
     await evalApp('document.readyState');
-    await new Promise((r) => setTimeout(r, 1200));
+    // L'onglet est hors écran : sans une occasion de rendu, Chrome diffère le
+    // calcul de style et l'on mesurerait l'état précédent.
+    await forcerPeinture(app.session, 1200);
 
     // Un lien, pour que l'aperçu ait quelque chose à rendre.
+    console.log('  … collecte d\'un lien de contrôle');
     await evalApp(`new Promise((resolve) => chrome.runtime.sendMessage(
       { type: 'record-capture', capture: { url: 'https://exemple.fr/un-article-assez-long-pour-un-qr',
         title: 'Un article de fond sur la question' } }, () => resolve(true)))`);
+    console.log('  … lien collecté');
 
     // **La langue est forcée au français**, et c'est le pire cas : « Étiquette
     // (divers) » est le libellé d'onglet le plus long des deux langues. Mesurer
     // la version anglaise reviendrait à éprouver la mise en page la plus facile.
     await evalApp(`new Promise((resolve) => chrome.storage.local.set({ locale: 'fr' }, resolve))`);
-    await evalApp('location.reload()');
-    await new Promise((r) => setTimeout(r, 2500));
+    console.log('  … langue forcée, rechargement');
+    await recharger(app.session);
+    await forcerPeinture(app.session, 1200);
 
+    console.log('  … balayage des largeurs');
     const largeurs = [1280, 1000, 900, 760, 560, 440, 400, 380];
     const geometrie = [];
     for (const largeur of largeurs) {
       await app.session.call('Emulation.setDeviceMetricsOverride', {
         width: largeur, height: 900, deviceScaleFactor: 1, mobile: false,
       });
-      await new Promise((r) => setTimeout(r, 350));
+      // Une peinture par largeur : la géométrie se relit après un rendu réel.
+      await forcerPeinture(app.session, 350);
       geometrie.push(await evalApp(`(() => {
         const onglets = document.querySelector('.tabs');
         // Par attribut data-mode, jamais par le libellé : l'interface suit la
@@ -663,8 +942,9 @@ async function main() {
     record(
       'aucun débordement horizontal de l\'application',
       geometrie.every((g) => g.debordement === false),
-      geometrie.map((g) => `${g.largeurFenetre}px : visible ${g.largeurVisible} / document ${g.largeurDocument}`
-        + (g.coupables.length ? ` → ${g.coupables.join(' | ')}` : '')).join('\n    '),
+      geometrie.filter((g) => g.debordement)
+        .map((g) => `${g.largeurFenetre}px : visible ${g.largeurVisible} / document ${g.largeurDocument}`
+          + ` → ${g.coupables.join(' | ')}`).join(' · ') || 'aucune largeur ne déborde',
     );
 
     // L'aperçu : quelle part de la place offerte est réellement utilisée ?
@@ -830,7 +1110,17 @@ async function main() {
       } else {
         record('le menu contextuel est interrogeable', true);
         for (const [id, etat] of Object.entries(menus ?? {})) {
-          record(`entrée de menu « ${id} »`, etat === 'présent', etat);
+          // La fiche publiée décrit trois entrées d'ajout, et ne mentionne ni
+          // séparateur ni « Ouvrir URLQRCodePrinter » : leur absence est un
+          // choix, arrêté pour ne pas rouvrir l'écart entre la fiche et le
+          // comportement. Les compter comme des échecs ferait passer un accord
+          // délibéré pour une panne.
+          const attendue = id === 'urq-add-page' || id === 'urq-add-link' || id === 'urq-add-selection';
+          record(
+            `entrée de menu « ${id} »`,
+            attendue ? etat === 'présent' : null,
+            attendue ? etat : `${etat} — absente par choix : la fiche n'en parle pas`,
+          );
         }
       }
 
@@ -862,9 +1152,9 @@ async function main() {
         // le retour transitoire est remplacé par le compteur au bout de 1,5 s.
         const neuf = 'https://exemple.fr/sonde-' + Date.now();
         const premier = await ajouter(neuf, 'Sonde');
-        await pause(1800);
+        await pause(3000);
         const doublon = await ajouter(neuf, 'Sonde');
-        await pause(1800);
+        await pause(3000);
         const repos = await lire();
         return { premier, doublon, repos };
       })()`);

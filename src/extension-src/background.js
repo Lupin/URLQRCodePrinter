@@ -37,13 +37,19 @@ const api = resolveApi();
  * Le compteur est à l'encre, comme celui de la fenêtre, et surtout **pas à
  * l'accent** : l'icône de la barre d'outils est déjà orange, un badge orange s'y
  * fondrait au lieu de s'en détacher.
+ *
+ * Un doublon **inverse** le badge au lieu de prendre une teinte de plus. La
+ * version précédente lui donnait l'encre du compteur, c'est-à-dire exactement la
+ * couleur de l'état habituel : « déjà présent » et « rien ne s'est passé »
+ * étaient indiscernables, et un lien déjà collecté passait pour un ajout raté.
+ * Éclaircir le gris n'aurait fait qu'amoindrir le contraste sur une icône
+ * orange ; l'inversion, elle, se voit. Le glyphe reste distinct dans les quatre
+ * cas, si bien que la couleur n'est jamais la seule information (1.4.1).
  */
-const BADGE_COUNT = '#1a1a1a';
-const BADGE_ADDED = '#1c7c4a';
-const BADGE_DUPLICATE = '#1a1a1a';
-const BADGE_ERROR = '#b3122b';
-/** Texte du badge : les quatre fonds sont sombres, le texte est donc clair. */
-const BADGE_TEXT = '#ffffff';
+const BADGE_COUNT = { fond: '#1a1a1a', texte: '#ffffff' };
+const BADGE_ADDED = { fond: '#1c7c4a', texte: '#ffffff' };
+const BADGE_DUPLICATE = { fond: '#f4f4f4', texte: '#161616' };
+const BADGE_ERROR = { fond: '#b3122b', texte: '#ffffff' };
 
 const store = createChromeStorageStore({ area: api?.storage?.local });
 
@@ -55,11 +61,12 @@ const store = createChromeStorageStore({ area: api?.storage?.local });
  * précaution, un `await` qui échoue laisserait le badge **vide** au lieu de le
  * laisser au navigateur le soin de choisir une couleur lisible.
  *
+ * @param {string} couleur
  * @returns {Promise<void>}
  */
-async function applyBadgeTextColor() {
+async function applyBadgeTextColor(couleur) {
   try {
-    await api.action.setBadgeTextColor?.({ color: BADGE_TEXT });
+    await api.action.setBadgeTextColor?.({ color: couleur });
   } catch {
     // Le navigateur choisira lui-même une couleur de texte.
   }
@@ -69,21 +76,28 @@ async function applyBadgeTextColor() {
 async function refreshBadge() {
   try {
     const links = await store.list();
-    await api.action.setBadgeBackgroundColor({ color: BADGE_COUNT });
-    await applyBadgeTextColor();
+    await api.action.setBadgeBackgroundColor({ color: BADGE_COUNT.fond });
+    await applyBadgeTextColor(BADGE_COUNT.texte);
     await api.action.setBadgeText({ text: links.length ? String(links.length) : '' });
   } catch {
     // L'API badge peut être absente ou refusée : ce n'est pas bloquant.
   }
 }
 
-/** Affiche brièvement un retour sur l'icône. */
-async function flashBadge(text, color) {
+/**
+ * Affiche brièvement un retour sur l'icône.
+ *
+ * @param {string} text
+ * @param {{ fond: string, texte: string }} badge
+ */
+async function flashBadge(text, badge) {
   try {
-    await api.action.setBadgeBackgroundColor({ color });
-    await applyBadgeTextColor();
+    await api.action.setBadgeBackgroundColor({ color: badge.fond });
+    await applyBadgeTextColor(badge.texte);
     await api.action.setBadgeText({ text });
-    setTimeout(refreshBadge, 1500);
+    // Le retour dure 2,5 s : un clic droit se fait en regardant la page, pas la
+    // barre d'outils, et 1,5 s s'écoulaient souvent avant que l'œil n'y arrive.
+    setTimeout(refreshBadge, 2500);
   } catch {
     // Idem : le badge est un confort, pas une fonction.
   }
@@ -102,7 +116,17 @@ async function installMenus() {
   // La langue doit être connue avant de construire les libellés du menu :
   // le service worker lit `storage.local`, contrairement à `localStorage`.
   await initI18n();
-  await installContextMenus(api, buildMenuDefinitions());
+  // L'entrée de sélection est **activée**. Elle était créée désactivée, faute
+  // d'argument à `buildMenuDefinitions()` : l'utilisateur voyait une entrée
+  // grisée, et la justification de permission publiée sur le Chrome Web Store
+  // annonçait pourtant trois entrées fonctionnelles, dont « Add the selected
+  // text ». L'écart entre la fiche et le comportement est exactement ce qu'un
+  // examinateur du magasin recherche.
+  //
+  // L'argument `appUrl` reste absent : il ne sert qu'à créer le séparateur et
+  // l'entrée « Ouvrir URLQRCodePrinter », que la fiche ne décrit pas. En créer
+  // une de plus rouvrirait le même écart dans l'autre sens.
+  await installContextMenus(api, buildMenuDefinitions({ includeSelection: true }));
 }
 
 /**
@@ -128,8 +152,15 @@ async function record(capture) {
     // La mention n'est rouverte que si l'utilisateur ne s'est **jamais**
     // prononcé. Après un refus explicite, rouvrir un onglet à chaque tentative
     // serait du harcèlement : le refus est une décision, pas une absence.
-    if (consent === null) openPrivacyNotice();
-    else await flashBadge('!', BADGE_ERROR);
+    if (consent === null) {
+      // Le badge est posé **dans les deux cas**. Il ne l'était pas à la première
+      // installation : l'onglet de la mention s'ouvrait, et rien n'expliquait
+      // sur l'icône pourquoi le clic droit n'avait rien enregistré. Un refus
+      // explicite donnait un « ! » là où une installation neuve ne donnait rien
+      // du tout — l'utilisateur le moins au fait était le moins renseigné.
+      openPrivacyNotice();
+    }
+    await flashBadge('!', BADGE_ERROR);
     return { recorded: false, reason: 'consent' };
   }
 

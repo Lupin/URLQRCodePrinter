@@ -557,6 +557,21 @@ function linkEditor(link) {
     hint.textContent = t('Entrée pour enregistrer, Échap pour annuler. Tags séparés par des virgules.');
     form.appendChild(hint);
 
+    // Les deux commandes du formulaire, visibles.
+    //
+    // Elles ne l'étaient pas : le formulaire ne se fermait qu'avec Entrée ou
+    // Échap, et seule une phrase d'aide le disait. Un utilisateur qui ne lit pas
+    // la phrase — c'est-à-dire presque tous — n'avait aucun moyen de voir
+    // comment terminer. Les raccourcis restent : ils sont plus rapides, et
+    // maintenant annoncés à côté de boutons qui font la même chose.
+    const actions = document.createElement('div');
+    actions.className = 'link__editor-actions';
+    actions.append(
+      button(t('Annuler'), 'btn btn--ghost', () => finish(false)),
+      button(t('Enregistrer'), 'btn btn--primary', () => finish(true)),
+    );
+    form.appendChild(actions);
+
     const finish = async (save) => {
       if (settled) return;
       settled = true;

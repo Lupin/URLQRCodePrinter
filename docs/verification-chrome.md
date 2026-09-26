@@ -28,43 +28,62 @@ version. Toute vérification future dans Chrome doit partir de là.
 
 ---
 
+## Le piège qui a d'abord fait mentir ce relevé
+
+**Un onglet qui n'est pas rendu n'a pas de style calculé à jour.** Les onglets de
+vérification sont hors écran, et Chrome diffère le calcul de style d'une page
+qu'il ne peint pas. `getComputedStyle` rendait donc les valeurs de l'état
+**précédent** — celui du balisage livré, où les boutons du pied portent
+l'attribut `disabled` — alors que la peinture, elle, était juste.
+
+Le piège est traître parce que tous les contrôles concordaient :
+
+- les règles CSS correspondant à l'élément étaient les bonnes, et `--border-strong`
+  s'y résolvait bien à `#8d8d8d` ;
+- `:disabled` ne correspondait plus, et `element.disabled` valait `false` ;
+- un bouton **neuf** portant exactement les mêmes classes rendait la bonne
+  valeur, `rgb(141,141,141)` ;
+- et la capture d'écran montrait un bouton noir à texte blanc là où la mesure
+  lisait gris sur gris.
+
+Quatre constats concordants accusaient le produit d'un défaut de contraste qu'il
+n'avait pas. La correction tient en une ligne : **forcer une occasion de rendu**
+avant toute mesure, par une capture d'un pixel — le recalcul de style est global,
+seul le dessin est restreint.
+
+Ce qui avait été écrit ici avant cette correction est faux, et la façon dont ça
+l'était vaut d'être retenue : la mesure ne s'était pas trompée de peu, elle avait
+**fabriqué un défaut crédible**, avec des chiffres précis et une cause plausible.
+Une mesure qui accuse demande à être confrontée à une seconde source — ici, les
+pixels.
+
+**Deuxième piège, du même genre :** `await eval('location.reload()')` ne répond
+jamais. La navigation détruit le contexte d'exécution avant que la réponse ne
+soit écrite, et la promesse reste en suspens indéfiniment — le script s'arrêtait
+sans un mot, après sa dernière ligne écrite. `Page.reload` est une commande du
+protocole : elle répond.
+
+---
+
 ## Ce qui échoue, mesures en main
 
-| # | Constat | Mesure | Critère | Où |
+| # | Constat | Mesure | Critère | Lot |
 |---|---------|--------|---------|-----|
-| 1 | Contour des boutons « CSV », « Markdown » et « Tout effacer » | **1,08:1** — `rgb(224,224,224)` sur `rgb(232,232,232)` | 1.4.11 — 3:1 | `popup.css` |
-| 2 | Cible du sélecteur de langue | **75 × 21 px** | 2.5.8 — 24 × 24 px | `popup.css` |
-| 3 | Cible du titre d'une ligne de la liste | **302 × 19 px** | 2.5.8 — 24 × 24 px | `popup.css` |
-| 4 | Libellés des quatre onglets | **43 px de haut au lieu de 29** : le libellé passe à la ligne | lisibilité | `style.css` |
-| 5 | Panneau de gauche de l'application | refuse de descendre sous **432 px** : débordement horizontal dès que la fenêtre fait moins de ~448 px | 1.4.10 Reflow | `style.css` |
+| 1 | Libellés des quatre onglets | **43 px de haut au lieu de 29** : le libellé passe à la ligne | lisibilité | 3 et 5 |
+| 2 | Panneau de gauche de l'application | refuse de descendre sous **432 px** : débordement horizontal dès que la fenêtre fait moins de ~448 px | 1.4.10 Reflow | 5 |
+| 3 | Aperçu de la planche | **476 px dessinés sur 642 offerts, soit 74 %** : la transformation relevée est `scale(0.6)`, le plafond est atteint | — | 3 |
+| 4 | Aperçu de l'étiquette Niimbot | **384 px à l'écran pour 45 px réels, soit 8,5 ×**, en rendu `pixelated` | — | 4 |
 
-### Le constat 1 est le plus grave, parce qu'il était annoncé corrigé
-
-L'audit, point 1 de son tableau, décrit exactement ce défaut — « contour des
-boutons CSV / Markdown / Tout effacer », 1,36:1 — et annonce le correctif :
-« jeton `--border-strong` dédié aux limites de composants, mesuré ≥ 3,0:1 sur
-les deux thèmes ».
-
-Le rendu dit autre chose. `--border-strong` vaut `#8d8d8d` et donne bien 3,02:1
-sur la ligne de liste et 3,32:1 sur le sélecteur de langue — **mais les trois
-boutons du pied portent encore `--border-line`**, la teinte décorative, à
-1,08:1. Le correctif a été appliqué ailleurs que là où le défaut avait été
-relevé.
-
-La leçon vaut pour la suite : un test qui recalcule depuis les jetons ne peut pas
-attraper cette erreur, puisque les jetons sont justes. Seul un contrôle sur le
-rendu le peut.
-
-### Le constat 4 : la fenêtre la plus courante est la plus mal servie
+### Le constat 1 : la fenêtre la plus courante est la plus mal servie
 
 La bande d'onglets mesure 715 px à 1280 px de large, 435 px à 1000 px, puis
 **779 px à 900 px** — parce que le point de rupture de `@media (max-width: 900px)`
 empile les deux panneaux et rend toute la largeur au panneau de droite.
 
-Les libellés passent à la ligne quand la bande descend sous ~450 px, c'est-à-dire
-pour une fenêtre entre **900 et 1100 px** : un 1000 px, 560 px et 380 px donnent
-43 px de hauteur, un 900 px en donne 29. La disposition est donc à son pire juste
-au-dessus du point de rupture, là où se trouvent les portables.
+Les libellés passent à la ligne dès que la bande descend sous ~450 px :
+**43 px de haut à 1000, 560, 440, 400 et 380 px**, 29 px ailleurs. La disposition
+est donc à son pire juste au-dessus du point de rupture, là où se trouvent les
+portables.
 
 L'hypothèse portée au plan — « les onglets sont à l'étroit dans une colonne de
 320 px » — était **fausse** : la bande ne descend jamais sous 398 px. Le défaut
@@ -72,78 +91,126 @@ est ailleurs que là où il était supposé.
 
 ---
 
-## L'aperçu ment sur ses échelles
+## Ce qui avait été annoncé en échec, et qui ne l'est pas
 
-Deux mesures, deux causes distinctes, un même effet : l'aperçu ne montre pas
-grand-chose.
+Trois constats de la première version de ce relevé sont **retirés**. Ils venaient
+tous du piège décrit plus haut.
 
-**La planche** est plafonnée à `Math.min(0.6, place / largeur)` (`app.js`). À
-1280 px de fenêtre, 642 px sont offerts à l'aperçu et la page n'en occupe que
-**476, soit 74 %** — la transformation relevée est `scale(0.6)`, le plafond
-atteint.
+| Constat annoncé | Ce que dit le rendu, une fois peint |
+|---|---|
+| Contour des boutons « CSV », « Markdown » et « Tout effacer » à **1,08:1** | **3,02:1** — au-dessus du seuil de 3:1 de 1.4.11. Le jeton `--border-strong` est bien appliqué ; la valeur de 1,08:1 était celle de l'état inactif, que le critère exempte de toute façon |
+| Sélecteur de langue à **75 × 21 px**, sous la cible de 24 px | satisfait **par l'exception d'espacement** de 2.5.8 |
+| Titre d'une ligne de liste à **302 × 19 px** | satisfait par la même exception |
 
-**L'étiquette Niimbot** est agrandie d'un facteur entier, plafonné à 4 :
-`Math.min(4, place / largeur_rendue)`. Sur un D110, dont la tête fait 96 px, le
-plafond est atteint. Un rouleau 12 × 22 mm s'affiche à **384 px de large pour
-45 px réels, soit 8,5 ×**, en rendu `pixelated`. C'est le « trop gros » signalé
-en usage, et il se chiffre.
+### L'exception d'espacement est calculée, pas supposée
+
+Le critère 2.5.8 prévoit qu'une cible plus petite que 24 × 24 px reste conforme
+si un cercle de 24 px de diamètre centré sur elle n'intersecte **aucune autre
+cible**. Le harnais implémente ce calcul : il relève toutes les cibles peintes,
+écarte le document lui-même et tout ce qui porte un `tabindex` négatif, puis
+teste l'intersection.
+
+Les cibles concernées — le sélecteur de langue, les deux liens de titre de la
+liste, et le lien vers la page d'information ajouté depuis — sont **isolées**.
+Aucune ne réclame de correction.
+
+Réclamer une correction sur un critère mal appliqué coûte autant qu'en manquer
+une : cela fait épaissir des lignes et déplacer des éléments pour rien.
+
+---
+
+## Ce qui passe, désormais mesuré sur des pixels
+
+Onze paires de texte, plus quatre contours, relevés sur le document rendu, en
+thème clair et en thème sombre. Toutes passent. Quelques-unes méritent d'être
+notées :
+
+| Élément | Mesure | Marge |
+|---|---|---|
+| Compteur, blanc sur l'accent | **5,18:1** | faible — c'est le couple que l'audit avait recalibré |
+| Contour des boutons du pied, `--border-strong` sur la surface | **3,02:1** | **quasi nulle** |
+| Contour d'une ligne de liste | **3,02:1** | même marge |
+| Bouton neutre du pied, blanc sur l'encre | **17,4:1** | large |
+
+Les deux marges de 3,02:1 sont l'enseignement de ce relevé : le projet a déjà
+choisi, pour son accent, une marge minimale de 5,0:1 *parce qu'une valeur juste
+au seuil est une valeur qui tombera*. Les contours n'ont pas eu cette attention.
+
+---
+
+## Le clavier
+
+Dix arrêts de tabulation, obtenus par de **vrais appuis de touche** envoyés par le
+protocole — pas en simulant des événements, ce qui ne déplacerait aucun focus et
+ne prouverait rien.
+
+```
+langue → titre de la 1ʳᵉ ligne → supprimer → titre de la 2ᵉ → supprimer
+       → voir les QR codes → CSV → Markdown → tout effacer → page d'information
+```
+
+Chaque arrêt porte un anneau de focus visible, et le cycle se referme sans
+dériver vers un élément invisible. La largeur imposée est bien de 380 px, sans
+débordement horizontal.
 
 ---
 
 ## Le menu contextuel tel qu'il est réellement installé
 
-Les quatre entrées déclarées dans le manifeste sont sondées une à une par
+Les cinq entrées candidates sont sondées une à une par
 `chrome.contextMenus.update`, dont l'échec renseigne `runtime.lastError` — la
 seule façon d'interroger un menu natif, qu'aucune API ne permet de cliquer.
 
-| Entrée | État constaté |
-|---|---|
-| `urq-add-page` | présente |
-| `urq-add-link` | présente |
-| `urq-add-selection` | présente, mais **désactivée** |
-| `urq-open-app` | **absente** |
-| `urq-separator` | **absente** |
+| Entrée | État | Attendu |
+|---|---|---|
+| `urq-add-page` | présente | oui |
+| `urq-add-link` | présente | oui |
+| `urq-add-selection` | présente | oui |
+| `urq-open-app` | absente | **oui** : la fiche publiée ne la mentionne pas |
+| `urq-separator` | absente | **oui**, même raison |
 
-La cause se lit dans `background.js` : `installMenus()` appelle
-`buildMenuDefinitions()` **sans argument**, si bien qu'`includeSelection` est
-faux — l'entrée de sélection naît `enabled: false` — et qu'`appUrl` est absent,
-donc ni séparateur ni entrée « Ouvrir ». Les tests existants couvraient la
-fonction avec ses options, jamais ce point d'appel.
+L'entrée de sélection naissait **désactivée** : `installMenus()` appelait
+`buildMenuDefinitions()` sans argument. L'utilisateur voyait une ligne grisée, et
+la justification de permission publiée sur le Chrome Web Store annonçait pourtant
+trois entrées fonctionnelles, dont « Add the selected text ». L'écart entre la
+fiche et le comportement est exactement ce qu'un examinateur du magasin
+recherche ; il est refermé.
 
-Conséquence directe : la justification de permission publiée sur le Chrome Web
-Store décrit **trois** entrées de clic droit fonctionnelles, dont « Add the
-selected text ». L'écart entre la fiche et le comportement est précisément ce
-qu'un examinateur du magasin recherche.
+Les deux entrées absentes le restent **par choix** : la fiche décrit trois entrées
+d'ajout et ne parle ni de séparateur ni d'« Ouvrir ». En créer une de plus
+rouvrirait le même écart dans l'autre sens.
+
+**Ce que cette sonde ne peut pas dire.** `chrome.contextMenus` n'expose aucun
+moyen de relire la propriété `enabled` d'une entrée. L'existence est constatée en
+navigateur ; l'activation est tenue par un test unitaire sur le point d'appel de
+production (`test/capture.test.js`).
 
 ---
 
-## Le retour du clic droit, et une sonde qui a menti
+## Le retour du clic droit
 
-Le clic droit n'a qu'un retour : le badge de la barre d'outils, pendant 1,5 s.
+Le clic droit n'a qu'un retour : le badge de la barre d'outils.
 
 | Cas | Texte | Fond mesuré |
 |---|---|---|
 | Ajout | `+` | `rgb(28, 124, 74)` — vert |
-| Doublon | `=` | `rgb(26, 26, 26)` |
+| Doublon | `=` | `rgb(244, 244, 244)` — **inversé** |
 | Compteur au repos | le nombre | `rgb(26, 26, 26)` |
 
-Le doublon et le compteur partagent **exactement** la même couleur. Un lien déjà
-présent est donc signalé par un signe qui ne se distingue pas de l'état habituel
-de l'icône : c'est le « l'ajout ne se fait pas tout le temps » rapporté en usage,
-pour une part au moins.
+Le doublon partageait auparavant la couleur exacte du compteur : « déjà présent »
+et « rien ne s'est passé » étaient indiscernables, et un lien déjà collecté
+passait pour un ajout raté. Il **inverse** désormais le badge au lieu d'ajouter
+une teinte à la palette — éclaircir le gris n'aurait fait qu'amoindrir le
+contraste sur une icône orange. Le glyphe reste distinct dans les quatre cas, si
+bien que la couleur n'est jamais la seule information (1.4.1).
 
-**Une première version de ce script concluait à une panne inexistante.** Elle
-envoyait `record-capture` depuis le service worker lui-même, et lisait un badge
-inchangé. Un contexte ne reçoit pas ses propres messages : le worker n'était
-jamais prévenu. La sonde a été refaite depuis la page de l'extension, et le
-retour est bien là. Le relevé doit se tromper d'une manière qui se voie, pas
-d'une manière qui accuse le produit.
+Le retour dure 2,5 s au lieu de 1,5 : un clic droit se fait en regardant la page,
+pas la barre d'outils.
 
-**Un défaut réel, lui, se lit dans le code** (`background.js`, `record()`) et
-n'est pas encore mesuré en navigateur : quand le consentement n'a **jamais** été
-donné — installation neuve — la branche ouvre l'onglet de la mention et **ne
-pose aucun badge**. Après un refus explicite, elle pose `!`. Une installation
-neuve n'a donc aucun retour visuel là où un refus en a un.
+**Et un défaut qui se lisait dans le code** : à l'installation neuve, la branche
+sans consentement ouvrait l'onglet de la mention et **ne posait aucun badge**, là
+où un refus explicite posait un `!`. L'utilisateur le moins au fait était le
+moins renseigné. Les deux cas posent maintenant le même signal.
 
 ---
 
@@ -168,15 +235,15 @@ duplication, pas dans l'alignement.
 ## Ce qui n'a pas pu être vérifié, et qui doit être dit comme tel
 
 - **Le menu contextuel ne se clique pas.** Aucune API n'ouvre le menu natif ni
-  n'en choisit une entrée. L'existence des entrées a été sondée ; leur *effet*
-  ne peut être obtenu qu'à la main.
+  n'en choisit une entrée. L'existence des entrées a été sondée ; leur *effet* ne
+  peut être obtenu qu'à la main.
 - **La fenêtre réelle n'est pas ouvrable.** `popup.html` a été chargé dans un
-  onglet : même document, mêmes règles, même largeur imposée de 380 px — mais
-  pas le même cadre. Un défaut qui ne dépend que du document se voit ici ; un
-  défaut lié au cadre du popup, non.
+  onglet : même document, mêmes règles, même largeur imposée de 380 px — mais pas
+  le même cadre. Un défaut qui ne dépend que du document se voit ici ; un défaut
+  lié au cadre du popup, non.
 - **Le bug YouTube n'a pas été reproduit en conditions réelles**, pour la raison
-  ci-dessus : le scénario se joue au clic droit. Ce qui a pu être établi l'est
-  autrement, et de façon déterministe — voir plus bas.
+  ci-dessus : le scénario se joue au clic droit. Sa cause a été établie autrement,
+  au niveau où la décision se prend — voir plus bas.
 - **L'impression d'une planche sur papier** n'a pas été faite : aucun matériel
   n'est connecté à cette machine. C'est la seule partie de la portée restante de
   l'audit qui reste entière.
@@ -185,25 +252,23 @@ duplication, pas dans l'alignement.
 
 ## Le bug YouTube, établi autrement
 
-Le clic droit ne se rejouant pas, la capture a été éprouvée au niveau où la
-décision se prend, et `test/capture.test.js` fixe désormais le comportement :
-
-Chrome remplit `info.linkUrl` **dès que le clic tombe sur un lien**, quel que
-soit l'item de menu choisi. L'accueil et les pages de chaîne de YouTube sont des
+Chrome remplit `info.linkUrl` **dès que le clic tombe sur un lien, quel que soit
+l'item de menu choisi**. L'accueil et les pages de chaîne de YouTube sont des
 grilles de vignettes, donc des liens ; une page de vidéo se clique dans le vide.
 
-| Geste | Ce qui est enregistré |
+L'ancienne version donnait la priorité au lien visé : « Ajouter cette page »
+enregistrait donc la vidéo, jamais la page. L'utilisateur, ne trouvant pas ce
+qu'il avait demandé, concluait que l'ajout n'avait pas eu lieu.
+
+| Geste, ancien comportement | Ce qui était enregistré |
 |---|---|
-| Clic droit sur une vignette de l'accueil, item « Ajouter cette page » | l'URL de la **vidéo**, avec ses paramètres de liste, pour titre `youtube.com` |
-| Clic droit dans le vide de la page de vidéo, même item | l'URL de la vidéo, pour titre le vrai titre de la page |
+| Clic droit sur une vignette, item « Ajouter cette page » | l'URL de la **vidéo**, titre `youtube.com` |
+| Clic droit dans le vide d'une page de vidéo, même item | l'URL de la vidéo, titre de la page |
 
-Le même item, le même geste apparent, deux résultats. S'y ajoute
-`https://www.youtube.com/` qui se normalise en `https://www.youtube.com` : la
-page d'accueil ne s'enregistre donc qu'une fois, et toute tentative suivante est
-un doublon — silencieux, puisque son badge a la couleur du compteur.
-
-Trois causes concourent, et aucune n'est exclusive : le titre perdu sur les
-vignettes, le doublon muet, et l'absence de retour lisible.
+**La règle est désormais : l'item choisi commande.** Trois causes concouraient, et
+les trois sont traitées : le titre perdu sur les vignettes, le doublon muet, et
+l'absence de retour lisible. Sept tests fixent la nouvelle règle dans
+`test/capture.test.js`.
 
 ---
 
@@ -223,3 +288,12 @@ reprises de `verify-brave.mjs`, apprises d'un incident où des vérifications
 
 Le relevé complet est écrit dans `.verify-chrome/releve.json` et les captures
 d'écran dans `.verify-chrome-captures/`.
+
+Deux règles d'écriture pour quiconque étend ce script, et toutes deux ont coûté
+une fausse accusation ou une heure perdue :
+
+1. **Peindre avant de mesurer.** Ne jamais lire une valeur de style sans avoir
+   forcé une occasion de rendu.
+2. **Aucun accent grave dans un commentaire interne.** Les scripts évalués dans la
+   page vivent dans des gabarits de chaîne ; un accent grave dans un commentaire
+   les referme, et l'erreur de syntaxe est signalée à côté.

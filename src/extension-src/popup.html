@@ -41,6 +41,19 @@
     <section class="capture" aria-labelledby="capture-title">
       <h2 id="capture-title" class="sr-only" data-i18n="Ajouter la page courante">Ajouter la page courante</h2>
       <p id="current-tab" class="capture__page" title="">Chargement…</p>
+
+      <!-- Le titre part tel quel dans la collection. S'il est faux ou vide, il
+           faut rouvrir l'application pour le corriger : il est donc modifiable
+           ici, avant l'enregistrement, et non après.
+           Le champ suit l'état du bouton — désactivé quand la page n'est pas
+           capturable — pour que les deux annoncent la même chose. -->
+      <label class="field">
+        <span class="sr-only" data-i18n="Titre du lien">Titre du lien</span>
+        <input id="link-title" class="field__input" type="text"
+               maxlength="300" autocomplete="off" spellcheck="false" disabled
+               data-i18n-placeholder="Titre de la page" placeholder="Titre de la page">
+      </label>
+
       <button id="add-current" class="btn btn--primary" type="button" disabled
               data-i18n="Ajouter cette page">
         Ajouter cette page
@@ -100,6 +113,15 @@
         Tout effacer
       </button>
     </div>
+
+    <!-- La page d'information, tout en bas. Son adresse est posée par
+         `popup.js` : elle suit la langue de l'interface, la page française
+         vivant à la racine et l'anglaise sous /en/. Un `href` écrit ici en dur
+         enverrait un francophone sur la page anglaise.
+         Le texte reste à l'encre secondaire : l'accent est réservé aux actions,
+         et ce lien n'en est pas une. -->
+    <a id="site-link" class="site-link" target="_blank" rel="noopener noreferrer"
+       data-i18n="Page d'information">Page d'information</a>
   </footer>
 
   <script type="module" src="popup.js"></script>

@@ -49,10 +49,11 @@ qui partent dans les exports :
 - **Note** — texte libre, visible sous la ligne et repris dans le tableau
   imprimé si vous cochez « Afficher les notes ».
 
-Entrée enregistre, Échap annule. Ces trois champs apparaissent dans le CSV, le
-Markdown et le classeur — et seulement s'ils ont du contenu, pour ne pas ajouter
-de colonnes vides. Les tags ne s'impriment pas sur les étiquettes : ils classent
-la collection.
+**Enregistrer** et **Annuler** referment le formulaire, et les raccourcis
+restent : Entrée enregistre, Échap annule. Ces trois champs apparaissent dans le
+CSV, le Markdown et le classeur — et seulement s'ils ont du contenu, pour ne pas
+ajouter de colonnes vides. Les tags ne s'impriment pas sur les étiquettes : ils
+classent la collection.
 
 Les URL sont normalisées à l'entrée : `https://` ajouté si absent, fragment
 retiré, paramètres de campagne (`utm_*`, `fbclid`, `gclid`…) supprimés — ils

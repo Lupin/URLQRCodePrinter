@@ -224,6 +224,40 @@ body {
   white-space: nowrap;
 }
 
+/* Le champ du titre occupe la largeur de la colonne, comme tout le reste : la
+   fenêtre n'a qu'une colonne. La borne de longueur est portée par l'attribut
+   `maxlength`, posé depuis la constante du module — pas recopiée. */
+.field {
+  display: flex;
+  flex-direction: column;
+}
+
+.field__input {
+  width: 100%;
+  min-height: 32px;
+  padding: 6px 8px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  background: var(--bg);
+  color: var(--text);
+  font-family: inherit;
+  font-size: var(--type-sm);
+}
+
+/* Désactivé par jetons, jamais par opacité : c'est la règle de toute la
+   feuille, et elle vaut aussi pour le champ. */
+.field__input:disabled {
+  border-color: var(--border-line);
+  background: var(--surface-2);
+  color: var(--text-3);
+}
+
+.field__input:focus-visible {
+  border-color: var(--accent);
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
 .collection {
   flex: 1;
   min-height: 0;
@@ -399,6 +433,24 @@ body {
 }
 
 .app-footer__row { display: flex; gap: 6px; }
+
+/* Le lien vers la page d'information ferme la fenêtre, sous les commandes.
+   À l'encre secondaire et souligné : c'est un lien, il doit se voir comme tel,
+   mais l'accent reste réservé aux actions. Il n'est pas un bouton — il n'a ni
+   bordure ni fond — parce qu'il ne modifie rien dans la collection. */
+.site-link {
+  align-self: flex-start;
+  margin-top: 2px;
+  color: var(--text-2);
+  font-size: var(--type-xs);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.site-link:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
 
 /* --- Boutons --- */
 

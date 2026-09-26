@@ -85,9 +85,17 @@ export function looksLikeUrl(text) {
 /**
  * Construit l'entrée de lien correspondant à un clic contextuel.
  *
- * Priorité au lien explicitement visé : dans un clic sur un lien, `pageUrl`
- * désigne la page qui le contient, ce qui n'est presque jamais ce que
- * l'utilisateur veut enregistrer.
+ * **L'item de menu choisi commande.** Chrome remplit `info.linkUrl` dès que le
+ * clic tombe sur un lien, *quel que soit l'item ensuite choisi* : un clic droit
+ * sur une vignette de l'accueil de YouTube, suivi de « Ajouter cette page »,
+ * fournit donc à la fois l'URL de la page et celle de la vidéo. La version
+ * précédente donnait la priorité au lien, si bien que « Ajouter cette page »
+ * enregistrait la vidéo — et l'utilisateur, ne trouvant pas la page qu'il avait
+ * demandée, concluait que l'ajout n'avait pas eu lieu.
+ *
+ * Chaque item est donc traité pour ce qu'il annonce. Un identifiant inconnu —
+ * Safari, ou un item ajouté plus tard — retombe sur l'ancienne heuristique, du
+ * plus précis au plus général : sélection, lien, image, page.
  *
  * @param {{
  *   menuItemId?: string,
@@ -104,45 +112,77 @@ export function captureFromClick(info, tab) {
   if (!info || typeof info !== 'object') return null;
 
   const selection = typeof info.selectionText === 'string' ? info.selectionText.trim() : '';
+  const lien = typeof info.linkUrl === 'string' && info.linkUrl !== '' && isValidUrl(info.linkUrl)
+    ? info.linkUrl
+    : '';
+  const page = typeof info.pageUrl === 'string' && info.pageUrl !== ''
+    ? info.pageUrl
+    : (typeof tab?.url === 'string' ? tab.url : '');
 
-  // 1. Sélection explicite : elle prime, l'utilisateur a désigné ce qu'il veut.
-  if (info.menuItemId === MENU_IDS.selection || (selection !== '' && looksLikeUrl(selection))) {
-    if (looksLikeUrl(selection)) {
-      return { url: selection, title: '', source: 'context-menu', note: '' };
+  /** La page courante, avec le titre que le navigateur en donne. */
+  const depuisLaPage = () => (isValidUrl(page)
+    ? {
+      url: page,
+      title: typeof tab?.title === 'string' ? tab.title : '',
+      source: 'context-menu',
+      note: '',
     }
-  }
+    : null);
 
-  // 2. Lien cliqué.
-  if (typeof info.linkUrl === 'string' && info.linkUrl !== '' && isValidUrl(info.linkUrl)) {
-    return {
-      url: info.linkUrl,
+  /** Le lien visé. Le texte sélectionné sert de titre faute de mieux. */
+  const depuisLeLien = () => (lien === ''
+    ? null
+    : {
+      url: lien,
       // Le texte du lien n'est pas exposé par l'API ; le domaine est la
       // meilleure description disponible sans requête réseau.
-      title: selection || hostOf(info.linkUrl),
+      title: selection !== '' && !looksLikeUrl(selection) ? selection : hostOf(lien),
       source: 'context-menu',
-      note: selection && !looksLikeUrl(selection) ? selection : '',
-    };
+      note: selection !== '' && !looksLikeUrl(selection) ? selection : '',
+    });
+
+  switch (info.menuItemId) {
+    case MENU_IDS.page:
+      // Ce que l'utilisateur a demandé, littéralement. Une page interne du
+      // navigateur n'est pas enregistrable : on le dit en renvoyant `null`,
+      // plutôt que de retomber sur le lien visé.
+      return depuisLaPage();
+
+    case MENU_IDS.link:
+      // Un lien visé qui serait inexploitable fait retomber sur la page : mieux
+      // vaut un enregistrement utile qu'un refus sec.
+      return depuisLeLien() ?? depuisLaPage();
+
+    case MENU_IDS.selection: {
+      // La sélection prime : l'utilisateur a désigné ce qu'il veut. Si elle
+      // n'est pas une URL, elle devient une note sur le lien visé, ou sur la
+      // page.
+      if (looksLikeUrl(selection)) {
+        return { url: selection, title: '', source: 'context-menu', note: '' };
+      }
+      const parLeLien = depuisLeLien();
+      if (parLeLien && selection !== '') return { ...parLeLien, note: selection };
+      return parLeLien ?? depuisLaPage();
+    }
+
+    default:
+      break;
   }
 
-  // 3. Image cliquée : le plus souvent ce que l'utilisateur vise.
+  // Item inconnu : l'ancienne heuristique, du plus précis au plus général.
+  if (looksLikeUrl(selection)) {
+    return { url: selection, title: '', source: 'context-menu', note: '' };
+  }
+
+  const parLeLien = depuisLeLien();
+  if (parLeLien) return parLeLien;
+
+  // Image cliquée : le plus souvent ce que l'utilisateur vise.
   if (typeof info.srcUrl === 'string' && info.srcUrl !== '' && isValidUrl(info.srcUrl)) {
     return { url: info.srcUrl, title: '', source: 'context-menu', note: '' };
   }
 
-  // 4. Page courante, en dernier recours.
-  const pageUrl = typeof info.pageUrl === 'string' && info.pageUrl !== ''
-    ? info.pageUrl
-    : tab?.url;
-  if (typeof pageUrl === 'string' && pageUrl !== '' && isValidUrl(pageUrl)) {
-    return {
-      url: pageUrl,
-      title: typeof tab?.title === 'string' ? tab.title : '',
-      source: 'context-menu',
-      note: '',
-    };
-  }
-
-  return null;
+  return depuisLaPage();
 }
 
 /**

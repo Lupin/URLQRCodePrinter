@@ -29,6 +29,10 @@ native/niimbot-kit/.build/
 .verify-brave-captures/
 .verify-chrome/
 .verify-chrome-captures/
+
+# Dossier de travail de l'outillage de vision : captures intermédiaires, jamais
+# une source du dépôt.
+.dsh-vision-toolkit/
 .tmpm/
 
 # Sondes de mesure ponctuelles

@@ -355,3 +355,32 @@ test("l'aperçu se recale sur la largeur disponible", () => {
   assert.doesNotMatch(app, /Math\.max\(280,\s*el\.preview\.clientWidth/);
   assert.match(app, /addEventListener\('resize'/);
 });
+
+// ---------------------------------------------------------------------------
+// L'éditeur de lien
+// ---------------------------------------------------------------------------
+
+test("l'éditeur de lien offre de quoi le refermer", () => {
+  // Il ne se fermait qu'avec Entrée ou Échap, et seule une phrase d'aide le
+  // disait. Un utilisateur qui ne lit pas la phrase n'avait aucun moyen de voir
+  // comment terminer — et la souris seule ne suffisait pas.
+  const app = readFileSync(join(WEB, 'app.js'), 'utf8');
+  assert.match(app, /link__editor-actions/);
+  assert.match(app, /button\(t\('Annuler'\)/, 'aucun bouton d\'annulation');
+  assert.match(app, /button\(t\('Enregistrer'\)/, 'aucun bouton d\'enregistrement');
+  // Les deux commandes appellent la même sortie que le clavier : une seconde
+  // logique de fermeture finirait par diverger de la première.
+  assert.match(app, /finish\(false\)/);
+  assert.match(app, /finish\(true\)/);
+});
+
+test("le formulaire de l'éditeur empile ses commandes sans les étirer", () => {
+  const css = readFileSync(join(WEB, 'style.css'), 'utf8');
+  const regle = css.match(/\.link__editor-actions\s*\{([\s\S]*?)\}/);
+  assert.ok(regle, 'aucune règle pour les commandes de l\'éditeur');
+  assert.match(regle[1], /display:\s*flex/);
+  assert.match(regle[1], /justify-content:\s*flex-end/);
+  const boutons = css.match(/\.link__editor-actions \.btn\s*\{([\s\S]*?)\}/);
+  assert.ok(boutons, 'les boutons ne sont pas protégés de l\'étirement');
+  assert.match(boutons[1], /flex:\s*none/);
+});

@@ -27,7 +27,7 @@ share.
 | Core business logic (links, QR, labels, storage, exports) | done, tested |
 | Niimbot protocol (frames, D110 / M2 / M3 profiles) | done, tested |
 | Web Bluetooth transport + D110 / M2 / M3 print session | done, tested, **printed on a real D110** |
-| Brave / Chrome extension (right-click, popup, clickable links) | done, verified in Brave |
+| Brave / Chrome extension (right-click, popup, clickable links) | done, verified in Brave and in Chrome |
 | Standalone web app (list, exports, layouts) | done, verified in Brave |
 | Optional URL shortening (TinyURL, is.gd, v.gd, spoo.me) | done, verified in Brave |
 | Avery A4 and Letter sheets, print calibration | done, geometry checked against published dimensions |
@@ -38,7 +38,7 @@ share.
 | Native Swift core (protocol, session, CoreBluetooth) | done, tested |
 | iOS app that uses that core | to do |
 
-**792 tests, all green** — 688 in JavaScript and 104 in Swift — including:
+**808 tests, all green** — 704 in JavaScript and 104 in Swift — including:
 
 - **byte-for-byte** validation of the Niimbot frames against the documented
   records, **in both languages**: two independent implementations that
@@ -680,12 +680,20 @@ npm run test:swift # native NiimbotKit core
 npm run test:all   # both
 
 npm run verify:brave  # full run in Brave, on an isolated profile
+npm run verify:chrome # exercises the window in the real Chrome, with measurements
 npm run verify:safari # run of the extension page in the real Safari
 ```
 
 `verify:brave` requires Brave and network access (shortening queries TinyURL).
 It works in `.verify-brave/`, redirects downloads so as never to touch your
 Downloads, runs off-screen and deletes everything on exit.
+
+`verify:chrome` requires Google Chrome. It reads contrast **on the rendered
+document** rather than on the tokens, walks the window with real key presses, and
+probes the context menu as actually installed. It loads the extension through
+`Extensions.loadUnpacked`: Chrome 153 ignores `--load-extension` and then starts
+without a word on an empty profile. The written record lives in
+[`docs/verification-chrome.md`](docs/verification-chrome.md).
 
 `verify:safari` requires Safari and `safaridriver`. There is no isolated profile
 for Safari: the script drives the real Safari, which is why it modifies no
@@ -795,7 +803,7 @@ exists in French and English. Before opening a pull request:
 
 ```bash
 npm install
-npm run test:all   # 688 JavaScript tests + 104 Swift tests
+npm run test:all   # 704 JavaScript tests + 104 Swift tests
 ```
 
 The repository conventions — a core with no DOM and no implicit network, zero

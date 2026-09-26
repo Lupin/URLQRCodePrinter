@@ -28,7 +28,14 @@ import { t } from './i18n.js';
 /** Origines reconnues. Toute autre valeur est ramenée à 'manual'. */
 export const SOURCES = ['context-menu', 'toolbar', 'manual', 'import', 'share'];
 
-const DEFAULT_TITLE_MAX = 300;
+/**
+ * Longueur maximale d'un titre conservé.
+ *
+ * Exporté : le champ de saisie du titre, dans la fenêtre de l'extension, doit
+ * porter la même borne. Une seconde valeur écrite dans le HTML finirait par
+ * diverger, et la saisie se ferait couper sans que rien ne l'annonce.
+ */
+export const DEFAULT_TITLE_MAX = 300;
 
 /**
  * Génère un identifiant unique. `crypto.randomUUID` existe dans tous les

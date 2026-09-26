@@ -5,6 +5,9 @@
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { dirname, join, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 import {
   MENU_IDS,
@@ -177,12 +180,16 @@ test('captureFromTab refuse une page interne du navigateur', () => {
 // l'ajout au clic droit ne se fait pas tout le temps ; en entrant dans la
 // vidéo, il marche toujours ».
 //
-// Ces tests ne corrigent rien : ils fixent ce que le code fait aujourd'hui,
-// pour que la cause soit constatée et non supposée. Chrome remplit
-// `info.linkUrl` dès que le clic a lieu **sur un lien**, quel que soit l'item
-// de menu choisi — or l'accueil et les pages de chaîne sont des grilles de
-// vignettes, donc des liens. Une page de vidéo, elle, se clique dans le vide.
-// Deux gestes identiques pour l'utilisateur, deux enregistrements différents.
+// La cause est dans la façon dont Chrome remplit `info` : `linkUrl` est
+// renseigné **dès que le clic tombe sur un lien, quel que soit l'item ensuite
+// choisi**. L'accueil et les pages de chaîne sont des grilles de vignettes,
+// donc des liens ; une page de vidéo se clique dans le vide. L'ancienne version
+// donnait la priorité au lien visé, si bien que « Ajouter cette page »
+// enregistrait la vidéo et jamais la page — d'où l'impression que l'ajout
+// n'avait pas eu lieu.
+//
+// Ces tests fixent la règle qui remplace l'heuristique : **l'item choisi
+// commande**.
 // ---------------------------------------------------------------------------
 
 /** Ce que Chrome fournit quand le clic tombe sur une vignette de l'accueil. */
@@ -192,49 +199,63 @@ const CLIC_SUR_VIGNETTE = {
   linkUrl: 'https://www.youtube.com/watch?v=abc123&list=PL1&index=2',
 };
 
-test('sur une grille de vignettes, « ajouter cette page » enregistre la vignette', () => {
+test('« Ajouter cette page » enregistre la page, même cliqué sur une vignette', () => {
   const capture = captureFromClick(CLIC_SUR_VIGNETTE, { title: 'YouTube' });
-  // Le titre de la page est écarté au profit du domaine : c'est la règle du
-  // module pour un lien, et elle est raisonnable. Ce qui ne l'est pas, c'est
-  // que l'utilisateur ait demandé la page.
+  assert.equal(capture.url, 'https://www.youtube.com/');
+  assert.equal(capture.title, 'YouTube');
+});
+
+test('« Ajouter ce lien » enregistre bien la vignette visée', () => {
+  const capture = captureFromClick({ ...CLIC_SUR_VIGNETTE, menuItemId: MENU_IDS.link }, {
+    title: 'YouTube',
+  });
   assert.equal(capture.url, 'https://www.youtube.com/watch?v=abc123&list=PL1&index=2');
   assert.equal(capture.title, 'youtube.com');
-  assert.notEqual(capture.url, 'https://www.youtube.com/');
 });
 
-test('sur une page de vidéo, le même item enregistre bien la page et son titre', () => {
-  const capture = captureFromClick(
-    { menuItemId: MENU_IDS.page, pageUrl: 'https://www.youtube.com/watch?v=abc123' },
-    { title: 'Ma vidéo - YouTube' },
-  );
-  assert.equal(capture.url, 'https://www.youtube.com/watch?v=abc123');
-  assert.equal(capture.title, 'Ma vidéo - YouTube');
+test('les deux items donnent deux entrées distinctes, et non la même', () => {
+  const page = captureFromClick(CLIC_SUR_VIGNETTE, { title: 'YouTube' });
+  const lien = captureFromClick({ ...CLIC_SUR_VIGNETTE, menuItemId: MENU_IDS.link }, {
+    title: 'YouTube',
+  });
+  assert.notEqual(page.url, lien.url);
+  assert.equal(page.title, 'YouTube');
+  assert.equal(lien.title, 'youtube.com');
 });
 
-test('les deux gestes ne produisent pas la même entrée', () => {
-  const vignette = captureFromClick(CLIC_SUR_VIGNETTE, { title: 'YouTube' });
-  const page = captureFromClick(
-    { menuItemId: MENU_IDS.page, pageUrl: 'https://www.youtube.com/watch?v=abc123' },
-    { title: 'Ma vidéo - YouTube' },
-  );
-  // Même vidéo, deux entrées : l'une porte le titre, l'autre le domaine, et
-  // leurs URL diffèrent par les paramètres de playlist.
-  assert.equal(vignette.url === page.url, false);
-  assert.equal(vignette.title === page.title, false);
+test('« Ajouter cette page » refuse une page interne du navigateur', () => {
+  // La page n'est pas enregistrable : mieux vaut ne rien faire que d'enregistrer
+  // la vidéo visée à sa place, ce que faisait la version précédente.
+  assert.equal(captureFromClick({
+    menuItemId: MENU_IDS.page,
+    pageUrl: 'chrome://extensions',
+    linkUrl: 'https://exemple.fr/une-video',
+  }, { title: 'Extensions' }), null);
 });
 
-test("l'ajout répété depuis l'accueil donne des URL différentes selon le lien visé", () => {
-  // Chaque vignette de l'accueil mène à une vidéo différente : ajouter « la
-  // page d'accueil » deux fois de suite depuis deux vignettes produit donc deux
-  // entrées, sans que rien ne signale que la page d'accueil n'a jamais été
-  // enregistrée.
-  const une = captureFromClick({ ...CLIC_SUR_VIGNETTE, linkUrl: 'https://www.youtube.com/watch?v=aaa' }, {});
-  const deux = captureFromClick({ ...CLIC_SUR_VIGNETTE, linkUrl: 'https://www.youtube.com/watch?v=bbb' }, {});
-  assert.notEqual(une.url, deux.url);
+test("« Ajouter ce lien » retombe sur la page si le lien est inexploitable", () => {
+  const capture = captureFromClick({
+    menuItemId: MENU_IDS.link,
+    pageUrl: 'https://exemple.fr/page',
+    linkUrl: 'javascript:void(0)',
+  }, { title: 'Une page' });
+  assert.equal(capture.url, 'https://exemple.fr/page');
+  assert.equal(capture.title, 'Une page');
+});
+
+test("un item inconnu garde l'heuristique du plus précis au plus général", () => {
+  // Safari, ou un item ajouté plus tard : le lien visé reste prioritaire.
+  const capture = captureFromClick({
+    menuItemId: 'un-item-inconnu',
+    pageUrl: 'https://exemple.fr/page',
+    linkUrl: 'https://exemple.fr/cible',
+  }, { title: 'Une page' });
+  assert.equal(capture.url, 'https://exemple.fr/cible');
 });
 
 test("l'accueil de YouTube se normalise sans barre oblique finale", () => {
-  // Conséquence : réessayer d'ajouter l'accueil est un doublon, donc silencieux.
+  // Deux ajouts successifs de l'accueil sont donc un doublon, et l'accueil ne
+  // s'enregistre qu'une fois.
   const capture = captureFromClick(
     { menuItemId: MENU_IDS.page, pageUrl: 'https://www.youtube.com/' },
     { title: 'YouTube' },
@@ -257,9 +278,23 @@ test("l'appel de production désactive l'entrée de sélection", () => {
 });
 
 test("l'appel de production ne crée ni séparateur ni entrée « ouvrir »", () => {
+  // La fiche publiée sur le Chrome Web Store décrit trois entrées d'ajout, et
+  // ne mentionne ni séparateur ni « Ouvrir URLQRCodePrinter ». En créer une de
+  // plus rouvrirait l'écart entre la fiche et le comportement, dans l'autre
+  // sens : on s'en tient donc aux trois entrées annoncées.
   const ids = buildMenuDefinitions().map((m) => m.id);
   assert.equal(ids.includes(MENU_IDS.openApp), false);
   assert.equal(ids.includes(MENU_IDS.separator), false);
+});
+
+test("l'installation active l'entrée de sélection", () => {
+  // `installMenus` l'appelait sans argument, si bien que l'entrée naissait
+  // `enabled: false` : l'utilisateur voyait une ligne grisée, alors que la
+  // justification de permission publiée annonce une entrée « Add the selected
+  // text » parfaitement fonctionnelle.
+  const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+  const worker = readFileSync(join(ROOT, 'src', 'extension-src', 'background.js'), 'utf8');
+  assert.match(worker, /buildMenuDefinitions\(\{ includeSelection: true \}\)/);
 });
 
 // ---------------------------------------------------------------------------

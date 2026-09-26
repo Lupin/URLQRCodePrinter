@@ -50,9 +50,10 @@ that go into the exports:
 - **Note** — free text, visible under the row and carried into the printed table
   if you check "Show notes" (« Afficher les notes »).
 
-Enter saves, Escape cancels. These three fields appear in the CSV, the Markdown
-and the workbook — and only if they have content, so as not to add empty
-columns. Tags are not printed on labels: they classify the collection.
+**Save** and **Cancel** close the form, and the shortcuts still work: Enter
+saves, Escape cancels. These three fields appear in the CSV, the Markdown and the
+workbook — and only if they have content, so as not to add empty columns. Tags
+are not printed on labels: they classify the collection.
 
 URLs are normalized on entry: `https://` added if missing, fragment removed,
 campaign parameters (`utm_*`, `fbclid`, `gclid`…) stripped — they make the QR

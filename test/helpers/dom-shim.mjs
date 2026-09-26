@@ -101,6 +101,11 @@ function createElement(tagName) {
       return this.attributes[name] ?? null;
     },
     querySelectorAll: () => [],
+    // Le vrai DOM sait chercher un descendant : la fenêtre s'en sert pour ne pas
+    // ajouter deux fois l'avertissement de nouvel onglet au lien du pied. Un
+    // substitut qui l'omettrait ferait échouer le démarrage au lieu de tester
+    // ce qu'on veut tester.
+    querySelector: () => null,
     click() {},
     select() {},
     getContext: () => createContext2D(),

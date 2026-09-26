@@ -245,10 +245,19 @@ test('aucune couleur de la charte n\'est écrite en dur hors impression', () => 
  * aucun test de rendu ne l'aurait attrapé.
  * @returns {Record<string, string>}
  */
+/**
+ * Les paires fond/texte du badge, lues dans le service worker.
+ *
+ * Chaque état porte désormais **son** texte : un doublon inverse le badge au
+ * lieu de prendre une teinte de plus, et un fond clair appelle un texte sombre.
+ * Une couleur de texte unique ne pouvait pas tenir les deux.
+ */
 function badgeTokens() {
   const table = {};
-  for (const [, nom, valeur] of BACKGROUND.matchAll(/const (BADGE_[A-Z]+) = '(#[0-9a-f]{6})'/g)) {
-    table[nom] = valeur;
+  for (const [, nom, fond, texte] of BACKGROUND.matchAll(
+    /const (BADGE_[A-Z]+) = \{ fond: '(#[0-9a-f]{6})', texte: '(#[0-9a-f]{6})' \}/g,
+  )) {
+    table[nom] = { fond, texte };
   }
   return table;
 }
@@ -265,7 +274,7 @@ test('la pastille est reprise au démarrage du service worker', () => {
 test("la pastille ne garde aucune trace du teal d'origine", () => {
   const badge = badgeTokens();
   for (const [nom, valeur] of Object.entries(badge)) {
-    assert.notEqual(valeur.toLowerCase(), '#21808d', `${nom} est resté au teal`);
+    assert.notEqual(valeur.fond.toLowerCase(), '#21808d', `${nom} est resté au teal`);
   }
 });
 
@@ -275,26 +284,43 @@ test("le compteur de la barre d'outils vient de la palette, pas d'une teinte inv
   // s'y fondrait au lieu de s'en détacher. Ce qu'on vérifie ici, c'est qu'il
   // appartient bien au socle commun et n'a pas été choisi dans son coin.
   const badge = badgeTokens();
-  assert.equal(badge.BADGE_COUNT, themesPopup.clair['ink'].toLowerCase());
+  assert.equal(badge.BADGE_COUNT.fond, themesPopup.clair['ink'].toLowerCase());
 });
 
 test('le texte du badge tient son seuil sur les quatre fonds', () => {
   const badge = badgeTokens();
-  assert.ok(badge.BADGE_TEXT, 'couleur de texte absente');
   for (const nom of ['BADGE_COUNT', 'BADGE_ADDED', 'BADGE_DUPLICATE', 'BADGE_ERROR']) {
-    assert.ok(badge[nom], `${nom} absent`);
-    const rapport = contraste(badge.BADGE_TEXT, badge[nom]);
-    assert.ok(rapport >= 4.5, `${nom} : ${rapport.toFixed(2)}:1 sur ${badge[nom]}, minimum 4,5:1`);
+    const etat = badge[nom];
+    assert.ok(etat, `${nom} absent`);
+    const rapport = contraste(etat.texte, etat.fond);
+    assert.ok(rapport >= 4.5, `${nom} : ${rapport.toFixed(2)}:1 sur ${etat.fond}, minimum 4,5:1`);
   }
 });
 
 test('les trois retours du badge reprennent les teintes du système', () => {
   const badge = badgeTokens();
   // Un ajout réussi reprend le vert de disponibilité de l'application ; un
-  // doublon n'est pas une erreur, il reste neutre ; un échec prend le rouge.
-  assert.equal(badge.BADGE_ADDED, themesApp.clair['ok'].toLowerCase());
-  assert.equal(badge.BADGE_DUPLICATE, themesPopup.clair['ink'].toLowerCase());
-  assert.equal(badge.BADGE_ERROR, themesPopup.clair['danger'].toLowerCase());
+  // échec prend le rouge. Un doublon n'est pas une erreur : il **inverse** le
+  // badge, sur la surface de la fenêtre, au lieu d'ajouter une teinte.
+  assert.equal(badge.BADGE_ADDED.fond, themesApp.clair['ok'].toLowerCase());
+  assert.equal(badge.BADGE_DUPLICATE.fond, themesPopup.clair['surface'].toLowerCase());
+  assert.equal(badge.BADGE_ERROR.fond, themesPopup.clair['danger'].toLowerCase());
+});
+
+test('un doublon se distingue du compteur au repos', () => {
+  // C'est le défaut signalé en usage : le badge d'un doublon avait exactement la
+  // couleur du compteur, si bien que « déjà présent » et « rien ne s'est
+  // passé » étaient indiscernables — un lien déjà collecté passait pour un ajout
+  // raté. Deux signaux les séparent : le fond, et le sens du contraste.
+  const badge = badgeTokens();
+  assert.notEqual(badge.BADGE_DUPLICATE.fond, badge.BADGE_COUNT.fond);
+  assert.notEqual(badge.BADGE_DUPLICATE.texte, badge.BADGE_COUNT.texte);
+});
+
+test('un doublon ne se confond pas avec un échec', () => {
+  // Le rouge est réservé à ce qui a échoué. Un doublon est un résultat.
+  const badge = badgeTokens();
+  assert.notEqual(badge.BADGE_DUPLICATE.fond, badge.BADGE_ERROR.fond);
 });
 
 // ---------------------------------------------------------------------------

@@ -282,6 +282,9 @@ function createElement(tagName = 'div') {
     setAttribute(name, value) { node.attributes[name] = String(value); },
     getAttribute: (name) => node.attributes[name] ?? null,
     querySelectorAll: () => [],
+    // Le vrai DOM sait chercher un descendant : la fenêtre s'en sert pour ne pas
+    // poser deux fois l'avertissement de nouvel onglet sur le lien du pied.
+    querySelector: () => null,
     click: () => fire(node, 'click'),
     select() {},
   };
