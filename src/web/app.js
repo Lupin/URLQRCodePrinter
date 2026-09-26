@@ -3091,9 +3091,13 @@ function renderSingleLabel(link) {
 
   caption.replaceChildren(...faits.map((fait) => ligneDeLegende(fait)));
   if (!verdict.ok) caption.style.color = 'var(--danger)';
-  frame.appendChild(caption);
 
+  // **Hors du cadre.** La légende était posée dans `.preview__page`, le bloc
+  // blanc bordé qui figure l'étiquette : elle semblait faire partie de ce qui
+  // sera imprimé, et le cadre semblait la contenir. C'est une information
+  // **sur** l'aperçu, alors elle vit à côté de lui.
   el.preview.appendChild(frame);
+  el.preview.appendChild(caption);
   updateProfileHint();
 }
 
@@ -3551,7 +3555,10 @@ function renderImagePreview(link) {
   }
   caption.replaceChildren(...faits.map((fait) => ligneDeLegende(fait)));
   if (!plan.fits) caption.style.color = 'var(--danger)';
-  frame.appendChild(caption);
+  // Même règle que pour l'étiquette Niimbot : l'information est **hors** du
+  // cadre qui figure ce qui sera imprimé.
+  el.preview.appendChild(frame);
+  el.preview.appendChild(caption);
 
   el.preview.appendChild(frame);
 }

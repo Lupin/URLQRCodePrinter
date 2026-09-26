@@ -2642,6 +2642,7 @@ async function main() {
       if (!caption || !canvas) return null;
       const faits = [...caption.querySelectorAll('.preview__fact')];
       return {
+        horsDuCadre: !document.querySelector('.preview__page')?.contains(caption),
         lignes: faits.length,
         textes: faits.map((n) => n.textContent.trim()),
         empilees: faits.every((n, i) => i === 0
@@ -2650,11 +2651,46 @@ async function main() {
       };
     })()`);
 
+    // Cocher ou décocher une case de contenu doit **recalculer** ce qui est dit :
+    // le nombre de lignes annoncé, la hauteur de l'étiquette, et le verdict.
+    const casesContenu = await evalApp(`(async () => {
+      const pause = (ms) => new Promise((r) => setTimeout(r, ms));
+      const lire = () => ({
+        police: document.getElementById('label-font-hint').textContent.trim(),
+        contenu: document.getElementById('label-content-hint').textContent.trim(),
+        hauteurCanvas: document.querySelector('#preview canvas')?.height ?? 0,
+        legende: document.querySelector('.preview__caption')?.textContent.trim() ?? '',
+      });
+      const avant = lire();
+      const url = document.getElementById('label-show-url');
+      url.checked = false;
+      url.dispatchEvent(new Event('change', { bubbles: true }));
+      await pause(800);
+      const decoche = lire();
+      url.checked = true;
+      url.dispatchEvent(new Event('change', { bubbles: true }));
+      await pause(800);
+      const recoche = lire();
+      return { avant, decoche, recoche };
+    })()`);
+
+    record(
+      'cocher ou décocher une case de contenu recalcule ce qui est annoncé',
+      casesContenu?.avant?.police !== casesContenu?.decoche?.police
+        && casesContenu?.avant?.contenu !== casesContenu?.decoche?.contenu
+        && casesContenu?.recoche?.police === casesContenu?.avant?.police
+        && casesContenu?.recoche?.contenu === casesContenu?.avant?.contenu,
+      `« ${casesContenu?.avant?.police} » → décoché : « ${casesContenu?.decoche?.police} » `
+        + `→ recoché : « ${casesContenu?.recoche?.police} »`,
+    );
+
     record(
       'la légende met une information par ligne, sous l\'aperçu',
-      (legende?.lignes ?? 0) >= 2 && legende?.empilees === true && (legende?.ecart ?? -1) >= 0,
+      (legende?.lignes ?? 0) >= 2 && legende?.empilees === true && (legende?.ecart ?? -1) >= 0
+        && legende?.horsDuCadre === true,
       `${legende?.lignes} ligne(s), empilées : ${legende?.empilees}, `
-        + `${legende?.ecart} px sous l'aperçu — « ${(legende?.textes ?? []).join(' | ').slice(0, 140)} »`,
+        + `${legende?.ecart} px sous l'aperçu, hors du cadre : ${legende?.horsDuCadre} — `
+        + `« ${(legende?.textes ?? []).join(' | ').slice(0, 140)} »`,
     );
 
     record(
