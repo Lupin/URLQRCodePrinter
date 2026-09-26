@@ -12,6 +12,7 @@
 
 import {
   createLink, hostOf, hasShortUrl, safeHref, resolveTarget, resolveTargets,
+  sortLinks, sortByManualOrder, SORT_MODES,
 } from './core/link.js';
 import { resolveDefaultStore } from './core/store.js';
 import { ELEMENT_IDS } from './element-ids.js';
@@ -464,7 +465,12 @@ function copiesCount() {
 
 /** Recharge la collection depuis le stockage et redessine. */
 async function refresh() {
-  links = await store.list();
+  // **Le tri est une vue**, et la vue commande tout : la liste, le rang imprimé,
+  // les exports et l'impression. Un seul tableau plutôt que deux, parce que deux
+  // ordres coexistant finiraient par se contredire — le CSV dans un ordre et le
+  // « N° » du tableau dans l'autre. Le magasin, lui, garde l'ordre manuel : revenir
+  // à « Ordre manuel » retrouve la collection telle qu'on l'avait laissée.
+  links = sortLinks(await store.list(), preferences.sortMode);
   linkRanks = new Map(links.map((link, index) => [link.id, index + 1]));
   fillLabelLinks();
   updatePrintScope();
@@ -475,7 +481,33 @@ async function refresh() {
   // On conserve les cases cochées qui existent encore.
   selected = new Set([...selected].filter((id) => ids.has(id)));
   renderList();
+  updateSortHint();
   renderPreview();
+}
+
+/**
+ * Déplace un lien d'un cran dans l'ordre **manuel**, et l'enregistre.
+ *
+ * Le premier déplacement attribue un rang à tout le monde : sans cela, il n'y
+ * aurait rien à échanger, puisque aucun lien n'en porte encore. Les rangs
+ * partent de l'ordre actuellement affiché — qui est l'ordre manuel, puisque les
+ * flèches n'existent qu'en mode manuel.
+ *
+ * @param {string} id
+ * @param {number} delta -1 vers le haut, +1 vers le bas.
+ * @returns {Promise<void>}
+ */
+async function moveLink(id, delta) {
+  const ordre = sortByManualOrder(links);
+  const index = ordre.findIndex((link) => link.id === id);
+  const cible = index + delta;
+  if (index === -1 || cible < 0 || cible >= ordre.length) return;
+
+  const suite = [...ordre];
+  [suite[index], suite[cible]] = [suite[cible], suite[index]];
+
+  await store.putMany(suite.map((link, rang) => ({ ...link, order: rang })));
+  await refresh();
 }
 
 /** Affiche la liste, filtrée par la recherche. */
@@ -757,6 +789,25 @@ function renderLink(link) {
   rank.textContent = String(linkRanks.get(link.id) ?? '');
   rank.title = t('Rang dans la collection, celui du tableau imprimé');
 
+  // Les flèches n'existent qu'en **ordre manuel**. On ne réordonne pas une liste
+  // triée : le déplacement serait annulé au rendu suivant, et l'utilisateur
+  // croirait à une panne. Le libellé du tri le dit, plutôt que de laisser des
+  // boutons inertes.
+  if (preferences.sortMode === 'manual' && linkRanks.size > 1) {
+    const up = button('▲', 'link__move', () => moveLink(link.id, -1));
+    up.setAttribute('aria-label', t('Déplacer {title} vers le haut', { title: link.title || link.url }));
+    up.title = t('Monter');
+    up.disabled = rank.textContent === '1';
+
+    const down = button('▼', 'link__move', () => moveLink(link.id, 1));
+    down.setAttribute('aria-label', t('Déplacer {title} vers le bas', { title: link.title || link.url }));
+    down.title = t('Descendre');
+    down.disabled = rank.textContent === String(linkRanks.size);
+
+    item.append(check, rank, body, up, down, linkEditor(link), remove);
+    return item;
+  }
+
   item.append(check, rank, body, linkEditor(link), remove);
   return item;
 }
@@ -769,6 +820,40 @@ function renderLink(link) {
  * rien » alors que c'est « tout imprimer ». On l'écrit donc en toutes lettres,
  * et le bouton d'impression rappelle la portée.
  */
+/**
+ * Explique ce que le tri fait, et ce qu'il empêche.
+ *
+ * Deux choses ne se devinent pas : le tri **renumérote** le tableau imprimé — le
+ * « N° » sert à retrouver la ligne dans la liste qu'on a sous les yeux — et il
+ * fait disparaître les flèches de déplacement, parce qu'on ne réordonne pas une
+ * liste triée.
+ */
+function updateSortHint() {
+  if (!el.sortHint) return;
+  if (preferences.sortMode === 'manual') {
+    el.sortHint.textContent = links.length > 1
+      ? t('Les flèches déplacent un lien dans la collection, et le tableau imprimé suit cet ordre.')
+      : '';
+    return;
+  }
+  el.sortHint.textContent = t(
+    "Le tri range la liste et renumérote le tableau imprimé. Les flèches n'apparaissent qu'en ordre manuel : on ne réordonne pas une liste triée.",
+  );
+}
+
+/**
+ * Propose les tris, en un seul groupe : ils répondent tous à la même question.
+ */
+function fillSortModes() {
+  for (const mode of SORT_MODES) {
+    const option = document.createElement('option');
+    option.value = mode.id;
+    option.textContent = t(mode.label);
+    el.sortMode.appendChild(option);
+  }
+  el.sortMode.value = preferences.sortMode;
+}
+
 function updateSelectionHint() {
   // La case maîtresse reflète l'état de la liste : cochée si tout l'est,
   // indéterminée si une partie seulement. C'est ce qui remplace avantageusement
@@ -3616,6 +3701,12 @@ el.addForm.addEventListener('submit', (event) => {
 
 el.search.addEventListener('input', renderList);
 
+el.sortMode.addEventListener('change', async () => {
+  preferences = settings.save({ sortMode: el.sortMode.value });
+  await refresh();
+  updateSortHint();
+});
+
 el.collectionName.addEventListener('input', () => {
   applyCollectionName();
   // Enregistré à la volée : le nom se retape rarement, mais le perdre serait
@@ -4142,7 +4233,16 @@ fillLabelChoices();
 
 // Préférences retenues : avant le premier rendu, pour éviter un aller-retour
 // visuel entre la valeur par défaut et celle de l'utilisateur.
-const preferences = settings.load();
+/**
+ * Les préférences courantes, relues après chaque écriture.
+ *
+ * `let` et non `const` : le tri change **en cours de session**, et tout ce qui
+ * dépend de lui — l'ordre de la liste, la présence des flèches, la phrase sous le
+ * sélecteur — doit le voir changer. Les autres réglages ne sont lus qu'au
+ * chargement ou au moment de leur usage, d'où un seul objet réaffecté plutôt
+ * qu'une relecture du stockage à chaque ligne.
+ */
+let preferences = settings.load();
 el.shortener.value = preferences.shortener;
 el.qrTarget.value = preferences.targetMode;
 // Le nom par défaut suit la langue ; un nom saisi par l'utilisateur, non.
@@ -4152,6 +4252,7 @@ el.collectionName.value = preferences.collectionName === DEFAULT_SETTINGS.collec
 // Une note vide reste vide : elle n'a pas de valeur par défaut à traduire.
 el.collectionNote.value = preferences.collectionNote;
 applyCollectionName();
+fillSortModes();
 updateDateHint();
 
 reportBluetoothSupport();

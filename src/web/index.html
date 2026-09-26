@@ -80,7 +80,15 @@
       <div class="toolbar">
         <label class="sr-only" for="search" data-i18n="Rechercher">Rechercher</label>
         <input id="search" class="input input--compact" type="search" placeholder="Rechercher…" data-i18n-placeholder="Rechercher…">
+        <!-- Le tri est une **vue** : rien n'est écrit, et revenir à l'ordre
+             manuel retrouve la collection telle qu'elle était. Il est donc à
+             côté de la recherche, qui est l'autre façon de regarder la liste. -->
+        <label class="field field--compact">
+          <span class="field__label" data-i18n="Trier">Trier</span>
+          <select id="sort-mode" class="input input--compact"></select>
+        </label>
       </div>
+      <p id="sort-hint" class="hint hint--tight"></p>
 
       <!-- Raccourcissement : facultatif, jamais automatique.
            Le titre porte l'action, le libellé du champ porte le réglage. Ils

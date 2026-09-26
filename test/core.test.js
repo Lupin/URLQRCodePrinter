@@ -19,6 +19,9 @@ import {
   sourceHost,
   resolveTarget,
   resolveTargets,
+  sortLinks,
+  sortByManualOrder,
+  isSortMode,
 } from '../src/core/link.js';
 
 import {
@@ -502,4 +505,84 @@ test('le CSV ignore la note, faute de ligne où la mettre', () => {
   // l'ensemble. La forcer dans une colonne la répéterait à chaque ligne.
   const csv = toCsv([createLink({ url: 'https://e.com/a' }, { now: T0 })]);
   assert.ok(!csv.includes('note'), 'la note s\'est glissée dans le CSV');
+});
+
+// ---------------------------------------------------------------------------
+// Ordre manuel et tris
+//
+// Le tri est une **vue** : rien n'est écrit, et revenir à l'ordre manuel retrouve
+// la collection telle qu'elle était. L'ordre manuel, lui, n'existe qu'à partir du
+// moment où quelqu'un réordonne — avant, la collection suit la date, comme avant.
+// ---------------------------------------------------------------------------
+
+const LIENS = [
+  createLink({ id: 'a', url: 'https://zoo.fr/1', title: 'Zèbre' }, { now: 300 }),
+  createLink({ id: 'b', url: 'https://exemple.fr/b', title: 'article 10' }, { now: 200 }),
+  createLink({ id: 'c', url: 'https://exemple.fr/a', title: 'article 2', tags: ['veille'] }, { now: 100 }),
+];
+
+const ordre = (liste) => liste.map((l) => l.id).join('');
+
+test("sans rang explicite, la collection suit la date, comme avant", () => {
+  assert.equal(ordre(sortByManualOrder(LIENS)), 'abc');
+  assert.equal(ordre(sortLinks(LIENS, 'manual')), 'abc');
+});
+
+test('un rang explicite passe devant, et les autres suivent par date', () => {
+  // Pas de migration : seuls les liens effectivement déplacés portent un rang.
+  const melange = [{ ...LIENS[0], order: 5 }, { ...LIENS[1], order: 1 }, LIENS[2]];
+  assert.equal(ordre(sortByManualOrder(melange)), 'bac');
+});
+
+test('un rang nul compte comme un rang, et non comme une absence', () => {
+  // `undefined` et `0` ne sont pas la même chose : le premier n'a jamais été
+  // déplacé, le second est le premier de la collection.
+  const avecZero = [{ ...LIENS[0], order: 0 }, LIENS[1]];
+  assert.equal(ordre(sortByManualOrder(avecZero)), 'ab');
+});
+
+test('le tri par titre ignore la casse, les accents et le rang des nombres', () => {
+  // « article 2 » avant « article 10 » : une comparaison de chaînes les
+  // inverserait, et c'est la première chose qu'on remarque dans une liste.
+  assert.equal(ordre(sortLinks(LIENS, 'title-asc')), 'cba');
+  assert.equal(ordre(sortLinks(LIENS, 'title-desc')), 'abc');
+});
+
+test('le tri par domaine range par hôte, dans les deux sens', () => {
+  // Deux liens du même domaine gardent leur ordre manuel entre eux : c'est le
+  // départage, et il évite qu'ils changent de place à chaque rendu.
+  assert.equal(ordre(sortLinks(LIENS, 'domain-asc')), 'bca');
+  assert.equal(ordre(sortLinks(LIENS, 'domain-desc')), 'abc');
+});
+
+test('le tri par tag met les liens sans tag à part, jamais en tête', () => {
+  // Une chaîne vide se comparerait avant « veille » : un lien sans tag ouvrirait
+  // alors la liste triée par tag, ce qui n'a aucun sens.
+  assert.equal(ordre(sortLinks(LIENS, 'tag-asc')), 'cab');
+  assert.equal(ordre(sortLinks(LIENS, 'tag-desc')), 'abc');
+});
+
+test('un tri inconnu retombe sur l\'ordre manuel', () => {
+  assert.equal(ordre(sortLinks(LIENS, 'par-la-couleur')), 'abc');
+  assert.equal(isSortMode('par-la-couleur'), false);
+  assert.equal(isSortMode('title-asc'), true);
+});
+
+test('le tri ne modifie pas la collection reçue', () => {
+  // C'est une vue : si elle réordonnait le tableau reçu, le magasin perdrait son
+  // ordre manuel au premier tri.
+  const original = LIENS.map((l) => l.id);
+  sortLinks(LIENS, 'title-desc');
+  assert.deepEqual(LIENS.map((l) => l.id), original);
+});
+
+test('deux clés égales gardent leur ordre manuel', () => {
+  // Sans départage, deux liens de même titre changeraient de place à chaque
+  // rendu, et la liste paraîtrait instable sans raison.
+  const jumeaux = [
+    createLink({ id: 'x', url: 'https://a.fr/1', title: 'Même' }, { now: 1 }),
+    createLink({ id: 'y', url: 'https://a.fr/2', title: 'Même' }, { now: 2 }),
+  ];
+  assert.equal(ordre(sortLinks(jumeaux, 'title-asc')), 'yx');
+  assert.equal(ordre(sortLinks(jumeaux, 'title-asc')), 'yx');
 });

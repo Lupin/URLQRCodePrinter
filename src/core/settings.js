@@ -14,7 +14,7 @@
  * démarrer.
  */
 
-import { TARGET_MODES } from './link.js';
+import { TARGET_MODES, isSortMode } from './link.js';
 import { DATE_MODES } from './exporters.js';
 import { DEFAULT_SHORTENER, findShortener } from './shorten.js';
 
@@ -43,6 +43,10 @@ export const DEFAULT_SETTINGS = Object.freeze({
   // une note inventée serait pire qu'une absence.
   collectionNote: '',
   dateMode: 'none',
+  // L'ordre manuel par défaut : une collection qu'on n'a pas réordonnée suit la
+  // date, et un tri choisi par le programme serait une décision qu'on n'a pas
+  // prise.
+  sortMode: 'manual',
 });
 
 /**
@@ -53,7 +57,8 @@ export const DEFAULT_SETTINGS = Object.freeze({
  *
  * @param {unknown} value
  * @returns {{ shortener: string, targetMode: 'original'|'short',
- *   collectionName: string, collectionNote: string, dateMode: string }}
+ *   collectionName: string, collectionNote: string, dateMode: string,
+ *   sortMode: string }}
  */
 export function sanitizeSettings(value) {
   const source = value && typeof value === 'object' ? value : {};
@@ -80,7 +85,11 @@ export function sanitizeSettings(value) {
   const rawNote = typeof source.collectionNote === 'string' ? source.collectionNote.trim() : '';
   const collectionNote = rawNote.slice(0, COLLECTION_NOTE_MAX);
 
-  return { shortener, targetMode, collectionName, collectionNote, dateMode };
+  // Un tri inconnu retombe sur l'ordre manuel : mieux vaut une liste dans son
+  // ordre naturel qu'un tri que personne n'a demandé.
+  const sortMode = isSortMode(source.sortMode) ? source.sortMode : DEFAULT_SETTINGS.sortMode;
+
+  return { shortener, targetMode, collectionName, collectionNote, dateMode, sortMode };
 }
 
 /**

@@ -1301,6 +1301,85 @@ async function main() {
         + `(${rapportExporte?.etiquetteMm} sur ${rapportExporte?.largeurPageMm})`,
     );
 
+    // --- Le tri et le déplacement -----------------------------------------
+    //
+    // Le tri est une **vue** : la liste change, le tableau imprimé se renumérote,
+    // et les flèches de déplacement disparaissent — on ne réordonne pas une liste
+    // triée. C'est ce qui se vérifie ici, dans cet ordre.
+    const tri = await evalApp(`(async () => {
+      const pause = (ms) => new Promise((r) => setTimeout(r, ms));
+      const rangs = () => [...document.querySelectorAll('#list .link__index')]
+        .map((n) => n.textContent.trim());
+      const noms = () => [...document.querySelectorAll('#list .link__title')]
+        .map((n) => n.textContent.trim());
+      const fleches = () => document.querySelectorAll('#list .link__move').length;
+      const select = document.getElementById('sort-mode');
+
+      const indice = () => document.getElementById('sort-hint').textContent.trim();
+      const manuel = { noms: noms(), rangs: rangs(), fleches: fleches(), indice: indice() };
+
+      select.value = 'title-asc';
+      select.dispatchEvent(new Event('change', { bubbles: true }));
+      await pause(800);
+      const parTitre = { noms: noms(), rangs: rangs(), fleches: fleches(), indice: indice() };
+
+      // Les flèches déplacent, en ordre manuel seulement : on y revient d'abord.
+      select.value = 'manual';
+      select.dispatchEvent(new Event('change', { bubbles: true }));
+      await pause(800);
+      const avant = noms();
+      const seconde = document.querySelectorAll('#list .link__move')[0];
+      const versLeBas = document.querySelectorAll('#list .link__move')[1];
+      versLeBas?.click();
+      await pause(900);
+      const apres = noms();
+
+      return {
+        manuel, parTitre, avant, apres,
+        options: [...select.options].map((o) => o.value),
+        secondeExiste: Boolean(seconde),
+      };
+    })()`);
+
+    record(
+      'le sélecteur propose les tris, et l\'ordre manuel par défaut',
+      (tri?.options ?? []).length === 9 && tri.options[0] === 'manual',
+      `${tri?.options?.length} tris : ${(tri?.options ?? []).join(', ')}`,
+    );
+    record(
+      'le tri range la liste et renumérote le tableau imprimé',
+      JSON.stringify(tri?.parTitre?.noms) !== JSON.stringify(tri?.manuel?.noms)
+        && tri?.parTitre?.rangs?.join(',') === '1,2,3',
+      `ordre manuel ${JSON.stringify(tri?.manuel?.noms)} → `
+        + `trié ${JSON.stringify(tri?.parTitre?.noms)}, rangs ${tri?.parTitre?.rangs?.join(',')}`,
+    );
+    record(
+      'les flèches n\'existent qu\'en ordre manuel, et le disent',
+      tri?.manuel?.fleches > 0 && tri?.parTitre?.fleches === 0
+        && /ordre manuel/.test(tri?.parTitre?.indice ?? ''),
+      `${tri?.manuel?.fleches} flèche(s) en manuel, ${tri?.parTitre?.fleches} en trié `
+        + `— « ${tri?.parTitre?.indice?.slice(0, 90)} »`,
+    );
+    record(
+      'une flèche déplace réellement le lien',
+      JSON.stringify(tri?.avant) !== JSON.stringify(tri?.apres),
+      `${JSON.stringify(tri?.avant)} → ${JSON.stringify(tri?.apres)}`,
+    );
+
+    // Remise en état : le parcours qui suit compte sur l'ordre de départ.
+    const ordreInitial = tri?.manuel?.noms ?? [];
+    const ordreCourant = tri?.apres ?? [];
+    if (JSON.stringify(ordreInitial) !== JSON.stringify(ordreCourant)) {
+      await evalApp(`(async () => {
+        const pause = (ms) => new Promise((r) => setTimeout(r, ms));
+        document.querySelectorAll('#list .link__move')[1]?.click();
+        await pause(700);
+        // On remet aussi le premier en place, si le déplacement l'a croisé.
+        const noms = [...document.querySelectorAll('#list .link__title')].map((n) => n.textContent.trim());
+        return noms;
+      })()`);
+    }
+
     // --- La note de collection --------------------------------------------
     //
     // Elle décrit l'ensemble, et doit donc se retrouver partout où l'ensemble est

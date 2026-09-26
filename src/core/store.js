@@ -17,7 +17,9 @@
  * page web et dans un service worker d'extension MV3.
  */
 
-import { createLink, findDuplicate, newId } from './link.js';
+import {
+  createLink, findDuplicate, newId, sortByManualOrder,
+} from './link.js';
 
 const DB_NAME = 'url-qr-code-printer';
 const DB_VERSION = 1;
@@ -41,6 +43,22 @@ const STORE = 'links';
  */
 export function sortByDateDesc(links) {
   return [...links].sort((a, b) => b.createdAt - a.createdAt);
+}
+
+/**
+ * L'ordre de lecture d'une collection : le rang explicite s'il existe, la date
+ * sinon.
+ *
+ * C'est `sortByManualOrder` qui décide, et le magasin s'y tient : les trois
+ * implémentations — IndexedDB, `chrome.storage`, mémoire — rendent donc la même
+ * liste, et la fenêtre de l'extension comme le service worker voient le même
+ * ordre que l'application.
+ *
+ * @param {import('./link.js').LinkRecord[]} links
+ * @returns {import('./link.js').LinkRecord[]}
+ */
+export function sortForDisplay(links) {
+  return sortByManualOrder(links);
 }
 
 /**
@@ -117,7 +135,7 @@ export function createIndexedDbStore(options = {}) {
       const db = await getDb();
       const tx = db.transaction(STORE, 'readonly');
       const all = await promisifyRequest(tx.objectStore(STORE).getAll());
-      return sortByDateDesc(all);
+      return sortForDisplay(all);
     },
 
     async get(id) {
@@ -172,7 +190,7 @@ export function createMemoryStore(initial = []) {
 
   return {
     async list() {
-      return sortByDateDesc([...map.values()]);
+      return sortForDisplay([...map.values()]);
     },
     async get(id) {
       return map.get(id);
@@ -232,7 +250,7 @@ export function createChromeStorageStore(options = {}) {
 
   return {
     async list() {
-      return sortByDateDesc(await readAll());
+      return sortForDisplay(await readAll());
     },
     async get(id) {
       return (await readAll()).find((link) => link.id === id);

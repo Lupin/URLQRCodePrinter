@@ -270,6 +270,31 @@ de 3 mm. »
 que *préremplir* les six champs qui suivent ; vous pouvez ensuite les ajuster
 librement, et la taille des étiquettes est recalculée :
 
+**Réordonner, ou trier.** Deux choses différentes, au même endroit.
+
+Les flèches **▲ ▼** de chaque ligne déplacent un lien dans la collection. Le rang
+affiché à gauche du titre — celui du tableau imprimé — suit, et l'ordre est
+mémorisé : on le retrouve à la réouverture. Ces flèches n'apparaissent qu'en
+**ordre manuel**.
+
+Le sélecteur **« Trier »**, à côté de la recherche, propose neuf tris : l'ordre
+manuel, le titre, le domaine et le tag — chacun ascendant ou descendant — et la
+date dans les deux sens. Un lien sans tag se range **après** ceux qui en ont un,
+et non en tête comme le ferait une chaîne vide.
+
+> **Le tri est une vue, et il renumérote.** Rien n'est écrit : revenir à « Ordre
+> manuel » retrouve la collection telle qu'on l'avait laissée. Mais le tri change
+> l'ordre affiché, donc le **« N° » du tableau imprimé** le suit — ce numéro sert
+> à retrouver la ligne dans la liste qu'on a sous les yeux, et un numéro qui
+> désignerait une autre ligne ne servirait à rien. Les flèches disparaissent
+> pendant un tri : un déplacement y serait annulé au rendu suivant, et
+> l'utilisateur croirait à une panne.
+
+Les tris de texte ignorent la casse, les accents et le rang des nombres :
+« article 2 » précède « article 10 ». Et deux liens de même clé — même titre, même
+domaine, même tag — gardent leur ordre manuel entre eux, sans quoi ils
+changeraient de place à chaque rendu.
+
 **Sélectionner ce qu'on imprime.** Le groupe **Sélection** (« Tout cocher » /
 « Tout décocher ») agit sur les cases à gauche de chaque ligne, pas sur la
 recherche. La phrase sous les boutons dit toujours ce qui partira à l'impression,

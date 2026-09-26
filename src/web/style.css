@@ -371,7 +371,11 @@ body {
 
 .field-error { margin: 0; color: var(--danger); font-size: 12px; }
 
-.toolbar { display: flex; gap: 6px; }
+.toolbar { display: flex; align-items: flex-end; gap: 6px; }
+/* La recherche prend la place, le tri garde la sienne : un tri comprimé
+   afficherait « Titre, A → … » et ne dirait plus lequel. */
+.toolbar .input[type="search"] { flex: 1; min-width: 0; }
+.toolbar .field--compact { flex: none; max-width: 45%; }
 
 /* En-tête de la liste : la case qui commande tout, et la phrase qui dit ce qui
    partira à l'impression. */
@@ -630,6 +634,27 @@ body {
 }
 
 .link__remove:hover { background: var(--surface-2); color: var(--danger); }
+
+/* Les flèches de déplacement. Elles n'existent qu'en ordre manuel : un tri actif
+   les fait disparaître, parce qu'un déplacement serait annulé au rendu suivant.
+   24 × 24 px, la cible minimale : deux flèches voisines ne peuvent pas se
+   contenter de l'exception d'espacement, leurs cercles de 24 px se recoupant. */
+.link__move {
+  flex: none;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--text-2);
+  cursor: pointer;
+  font-size: 9px;
+  line-height: 1;
+}
+
+.link__move:not(:disabled):hover { background: var(--surface-2); color: var(--text); }
+.link__move:disabled { color: var(--text-3); cursor: default; }
 
 .empty {
   margin: 8px 0;

@@ -270,6 +270,29 @@ of top margin, and the current margin is 3 mm."
 *pre-fills* the six fields that follow; you can then adjust them freely, and the
 label size is recomputed:
 
+**Reordering, or sorting.** Two different things, in the same place.
+
+The **▲ ▼** arrows on each row move a link within the collection. The rank shown
+to the left of the title — the printed table's — follows, and the order is
+remembered: you find it again when you reopen. Those arrows appear only in
+**manual order**.
+
+The **Sort** (« Trier ») selector, next to the search box, offers nine orders:
+manual, title, domain and tag — each ascending or descending — plus the date both
+ways. A link with no tag sorts **after** those that have one, rather than first as
+an empty string would.
+
+> **Sorting is a view, and it renumbers.** Nothing is written: returning to
+> "Manual order" finds the collection as you left it. But sorting changes the
+> displayed order, so the **printed table's "N°" follows it** — that number exists
+> to find the row in the list in front of you, and a number pointing at another
+> row would be useless. The arrows disappear during a sort: a move would be undone
+> on the next render, and the user would think something was broken.
+
+Text sorts ignore case, accents and the rank of numbers: "article 2" comes before
+"article 10". And two links with the same key — same title, domain or tag — keep
+their manual order between them, otherwise they would swap places on every render.
+
 **Selecting what gets printed.** The **Selection** (« Sélection ») group
 ("Check all" (« Tout cocher ») / "Uncheck all" (« Tout décocher »)) acts on the
 checkboxes to the left of each row, not on the search. The sentence under the

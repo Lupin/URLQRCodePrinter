@@ -19,6 +19,10 @@ import { t } from './i18n.js';
  * @property {number}   updatedAt Dernière modification (epoch ms).
  * @property {string}   source    Origine : 'context-menu' | 'toolbar' | 'manual' | 'import' | 'share'.
  * @property {string}   favicon   URL du favicon, ou chaîne vide.
+ * @property {number}   [order]   Position voulue dans la collection, ou absente.
+ *   Absente tant que l'utilisateur n'a rien réordonné : la collection suit alors
+ *   la date, comme avant. Un rang explicite est un entier croissant ; les liens
+ *   qui en portent un passent devant ceux qui n'en ont pas.
  * @property {string}   shortUrl  Lien raccourci, ou chaîne vide. N'écrase jamais `url` :
  *   le lien d'origine reste la source de vérité, un service tiers pouvant fermer.
  * @property {string}   shortProvider Identifiant du service qui a produit `shortUrl`.
@@ -211,6 +215,9 @@ export function createLink(input, options = {}) {
     tags: normalizeTags(input.tags),
     createdAt: Number.isFinite(input.createdAt) ? input.createdAt : now,
     updatedAt: now,
+    // Conservé tel quel, et **absent** s'il n'a jamais été posé : `undefined`
+    // n'est pas `0`, et un rang nul compterait comme un rang explicite.
+    ...(Number.isFinite(input.order) ? { order: input.order } : {}),
     source: SOURCES.includes(options.source) ? options.source
       : SOURCES.includes(input.source) ? input.source
       : 'manual',
@@ -221,6 +228,115 @@ export function createLink(input, options = {}) {
       ? input.shortenedAt
       : 0,
   };
+}
+
+/**
+ * L'ordre manuel d'une collection.
+ *
+ * Deux groupes, dans cet ordre : les liens qui portent un rang explicite, par
+ * rang croissant, puis ceux qui n'en portent pas, par date décroissante. Le
+ * second groupe n'existe que tant que personne n'a réordonné — c'est-à-dire
+ * exactement l'ancien comportement, conservé pour qui ne touche à rien.
+ *
+ * Un tri à deux étages plutôt qu'une migration : attribuer un rang à tous les
+ * liens au premier chargement aurait réécrit la collection entière pour un
+ * réglage que l'utilisateur n'a pas demandé.
+ *
+ * @param {import('./link.js').LinkRecord[]} links
+ * @returns {import('./link.js').LinkRecord[]}
+ */
+export function sortByManualOrder(links) {
+  const avec = [];
+  const sans = [];
+  for (const link of links) {
+    if (Number.isFinite(link.order)) avec.push(link);
+    else sans.push(link);
+  }
+  avec.sort((a, b) => a.order - b.order);
+  sans.sort((a, b) => b.createdAt - a.createdAt);
+  return [...avec, ...sans];
+}
+
+/**
+ * Comparaison de texte pour les tris : insensible à la casse et aux accents, et
+ * numérique sur les chiffres, pour que « article 2 » précède « article 10 ».
+ * @param {string} a
+ * @param {string} b
+ * @returns {number}
+ */
+const compareTexte = (a, b) => a.localeCompare(b, 'fr', { sensitivity: 'base', numeric: true });
+
+/**
+ * Les tris proposés. `manual` est le seul qui ne dépend pas du contenu.
+ *
+ * Chaque tri range selon une clé, et **départage par l'ordre manuel** : sans
+ * cela, deux liens de même titre changeraient de place à chaque rendu, et la
+ * liste paraîtrait instable sans raison.
+ */
+export const SORT_MODES = Object.freeze([
+  { id: 'manual', label: 'Ordre manuel' },
+  { id: 'title-asc', label: 'Titre, A → Z' },
+  { id: 'title-desc', label: 'Titre, Z → A' },
+  { id: 'domain-asc', label: 'Domaine, A → Z' },
+  { id: 'domain-desc', label: 'Domaine, Z → A' },
+  { id: 'tag-asc', label: 'Tag, A → Z' },
+  { id: 'tag-desc', label: 'Tag, Z → A' },
+  { id: 'date-desc', label: 'Date, du plus récent' },
+  { id: 'date-asc', label: 'Date, du plus ancien' },
+]);
+
+/** L'identifiant de tri est-il connu ? */
+export function isSortMode(value) {
+  return SORT_MODES.some((mode) => mode.id === value);
+}
+
+/**
+ * Range une collection selon le tri demandé.
+ *
+ * Le tri est une **vue** : rien n'est écrit, et revenir à « Ordre manuel »
+ * retrouve la collection telle qu'elle était. C'est ce qui permet d'essayer un
+ * tri sans le subir.
+ *
+ * @param {import('./link.js').LinkRecord[]} links
+ * @param {string} [mode]
+ * @returns {import('./link.js').LinkRecord[]}
+ */
+export function sortLinks(links, mode = 'manual') {
+  const base = sortByManualOrder(links);
+  if (mode === 'manual' || !isSortMode(mode)) return base;
+
+  const rang = new Map(base.map((link, index) => [link.id, index]));
+  const cle = (link) => {
+    switch (mode) {
+      case 'title-asc':
+      case 'title-desc':
+        return (link.title || link.url || '').trim();
+      case 'domain-asc':
+      case 'domain-desc':
+        return hostOf(link.url);
+      case 'tag-asc':
+      case 'tag-desc':
+        // Un lien sans tag n'a pas de clé : il se range à part, et non en tête
+        // comme le ferait une chaîne vide comparée avant les autres.
+        return link.tags.length > 0 ? link.tags[0] : '\uffff';
+      default:
+        return '';
+    }
+  };
+
+  // Les tris de texte portent leur sens dans leur suffixe ; la date est traitée
+  // à part, parce qu'elle ne se compare pas comme du texte.
+  const signe = mode.endsWith('-desc') ? -1 : 1;
+
+  return [...base].sort((a, b) => {
+    if (mode === 'date-asc' || mode === 'date-desc') {
+      const ecart = mode === 'date-asc' ? a.createdAt - b.createdAt : b.createdAt - a.createdAt;
+      return ecart !== 0 ? ecart : rang.get(a.id) - rang.get(b.id);
+    }
+    const ecart = compareTexte(cle(a), cle(b));
+    if (ecart !== 0) return signe * ecart;
+    return rang.get(a.id) - rang.get(b.id);
+  });
 }
 
 /**
