@@ -808,6 +808,12 @@ what needs to be flipped.
   models in the catalogue (M2, M3) have not been exercised on hardware.
 - **Safari** does not implement Web Bluetooth. The Safari extension works for
   collecting, not for direct printing: use the image folder.
+- **Brother is not supported for direct printing.** The Brother formats listed
+  above are those of their **media** — millimetre dimensions for the image
+  folder, nothing more. Brother label printers go through a Bluetooth serial
+  profile that Web Bluetooth cannot reach; the study is in
+  `docs/faisabilite-brother-bluetooth.fr.md` (French), and it comes before any
+  code.
 - **Avery and Niimbot are trademarks of their respective owners.** The
   dimensions reproduced are those published for those references; this project
   is neither affiliated with nor endorsed by those manufacturers.

@@ -21,6 +21,7 @@ are welcome — see [CONTRIBUTING.md](../CONTRIBUTING.md).
 | Document | Language | Contents |
 |---|---|---|
 | [protocole-niimbot-ble.fr.md](protocole-niimbot-ble.fr.md) | FR | Niimbot BLE protocol: UUIDs, frame format, per-model print sequences, Web Bluetooth and CoreBluetooth constraints, and what still needs to be verified on real hardware |
+| [faisabilite-brother-bluetooth.fr.md](faisabilite-brother-bluetooth.fr.md) | FR | Brother Bluetooth label printers: which ones a browser can reach, and by which API — the Web Bluetooth GATT limit, the Web Serial RFCOMM path, the one proven BLE model, and what remains to be measured |
 | [preparation-app-store.fr.md](preparation-app-store.fr.md) | FR | App Store submission: what is already compliant, what remains, the regeneration trap, and how to reuse the checklist for other Swift apps |
 | [chrome-web-store.md](chrome-web-store.md) | FR | Chrome Web Store listing: ready-to-paste description, permission justifications, privacy fields, and the in-product consent flow |
 | [site-public.fr.md](site-public.fr.md) | FR | Public site: why the landing page and the app are served separately, how to deploy on Vercel, and what is not verified |

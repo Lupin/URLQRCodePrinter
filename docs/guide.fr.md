@@ -800,6 +800,12 @@ ce booléen qu'il faut basculer.
   matériel.
 - **Safari** n'implémente pas Web Bluetooth. L'extension Safari fonctionne pour
   la collecte, pas pour l'impression directe : utilisez le dossier d'images.
+- **Brother n'est pas pris en charge en impression directe.** Les formats Brother
+  de la liste ci-dessus sont ceux de leurs **consommables** — des dimensions en
+  millimètres pour le dossier d'images, rien de plus. Les étiqueteuses Brother
+  passent par un profil série Bluetooth que Web Bluetooth n'atteint pas ; l'étude
+  est dans `docs/faisabilite-brother-bluetooth.fr.md`, et elle est antérieure à
+  tout code.
 - **Avery et Niimbot sont des marques de leurs propriétaires respectifs.** Les
   cotes reproduites sont celles publiées pour ces références ; ce projet n'est ni
   affilié ni approuvé par ces fabricants.
