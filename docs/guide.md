@@ -306,6 +306,19 @@ It therefore needs **9 mm of top margin**; below that it is not drawn, and the
 sentence under the checkbox says exactly what is missing: "The header needs 9 mm
 of top margin, and the current margin is 3 mm." 
 
+**The same gap both ways.** The **generic** layouts — the ones that copy no
+commercial reference — use the same horizontal and vertical gap, and the same
+margin on every side: on plain paper, rows touching while columns are spaced
+does not cut cleanly. The gap and the margin then follow from the page and the
+grid, and there is only one solution — which exists only if the margin stays
+positive. For `A4 — 3 × 4 grandes étiquettes QR Code (60 × 60 mm)` it would be
+negative: the gap there is equal, the margins cannot be.
+
+The **Avery** and **Zweckform** layouts keep their published figures: on a
+pre-cut sheet the vertical gap is often zero because the rows touch, and
+equalising it would shift the labels relative to the paper. For a commercial
+sheet, pick the reference printed on it.
+
 **A single preset, six values.** The **Layout** (« Disposition ») selector only
 *pre-fills* the six fields that follow; you can then adjust them freely, and the
 label size is recomputed:

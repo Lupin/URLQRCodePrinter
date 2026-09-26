@@ -40,7 +40,19 @@ export const SHEET_GROUPS = Object.freeze([
  * 5,1 mm à droite. Un modèle symétrique perdrait une colonne entière.
  *
  * Les dispositions génériques sont des points de départ géométriquement
- * valides. Les dispositions `avery-*` reproduisent les cotes publiées pour ces
+ * valides, et **leur écart est le même dans les deux sens** : c'est ce qui se
+ * voit sur une planche, et rien ne l'imposait — aucune référence du commerce ne
+ * les définit. L'écart unique et la marge unique se déduisent alors de la page
+ * et de la grille : `n` colonnes de largeur `w`, `r` rangées de hauteur `h`,
+ * `g` d'écart partout et `m` de marge partout donnent
+ * `2g + 2m = W - n·w` et `r·g + 2m = H - r·h` — deux équations, deux inconnues,
+ * une seule solution. Elle n'existe que si la marge reste positive : pour
+ * `a4-qr-3x4` (60 mm de haut, quatre rangées), elle vaut −12 mm, et l'écart y
+ * est donc égal sans que les marges puissent l'être.
+ *
+ * Les dispositions `avery-*`, elles, gardent leurs cotes : sur une planche
+ * prédécoupée, l'écart vertical vaut zéro parce que les rangées se touchent, et
+ * l'égaliser décalerait les étiquettes par rapport au papier. Les dispositions `avery-*` reproduisent les cotes publiées pour ces
  * références : largeur et hauteur d'étiquette, marge haute et gauche, et pas
  * horizontal et vertical. `declaredColumns` et `declaredRows` portent le nombre
  * d'étiquettes annoncé pour cette référence, et servent aux tests, qui le
@@ -65,10 +77,10 @@ export const SHEET_PRESETS = Object.freeze({
     declaredRows: 8,
     labelWidthMm: 63.5,
     labelHeightMm: 33.9,
-    marginXMm: 7.25,
-    marginYMm: 12.9,
-    gapXMm: 2.5,
-    gapYMm: 0,
+    marginXMm: 8.5,
+    marginYMm: 8.5,
+    gapXMm: 1.25,
+    gapYMm: 1.25,
   },
   'a4-2x7': {
     label: 'A4 — 2 × 7 (99,1 × 38,1 mm)',
@@ -78,10 +90,10 @@ export const SHEET_PRESETS = Object.freeze({
     declaredRows: 7,
     labelWidthMm: 99.1,
     labelHeightMm: 38.1,
-    marginXMm: 4.65,
-    marginYMm: 15.15,
-    gapXMm: 2.5,
-    gapYMm: 0,
+    marginXMm: 4.05,
+    marginYMm: 4.05,
+    gapXMm: 3.7,
+    gapYMm: 3.7,
   },
   'a4-4x10': {
     label: 'A4 — 4 × 10 (48 × 25 mm)',
@@ -91,10 +103,10 @@ export const SHEET_PRESETS = Object.freeze({
     declaredRows: 10,
     labelWidthMm: 48,
     labelHeightMm: 25,
-    marginXMm: 6,
-    marginYMm: 23.5,
-    gapXMm: 2,
-    gapYMm: 0,
+    marginXMm: 1.75,
+    marginYMm: 1.75,
+    gapXMm: 4.8,
+    gapYMm: 4.8,
   },
   'a4-qr-3x4': {
     label: 'A4 — 3 × 4 grandes étiquettes QR Code (60 × 60 mm)',
@@ -105,9 +117,9 @@ export const SHEET_PRESETS = Object.freeze({
     labelWidthMm: 60,
     labelHeightMm: 60,
     marginXMm: 10,
-    marginYMm: 28.5,
+    marginYMm: 21,
     gapXMm: 5,
-    gapYMm: 0,
+    gapYMm: 5,
   },
 
   // --- Avery A4 -------------------------------------------------------------

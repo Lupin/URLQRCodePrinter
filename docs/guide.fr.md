@@ -304,6 +304,21 @@ dessous, il n'est pas dessiné et la phrase sous la case dit exactement ce qui
 manque : « L'en-tête a besoin de 9 mm de marge en haut, et la marge actuelle est
 de 3 mm. »
 
+**Le même écart dans les deux sens.** Les dispositions **génériques** — celles
+qui ne reproduisent aucune référence du commerce — ont un écart horizontal égal
+à l'écart vertical, et la même marge de tous les côtés : sur du papier ordinaire,
+des rangées collées et des colonnes espacées ne se découpent pas proprement.
+L'écart et la marge se déduisent alors de la page et de la grille, il n'y a
+qu'une solution — et elle n'existe que si la marge reste positive. Pour
+`A4 — 3 × 4 grandes étiquettes QR Code (60 × 60 mm)`, elle serait négative :
+l'écart y est égal, les marges ne peuvent pas l'être.
+
+Les dispositions **Avery** et **Zweckform**, elles, gardent leurs cotes
+publiées : sur une planche prédécoupée, l'écart vertical vaut souvent zéro parce
+que les rangées se touchent, et l'égaliser décalerait les étiquettes par rapport
+au papier. Pour une planche du commerce, choisissez la référence qui y est
+inscrite.
+
 **Une seule présentation, six valeurs.** Le sélecteur **Disposition** ne fait
 que *préremplir* les six champs qui suivent ; vous pouvez ensuite les ajuster
 librement, et la taille des étiquettes est recalculée :

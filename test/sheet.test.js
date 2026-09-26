@@ -129,6 +129,29 @@ test('chaque préréglage place le nombre d\'étiquettes annoncé', () => {
   }
 });
 
+test('les dispositions génériques ont le même écart dans les deux sens', () => {
+  // Rien ne l'imposait : aucune référence du commerce ne les définit. Un écart
+  // horizontal de 2,5 mm pour zéro vertical donnait des rangées collées et des
+  // colonnes espacées — visible sur une planche, et pénible à découper sur du
+  // papier ordinaire.
+  //
+  // Les dispositions `avery-*` sont **exclues** : leurs cotes sont celles du
+  // papier, où l'écart vertical vaut zéro parce que les rangées se touchent.
+  // L'égaliser décalerait les étiquettes par rapport à la planche prédécoupée.
+  const generiques = Object.entries(SHEET_PRESETS).filter(([, p]) => p.group === 'generic');
+  assert.ok(generiques.length >= 4, 'les dispositions génériques ont disparu');
+  for (const [key, preset] of generiques) {
+    assert.equal(preset.gapXMm, preset.gapYMm, `${key} : écart horizontal et vertical`);
+  }
+  // Et quand la géométrie le permet, la marge aussi est la même partout :
+  // deux équations, deux inconnues, une seule solution.
+  for (const key of ['a4-3x8', 'a4-2x7', 'a4-4x10']) {
+    const preset = SHEET_PRESETS[key];
+    assert.equal(preset.marginXMm, preset.marginYMm, `${key} : marge`);
+    assert.ok(preset.marginYMm > 0, `${key} : une marge positive`);
+  }
+});
+
 test('le décalage d\'impression déplace la grille sans la déformer', () => {
   const base = computeSheet({ count: 24, ...BASE });
   const shifted = computeSheet({ count: 24, ...BASE, offsetXMm: 1.5, offsetYMm: -0.5 });

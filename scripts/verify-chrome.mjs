@@ -1129,7 +1129,7 @@ async function main() {
 
       // Remise en état.
       poser('sheet-header', false);
-      nombre('sheet-margin-y', '12.9');
+      nombre('sheet-margin-y', '8.5');
       await pause(500);
       return { avec, sans };
     })()`);
@@ -1759,7 +1759,7 @@ async function main() {
       tete.checked = false;
       tete.dispatchEvent(new Event('change', { bubbles: true }));
       const marge = document.getElementById('sheet-margin-y');
-      marge.value = '12.9';
+      marge.value = '8.5';
       marge.dispatchEvent(new Event('input', { bubbles: true }));
       marge.dispatchEvent(new Event('change', { bubbles: true }));
       await pause(600);
