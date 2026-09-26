@@ -586,3 +586,62 @@ test('deux clés égales gardent leur ordre manuel', () => {
   assert.equal(ordre(sortLinks(jumeaux, 'title-asc')), 'yx');
   assert.equal(ordre(sortLinks(jumeaux, 'title-asc')), 'yx');
 });
+
+// ---------------------------------------------------------------------------
+// La cible du QR Code, propre à chaque lien
+//
+// Elle était **globale** : un réglage unique décidait, pour toute la collection,
+// si les QR Codes encodaient l'URL collectée ou le lien raccourci. Elle devient
+// une décision par lien, avec le réglage global comme défaut — et l'absence de
+// choix n'est pas un choix.
+// ---------------------------------------------------------------------------
+
+const AVEC_RACCOURCI = () => createLink({
+  url: 'https://exemple.fr/article',
+  shortUrl: 'https://is.gd/abc',
+  shortProvider: 'isgd',
+}, { now: T0 });
+
+test("sans choix par lien, le réglage global décide", () => {
+  assert.equal(resolveTarget(AVEC_RACCOURCI(), 'original').url, 'https://exemple.fr/article');
+  assert.equal(resolveTarget(AVEC_RACCOURCI(), 'short').url, 'https://is.gd/abc');
+});
+
+test('un choix explicite prime sur le réglage global, dans les deux sens', () => {
+  const versRaccourci = { ...AVEC_RACCOURCI(), useShort: true };
+  assert.equal(resolveTarget(versRaccourci, 'original').url, 'https://is.gd/abc');
+
+  const versOriginale = { ...AVEC_RACCOURCI(), useShort: false };
+  assert.equal(resolveTarget(versOriginale, 'short').url, 'https://exemple.fr/article');
+});
+
+test("`false` et l'absence ne veulent pas dire la même chose", () => {
+  // C'est toute la différence entre « j'ai choisi l'URL collectée pour ce lien »
+  // et « je n'ai rien décidé ». Le premier résiste à un changement de réglage
+  // global, le second le suit.
+  const refuse = { ...AVEC_RACCOURCI(), useShort: false };
+  const indifferent = AVEC_RACCOURCI();
+  assert.equal(resolveTarget(refuse, 'short').url, 'https://exemple.fr/article');
+  assert.equal(resolveTarget(indifferent, 'short').url, 'https://is.gd/abc');
+});
+
+test('demander le raccourci sans en avoir un donne l’URL collectée', () => {
+  // On ne peut pas encoder ce qui n'existe pas : le repli est l'URL d'origine,
+  // et `isShort` dit la vérité sur ce qui a été retenu.
+  const sansRaccourci = { ...createLink({ url: 'https://exemple.fr/a' }, { now: T0 }), useShort: true };
+  const cible = resolveTarget(sansRaccourci, 'short');
+  assert.equal(cible.url, 'https://exemple.fr/a');
+  assert.equal(cible.shortUrl, '');
+});
+
+test('un raccourci identique à l’URL d’origine n’est pas un raccourci', () => {
+  const identique = createLink({
+    url: 'https://exemple.fr/a', shortUrl: 'https://exemple.fr/a',
+  }, { now: T0 });
+  assert.equal(resolveTarget({ ...identique, useShort: true }, 'short').url, 'https://exemple.fr/a');
+});
+
+test("l'URL d'origine reste toujours accessible, quel que soit le choix", () => {
+  const cible = resolveTarget({ ...AVEC_RACCOURCI(), useShort: true }, 'short');
+  assert.equal(cible.originalUrl, 'https://exemple.fr/article');
+});

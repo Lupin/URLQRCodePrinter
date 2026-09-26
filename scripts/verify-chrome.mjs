@@ -1522,6 +1522,199 @@ async function main() {
       await pause(600);
     })()`);
 
+    // --- Le raccourcissement, réglé lien par lien -------------------------
+    //
+    // Deux questions, distinctes : **où** se fait le choix, et **ce qu'il
+    // change**. La seconde est la seule qui compte vraiment, et elle ne se
+    // devine pas : on pose donc un raccourci dans le stockage, comme le ferait
+    // un service, plutôt que d'appeler un tiers pendant la vérification.
+    //
+    // La preuve retenue est double, sur le même réglage : la matrice du QR Code
+    // dessinée dans la planche, et le texte imprimé sous ce QR Code. Deux
+    // rendus indépendants qui suivent le même choix ne peuvent pas être un
+    // artefact de mesure.
+    const placeRaccourci = await evalApp(`(() => {
+      const panneauMiseEnPage = document.querySelector('section[aria-labelledby="layout-title"]');
+      const panneauCollection = document.querySelector('section[aria-labelledby="collection-title"]');
+      const bloc = document.getElementById('shortener');
+      const onglets = document.querySelector('.tabs');
+      const avant = bloc && onglets
+        ? Boolean(bloc.compareDocumentPosition(onglets) & Node.DOCUMENT_POSITION_FOLLOWING)
+        : false;
+      return {
+        dansMiseEnPage: Boolean(panneauMiseEnPage?.contains(bloc)),
+        dansCollection: Boolean(panneauCollection?.contains(bloc)),
+        avantLesOnglets: avant,
+        selection: document.getElementById('qr-target')?.value,
+      };
+    })()`);
+
+    record(
+      'le raccourcissement se règle dans le panneau de mise en page, avant les onglets',
+      placeRaccourci?.dansMiseEnPage === true && placeRaccourci?.dansCollection === false
+        && placeRaccourci?.avantLesOnglets === true,
+      `mise en page : ${placeRaccourci?.dansMiseEnPage}, collection : ${placeRaccourci?.dansCollection}, `
+        + `au-dessus des onglets : ${placeRaccourci?.avantLesOnglets}`,
+    );
+
+    // Le raccourci factice reste crédible : même forme qu'un vrai, et assez
+    // court pour que la matrice change de taille.
+    await evalApp(`new Promise((resolve) => chrome.storage.local.get('links', (valeur) => {
+      const liens = valeur.links ?? [];
+      liens[0] = Object.assign({}, liens[0], {
+        shortUrl: 'https://is.gd/abcd',
+        shortProvider: 'isgd',
+      });
+      chrome.storage.local.set({ links: liens }, resolve);
+    }))`);
+    await recharger(app.session);
+    await forcerPeinture(app.session, 700);
+
+    const cibleParLien = await evalApp(`(async () => {
+      const pause = (ms) => new Promise((r) => setTimeout(r, ms));
+      const poser = (id, valeur) => {
+        const n = document.getElementById(id);
+        n.checked = valeur;
+        n.dispatchEvent(new Event('change', { bubbles: true }));
+      };
+      // Le texte imprimé sous le QR Code se réduit à l'URL : c'est elle qu'on
+      // veut lire, sans le titre qui la précède et pourrait la repousser hors
+      // de la cellule.
+      poser('sheet-title', false);
+      poser('sheet-url', true);
+      await pause(900);
+
+      // La cellule du lien raccourci n'est pas forcement la premiere : l'ordre
+      // de la planche suit l'ordre **affiche**, que la verification a deplace
+      // plus haut. On lit donc toute la planche, et l'on cherche le raccourci
+      // la ou il est.
+      const textes = (cellule) => [...cellule.querySelectorAll('.print-cell__text')]
+        .map((n) => n.textContent.trim()).join(' ');
+      const lire = () => {
+        const cellules = [...document.querySelectorAll('#preview .print-cell')];
+        const avecRaccourci = cellules.filter((c) => /is\.gd/.test(textes(c)));
+        // Le dessin est **un seul chemin** : un sous-chemin par module noir.
+        // Compter les « M » compte donc exactement les modules noirs, là où un
+        // compte de rectangles rendrait toujours zéro.
+        const noirs = cellules.reduce((somme, cellule) => {
+          const chemin = cellule.querySelector('.print-cell__qr svg path')?.getAttribute('d') ?? '';
+          return somme + (chemin.match(/M/g) ?? []).length;
+        }, 0);
+        return {
+          cellules: cellules.length,
+          raccourcis: avecRaccourci.length,
+          texteDuRaccourci: avecRaccourci.map(textes).join(' | '),
+          noirs,
+        };
+      };
+
+      const cases = [...document.querySelectorAll('#list .link__target input')];
+      const cocheeAuDepart = cases[0] ? cases[0].checked : null;
+      const titreDeLaCase = cases[0]?.closest('.link')?.querySelector('.link__title')?.textContent.trim();
+      const libelle = cases[0]?.getAttribute('aria-label') ?? null;
+      const avant = lire();
+      const global = document.getElementById('qr-target').value;
+
+      cases[0]?.click();
+      await pause(1100);
+      const apres = lire();
+      const stockage = await new Promise((r) => chrome.storage.local.get('links', (v) => r(v.links ?? [])));
+
+      return {
+        combienDeCases: cases.length,
+        cocheeAuDepart, titreDeLaCase, libelle, avant, apres, global,
+        globalApres: document.getElementById('qr-target').value,
+        reglages: stockage.map((l) => (typeof l.useShort === 'boolean' ? l.useShort : null)),
+        titreDuRaccourci: stockage.find((l) => l.shortUrl)?.title ?? null,
+      };
+    })()`);
+
+    record(
+      'une seule case de cible, sur le seul lien qui a un raccourci',
+      cibleParLien?.combienDeCases === 1 && cibleParLien?.cocheeAuDepart === false
+        && cibleParLien?.titreDeLaCase === cibleParLien?.titreDuRaccourci,
+      `${cibleParLien?.combienDeCases} case(s), « ${cibleParLien?.titreDeLaCase} » — le lien `
+        + `raccourci est « ${cibleParLien?.titreDuRaccourci} », décochée au départ : `
+        + `${cibleParLien?.cocheeAuDepart}`,
+    );
+    record(
+      'la case de cible s\'annonce par ce qu\'elle fait, lien nommé',
+      /raccourci/i.test(cibleParLien?.libelle ?? '')
+        && (cibleParLien?.libelle ?? '').includes(cibleParLien?.titreDuRaccourci ?? '\u0000'),
+      `« ${cibleParLien?.libelle} »`,
+    );
+    record(
+      'cocher la case encode le raccourci, sans toucher au réglage global',
+      cibleParLien?.avant?.raccourcis === 0 && cibleParLien?.apres?.raccourcis === 1
+        && cibleParLien?.apres?.noirs !== cibleParLien?.avant?.noirs
+        && cibleParLien?.global === cibleParLien?.globalApres,
+      `modules noirs ${cibleParLien?.avant?.noirs} → ${cibleParLien?.apres?.noirs}, `
+        + `cellules portant le raccourci ${cibleParLien?.avant?.raccourcis} → `
+        + `${cibleParLien?.apres?.raccourcis}, réglage global ${cibleParLien?.global} → `
+        + `${cibleParLien?.globalApres}`,
+    );
+    record(
+      'le texte imprimé sous le QR Code suit le même choix',
+      cibleParLien?.avant?.raccourcis === 0 && cibleParLien?.apres?.raccourcis === 1
+        && /is\.gd/.test(cibleParLien?.apres?.texteDuRaccourci ?? ''),
+      `cellule raccourcie : « ${cibleParLien?.apres?.texteDuRaccourci} », `
+        + `avec le réglage global « ${cibleParLien?.global} »`,
+    );
+    record(
+      'le choix est enregistré sur ce lien, et sur lui seul',
+      cibleParLien?.reglages?.[0] === true
+        && cibleParLien.reglages.slice(1).every((v) => v === null),
+      `réglages par lien : ${JSON.stringify(cibleParLien?.reglages)}`,
+    );
+
+    // Décocher doit rendre exactement l'état d'avant : un réglage qu'on ne peut
+    // pas défaire serait pire que pas de réglage du tout.
+    const retourArriere = await evalApp(`(async () => {
+      const pause = (ms) => new Promise((r) => setTimeout(r, ms));
+      document.querySelector('#list .link__target input')?.click();
+      await pause(1100);
+      const cellules = [...document.querySelectorAll('#preview .print-cell')];
+      return {
+        raccourcis: cellules.filter((c) => /is\.gd/.test(c.textContent)).length,
+        noirs: cellules.reduce((somme, cellule) => {
+          const chemin = cellule.querySelector('.print-cell__qr svg path')?.getAttribute('d') ?? '';
+          return somme + (chemin.match(/M/g) ?? []).length;
+        }, 0),
+      };
+    })()`);
+
+    record(
+      'décocher revient à l\'URL collectée',
+      retourArriere?.raccourcis === 0 && retourArriere?.noirs === cibleParLien?.avant?.noirs,
+      `${cibleParLien?.apres?.noirs} → ${retourArriere?.noirs} modules noirs, `
+        + `${retourArriere?.raccourcis} cellule(s) portant le raccourci`,
+    );
+
+    // Remise en état : le raccourci factice disparaît, la planche reprend ses
+    // réglages, et le parcours suivant retrouve une collection sans raccourci.
+    await evalApp(`new Promise((resolve) => chrome.storage.local.get('links', (valeur) => {
+      const liens = (valeur.links ?? []).map((l) => {
+        const copie = Object.assign({}, l);
+        delete copie.shortUrl;
+        delete copie.shortProvider;
+        delete copie.useShort;
+        return copie;
+      });
+      chrome.storage.local.set({ links: liens }, resolve);
+    }))`);
+    await recharger(app.session);
+    await forcerPeinture(app.session, 600);
+    await evalApp(`(() => {
+      const poser = (id, valeur) => {
+        const n = document.getElementById(id);
+        n.checked = valeur;
+        n.dispatchEvent(new Event('change', { bubbles: true }));
+      };
+      poser('sheet-title', true);
+      poser('sheet-url', false);
+    })()`);
+    await new Promise((r) => setTimeout(r, 800));
+
     const tousOnglets = geometrie.every(
       (g) => g.onglets.length === 4 && g.onglets.every(Boolean),
     );

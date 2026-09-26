@@ -90,26 +90,6 @@
       </div>
       <p id="sort-hint" class="hint hint--tight"></p>
 
-      <!-- Raccourcissement : facultatif, jamais automatique.
-           Le titre porte l'action, le libellé du champ porte le réglage. Ils
-           étaient confondus : « Raccourcir les liens » coiffait la liste des
-           services, si bien qu'on lisait le choix d'un tiers comme le nom du
-           bouton. Chaque service annonce désormais ce qu'il change pour un
-           usage ordinaire, et TinyURL — le choix proposé d'emblée — se dit
-           « recommandé » : vouloir un lien plus court suffit à choisir. -->
-      <div class="shortener">
-        <p class="shortener__title"><span data-i18n="Raccourcir les liens">Raccourcir les liens</span> <em data-i18n="(option)">(option)</em></p>
-        <div class="shortener__row">
-          <label class="field field--compact">
-            <span class="field__label" data-i18n="Service">Service</span>
-            <select id="shortener" class="input input--compact"></select>
-          </label>
-          <button id="shorten" class="btn btn--ghost" type="button" data-i18n="Raccourcir">Raccourcir</button>
-          <button id="shorten-clear" class="btn btn--ghost" type="button" hidden data-i18n="Retirer">Retirer</button>
-        </div>
-      </div>
-      <p id="shorten-status" class="hint hint--tight" aria-live="polite"></p>
-
       <!-- Une seule case commande toute la liste, et montre son état : cochée,
            vide, ou partielle. Deux boutons « Tout » et « Rien » disaient la même
            chose en deux objets, et semblaient régler la recherche voisine. -->
@@ -172,6 +152,30 @@
            pour quatre mises en forme obligeait à le changer en passant de l'une
            à l'autre, et la case de l'étiquette semblait sans effet tant qu'on
            n'y avait pas touché. -->
+
+      <!-- Le raccourcissement vit ici, avec la mise en forme, et non en tête de
+           la collection : c'est une décision de **sortie** — ce que le QR Code
+           encodera — au même titre que la taille ou la cible. Il occupait le
+           haut du panneau de collection, encombrant la hiérarchie pour une
+           fonction facultative.
+
+           Le titre porte l'action, le libellé du champ porte le réglage : ils
+           étaient confondus, et on lisait le choix d'un tiers comme le nom du
+           bouton. Chaque service annonce ce qu'il change pour un usage
+           ordinaire, et TinyURL — le choix proposé d'emblée — se dit
+           « recommandé ». -->
+      <div class="shortener">
+        <p class="shortener__title"><span data-i18n="Raccourcir les liens">Raccourcir les liens</span> <em data-i18n="(option)">(option)</em></p>
+        <div class="shortener__row">
+          <label class="field field--compact">
+            <span class="field__label" data-i18n="Service">Service</span>
+            <select id="shortener" class="input input--compact"></select>
+          </label>
+          <button id="shorten" class="btn btn--ghost" type="button" data-i18n="Raccourcir">Raccourcir</button>
+          <button id="shorten-clear" class="btn btn--ghost" type="button" hidden data-i18n="Retirer">Retirer</button>
+        </div>
+      </div>
+      <p id="shorten-status" class="hint hint--tight" aria-live="polite"></p>
 
       <div class="tabs" role="tablist">
         <button class="tab tab--active" role="tab" data-mode="sheet" aria-selected="true" data-i18n="Planche d'étiquettes">Planche d'étiquettes</button>

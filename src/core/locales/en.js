@@ -18,7 +18,7 @@ export const EN_MESSAGES = {
   "Utilisez le clic droit sur une page ou un lien.": "Right-click a page or a link to save it.",
   "Voir les QR Codes": "View the QR Codes",
   "Titre du lien": "Link title",
-  // Recadrage de la grille de la planche
+  // Planche : recadrage de la grille, mise en page, tri et note de collection
   "{asked} colonnes ne tiennent pas : {kept} au maximum sur cette feuille.":
     "{asked} columns do not fit: {kept} at most on this sheet.",
   "{asked} rangées ne tiennent pas : {kept} au maximum sur cette feuille.":
@@ -32,6 +32,8 @@ export const EN_MESSAGES = {
   "La page": "The page",
   "Ce qu'on imprime": "What gets printed",
   "Trier": "Sort",
+  "Encoder le lien raccourci": "Encode the short link",
+  "{label} pour {title}": "{label} for {title}",
   "raison inconnue": "unknown reason",
   "{label} — n'a pas répondu": "{label} — did not respond",
   "{label} n'a pas répondu à l'instant : {message} Essayez {autre}.":
@@ -174,58 +176,6 @@ export const EN_MESSAGES = {
   "Imprimez d'abord sur papier ordinaire, superposez la feuille obtenue à votre planche : si le texte est trop haut ou trop à gauche, corrigez ici.": "Print on plain paper first and overlay the result on your sheet: if the text is too high or too far left, correct it here.",
   "Taille du QR Code": "QR Code size",
   "Orientation de la page": "Page orientation",
-  "La page": "The page",
-  "Ce qu'on imprime": "What gets printed",
-  "Trier": "Sort",
-  "raison inconnue": "unknown reason",
-  "{label} — n'a pas répondu": "{label} — did not respond",
-  "{label} n'a pas répondu à l'instant : {message} Essayez {autre}.":
-    "{label} did not respond just now: {message} Try {autre}.",
-  "{label} n'a pas répondu à l'instant : {message} Aucun autre service n'est proposé.":
-    "{label} did not respond just now: {message} No other service is offered.",
-  "Les flèches déplacent un lien dans la collection, et le tableau imprimé suit cet ordre.":
-    "The arrows move a link within the collection, and the printed table follows that order.",
-  "Ordre manuel": "Manual order",
-  "Titre, A → Z": "Title, A → Z",
-  "Titre, Z → A": "Title, Z → A",
-  "Domaine, A → Z": "Domain, A → Z",
-  "Domaine, Z → A": "Domain, Z → A",
-  "Tag, A → Z": "Tag, A → Z",
-  "Tag, Z → A": "Tag, Z → A",
-  "Date, du plus récent": "Date, newest first",
-  "Date, du plus ancien": "Date, oldest first",
-  "Monter": "Move up",
-  "Descendre": "Move down",
-  "Déplacer {title} vers le haut": "Move {title} up",
-  "Déplacer {title} vers le bas": "Move {title} down",
-  "Le tri range la liste et renumérote le tableau imprimé. Les flèches n'apparaissent qu'en ordre manuel : on ne réordonne pas une liste triée.":
-    "Sorting orders the list and renumbers the printed table. The arrows appear only in manual order: you do not reorder a sorted list.",
-  "Note de la collection (facultative)": "Collection note (optional)",
-  "À quoi sert cette collection…": "What this collection is for…",
-  "Exporter ces étiquettes (ZIP)": "Export these labels (ZIP)",
-  "Export impossible": "Export failed",
-  "Étiquettes exportées : {filename}": "Labels exported: {filename}",
-  "{count} étiquette — {filename} enregistré": "{count} label — {filename} saved",
-  "{count} étiquettes — {filename} enregistré": "{count} labels — {filename} saved",
-  "Exemplaires": "Copies",
-  "Un seul lien": "A single link",
-  "Plusieurs": "Several",
-  "Toute la collection ({count} lien)": "The whole collection ({count} link)",
-  "Toute la collection ({count} liens)": "The whole collection ({count} links)",
-  "Seulement ceux que je coche ({count} lien coché)": "Only the ones I tick ({count} link ticked)",
-  "Seulement ceux que je coche ({count} liens cochés)": "Only the ones I tick ({count} links ticked)",
-  "le lien affiché": "the displayed link",
-  "Arrêter": "Stop",
-  "Aperçu à la taille réelle": "Preview at real size",
-  " — aperçu à {multiple} × la taille réelle ({width} × {height} mm).":
-    " — preview at {multiple} × real size ({width} × {height} mm).",
-  " — aperçu à la taille réelle ({width} × {height} mm).":
-    " — preview at real size ({width} × {height} mm).",
-  "L'étiquette": "The label",
-  "En-tête de page": "Page header",
-  "Exporter la planche (ZIP)": "Export the sheet (ZIP)",
-  "Planche exportée : {filename}": "Sheet exported: {filename}",
-  "Avec la date d'impression": "With print date",
   "Tableau imprimé": "Printed table",
   "N°": "No.",
   "QR Code": "QR Code",
@@ -329,6 +279,8 @@ export const EN_MESSAGES = {
   "Imprimer {count} étiquettes": "Print {count} labels",
   "L'URL collectée": "The collected URL",
   "Le QR Code encode l'URL collectée.": "The QR Code encodes the collected URL.",
+  "Ce choix vaut pour toute la collection ; chaque lien peut dire le contraire dans la liste.":
+    "This choice applies to the whole collection; each link can say the opposite in the list.",
   "Le QR Code seul, sans texte sous lui.": "The QR Code alone, with no text below it.",
   "Le lien raccourci": "The shortened link",
   "Le navigateur n'a pas pu encoder l'image.": "The browser could not encode the image.",
@@ -406,10 +358,8 @@ export const EN_MESSAGES = {
   "{count} raccourcis retirés": "{count} short links removed",
   "{count} étiquette imprimée": "{count} label printed",
   "{count} étiquette par page": "{count} label per page",
-  "{count} étiquette — {filename} enregistré": "{count} label — {filename} saved",
   "{count} étiquettes imprimées": "{count} labels printed",
   "{count} étiquettes par page": "{count} labels per page",
-  "{count} étiquettes — {filename} enregistré": "{count} labels — {filename} saved",
   "{label} pour {url}": "{label} for {url}",
   "{min} à {max} %": "{min} to {max} %",
   "{mm} mm vers la {direction}": "{mm} mm to the {direction}",
@@ -539,5 +489,3 @@ export const EN_MESSAGES = {
   "Refus enregistré : acceptez la mention pour enregistrer un lien.":
     "Consent declined: accept the notice to record a link.",
 };
-
-

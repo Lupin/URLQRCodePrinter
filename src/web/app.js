@@ -787,6 +787,37 @@ function renderLink(link) {
     body.appendChild(tags);
   }
 
+  // La cible du QR Code de **ce lien**, quand elle peut différer du réglage
+  // global : un raccourci existe, et l'on peut vouloir encoder l'un ou l'autre.
+  // Sans raccourci, il n'y a rien à choisir — et proposer un choix vide serait
+  // une commande sans effet.
+  let cible = null;
+  if (hasShortUrl(link)) {
+    cible = document.createElement('label');
+    cible.className = 'link__target';
+    const case_ = document.createElement('input');
+    case_.type = 'checkbox';
+    // `undefined` suit le réglage global, et la case doit le montrer tel quel.
+    case_.checked = typeof link.useShort === 'boolean'
+      ? link.useShort
+      : preferences.targetMode === 'short';
+    const libelle = t('Encoder le lien raccourci');
+    case_.setAttribute('aria-label', t('{label} pour {title}', {
+      label: libelle, title: link.title || link.url,
+    }));
+    case_.addEventListener('change', async () => {
+      await store.put({ ...link, useShort: case_.checked });
+      await refresh();
+    });
+    const texte = document.createElement('span');
+    texte.className = 'link__target-label';
+    texte.textContent = libelle;
+    cible.append(case_, texte);
+    // Un clic sur le libellé ne doit pas ouvrir l'éditeur de la ligne : le
+    // contrôle est autonome.
+    cible.addEventListener('click', (event) => event.stopPropagation());
+  }
+
   const remove = button('×', 'link__remove', async () => {
     await store.remove(link.id);
     selected.delete(link.id);
@@ -804,6 +835,8 @@ function renderLink(link) {
   // triée : le déplacement serait annulé au rendu suivant, et l'utilisateur
   // croirait à une panne. Le libellé du tri le dit, plutôt que de laisser des
   // boutons inertes.
+  if (cible) body.appendChild(cible);
+
   if (preferences.sortMode === 'manual' && linkRanks.size > 1) {
     const up = button('▲', 'link__move', () => moveLink(link.id, -1));
     up.setAttribute('aria-label', t('Déplacer {title} vers le haut', { title: link.title || link.url }));
@@ -1372,7 +1405,7 @@ function updateTargetAvailability() {
       shortened,
       '{count} lien raccourci : un QR Code plus court se scanne plus vite et tient sur une plus petite étiquette.',
       '{count} liens raccourcis : un QR Code plus court se scanne plus vite et tient sur une plus petite étiquette.',
-    );
+    ) + ' ' + t("Ce choix vaut pour toute la collection ; chaque lien peut dire le contraire dans la liste.");
 }
 
 /** Retire les raccourcis : les URL d'origine n'ont jamais bougé. */

@@ -117,6 +117,24 @@ test('aucune clé du catalogue anglais ne manque', () => {
   assert.deepEqual(missing, [], 'traduction manquante : ' + missing.join(' | '));
 });
 
+test('aucune clé n\'est déclarée deux fois dans le catalogue anglais', () => {
+  // Un doublon ne casse rien à l'exécution — la dernière déclaration gagne —
+  // mais la première devient un leurre : on la corrige, rien ne change. C'est
+  // arrivé deux fois pendant la traduction, dont une avec deux textes anglais
+  // différents pour la même étiquette. On compte donc les déclarations du
+  // fichier, pas les clés de l'objet, qui ne peuvent plus les distinguer.
+  const source = readFileSync(join(ROOT, 'src/core/locales/en.js'), 'utf8');
+  const declared = [...source.matchAll(/^ {2}("(?:[^"\\]|\\.)*"):/gm)].map((m) => m[1]);
+  const seen = new Set();
+  const duplicates = [];
+  for (const key of declared) {
+    if (seen.has(key)) duplicates.push(key);
+    seen.add(key);
+  }
+  assert.deepEqual(duplicates, [], 'clé déclarée deux fois : ' + duplicates.join(' | '));
+  assert.equal(declared.length, Object.keys(EN_MESSAGES).length);
+});
+
 test('une traduction absente retombe sur le français', async () => {
   await initI18n({ locale: 'en' });
   assert.equal(t('Clé qui n\'existe pas du tout'), 'Clé qui n\'existe pas du tout');

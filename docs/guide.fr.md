@@ -165,10 +165,18 @@ Ce qui se passe, et ce qui ne se passe pas :
 L'intérêt est concret sur une petite étiquette : moins de caractères donnent
 moins de modules, donc un QR Code plus lisible et imprimable plus petit.
 
-Ensuite, le sélecteur **« Le QR Code pointe vers »** (colonne de droite) décide
-ce qui part à l'impression : l'URL collectée, ou le raccourci. Il vaut pour
-toutes les sorties imprimées — planche, tableau, images **et étiquette
-Niimbot**, dont le QR Code comme le texte suivent ce choix.
+Ensuite, le sélecteur **« Le QR Code pointe vers »** (colonne de droite, groupe
+« Ce qu'on imprime ») décide ce qui part à l'impression : l'URL collectée, ou le
+raccourci. Il vaut pour toutes les sorties imprimées — planche, tableau, images
+**et étiquette Niimbot**, dont le QR Code comme le texte suivent ce choix.
+
+Ce réglage est un défaut pour toute la collection, et un lien peut le
+contredire : dès qu'un lien a un raccourci, sa ligne affiche une case
+**« Encoder le lien raccourci »**, qui tranche pour ce lien seul. La planche se
+met en page au moment de l'impression, le choix y est donc respecté sans toucher
+aux autres lignes — une étiquette peut porter le raccourci pendant que les
+autres gardent l'URL d'origine. Décocher la case rend le lien au réglage de la
+collection ; rien n'est jamais écrit dans l'URL enregistrée.
 
 ## Mettre en page
 

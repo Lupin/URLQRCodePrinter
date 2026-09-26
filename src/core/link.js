@@ -23,6 +23,11 @@ import { t } from './i18n.js';
  *   Absente tant que l'utilisateur n'a rien réordonné : la collection suit alors
  *   la date, comme avant. Un rang explicite est un entier croissant ; les liens
  *   qui en portent un passent devant ceux qui n'en ont pas.
+ * @property {boolean}  [useShort] Ce que le QR Code de **ce lien** doit encoder.
+ *   `true` le lien raccourci, `false` l'URL collectée, absent : le réglage
+ *   global décide. L'absence n'est pas `false` — elle veut dire « je n'ai rien
+ *   décidé pour celui-ci », et c'est ce qui permet à un réglage global de
+ *   continuer de valoir pour les liens qu'on n'a pas touchés.
  * @property {string}   shortUrl  Lien raccourci, ou chaîne vide. N'écrase jamais `url` :
  *   le lien d'origine reste la source de vérité, un service tiers pouvant fermer.
  * @property {string}   shortProvider Identifiant du service qui a produit `shortUrl`.
@@ -218,6 +223,8 @@ export function createLink(input, options = {}) {
     // Conservé tel quel, et **absent** s'il n'a jamais été posé : `undefined`
     // n'est pas `0`, et un rang nul compterait comme un rang explicite.
     ...(Number.isFinite(input.order) ? { order: input.order } : {}),
+    // Même règle : un booléen explicite est conservé, une absence le reste.
+    ...(typeof input.useShort === 'boolean' ? { useShort: input.useShort } : {}),
     source: SOURCES.includes(options.source) ? options.source
       : SOURCES.includes(input.source) ? input.source
       : 'manual',
@@ -436,7 +443,12 @@ export const TARGET_MODES = Object.freeze(['original', 'short']);
 export function resolveTarget(link, mode = 'original') {
   const originalUrl = link.url;
   const shortUrl = hasShortUrl(link) ? link.shortUrl : '';
-  const useShort = mode === 'short' && shortUrl !== '' && shortUrl !== originalUrl;
+  // Le choix du lien prime sur le réglage global ; sans choix, le global
+  // s'applique. `undefined` et `false` ne veulent donc pas dire la même chose.
+  const veutLeRaccourci = typeof link.useShort === 'boolean'
+    ? link.useShort
+    : mode === 'short';
+  const useShort = veutLeRaccourci && shortUrl !== '' && shortUrl !== originalUrl;
 
   return {
     ...link,

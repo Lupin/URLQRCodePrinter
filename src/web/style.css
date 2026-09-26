@@ -599,6 +599,22 @@ body {
 
 .link__tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 3px; }
 
+/* La cible du QR Code, propre à ce lien. Elle n'apparaît que lorsqu'un raccourci
+   existe : sans lui, il n'y a rien à choisir. Discrète — c'est un réglage de
+   sortie, pas une information sur le lien. */
+.link__target {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 4px;
+  color: var(--text-2);
+  font-size: 11.5px;
+  cursor: pointer;
+}
+
+.link__target input { flex: none; margin: 0; accent-color: var(--accent); }
+.link__target-label { min-width: 0; }
+
 /* Puce « plate » : un fond, rien d'autre.
  *
  * Le bouton gardait le chrome du navigateur — une bordure `outset` qu'aucune

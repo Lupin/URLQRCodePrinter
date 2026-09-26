@@ -168,9 +168,18 @@ The benefit is concrete on a small label: fewer characters give fewer modules,
 hence a QR Code that is more legible and can be printed smaller.
 
 Then the **"The QR Code points to"** (« Le QR Code pointe vers ») selector
-(right column) decides what goes to the printer: the collected URL, or the short
-link. It applies to all printed outputs — sheet, table, images **and Niimbot
-label** — whose QR Code as well as text follow this choice.
+(right column, "What gets printed") decides what goes to the printer: the
+collected URL, or the short link. It applies to all printed outputs — sheet,
+table, images **and Niimbot label** — whose QR Code as well as text follow this
+choice.
+
+That setting is a collection-wide default, and a link may contradict it: as soon
+as a link has a short link, its row shows a **"Encode the short link"** box,
+which decides for that link alone. The sheet is laid out at print time, so the
+choice is honoured there without touching the other rows — one label can carry
+the short link while the rest keep the original URL. Unticking the box hands the
+link back to the collection-wide setting; nothing is ever written into the
+stored URL.
 
 ## Laying out
 
