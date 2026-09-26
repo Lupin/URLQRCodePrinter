@@ -324,6 +324,21 @@ async function main() {
       poser('sheet-columns', '3');
       await pause(600);
       window.__feuille = { feuilleAvant, ecartLarge, beaucoupDeColonnes };
+      window.__groupes = [...document.querySelectorAll('.sheet-group')].map((groupe) => {
+        const titre = groupe.querySelector('.sheet-group__title');
+        const premier = titre?.nextElementSibling;
+        const cadre = groupe.getBoundingClientRect();
+        const boiteTitre = titre?.getBoundingClientRect();
+        return {
+          titre: titre ? titre.textContent.trim() : null,
+          debordeSurLeCadre: boiteTitre ? Math.round(boiteTitre.top - cadre.top) < 0 : null,
+          ecartSousLeCadre: boiteTitre ? Math.round(boiteTitre.top - cadre.top) : null,
+          ecartAvantPremierChamp: premier && boiteTitre
+            ? Math.round(premier.getBoundingClientRect().top - boiteTitre.bottom)
+            : null,
+        };
+      });
+
       // **Tous** les messages visibles du panneau, et pas seulement la légende de
       // l'aperçu : c'est ce que l'utilisateur a sous les yeux.
       sansSelection.messages = [...document.querySelectorAll('#panel-layout .hint, .panel .hint')]
@@ -382,6 +397,7 @@ async function main() {
     console.log(JSON.stringify(await evaluate('window.__editeur'), null, 2));
     console.log(JSON.stringify(await evaluate('window.__verdict'), null, 2));
     console.log(JSON.stringify(await evaluate('window.__legende'), null, 2));
+    console.log(JSON.stringify(await evaluate('window.__groupes'), null, 2));
 
     const zoneEtiquette = await evaluate(`(() => {
       const cadre = document.querySelector('#preview .preview__page');

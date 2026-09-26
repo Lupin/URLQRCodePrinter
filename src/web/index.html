@@ -216,8 +216,13 @@
            disent, et l'ordre suit le calcul : la taille des étiquettes découle
            de la grille et des marges, donc la page vient d'abord. -->
       <div class="mode" data-mode-panel="sheet">
-        <fieldset class="sheet-group">
-          <legend data-i18n="La page">La page</legend>
+        <fieldset class="sheet-group" aria-labelledby="sheet-group-page">
+          <!-- Un titre ordinaire, et non une `<legend>` : dans une boîte
+               flexible, la légende garde son rendu spécial — elle se pose **sur**
+               le cadre, mord sur lui, et laisse un espace irrégulier au-dessus
+               du premier champ. Le groupe garde son nom accessible par
+               `aria-labelledby`. -->
+          <p id="sheet-group-page" class="sheet-group__title" data-i18n="Page">Page</p>
 
           <div class="fields">
             <div class="field">
@@ -332,8 +337,8 @@
           <p id="sheet-header-hint" class="hint hint--tight"></p>
         </fieldset>
 
-        <fieldset class="sheet-group">
-          <legend data-i18n="L'étiquette">L'étiquette</legend>
+        <fieldset class="sheet-group" aria-labelledby="sheet-group-label">
+          <p id="sheet-group-label" class="sheet-group__title" data-i18n="Étiquette">Étiquette</p>
 
           <div class="fields">
             <label class="field">

@@ -381,13 +381,13 @@ et le bouton lui-même l'annonce : « Imprimer les 31 liens » ou
 > *tout*. Elle est écrite sous les boutons pour cette raison.
 
 Les réglages sont rangés en **deux groupes**, et l'ordre suit le calcul : la
-taille des étiquettes découle de la grille et des marges, donc **La page** vient
-d'abord, et **L'étiquette** ensuite.
+taille des étiquettes découle de la grille et des marges, donc **Page** vient
+d'abord, et **Étiquette** ensuite.
 
-**Groupe « La page »** — ce qui décide de la feuille : la disposition, la
+**Groupe « Page »** — ce qui décide de la feuille : la disposition, la
 grille, les marges, les écarts, les décalages, et l'en-tête de page.
 
-**Groupe « L'étiquette »** — ce qui décide d'une étiquette : la largeur du QR
+**Groupe « Étiquette »** — ce qui décide d'une étiquette : la largeur du QR
 Code, la taille du texte, ce qui s'imprime sous lui, et la bordure de découpe.
 
 | Champ | Ce qu'il fait |

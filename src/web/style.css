@@ -300,8 +300,15 @@ body {
   background: var(--bg);
 }
 
-.sheet-group > legend {
-  padding: 0 4px;
+/* Le titre d'un groupe de la planche.
+ *
+ * C'était une `<legend>` : dans une boîte flexible, elle garde son rendu spécial
+ * et se pose **sur** le cadre du groupe — le titre mordait sur la bordure, et
+ * l'espace au-dessus du premier champ dépendait de la hauteur de la légende.
+ * Un titre ordinaire se place dans le flux, et `aria-labelledby` rend au groupe
+ * le nom qu'il a perdu. */
+.sheet-group__title {
+  margin: 0;
   color: var(--text-2);
   font-size: 12px;
   font-weight: 650;

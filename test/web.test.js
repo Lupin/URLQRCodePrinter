@@ -698,7 +698,7 @@ test("l'en-tête n'est dessiné que s'il tient dans la marge", () => {
 
 /** Le contenu d'un groupe de la planche, d'après sa légende. */
 function groupePlanche(légende) {
-  const marqueur = `<legend data-i18n="${légende}">`;
+  const marqueur = `class="sheet-group__title" data-i18n="${légende}"`;
   const debut = html.indexOf(marqueur);
   assert.ok(debut !== -1, `groupe « ${légende} » introuvable`);
   // Le groupe se termine au fieldset suivant : un autre groupe, ou la fin du
@@ -709,8 +709,8 @@ function groupePlanche(légende) {
 }
 
 test('le panneau de la planche range la page dans un groupe, et l\'étiquette dans un autre', () => {
-  const page = groupePlanche('La page');
-  const etiquette = groupePlanche("L'étiquette");
+  const page = groupePlanche('Page');
+  const etiquette = groupePlanche('Étiquette');
 
   // Ce qui décide de la **feuille**.
   for (const id of [
@@ -735,7 +735,7 @@ test('la page vient avant l\'étiquette, dans l\'ordre du calcul', () => {
   // La taille des étiquettes découle de la grille et des marges : présenter
   // d'abord ce qui se règle en second obligerait à revenir en arrière.
   assert.ok(
-    html.indexOf('data-i18n="La page"') < html.indexOf('data-i18n="L\'étiquette"'),
+    html.indexOf('data-i18n="Page"') < html.indexOf('data-i18n="Étiquette"'),
     'le groupe de l\'étiquette précède celui de la page',
   );
 });
@@ -743,8 +743,8 @@ test('la page vient avant l\'étiquette, dans l\'ordre du calcul', () => {
 test('chaque message d\'aide reste dans le groupe qui le concerne', () => {
   // C'est la leçon des lots précédents : un refus expliqué à l'autre bout du
   // panneau ne sert à rien.
-  const page = groupePlanche('La page');
-  const etiquette = groupePlanche("L'étiquette");
+  const page = groupePlanche('Page');
+  const etiquette = groupePlanche('Étiquette');
   for (const id of ['sheet-grid-hint', 'sheet-fit-hint', 'sheet-header-hint']) {
     assert.ok(page.includes(`id="${id}"`), `${id} a quitté le groupe de la page`);
   }
@@ -759,7 +759,13 @@ test('les deux groupes se voient sans être lus', () => {
   assert.ok(regle, 'aucune règle pour les groupes de la planche');
   assert.match(regle[1], /border:\s*1px solid var\(--border-line\)/);
   assert.match(regle[1], /flex-direction:\s*column/);
-  assert.ok(css.match(/\.sheet-group\s*>\s*legend\s*\{/), 'aucune légende pour les groupes');
+  // Le titre est un élément ordinaire, et non une `<legend>` : dans une boîte
+  // flexible, la légende se pose sur le cadre et mord dessus.
+  assert.ok(css.match(/\.sheet-group__title\s*\{/), 'aucun titre pour les groupes');
+  assert.doesNotMatch(css, /\.sheet-group\s*>\s*legend\s*\{/, 'plus de légende dans la boîte flexible');
+  // Chaque groupe garde un nom accessible, par `aria-labelledby`.
+  assert.match(html, /<fieldset class="sheet-group" aria-labelledby="sheet-group-page">/);
+  assert.match(html, /<fieldset class="sheet-group" aria-labelledby="sheet-group-label">/);
 });
 
 // ---------------------------------------------------------------------------
