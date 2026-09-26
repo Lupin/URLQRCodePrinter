@@ -665,13 +665,32 @@ Le chemin le plus court vers n'importe quelle étiqueteuse. Choisissez :
   DK-11202, DK-11208, DK-11209, DK-11218, DK-11219, DK-22205, DK-22210 ;
   Dymo LabelWriter 54 × 32 et 54 × 101 mm ; Zebra 2 et 4 × 6 pouces ; génériques
   50 × 30 et 70 × 40 mm ; planche A4 3 × 8 ;
-- **Texte imprimé** — titre + URL, URL seule, titre seul, domaine seul, ou rien ;
 - **Marge**, **taille du texte**, **traits de coupe** ;
-- **Sous le QR Code** — le titre, puis la date de collecte, avec l'heure si vous la
-  demandez. La case « Titre » ajoute le titre même quand « Texte imprimé » ne le
-  porte pas, et sans le doubler s'il y figure déjà. Ces cases sont propres à cet
-  onglet : une date cochée pour la planche ne s'imprime pas ici, et
-  réciproquement.
+- **Contenu de l'étiquette** — des cases qui se cumulent : le numéro du lien, le
+  titre, l'URL, le domaine, la date de collecte, et l'heure avec la date. Le
+  QR Code encode toujours l'adresse ; le texte imprimé suit ces choix.
+
+Cet onglet répondait à cette seule question par **deux** réglages — une liste
+« Texte imprimé » à cinq modes exclusifs (titre + URL, URL seule, titre seul,
+domaine seul, rien), et un groupe de cases de date qui s'y ajoutait. Le titre
+s'y ajoutait même une troisième fois, par une case à part. Il n'en reste qu'un :
+le groupe **Contenu de l'étiquette**, avec les mêmes cases, dans le même ordre et
+sous les mêmes mots que l'onglet Niimbot.
+
+Le **domaine** et l'**URL** se cumulent : aucune case n'en éteint une autre, et
+cocher les deux imprime les deux. C'était déjà le cas dans l'onglet Niimbot, et
+faire du domaine une case exclusive aurait donné deux règles pour une même
+question selon l'onglet.
+
+Par défaut, l'**URL seule** est cochée — c'est ce que cet onglet exportait déjà ;
+rien de ce qui sortait ne change si vous ne touchez à rien. Une case sans matière
+n'imprime rien : « Titre » sur un lien sans titre, ou « N° du lien » sur un lien
+dont le rang est inconnu, n'ajoute pas de ligne vide. Le numéro imprimé est celui
+de la collection — le même que la ligne « N° » de la planche, la colonne du
+tableau et l'étiquette Niimbot.
+
+Ces cases sont propres à cet onglet : une date cochée pour la planche ne
+s'imprime pas ici, et réciproquement.
 
 Le curseur **Largeur du QR Code** n'est pas libre : ses bornes sont calculées pour la
 disposition choisie. En dessous, un module imprimé ne serait plus lisible (0,4 mm

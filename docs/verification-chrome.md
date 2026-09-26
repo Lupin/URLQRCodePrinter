@@ -77,7 +77,7 @@ protocole : elle répond.
 Les quatre constats sont désormais traités : le contour des boutons était une
 fausse accusation, les deux cibles satisfont l'exception d'espacement, et les
 deux aperçus ont été repris. Le relevé passe à **72 constats sur 72**, et à
-**109 sur 109** après les lots suivants.
+**112 sur 112** après les lots suivants.
 
 ### Le constat 1 : la fenêtre la plus courante est la plus mal servie
 
@@ -286,7 +286,7 @@ l'heuristique du navigateur. Il les distingue maintenant, en interrogeant
 - `:focus-visible` **vrai** et anneau absent → **c'est notre règle**. Le contrôle
   échoue, et il nomme l'élément.
 
-Trois passages consécutifs donnent 109 constats satisfaits sur 109, le troisième
+Trois passages consécutifs donnent 112 constats satisfaits sur 112, le troisième
 relevant l'artefact et le nommant. Un contrôle qui échoue au hasard finit par être
 ignoré ; celui-ci dit ce qu'il a vu et pourquoi il ne conclut pas à un défaut.
 
@@ -315,6 +315,46 @@ quand elle n'a jamais été touchée, et si un réglage abandonné doit être
 ressuscité. Le contrôle automatique porte donc sur la borne, pas sur la taille
 dessinée — mesurer la seconde reviendrait à mesurer l'écrêtage et à l'appeler un
 défaut.
+
+---
+
+## Un contrôle qui ne voyait rien, sans que le produit soit en cause
+
+L'onglet « Étiquette (divers) » proposait trois réglages pour une seule question
+— ce qui s'imprime sous le QR Code : une liste « Texte imprimé » à cinq modes
+exclusifs, une case « Titre » qui s'ajoutait par-dessus, et un groupe de cases de
+date. Il n'en reste qu'un, le groupe **Contenu de l'étiquette**, avec les mêmes
+cases, dans le même ordre et sous les mêmes mots que l'onglet Niimbot. Deux
+constats neufs le mesurent : la structure, et l'effet.
+
+Le premier contrôle écrit pour l'effet **échouait**, avec des chiffres précis :
+
+```
+hauteur 206 px → date cochée : 254 px → décochée : 206 px
+              → domaine coché : 206 px → retour : 206 px
+```
+
+La date suivait — 48 px de plus, puis retour exact. Le domaine, non : 206 px
+avant, 206 px après. Le produit était pourtant en cause pour rien : le lien que
+l'aperçu montrait portait une adresse de plus de cent caractères, dont le texte
+atteint le **plafond de quatre lignes**. Une ligne de plus ne peut pas s'y voir,
+puisqu'il n'y a plus de place pour elle. Deux contenus différents donnent la même
+hauteur, et la mesure concluait à un défaut qui n'existait pas.
+
+Le contrôle choisit donc ses conditions **par la mesure** :
+
+- l'adresse **la plus courte** de la liste, prise sur les liens eux-mêmes ;
+- un **rouleau continu de 62 mm**, où la hauteur suit le texte — sur un format à
+  hauteur fixe, c'est le QR Code qui cède la place, et la hauteur ne bouge pas ;
+- et il **compte l'encre** plutôt que les lignes : les pixels noirs du canevas
+  (140 363 avec la date contre 139 082 sans, 140 009 pour l'URL et le domaine
+  contre 139 082 pour l'URL seule). Ajouter du texte écrit des caractères de
+  plus, même quand le nombre de lignes ne change pas.
+
+C'est la leçon, et elle est l'inverse de celle du piège de peinture : là, quatre
+constats concordants **fabriquaient** un défaut ; ici, un constat unique
+**cachait** une fonctionnalité qui marchait. Dans les deux cas, la cause est la
+même — la mesure portait sur autre chose que ce qu'elle croyait mesurer.
 
 ---
 

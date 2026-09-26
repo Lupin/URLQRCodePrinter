@@ -28,44 +28,6 @@ import { t } from './i18n.js';
  */
 
 /**
- * Contenu textuel d'une étiquette Niimbot, selon le mode choisi.
- *
- * Le même vocabulaire que l'export d'images (`TEXT_MODES`), pour qu'on n'ait
- * qu'une chose à apprendre : QR Code seul, QR Code + titre, QR Code + URL, etc. La date, elle,
- * suit le réglage global « Date sous le QR Code » et s'ajoute en dernier.
- *
- * Le titre et la date occupent chacun **une ligne réservée** : `extraLines`
- * prévient la géométrie, sans quoi la dernière ligne serait rognée.
- *
- * @param {{ url: string, title?: string }} link
- * @param {string} mode `none`, `title`, `url`, `title-url` ou `host`.
- * @param {string[]} [dateLines] Lignes de date à imprimer sous le texte, déjà
- *   découpées à la largeur utile. Un tableau vide n'imprime rien.
- * @returns {{ text: string, showTitle: boolean, extraLines: number, extraText: string[] }}
- */
-export function labelContent(link, mode, dateLines = []) {
-  // Un titre absent ne doit pas réserver une ligne vide.
-  const title = typeof link.title === 'string' ? link.title : '';
-  const wantsTitle = (mode === 'title' || mode === 'title-url') && title !== '';
-
-  let text = '';
-  if (mode === 'url' || mode === 'title-url') text = link.url;
-  else if (mode === 'host') text = hostOf(link.url);
-  else if (mode === 'title' && !wantsTitle) text = link.url; // titre vide : l'URL
-
-  // La date arrive déjà découpée : « 15/09/2026 21:28 » demande 114 px là où un
-  // D110 n'en offre que 84, et `drawLabel` écrit ses lignes telles quelles.
-  const extraText = Array.isArray(dateLines) ? dateLines.filter(Boolean) : [];
-
-  return {
-    text,
-    showTitle: wantsTitle,
-    extraLines: (wantsTitle ? 1 : 0) + extraText.length,
-    extraText,
-  };
-}
-
-/**
  * Prépare la date à imprimer sous le QR Code, en la découpant si elle ne tient pas.
  *
  * `drawLabel` écrit chaque ligne supplémentaire telle quelle, sans la découper :

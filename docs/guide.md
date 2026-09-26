@@ -670,15 +670,34 @@ The shortest path to any label printer. Choose:
   DK-11201, DK-11202, DK-11208, DK-11209, DK-11218, DK-11219, DK-22205,
   DK-22210; Dymo LabelWriter 54 × 32 and 54 × 101 mm; Zebra 2 and 4 × 6 inches;
   generic 50 × 30 and 70 × 40 mm; A4 sheet 3 × 8;
-- **Printed text** (« Texte imprimé ») — title + URL, URL only, title only, host
-  only, or nothing;
 - **Margin** (« Marge »), **text size** (« taille du texte »), **cut marks**
   (« traits de coupe »);
-- **Below the QR Code** (« Sous le QR Code ») — the title, then the collection date, with
-  the time if you ask for it. The "Title" (« Titre ») checkbox adds the title
-  even when "Printed text" does not carry it, and without duplicating it if it
-  is already there. These checkboxes are specific to this tab: a date checked
-  for the sheet is not printed here, and vice versa.
+- **Label content** (« Contenu de l'étiquette ») — checkboxes that add up: the
+  link number, the title, the URL, the host, the collection date, and the time
+  along with the date. The QR Code always encodes the address; the printed text
+  follows these choices.
+
+This tab answered that single question with **two** controls — a "Printed text"
+(« Texte imprimé ») list of five exclusive modes (title + URL, URL only, title
+only, host only, nothing), and a group of date checkboxes on top of it. The title
+was added a third time, by a separate checkbox. Only one is left: the **Label
+content** group, with the same checkboxes, in the same order and under the same
+words as the Niimbot tab.
+
+The **host** and the **URL** add up: no checkbox turns another one off, and
+checking both prints both. That was already true in the Niimbot tab, and making
+the host exclusive would have meant two rules for one question, depending on the
+tab.
+
+By default the **URL** alone is checked — that is what this tab already exported,
+so nothing that came out changes if you touch nothing. A checkbox with nothing to
+print prints nothing: "Title" on a link with no title, or "Link number" on a link
+whose rank is unknown, adds no empty line. The number printed is the collection's
+— the same one as the "N°" line on the sheet, the number column of the table and
+the Niimbot label.
+
+These checkboxes are specific to this tab: a date checked for the sheet is not
+printed here, and vice versa.
 
 The **QR Code width** (« Largeur du QR Code ») slider is not free: its bounds are computed
 for the chosen layout. Below them, a printed module would no longer be legible

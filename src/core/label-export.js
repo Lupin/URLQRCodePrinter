@@ -176,22 +176,25 @@ export const LABEL_FORMATS = Object.freeze([
  */
 export const DATE_MAX_LINES = 3;
 
-/** Contenu textuel imprimé sous le QR Code. */
-export const TEXT_MODES = Object.freeze({
-  'title-url': 'Titre puis URL',
-  url: 'URL seule',
-  title: 'Titre seul',
-  none: 'Aucun texte',
-  host: 'Domaine seul',
-});
-
-/** Réglages par défaut de l'export. */
+/**
+ * Réglages par défaut de l'export.
+ *
+ * Le contenu de l'étiquette se **coche**, case par case, et les cases se
+ * cumulent : le numéro, le titre, l'URL et le domaine ne s'excluent pas. Une
+ * liste déroulante à cinq modes répondait à la même question que trois cases
+ * posées plus bas, et trois sources décrivaient la même intention — `textMode`,
+ * `showTitle`, et les cases elles-mêmes. Un seul jeu de cases reste.
+ *
+ * L'URL seule par défaut : c'est ce que cet onglet imprimait déjà, et changer
+ * le défaut aurait réécrit le contenu de toute image exportée sans qu'on ait
+ * rien demandé.
+ */
 export const DEFAULT_EXPORT_OPTIONS = Object.freeze({
   formatId: 'niimbot-d110',
-  textMode: 'url',
-  // Le titre se coche à part dans l'onglet « Étiquette (divers) » : décoché, il
-  // n'apparaît que si le mode de texte le porte déjà.
+  showIndex: false,
   showTitle: false,
+  showUrl: true,
+  showHost: false,
   // Aucune date par défaut : chaque ligne de texte prend la place du QR Code, et une
   // étiquette de 12 mm n'en a pas de reste.
   dateMode: 'none',
@@ -262,32 +265,41 @@ export function findFormat(id) {
 }
 
 /**
- * Compose les lignes de texte d'une étiquette.
+ * Segments de texte d'une étiquette, selon les cases cochées.
  *
- * @param {import('./link.js').LinkRecord} link
- * @param {string} textMode
+ * Chaque case ajoute son segment, dans l'ordre où on les lit sur l'étiquette :
+ * le numéro d'abord — c'est ce qu'on cherche des yeux —, puis le titre, l'URL et
+ * le domaine. Aucune case n'en éteint une autre : cocher « Domaine » et « URL »
+ * imprime les deux, comme dans l'onglet Niimbot, qui laisse déjà ces deux cases
+ * se cumuler. Un domaine qui décocherait l'URL ferait deux règles pour une même
+ * question, selon l'onglet.
+ *
+ * Le numéro n'est imprimé que s'il est **connu** : un lien sans rang, ou une
+ * case cochée sans rang, laisse l'étiquette sans numéro plutôt que d'en inventer
+ * un. Le titre vide ne réserve pas de ligne, et le domaine imprimé est celui du
+ * site visé — jamais celui du raccourcisseur, qui n'apprendrait rien à qui lit
+ * l'étiquette.
+ *
+ * @param {{ url: string, title?: string }} link
+ * @param {{
+ *   index?: number|null,
+ *   showIndex?: boolean,
+ *   showTitle?: boolean,
+ *   showUrl?: boolean,
+ *   showHost?: boolean,
+ * }} [options]
  * @returns {string[]}
  */
-export function labelText(link, textMode) {
-  switch (textMode) {
-    case 'title-url': {
-      const lines = [];
-      if (link.title) lines.push(link.title);
-      lines.push(link.url);
-      return lines;
-    }
-    case 'title':
-      return link.title ? [link.title] : [link.url];
-    case 'host':
-      // Le domaine imprimé est toujours celui du site visé, jamais celui du
-      // raccourcisseur : « tinyurl.com » sous un QR Code n'apprendrait rien.
-      return [sourceHost(link)];
-    case 'none':
-      return [];
-    case 'url':
-    default:
-      return [link.url];
-  }
+export function labelSegments(link, options = {}) {
+  const index = Number.isFinite(options.index) ? options.index : null;
+  const title = typeof link.title === 'string' ? link.title.trim() : '';
+
+  const segments = [];
+  if (options.showIndex === true && index !== null) segments.push(`N° ${index}`);
+  if (options.showTitle === true && title !== '') segments.push(title);
+  if (options.showUrl === true) segments.push(link.url);
+  if (options.showHost === true) segments.push(sourceHost(link));
+  return segments;
 }
 
 /**
@@ -321,9 +333,12 @@ export function labelFileName(link, index, total) {
  * @param {typeof LABEL_FORMATS[number]} options.format
  * @param {(text: string) => number} options.measure Mesure de texte, fournie
  *   par l'appelant — lui seul connaît la police réellement utilisée.
- * @param {string} [options.textMode]
- * @param {boolean} [options.showTitle] Imprime le titre sous le QR Code, même quand
- *   le mode de texte ne le demande pas. Sans doublon s'il y figure déjà.
+ * @param {number|null} [options.index] Rang du lien, imprimé quand la case
+ *   « N° du lien » est cochée.
+ * @param {boolean} [options.showIndex] Imprime le numéro du lien, en tête.
+ * @param {boolean} [options.showTitle] Imprime le titre.
+ * @param {boolean} [options.showUrl] Imprime l'URL.
+ * @param {boolean} [options.showHost] Imprime le domaine du site visé.
  * @param {number} [options.marginMm]
  * @param {number} [options.qrRatio]
  * @param {number} [options.fontSizePt]
@@ -336,8 +351,10 @@ export function labelFileName(link, index, total) {
  */
 export function planLabel(options) {
   const { link, format, measure } = options;
-  const textMode = options.textMode ?? DEFAULT_EXPORT_OPTIONS.textMode;
+  const showIndex = options.showIndex ?? DEFAULT_EXPORT_OPTIONS.showIndex;
   const showTitle = options.showTitle ?? DEFAULT_EXPORT_OPTIONS.showTitle;
+  const showUrl = options.showUrl ?? DEFAULT_EXPORT_OPTIONS.showUrl;
+  const showHost = options.showHost ?? DEFAULT_EXPORT_OPTIONS.showHost;
   const dateMode = options.dateMode ?? DEFAULT_EXPORT_OPTIONS.dateMode;
   const marginMm = options.marginMm ?? DEFAULT_EXPORT_OPTIONS.marginMm;
   const qrRatio = options.qrRatio ?? DEFAULT_EXPORT_OPTIONS.qrRatio;
@@ -373,25 +390,26 @@ export function planLabel(options) {
     : [];
   const dateOmitted = dateText !== '' && dateLines.length === 0;
 
-  const bodySource = labelText(link, textMode);
+  const bodySource = labelSegments(link, {
+    index: options.index,
+    showIndex,
+    showTitle,
+    showUrl,
+    showHost,
+  });
   const body = bodySource.join(' ');
   // Le texte principal garde son propre plafond : la date s'ajoute à lui au
   // lieu de lui prendre ses lignes. Elle les lui prenait, et l'URL se trouvait
   // tronquée à deux lignes dès qu'on demandait la date.
+  //
+  // Les segments sont découpés **ensemble**, et non chacun de son côté : c'est
+  // ce que faisait déjà « Titre puis URL », et deux découpages séparés
+  // laisseraient chacun la moitié d'une ligne vide.
   const bodyLines = body
     ? wrapText(measure, body, innerWidth, { maxLines })
     : [];
 
-  // Le titre coché s'ajoute sous le QR Code, comme la date : il vient avant le
-  // texte principal. Il ne se duplique pas quand le mode de texte le porte
-  // déjà — « Titre puis URL » plus la case « Titre » n'imprime qu'un titre.
-  const title = typeof link.title === 'string' ? link.title.trim() : '';
-  const titleInBody = title !== '' && bodySource.some((line) => line.trim() === title);
-  const titleLines = showTitle && title !== '' && !titleInBody
-    ? wrapText(measure, title, innerWidth, { maxLines })
-    : [];
-
-  const lines = [...titleLines, ...bodyLines, ...dateLines];
+  const lines = [...bodyLines, ...dateLines];
   const textHeight = lines.length * lineHeightPx;
 
   // Hauteur fixe (planche) ou déduite du contenu (rouleau continu).
@@ -436,14 +454,25 @@ export function planLabel(options) {
  * Planifie toutes les étiquettes d'une collection.
  *
  * @param {import('./link.js').LinkRecord[]} links
- * @param {Omit<Parameters<typeof planLabel>[0], 'link'>} options
+ * @param {Omit<Parameters<typeof planLabel>[0], 'link'|'index'> & {
+ *   rankOf?: (link: import('./link.js').LinkRecord, position: number) => number|null,
+ * }} options `rankOf` fournit le numéro imprimé — celui de la collection, et non
+ *   la position dans la sélection imprimée : sans lui, deux numérotations
+ *   désigneraient le même lien, et la ligne « N° » de la planche ne
+ *   correspondrait plus à l'étiquette. À défaut, la position dans la sélection,
+ *   à partir de 1.
  * @returns {Array<{ link: import('./link.js').LinkRecord, fileName: string, plan: ReturnType<typeof planLabel> }>}
  */
 export function planLabels(links, options) {
+  const { rankOf, ...reste } = options;
   return links.map((link, index) => ({
     link,
     fileName: labelFileName(link, index, links.length),
-    plan: planLabel({ ...options, link }),
+    plan: planLabel({
+      ...reste,
+      link,
+      index: rankOf ? rankOf(link, index) : index + 1,
+    }),
   }));
 }
 
@@ -589,8 +618,14 @@ export function buildLabelArchive(options) {
           widthMm: format.widthMm,
           heightMm: format.heightMm,
           dpi: format.dpi,
-          textMode: options.settings?.textMode ?? DEFAULT_EXPORT_OPTIONS.textMode,
+          // Le contenu coché, case par case. Il remplace `textMode` et le
+          // `showTitle` qui le complétait : deux réglages pour une question, et
+          // un troisième endroit — les cases — pour la même intention. Rien ne
+          // relit ces clés à l'import : aucune archive existante n'est à migrer.
+          showIndex: options.settings?.showIndex ?? DEFAULT_EXPORT_OPTIONS.showIndex,
           showTitle: options.settings?.showTitle ?? DEFAULT_EXPORT_OPTIONS.showTitle,
+          showUrl: options.settings?.showUrl ?? DEFAULT_EXPORT_OPTIONS.showUrl,
+          showHost: options.settings?.showHost ?? DEFAULT_EXPORT_OPTIONS.showHost,
           dateMode: options.settings?.dateMode ?? DEFAULT_EXPORT_OPTIONS.dateMode,
           marginMm: options.settings?.marginMm ?? DEFAULT_EXPORT_OPTIONS.marginMm,
           fontSizePt: options.settings?.fontSizePt ?? DEFAULT_EXPORT_OPTIONS.fontSizePt,

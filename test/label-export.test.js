@@ -14,10 +14,9 @@ import { fileURLToPath } from 'node:url';
 
 import {
   LABEL_FORMATS,
-  TEXT_MODES,
   DEFAULT_EXPORT_OPTIONS,
   findFormat,
-  labelText,
+  labelSegments,
   labelFileName,
   planLabel,
   planLabels,
@@ -125,17 +124,59 @@ test('les conversions d\'unités sont justes', () => {
 // Texte et nommage
 // ---------------------------------------------------------------------------
 
-test('labelText suit le mode choisi', () => {
+// Le contenu de l'étiquette se coche, case par case : le numéro, le titre,
+// l'URL et le domaine se cumulent. Une liste à cinq modes exclusifs répondait à
+// la même question que les cases, et une case « Titre » s'y ajoutait par-dessus
+// — trois réglages pour une intention.
+
+test('les cases de contenu se cumulent, dans l\'ordre où on les lit', () => {
   const item = link('https://exemple.fr/a', 'Un titre');
-  assert.deepEqual(labelText(item, 'url'), ['https://exemple.fr/a']);
-  assert.deepEqual(labelText(item, 'title'), ['Un titre']);
-  assert.deepEqual(labelText(item, 'title-url'), ['Un titre', 'https://exemple.fr/a']);
-  assert.deepEqual(labelText(item, 'host'), ['exemple.fr']);
-  assert.deepEqual(labelText(item, 'none'), []);
+
+  assert.deepEqual(labelSegments(item, { showUrl: true }), ['https://exemple.fr/a']);
+  assert.deepEqual(labelSegments(item, { showTitle: true }), ['Un titre']);
+  assert.deepEqual(
+    labelSegments(item, { showUrl: true, showTitle: true }),
+    ['Un titre', 'https://exemple.fr/a'],
+  );
+  // L'URL et le domaine ensemble : aucune case n'en éteint une autre, comme
+  // dans l'onglet Niimbot, où ces deux cases se cumulent déjà.
+  assert.deepEqual(
+    labelSegments(item, { showUrl: true, showHost: true }),
+    ['https://exemple.fr/a', 'exemple.fr'],
+  );
+  assert.deepEqual(labelSegments(item, {}), [], 'aucune case cochée, aucun texte');
 });
 
-test('labelText se rabat sur l\'URL quand il n\'y a pas de titre', () => {
-  assert.deepEqual(labelText(link('https://exemple.fr/a'), 'title'), ['https://exemple.fr/a']);
+test('le numéro coché imprime le rang du lien, en tête', () => {
+  const item = link('https://exemple.fr/a', 'Un titre');
+
+  assert.deepEqual(
+    labelSegments(item, { index: 7, showIndex: true, showTitle: true, showUrl: true }),
+    ['N° 7', 'Un titre', 'https://exemple.fr/a'],
+  );
+});
+
+test('une case sans matière n\'ajoute aucune ligne vide', () => {
+  // Un lien sans titre, ou un rang inconnu : la case reste cochée, mais elle
+  // n'imprime rien plutôt qu'une ligne vide qui pousserait le QR Code.
+  const sansTitre = link('https://exemple.fr/a');
+  assert.deepEqual(
+    labelSegments(sansTitre, { showTitle: true, showUrl: true }),
+    ['https://exemple.fr/a'],
+  );
+  assert.deepEqual(
+    labelSegments(sansTitre, { showIndex: true, index: null, showUrl: true }),
+    ['https://exemple.fr/a'],
+  );
+});
+
+test('le domaine imprimé est celui du site visé, jamais du raccourcisseur', () => {
+  const item = createLink(
+    { url: 'https://exemple.fr/article', shortUrl: 'https://tinyurl.com/abc', shortProvider: 'tinyurl' },
+    { now: 1 },
+  );
+  const resolved = resolveTarget(item, 'short');
+  assert.deepEqual(labelSegments(resolved, { showHost: true }), ['exemple.fr']);
 });
 
 test('labelFileName est numéroté, lisible et sans accent', () => {
@@ -190,40 +231,50 @@ test('une URL longue est signalée plutôt que rognée', () => {
   assert.equal(plan.fits, false);
 });
 
-test('le mode sans texte produit une étiquette plus courte', () => {
+test('sans aucune case cochée, l\'étiquette est plus courte', () => {
   const format = findFormat('niimbot-d110');
-  const avec = planLabel({ link: link('https://a.fr/article'), format, measure: measure1, textMode: 'url' });
-  const sans = planLabel({ link: link('https://a.fr/article'), format, measure: measure1, textMode: 'none' });
+  const avec = planLabel({ link: link('https://a.fr/article'), format, measure: measure1, showUrl: true });
+  const sans = planLabel({ link: link('https://a.fr/article'), format, measure: measure1, showUrl: false });
   assert.ok(sans.heightPx < avec.heightPx);
   assert.deepEqual(sans.lines, []);
 });
 
-test('la case « Titre » ajoute le titre sous le QR Code', () => {
+test('cocher « Titre » ajoute le titre sous le QR Code', () => {
   const format = findFormat('generic-50x30');
   const item = link('https://exemple.fr/a', 'Un titre');
 
-  const sans = planLabel({ link: item, format, measure: measure1, textMode: 'url' });
+  const sans = planLabel({ link: item, format, measure: measure1, showUrl: true });
   const avec = planLabel({
     link: item,
     format,
     measure: measure1,
-    textMode: 'url',
+    showUrl: true,
     showTitle: true,
   });
 
   assert.deepEqual(sans.lines, ['https://exemple.fr/a']);
-  assert.deepEqual(avec.lines, ['Un titre', 'https://exemple.fr/a']);
+  // Les segments cochés sont découpés **ensemble**, en un seul bloc : c'est ce
+  // que faisait « Titre puis URL », et deux découpages séparés laisseraient
+  // chacun la moitié d'une ligne vide. Le titre et l'URL tiennent ici sur une
+  // ligne, et c'est la largeur qui en décide.
+  assert.deepEqual(avec.lines, ['Un titre https://exemple.fr/a']);
+  assert.deepEqual(labelSegments(item, { showTitle: true, showUrl: true }), [
+    'Un titre',
+    'https://exemple.fr/a',
+  ]);
 });
 
-test('le titre coché ne se double pas quand le texte le porte déjà', () => {
+test('le titre coché une fois ne s\'imprime qu\'une fois', () => {
+  // Il n'y a plus qu'une source pour le titre : la case. Deux réglages le
+  // portaient auparavant — le mode de texte et la case — et le doublon était
+  // évité par une comparaison de chaînes.
   const plan = planLabel({
     link: link('https://exemple.fr/a', 'Un titre'),
     format: findFormat('generic-50x30'),
     measure: measure1,
-    textMode: 'title',
     showTitle: true,
   });
-  assert.deepEqual(plan.lines, ['Un titre']);
+  assert.equal(plan.lines.join(' ').split('Un titre').length - 1, 1);
 });
 
 test('la case « Titre » sans titre n\'ajoute aucune ligne vide', () => {
@@ -231,7 +282,7 @@ test('la case « Titre » sans titre n\'ajoute aucune ligne vide', () => {
     link: link('https://exemple.fr/a'),
     format: findFormat('generic-50x30'),
     measure: measure1,
-    textMode: 'url',
+    showUrl: true,
     showTitle: true,
   });
   assert.deepEqual(plan.lines, ['https://exemple.fr/a']);
@@ -277,7 +328,8 @@ test('la planche échappe le texte des liens', () => {
   const planned = planLabels([link('https://a.fr/?a=1&b=2', '<script>')], {
     format: findFormat('generic-50x30'),
     measure: measure1,
-    textMode: 'title-url',
+    showTitle: true,
+    showUrl: true,
   });
   const html = buildPrintSheet(planned);
 
@@ -352,20 +404,27 @@ test('le manifeste consigne les réglages retenus', () => {
   const planned = planLabels([link('https://a.fr', 'Un')], {
     format: findFormat('dymo-54'),
     measure: measure1,
-    textMode: 'title-url',
+    showTitle: true,
+    showUrl: true,
     marginMm: 2,
   });
   const archive = buildLabelArchive({
     planned,
     images: new Map(),
-    settings: { format: findFormat('dymo-54'), textMode: 'title-url', marginMm: 2 },
+    settings: {
+      format: findFormat('dymo-54'), showTitle: true, showUrl: true, marginMm: 2,
+    },
     now: 1,
   });
 
   const manifest = JSON.parse(readZip(archive).get('export.json'));
   assert.equal(manifest.settings.labelFormat, 'dymo-54');
   assert.equal(manifest.settings.widthMm, 54);
-  assert.equal(manifest.settings.textMode, 'title-url');
+  assert.equal(manifest.settings.showTitle, true);
+  assert.equal(manifest.settings.showUrl, true);
+  // Le contenu se consigne case par case : `textMode` et le `showTitle`
+  // d'appoint qui le complétait ont disparu du manifeste comme du reste.
+  assert.equal(manifest.settings.textMode, undefined);
   assert.equal(manifest.settings.marginMm, 2);
   assert.equal(manifest.count, 1);
   assert.equal(manifest.labels[0].file, 'etiquettes/1-un.png');
@@ -387,11 +446,39 @@ test('le nom de l\'archive est horodaté', () => {
   assert.match(labelArchiveName(1736937000000), /^etiquettes-qr-\d{8}-\d{4}\.zip$/);
 });
 
-test('les modes de texte sont tous décrits', () => {
-  for (const [id, label] of Object.entries(TEXT_MODES)) {
-    assert.ok(label.length > 0, id);
+test('le défaut coche l\'URL seule, et rien d\'autre', () => {
+  // C'est ce que l'onglet imprimait déjà avant l'unification : changer le défaut
+  // aurait réécrit le contenu de toute image exportée sans qu'on ait rien
+  // demandé.
+  assert.equal(DEFAULT_EXPORT_OPTIONS.showUrl, true);
+  for (const cle of ['showIndex', 'showTitle', 'showHost']) {
+    assert.equal(DEFAULT_EXPORT_OPTIONS[cle], false, cle);
   }
-  assert.ok(TEXT_MODES[DEFAULT_EXPORT_OPTIONS.textMode]);
+  // Et aucun mode de texte n'a survécu à côté des cases.
+  assert.equal(DEFAULT_EXPORT_OPTIONS.textMode, undefined);
+});
+
+test('planLabels lit le rang dans la collection, pas dans la sélection', () => {
+  const links = [link('https://a.fr', 'Un'), link('https://b.fr', 'Deux')];
+  const base = { format: findFormat('generic-50x30'), measure: measure1, showIndex: true };
+
+  // Sans `rankOf`, la place dans la sélection imprimée : 1, 2. Le numéro reste
+  // en tête du texte imprimé, avant l'URL.
+  const simple = planLabels(links, base);
+  assert.deepEqual(simple.map((entry) => entry.plan.lines.join(' ')), [
+    'N° 1 https://a.fr',
+    'N° 2 https://b.fr',
+  ]);
+
+  // Avec lui, le rang de la collection — ici une série reprise à 101.
+  const numerote = planLabels(links, {
+    ...base,
+    rankOf: (item, index) => (item === links[0] ? 101 : index + 1),
+  });
+  assert.deepEqual(numerote.map((entry) => entry.plan.lines.join(' ')), [
+    'N° 101 https://a.fr',
+    'N° 2 https://b.fr',
+  ]);
 });
 
 // ---------------------------------------------------------------------------
@@ -424,11 +511,14 @@ test('le nom du fichier garde le domaine du site visé', () => {
 
 test('le texte imprimé suit la cible, le domaine non', () => {
   const { resolved } = shortPair();
-  assert.deepEqual(labelText(resolved, 'url'), [SHORT_URL]);
-  assert.deepEqual(labelText(resolved, 'title-url'), ['Un article', SHORT_URL]);
+  assert.deepEqual(labelSegments(resolved, { showUrl: true }), [SHORT_URL]);
+  assert.deepEqual(
+    labelSegments(resolved, { showTitle: true, showUrl: true }),
+    ['Un article', SHORT_URL],
+  );
   // Le domaine affiché reste celui du site : « tinyurl.com » sous un QR Code
   // n'apprendrait rien à qui lit l'étiquette.
-  assert.deepEqual(labelText(resolved, 'host'), ['exemple.fr']);
+  assert.deepEqual(labelSegments(resolved, { showHost: true }), ['exemple.fr']);
 });
 
 test('le QR Code encode la cible choisie', () => {
@@ -491,9 +581,9 @@ test('la date demandée prend sa propre ligne', () => {
   );
   const base = { link: item, format: findFormat('generic-70x40'), measure };
 
-  const withoutDate = planLabel({ ...base, textMode: 'url' });
-  const withDate = planLabel({ ...base, textMode: 'url', dateMode: 'date' });
-  const withTime = planLabel({ ...base, textMode: 'url', dateMode: 'datetime' });
+  const withoutDate = planLabel({ ...base, showUrl: true });
+  const withDate = planLabel({ ...base, showUrl: true, dateMode: 'date' });
+  const withTime = planLabel({ ...base, showUrl: true, dateMode: 'datetime' });
 
   assert.deepEqual(withoutDate.lines, ['https://exemple.fr/article']);
   assert.deepEqual(withDate.lines, ['https://exemple.fr/article', '15/09/2026']);
@@ -504,7 +594,7 @@ test('la date demandée prend sa propre ligne', () => {
   assert.equal(withDate.heightPx, withoutDate.heightPx, 'hauteur fixe : rien ne débordé');
 
   // Le paramètre de date est consigné dans le manifeste, pour reproduire.
-  const planned = planLabels([item], { ...base, textMode: 'url', dateMode: 'datetime' });
+  const planned = planLabels([item], { ...base, showUrl: true, dateMode: 'datetime' });
   const archive = buildLabelArchive({
     planned,
     images: new Map(),
@@ -543,7 +633,7 @@ test('une date trop longue est découpée, jamais tronquée', () => {
     link: item,
     format: findFormat('niimbot-d110'),
     measure: narrow,
-    textMode: 'url',
+    showUrl: true,
     dateMode: 'datetime',
   });
 
@@ -561,7 +651,7 @@ test('une date trop longue est découpée, jamais tronquée', () => {
     link: item,
     format: findFormat('generic-70x40'),
     measure: (text) => text.length * 6,
-    textMode: 'url',
+    showUrl: true,
     dateMode: 'datetime',
   });
   assert.equal(wide.dateOmitted, false);
@@ -573,7 +663,7 @@ test('une date trop longue est découpée, jamais tronquée', () => {
     link: item,
     format: findFormat('niimbot-d110'),
     measure: (text) => text.length * 30,
-    textMode: 'url',
+    showUrl: true,
     dateMode: 'datetime',
   });
   assert.equal(etroit.dateOmitted, true, 'aucun découpage entier possible');

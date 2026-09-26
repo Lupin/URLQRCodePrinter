@@ -2017,6 +2017,174 @@ async function main() {
         + `${apercus?.retour?.largeur} px`,
     );
 
+    // --- Le contenu de l'étiquette, un seul réglage -------------------------
+    //
+    // Signalé : cet onglet proposait **deux** réglages pour la même question —
+    // une liste « Texte imprimé » à cinq modes exclusifs, et un groupe de cases
+    // « Sous le QR Code ». Le code en portait un troisième, `showTitle`, coché
+    // à part. Le contrôle mesure les deux moitiés : la structure, et l'effet.
+    const contenuImages = await evalApp(`(async () => {
+      const pause = (ms) => new Promise((r) => setTimeout(r, ms));
+      [...document.querySelectorAll('.tab')].find((t) => t.dataset.mode === 'images').click();
+      await pause(900);
+
+      const groupe = (nom) => document.querySelector('[data-mode-panel="' + nom + '"] fieldset.columns');
+      const etiquettes = (nom) => {
+        const bloc = groupe(nom);
+        if (!bloc) return null;
+        return {
+          legende: bloc.querySelector('legend')?.textContent.trim() ?? null,
+          cases: [...bloc.querySelectorAll('input[type=checkbox]')].map((n) => n.id),
+          libelles: [...bloc.querySelectorAll('.columns__item span')].map((n) => n.textContent.trim()),
+        };
+      };
+      const panneau = document.querySelector('[data-mode-panel="images"]');
+      return {
+        listeTexte: document.getElementById('label-text') === null,
+        selecteurs: panneau.querySelectorAll('select').length,
+        images: etiquettes('images'),
+        niimbot: etiquettes('single'),
+      };
+    })()`);
+
+    const memeCases = contenuImages?.images && contenuImages?.niimbot
+      && JSON.stringify(contenuImages.images.libelles) === JSON.stringify(contenuImages.niimbot.libelles)
+      && contenuImages.images.cases.length === contenuImages.niimbot.cases.length;
+
+    record(
+      'l\'onglet des images n\'a qu\'un réglage de contenu, les mêmes cases que l\'onglet Niimbot',
+      contenuImages?.listeTexte === true
+        && contenuImages?.selecteurs === 1
+        && (contenuImages?.images?.cases ?? []).length === 6
+        && memeCases
+        && contenuImages?.images?.legende === 'Contenu de l\'étiquette',
+      `liste « Texte imprimé » retirée : ${contenuImages?.listeTexte}, `
+        + `${contenuImages?.selecteurs} sélecteur(s) restant(s) — `
+        + `« ${contenuImages?.images?.legende} » : ${(contenuImages?.images?.cases ?? []).join(', ')}`
+        + ` — libellés identiques à ceux du Niimbot : ${memeCases}`,
+    );
+
+    // La case cochée doit **changer ce qui est annoncé** : la hauteur de
+    // l'étiquette dans la légende, et la hauteur du canevas. Le format est
+    // posé sur un rouleau continu, seul cas où la hauteur suit le texte — sur
+    // un format à hauteur fixe, c'est le QR Code qui cède la place.
+    //
+    // Le lien et le format sont choisis **par la mesure**. Sur la premiere
+    // adresse de la collection et une tete de 12 mm, le texte atteint le
+    // plafond de quatre lignes : deux contenus differents donnent alors la
+    // meme hauteur, et la mesure ne verrait rien alors que le produit fait ce
+    // qu'il annonce. Le controle prend donc l'adresse la plus courte de la
+    // liste, sur un rouleau de 62 mm, et **compte l'encre** — les pixels noirs
+    // du canevas. Ajouter le domaine ecrit des caracteres de plus, meme quand
+    // le nombre de lignes ne bouge pas.
+    const casesContenuImages = await evalApp(`(async () => {
+      const pause = (ms) => new Promise((r) => setTimeout(r, ms));
+      const format = document.getElementById('label-format');
+      const formatAvant = format.value;
+      format.value = 'brother-dk22205';
+      format.dispatchEvent(new Event('change', { bubbles: true }));
+      await pause(900);
+
+      const encre = () => {
+        const canvas = document.querySelector('#preview canvas');
+        if (!canvas || !canvas.width) return 0;
+        const donnees = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height).data;
+        let n = 0;
+        for (let i = 0; i < donnees.length; i += 4) if (donnees[i] < 128) n += 1;
+        return n;
+      };
+      const lire = () => ({
+        fait: document.querySelector('.preview__caption .preview__fact')?.textContent.trim() ?? null,
+        hauteur: document.querySelector('#preview canvas')?.height ?? 0,
+        encre: encre(),
+      });
+      const poser = (id, valeur) => {
+        const n = document.getElementById(id);
+        n.checked = valeur;
+        n.dispatchEvent(new Event('change', { bubbles: true }));
+      };
+
+      // L'adresse la plus courte de la liste, et l'etat de selection d'origine.
+      const cases = [...document.querySelectorAll('#list .link__check')];
+      const avantSelection = cases.map((n) => n.checked);
+      let cible = -1;
+      let longueur = Infinity;
+      cases.forEach((n, i) => {
+        const url = n.closest('.link')?.querySelector('.link__url')?.getAttribute('href') ?? '';
+        if (url.length > 0 && url.length < longueur) {
+          longueur = url.length;
+          cible = i;
+        }
+      });
+      for (let i = 0; i < cases.length; i += 1) {
+        if (cases[i].checked !== (i === cible)) cases[i].click();
+      }
+      await pause(1000);
+
+      const avant = lire();
+
+      // La date ajoute une ligne : l'etiquette s'allonge, et la legende suit.
+      poser('export-date', true);
+      await pause(900);
+      const avecDate = lire();
+      poser('export-date', false);
+      await pause(900);
+      const sansDate = lire();
+
+      // Le domaine **se cumule** avec l'URL : le texte s'allonge au lieu d'etre
+      // remplace. Le controle mesure trois etats, sans quoi « le domaine
+      // s'imprime » et « le domaine remplace l'URL » donneraient le meme
+      // resultat sur la seule etape du milieu.
+      poser('export-host', true);
+      await pause(900);
+      const avecDomaine = lire();
+      poser('export-url', false);
+      await pause(900);
+      const domaineSeul = lire();
+      poser('export-url', true);
+      poser('export-host', false);
+      await pause(900);
+      const retour = lire();
+
+      // La selection et le format sont rendus tels qu'ils etaient : les
+      // controles suivants portent sur la meme collection, au meme format.
+      const apres = [...document.querySelectorAll('#list .link__check')];
+      for (let i = 0; i < apres.length; i += 1) {
+        if (apres[i].checked !== avantSelection[i]) apres[i].click();
+      }
+      format.value = formatAvant;
+      format.dispatchEvent(new Event('change', { bubbles: true }));
+      await pause(900);
+
+      return { lien: longueur, format: formatAvant, avant, avecDate, sansDate, avecDomaine, domaineSeul, retour };
+    })()`);
+
+    record(
+      'cocher puis décocher une case de contenu recalcule l\'étiquette annoncée',
+      casesContenuImages?.avecDate?.hauteur > casesContenuImages?.avant?.hauteur
+        && casesContenuImages?.avecDate?.fait !== casesContenuImages?.avant?.fait
+        && casesContenuImages?.avecDate?.encre > casesContenuImages?.avant?.encre
+        && casesContenuImages?.sansDate?.hauteur === casesContenuImages?.avant?.hauteur
+        && casesContenuImages?.sansDate?.fait === casesContenuImages?.avant?.fait
+        && casesContenuImages?.retour?.hauteur === casesContenuImages?.avant?.hauteur
+        && casesContenuImages?.retour?.fait === casesContenuImages?.avant?.fait,
+      `hauteur ${casesContenuImages?.avant?.hauteur} px → date cochée : `
+        + `${casesContenuImages?.avecDate?.hauteur} px (${casesContenuImages?.avecDate?.encre} pixels `
+        + `d'encre au lieu de ${casesContenuImages?.avant?.encre}) → décochée : `
+        + `${casesContenuImages?.sansDate?.hauteur} px → retour : `
+        + `${casesContenuImages?.retour?.hauteur} px — « ${casesContenuImages?.avecDate?.fait} »`,
+    );
+
+    record(
+      'le domaine coché s\'ajoute à l\'URL, et ne la remplace pas',
+      casesContenuImages?.avecDomaine?.encre > casesContenuImages?.avant?.encre
+        && casesContenuImages?.domaineSeul?.encre < casesContenuImages?.avant?.encre
+        && casesContenuImages?.retour?.encre === casesContenuImages?.avant?.encre,
+      `lien de ${casesContenuImages?.lien} caractères : URL ${casesContenuImages?.avant?.encre} pixels `
+        + `d'encre, URL + domaine ${casesContenuImages?.avecDomaine?.encre}, `
+        + `domaine seul ${casesContenuImages?.domaineSeul?.encre}, retour ${casesContenuImages?.retour?.encre}`,
+    );
+
     // Remise en état : la planche, pour la suite du parcours.
     await evalApp(`(async () => {
       const pause = (ms) => new Promise((r) => setTimeout(r, ms));

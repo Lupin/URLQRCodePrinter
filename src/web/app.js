@@ -90,7 +90,6 @@ import { parseImportFile, toImportableLinks } from './core/import.js';
 import {
   labelPreviewZoom,
   LABEL_FORMATS,
-  TEXT_MODES,
   findFormat,
   planLabel,
   planLabels,
@@ -3362,13 +3361,21 @@ function cachedTextMeasure(fontSizePx) {
 
 /**
  * Lit les préférences de mise en page du formulaire.
- * @returns {{ format: object, textMode: string, showTitle: boolean, dateMode: string, marginMm: number, fontSizePt: number, cutMarks: boolean }}
+ *
+ * Le contenu de l'étiquette vient des **cases**, et d'elles seules : le numéro,
+ * le titre, l'URL et le domaine se cumulent, comme dans l'onglet Niimbot. La
+ * liste « Texte imprimé » et la case « Titre » qui la complétait répondaient à la
+ * même question qu'elles, en deux autres endroits.
+ *
+ * @returns {{ format: object, showIndex: boolean, showTitle: boolean, showUrl: boolean, showHost: boolean, dateMode: string, marginMm: number, fontSizePt: number, cutMarks: boolean }}
  */
 function readLabelOptions() {
   return {
     format: findFormat(el.labelFormat.value),
-    textMode: el.labelText.value,
+    showIndex: el.exportIndex.checked,
     showTitle: el.exportTitle.checked,
+    showUrl: el.exportUrl.checked,
+    showHost: el.exportHost.checked,
     dateMode: exportDateMode(),
     marginMm: Math.max(0, Number(el.labelMargin.value) || 0),
     fontSizePt: Math.max(4, Number(el.labelFont.value) || 7),
@@ -3442,8 +3449,14 @@ async function renderLabelPng(link, options) {
     link,
     format: options.format,
     measure: createTextMeasure(fontSizePx),
-    textMode: options.textMode,
+    showIndex: options.showIndex,
     showTitle: options.showTitle,
+    showUrl: options.showUrl,
+    showHost: options.showHost,
+    // Le numéro imprimé est celui de la **collection**, et non la place du lien
+    // dans la sélection : c'est le même chiffre partout — liste, planche,
+    // tableau, étiquette, dossier d'images.
+    index: linkRanks.get(link.id) ?? null,
     // Sans cette ligne, la date choisie dans l'interface était silencieusement
     // ignorée : les réglages consignés la mentionnaient, mais ni l'aperçu ni
     // les images ne la portaient.
@@ -3481,8 +3494,14 @@ function renderImagePreview(link) {
     link,
     format: options.format,
     measure: createTextMeasure(fontSizePx),
-    textMode: options.textMode,
+    showIndex: options.showIndex,
     showTitle: options.showTitle,
+    showUrl: options.showUrl,
+    showHost: options.showHost,
+    // Le numéro imprimé est celui de la **collection**, et non la place du lien
+    // dans la sélection : c'est le même chiffre partout — liste, planche,
+    // tableau, étiquette, dossier d'images.
+    index: linkRanks.get(link.id) ?? null,
     // Sans cette ligne, la date choisie dans l'interface était silencieusement
     // ignorée : les réglages consignés la mentionnaient, mais ni l'aperçu ni
     // les images ne la portaient.
@@ -3574,14 +3593,20 @@ async function exportLabelImages() {
   try {
     const planned = planLabels(items, {
       format: options.format,
-      textMode: options.textMode,
+      showIndex: options.showIndex,
       showTitle: options.showTitle,
+      showUrl: options.showUrl,
+      showHost: options.showHost,
       dateMode: options.dateMode,
       marginMm: options.marginMm,
       fontSizePt: options.fontSizePt,
       measure: createTextMeasure(
         Math.max(6, ptToPx(options.fontSizePt, options.format.dpi)),
       ),
+      // Le rang de la collection, celui que porte le reste de l'application —
+      // sans lui, la case « N° du lien » imprimerait la place du lien dans la
+      // sélection, et deux numérotations se contrediraient sur le même objet.
+      rankOf: (link, index) => linkRanks.get(link.id) ?? index + premierNumero(),
     });
 
     const images = new Map();
@@ -4282,7 +4307,7 @@ function updateProfileHint() {
     );
 }
 
-/** Remplit les listes de formats et de modes de texte. */
+/** Remplit la liste des formats d'étiquette. */
 function fillLabelForm() {
   for (const format of LABEL_FORMATS) {
     const option = document.createElement('option');
@@ -4291,14 +4316,6 @@ function fillLabelForm() {
     el.labelFormat.appendChild(option);
   }
   el.labelFormat.value = 'niimbot-d110';
-
-  for (const [id, label] of Object.entries(TEXT_MODES)) {
-    const option = document.createElement('option');
-    option.value = id;
-    option.textContent = t(label);
-    el.labelText.appendChild(option);
-  }
-  el.labelText.value = 'url';
 }
 
 function switchMode(next) {
@@ -4691,7 +4708,12 @@ for (const box of [el.sheetDate, el.sheetDateTime, el.sheetDateIndex]) {
     renderPreview();
   });
 }
-for (const box of [el.exportTitle, el.exportDate, el.exportDateTime]) {
+// Toutes les cases du contenu de l'étiquette, y compris celles de la date :
+// cocher le titre, l'URL ou le domaine change ce qui est annoncé sous l'aperçu.
+for (const box of [
+  el.exportIndex, el.exportTitle, el.exportUrl, el.exportHost,
+  el.exportDate, el.exportDateTime,
+]) {
   box.addEventListener('change', renderPreview);
 }
 for (const box of [el.tableColDate, el.tableColDateTime]) {
@@ -4833,7 +4855,6 @@ el.labelLink.addEventListener('change', () => {
 });
 el.copies.addEventListener('input', updatePrintScope);
 el.labelFormat.addEventListener('change', renderPreview);
-el.labelText.addEventListener('change', renderPreview);
 el.labelMargin.addEventListener('input', renderPreview);
 el.labelFont.addEventListener('input', renderPreview);
 el.labelCut.addEventListener('change', renderPreview);
