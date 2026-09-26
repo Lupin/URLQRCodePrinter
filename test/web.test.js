@@ -509,6 +509,27 @@ test('une portée vide reste choisie, et l\'aperçu dit qu\'il n\'y a rien à im
   assert.match(app, /const nommer = impressionChoisie\(\)\.kind !== 'one'/);
 });
 
+test("l'onglet des images offre le même aperçu que celui des étiquettes", () => {
+  // Il agrandissait jusqu'à six fois sans le dire, et sans offrir la taille
+  // réelle : le réglage existait d'un côté et manquait de l'autre.
+  const case_ = html.match(/<input id="export-real-size"[^>]*>/);
+  assert.ok(case_, 'aucune case de taille réelle dans l\'onglet des images');
+  assert.doesNotMatch(case_[0], /checked/, 'un aperçu qui grandit est le défaut');
+
+  const app = readFileSync(join(WEB, 'app.js'), 'utf8');
+  const apercu = app.match(/function renderImagePreview\([\s\S]*?\n\}/)[0];
+  // La même échelle que l'onglet Niimbot, calculée au même endroit.
+  assert.match(apercu, /labelPreviewZoom\(\{/, 'l\'échelle doit venir du cœur');
+  assert.doesNotMatch(apercu, /Math\.min\(6,/, 'plus de plafond inventé');
+  // Et elle est annoncée, comme de l'autre côté.
+  assert.match(apercu, /aperçu à \{multiple\} × la taille réelle/);
+  assert.match(apercu, /aperçu à la taille réelle/);
+  // Les deux cases portent le même état.
+  assert.match(app, /function setRealSizePreview\(valeur\)/);
+  assert.match(app, /el\.labelRealSize\.checked = valeur/);
+  assert.match(app, /el\.exportRealSize\.checked = valeur/);
+});
+
 test('la collection peut commencer à un numéro choisi', () => {
   // Continuer une série après avoir vidé la collection : le numéro est un
   // réglage, pas une conséquence des liens présents.

@@ -3416,11 +3416,18 @@ function renderImagePreview(link) {
   ctx.imageSmoothingEnabled = false;
   drawLabelCanvas(ctx, plan, link.url, { cutMarks: options.cutMarks });
 
-  // La largeur réelle va de 12 mm à 104 mm : on met à l'échelle pour l'écran,
-  // en gardant des proportions exactes et sans jamais dépasser la place
-  // disponible — un minimum de 1 faisait déborder les formats larges.
+  // La même échelle que l'onglet Niimbot, calculée au même endroit : bornée par
+  // un **multiple de la taille réelle** et annoncée. Un plafond de « 6 » donnait
+  // six fois la taille réelle sans le dire — le défaut même qu'on avait corrigé
+  // d'un côté et laissé de l'autre.
   const available = Math.max(1, largeurUtileApercu() - 20);
-  const scale = Math.min(6, available / plan.widthPx);
+  const echelle = labelPreviewZoom({
+    widthPx: plan.widthPx,
+    dpi: options.format.dpi,
+    availablePx: available,
+    realSize: el.exportRealSize.checked,
+  });
+  const scale = echelle.zoom;
 
   const frame = document.createElement('div');
   frame.className = 'preview__page';
@@ -3431,6 +3438,19 @@ function renderImagePreview(link) {
   shown.style.height = `${Math.round(plan.heightPx * scale)}px`;
   shown.style.imageRendering = scale < 1 ? 'auto' : 'pixelated';
   frame.appendChild(shown);
+
+  const largeurMm = options.format.widthMm.toFixed(1);
+  const hauteurMm = pxToMm(plan.heightPx, options.format.dpi).toFixed(1);
+  const echelleNote = echelle.multiple > 1.05
+    ? t(' — aperçu à {multiple} × la taille réelle ({width} × {height} mm).', {
+      multiple: echelle.multiple.toFixed(1),
+      width: largeurMm,
+      height: hauteurMm,
+    })
+    : t(' — aperçu à la taille réelle ({width} × {height} mm).', {
+      width: largeurMm,
+      height: hauteurMm,
+    });
 
   const caption = document.createElement('p');
   caption.className = 'hint';
@@ -3445,7 +3465,7 @@ function renderImagePreview(link) {
     : t('URL trop longue pour ce format : le QR Code fait {size} px pour {width} px de large.', {
       size: plan.qrSizePx,
       width: plan.widthPx,
-    }))
+    })) + echelleNote
     + (plan.dateOmitted
       ? t(' — date non imprimée : elle ne tient pas sur ce format, réduisez la taille du texte.')
       : '');
@@ -4690,7 +4710,21 @@ for (const box of [
 el.labelAlignment.addEventListener('change', renderPreview);
 // Réglage d'aperçu : il ne change rien à l'impression, mais il change ce qu'on
 // regarde.
-el.labelRealSize.addEventListener('change', renderPreview);
+/**
+ * Les deux cases « Aperçu à la taille réelle » — celle de l'onglet Niimbot et
+ * celle des images — portent le **même** état : c'est le même aperçu, vu depuis
+ * deux onglets, et deux états séparés finiraient par se contredire.
+ *
+ * @param {boolean} valeur
+ */
+function setRealSizePreview(valeur) {
+  el.labelRealSize.checked = valeur;
+  el.exportRealSize.checked = valeur;
+  renderPreview();
+}
+
+el.labelRealSize.addEventListener('change', () => setRealSizePreview(el.labelRealSize.checked));
+el.exportRealSize.addEventListener('change', () => setRealSizePreview(el.exportRealSize.checked));
 el.labelFontSize.addEventListener('input', renderPreview);
 // Les réglages de page du tableau se répercutent sur l'aperçu.
 for (const node of [

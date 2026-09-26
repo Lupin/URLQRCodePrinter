@@ -1778,6 +1778,68 @@ async function main() {
         + `« ${sansNote?.planche?.bulle} »`,
     );
 
+    // --- Le même aperçu dans les deux onglets d'étiquettes -----------------
+    //
+    // L'onglet des images agrandissait jusqu'à six fois **sans le dire**, et
+    // n'offrait pas la taille réelle : le réglage existait d'un côté et manquait
+    // de l'autre. On compare les deux onglets, mesure en main.
+    const apercus = await evalApp(`(async () => {
+      const pause = (ms) => new Promise((r) => setTimeout(r, ms));
+      const lire = () => {
+        const canvas = document.querySelector('#preview canvas');
+        const legende = document.querySelector('#preview .hint');
+        return {
+          largeur: canvas ? Math.round(canvas.getBoundingClientRect().width) : 0,
+          legende: legende ? legende.textContent.trim() : null,
+        };
+      };
+      const onglet = async (nom) => {
+        [...document.querySelectorAll('.tab')].find((t) => t.dataset.mode === nom).click();
+        await pause(900);
+        return lire();
+      };
+
+      const niimbot = await onglet('single');
+      const images = await onglet('images');
+
+      // La taille réelle depuis l'onglet des images : les deux doivent suivre.
+      const reelle = document.getElementById('export-real-size');
+      reelle.checked = true;
+      reelle.dispatchEvent(new Event('change', { bubbles: true }));
+      await pause(900);
+      const imagesReelles = lire();
+      const niimbotCoche = document.getElementById('label-real-size').checked;
+
+      reelle.checked = false;
+      reelle.dispatchEvent(new Event('change', { bubbles: true }));
+      await pause(700);
+      return { niimbot, images, imagesReelles, niimbotCoche, retour: lire() };
+    })()`);
+
+    record(
+      'l\'aperçu des images annonce son échelle, comme celui des étiquettes',
+      /taille réelle/.test(apercus?.images?.legende ?? '')
+        && /×/.test(apercus?.images?.legende ?? '')
+        && /taille réelle/.test(apercus?.niimbot?.legende ?? ''),
+      `images : « ${apercus?.images?.legende?.slice(0, 120)} »`,
+    );
+    record(
+      'la taille réelle est offerte des deux côtés, et c\'est le même réglage',
+      apercus?.niimbotCoche === true
+        && (apercus?.imagesReelles?.largeur ?? 0) < (apercus?.images?.largeur ?? 0)
+        && (apercus?.retour?.largeur ?? 0) === (apercus?.images?.largeur ?? 0),
+      `images ${apercus?.images?.largeur} px → ${apercus?.imagesReelles?.largeur} px à la taille `
+        + `réelle (case Niimbot cochée : ${apercus?.niimbotCoche}), retour à `
+        + `${apercus?.retour?.largeur} px`,
+    );
+
+    // Remise en état : la planche, pour la suite du parcours.
+    await evalApp(`(async () => {
+      const pause = (ms) => new Promise((r) => setTimeout(r, ms));
+      [...document.querySelectorAll('.tab')].find((t) => t.dataset.mode === 'sheet').click();
+      await pause(600);
+    })()`);
+
     // --- Ranger plutôt que trancher ----------------------------------------
     //
     // Quand un espacement ou une grille rétrécit les étiquettes au point que le

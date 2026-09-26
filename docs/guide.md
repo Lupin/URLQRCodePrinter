@@ -452,6 +452,13 @@ For direct printing on a D110, an M2 or an M3. See the next section.
 A folder of print-ready images, **with no printer at all**. See "Exporting
 without Niimbot".
 
+Its preview follows the **same rules** as the Niimbot labels': it takes the space
+offered, never exceeds **four times real size**, and says so — "preview at 4.0 ×
+real size (12.0 × 25.4 mm)". The **"Preview at real size"** box is offered here
+too: it shows the label as it will measure on paper, and it is **the same
+setting** as in the Niimbot tab — ticking it on one side ticks it on the other,
+since it is the same preview seen from two tabs.
+
 ## Printing on a Niimbot
 
 ### The format can be previewed without a printer

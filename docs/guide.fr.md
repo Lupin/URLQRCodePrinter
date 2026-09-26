@@ -468,6 +468,14 @@ Pour l'impression directe sur une D110, une M2 ou une M3. Voir la section suivan
 Un dossier d'images prêtes à imprimer, **sans aucune imprimante**. Voir
 « Exporter sans Niimbot ».
 
+L'aperçu y suit les **mêmes règles** que celui des étiquettes Niimbot : il prend
+la place offerte, ne dépasse pas **quatre fois la taille réelle**, et l'annonce —
+« aperçu à 4,0 × la taille réelle (12,0 × 25,4 mm) ». La case **« Aperçu à la
+taille réelle »** y est offerte aussi : elle montre l'étiquette telle qu'elle
+mesurera sur le papier, et c'est **le même réglage** que dans l'onglet Niimbot —
+le cocher d'un côté le coche de l'autre, puisque c'est le même aperçu vu depuis
+deux onglets.
+
 ## Imprimer sur une Niimbot
 
 ### Le format se prévisualise sans imprimante
