@@ -568,7 +568,29 @@
             <input id="label-font-size" class="input" type="number" min="1" max="5"
                    step="0.1" value="1.6">
           </label>
+          <!-- Le titre a la sienne : il était écrit à la taille du texte, en
+               gras, si bien qu'un titre long chassait l'adresse sans qu'on
+               puisse rien y faire. Le champ est à côté de celui du texte,
+               puisque c'est la même question — quelle hauteur pour cette
+               ligne. -->
+          <label class="field">
+            <span class="field__label" data-i18n="Taille du titre (mm)">Taille du titre (mm)</span>
+            <input id="label-title-size" class="input" type="number" min="1" max="5"
+                   step="0.1" value="1.6">
+          </label>
         </div>
+
+        <!-- La taille du QR Code, sur les têtes qui ont de la place. Sur un
+             D110, le QR Code occupe déjà toute la largeur utile : le champ y
+             serait une commande sans effet, et il est masqué. -->
+        <div class="fields">
+          <label class="field" id="label-qr-field" hidden>
+            <span class="field__label" data-i18n="Taille du QR Code (mm)">Taille du QR Code (mm)</span>
+            <input id="label-qr-size" class="input" type="number" min="5" max="60"
+                   step="0.5" value="20">
+          </label>
+        </div>
+        <p id="label-qr-hint" class="hint hint--tight"></p>
         <p id="label-font-hint" class="hint hint--tight"></p>
 
         <!-- Ce qui est imprimé sous le QR Code, coché comme les colonnes du tableau.

@@ -3180,6 +3180,29 @@ function renderSingleLabel(link) {
       '{count} lignes',
     ),
   });
+  // **Ce que le réglage du QR Code a donné.** Un champ borné qui ne dit pas ce
+  // qu'il a obtenu laisse croire qu'il n'a pas agi : on annonce la taille, les
+  // pixels par module, et l'intervalle permis — même règle que sous le curseur de
+  // la planche.
+  if (el.labelQrHint) {
+    const modules = geometry.qrMatrix?.size ?? 0;
+    const mm = (px) => (px / profile.dpi) * 25.4;
+    const largeurUtile = geometry.width - geometry.padding * 2;
+    const minPx = modules * 2;
+    const maxPx = Math.floor(largeurUtile / modules) * modules;
+    const demandeeMm = Number(el.labelQrSize?.value);
+    const bornee = qrReglable(profile) && Number.isFinite(demandeeMm) && demandeeMm > 0
+      && Math.abs(geometry.qrSize - (demandeeMm / 25.4) * profile.dpi) > modules;
+    el.labelQrHint.textContent = qrReglable(profile) && modules > 0
+      ? t('QR Code : {mm} mm de côté, {px} px par module. Réglable de {min} à {max} mm sur cette tête.', {
+        mm: mm(geometry.qrSize).toFixed(1),
+        px: decimal(geometry.qrSize / modules),
+        min: mm(minPx).toFixed(1),
+        max: mm(maxPx).toFixed(1),
+      }) + (bornee ? ' ' + t('La taille demandée a été ramenée à ce qui tient.') : '')
+      : '';
+  }
+
   const orientationNote = lateralRefused
     ? t('Texte empilé : le QR Code laisse trop peu de largeur pour une colonne de texte.')
     : (turns === 0 ? '' : t('Orientation : {label}', { label: t(labelRotation().label) }));
@@ -3282,6 +3305,18 @@ function composeLabel(link, profile) {
   const fontSize = Number.isFinite(tailleMm) && tailleMm > 0
     ? Math.max(6, Math.round((tailleMm / 25.4) * profile.dpi))
     : undefined;
+  // La taille du titre, dans la même unité et avec le même repli : champ vidé,
+  // le titre reprend la taille du texte — le comportement d'avant le réglage.
+  const tailleTitreMm = Number(el.labelTitleSize?.value);
+  const titleFontSize = Number.isFinite(tailleTitreMm) && tailleTitreMm > 0
+    ? Math.max(6, Math.round((tailleTitreMm / 25.4) * profile.dpi))
+    : fontSize;
+  // La taille du QR Code demandée, en millimètres. `null` laisse la géométrie
+  // choisir — c'est le cas des têtes de 12 mm, où la question ne se pose pas.
+  const tailleQrMm = Number(el.labelQrSize?.value);
+  const qrTargetPx = qrDemande(profile)
+    ? Math.round((tailleQrMm / 25.4) * profile.dpi)
+    : null;
 
   // `drawLabel` écrit la date sur une seule ligne, sans la découper : on vérifie
   // d'abord qu'elle tient, à la taille de police que la géométrie va retenir.
@@ -3364,8 +3399,15 @@ function composeLabel(link, profile) {
     dpi: profile.dpi,
     ecc: 'M',
     extraLines: content.extraLines,
+    // Ce que la géométrie doit savoir du titre : **combien** de ses rangées
+    // supplémentaires en viennent, et à quelle hauteur elles s'interlignent.
+    // Sans quoi le titre gardait l'interligne du corps et le réglage décalait
+    // tout ce qui suit.
+    titleRows: content.titleLines?.length ?? 0,
+    titleFontSize,
     maxHeightPx: lengthPx,
     alignment,
+    qrTargetPx,
     // La date impose sa taille : elle est écrite d'un bloc, sans découpage.
     fontSize: tailleDate > 0 && fontSize !== undefined
       ? Math.min(fontSize, tailleDate)
@@ -4453,6 +4495,31 @@ function previewProfile() {
   return findProfile(el.labelProfile.value) ?? printer?.profile ?? DEFAULT_PROFILE;
 }
 
+/**
+ * La taille du QR Code est-elle réglable sur cette tête ?
+ *
+ * Sur une tête de 12 mm, le QR Code occupe déjà toute la largeur utile : un champ
+ * qui ne peut rien changer est une commande sans effet, et le projet les retire
+ * plutôt que de les laisser mentir. Le seuil est celui qui sert déjà à écarter
+ * « Texte à droite du QR Code » — une tête assez large pour avoir le choix.
+ *
+ * @param {{ printheadPixels?: number }} profile
+ * @returns {boolean}
+ */
+function qrReglable(profile) {
+  return (profile?.printheadPixels ?? 0) >= 200;
+}
+
+/** La demande de taille de QR Code, en pixels pour le profil courant. */
+function qrDemande(profile) {
+  const veut = qrReglable(profile);
+  if (el.labelQrField) el.labelQrField.hidden = !veut;
+  if (!veut) return null;
+  const mm = Number(el.labelQrSize?.value);
+  if (!Number.isFinite(mm) || mm <= 0) return null;
+  return Math.max(6, Math.round((mm / 25.4) * profile.dpi));
+}
+
 /** Explique avec quel profil l'aperçu est composé, et ce qui sera imprimé. */
 function updateProfileHint() {
   const profile = previewProfile();
@@ -5004,6 +5071,10 @@ function setRealSizePreview(valeur) {
 el.labelRealSize.addEventListener('change', () => setRealSizePreview(el.labelRealSize.checked));
 el.exportRealSize.addEventListener('change', () => setRealSizePreview(el.exportRealSize.checked));
 el.labelFontSize.addEventListener('input', renderPreview);
+// Le titre et le QR Code se règlent comme le texte : chaque frappe
+// recompose l'aperçu, sans quoi le réglage semble sans effet.
+el.labelTitleSize.addEventListener('input', renderPreview);
+el.labelQrSize.addEventListener('input', renderPreview);
 // Les réglages de page du tableau se répercutent sur l'aperçu.
 for (const node of [
   el.tableOrientation, el.tableMarginX, el.tableMarginY,

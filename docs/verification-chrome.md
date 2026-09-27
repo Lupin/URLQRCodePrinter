@@ -77,7 +77,7 @@ protocole : elle répond.
 Les quatre constats sont désormais traités : le contour des boutons était une
 fausse accusation, les deux cibles satisfont l'exception d'espacement, et les
 deux aperçus ont été repris. Le relevé passe à **72 constats sur 72**, et à
-**119 sur 119** après les lots suivants.
+**121 sur 121** après les lots suivants.
 
 ### Le constat 1 : la fenêtre la plus courante est la plus mal servie
 
@@ -286,7 +286,7 @@ l'heuristique du navigateur. Il les distingue maintenant, en interrogeant
 - `:focus-visible` **vrai** et anneau absent → **c'est notre règle**. Le contrôle
   échoue, et il nomme l'élément.
 
-Trois passages consécutifs donnent 119 constats satisfaits sur 119, le troisième
+Trois passages consécutifs donnent 121 constats satisfaits sur 121, le troisième
 relevant l'artefact et le nommant. Un contrôle qui échoue au hasard finit par être
 ignoré ; celui-ci dit ce qu'il a vu et pourquoi il ne conclut pas à un défaut.
 
@@ -355,6 +355,46 @@ C'est la leçon, et elle est l'inverse de celle du piège de peinture : là, qua
 constats concordants **fabriquaient** un défaut ; ici, un constat unique
 **cachait** une fonctionnalité qui marchait. Dans les deux cas, la cause est la
 même — la mesure portait sur autre chose que ce qu'elle croyait mesurer.
+
+---
+
+## Deux réglages réclamés : la taille du titre, et celle du QR Code
+
+Demandé : « ajouter dans layout un champ pour la taille du titre en plus de la
+taille du texte », et « pour le Niimbot M2 et M3, pouvoir changer la taille du QR
+Code car on a de la place quand on compare au D110 ».
+
+**Une taille de titre, indépendante du texte.** Le titre s'écrivait en gras à la
+taille du texte : aucun réglage ne pouvait l'alléger ou le mettre en avant.
+Mesuré dans l'application, sur un D110 : le titre passe de 1,2 à 3 mm, et
+l'étiquette dessinée change — **11 720 pixels d'encre puis 15 540**, pour une
+hauteur de 362 px puis 422 px.
+
+La géométrie devait apprendre ce qu'elle ignorait : ses rangées supplémentaires
+ne s'interlignent pas toutes à la même hauteur. Elle reçoit donc **combien de ces
+rangées sont des rangées de titre** et à quelle taille, et les deux dispositions
+— empilée et tournée — comme le dessin s'en servent. Sans taille demandée, le
+titre reprend celle du texte **retenue**, au pixel près : aucun appelant existant
+ne change de comportement, et la suite le vérifie.
+
+**Une taille de QR Code, sur les têtes qui ont la place.** Le QR Code prenait
+toujours la plus grande part de la largeur utile — 95 % — quel que soit le
+modèle. Sur une tête de 12 mm c'est la seule possibilité ; sur une tête de 48 ou
+72 mm, c'était un choix imposé. Le champ existe donc là où il agit, et **n'est pas
+affiché sur un D110** : le projet retire les commandes sans effet plutôt que de
+les laisser mentir.
+
+La demande est bornée des deux côtés, et le relevé le mesure sur un M2 :
+**15 mm → 4 px par module, 40 mm → 12 px par module**, champ visible ; sur un D110,
+champ masqué. Le plancher est la lisibilité — 2 px par module, sous lequel une
+tête thermique fusionne les points — et le plafond la place réelle. Le côté obtenu
+est un **nombre entier de modules** : c'est ce qui empêche un QR Code arrondi au
+pixel de ne plus se lire. La ligne sous le champ annonce la taille obtenue,
+l'intervalle permis, et dit quand la demande a été ramenée à ce qui tient.
+
+**Ce que le contrôle ne dit pas.** Il ne juge pas si le titre est *beau* à telle
+taille, ni si l'utilisateur trouvera le réglage : il vérifie qu'il agit, et qu'il
+n'apparaît pas là où il ne peut rien.
 
 ---
 

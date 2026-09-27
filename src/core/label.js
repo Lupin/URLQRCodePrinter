@@ -346,6 +346,20 @@ export function computeLabelGeometry(options) {
   const padding = Math.max(0, Math.floor(options.padding ?? Math.round(width * 0.06)));
   const fontSize = Math.max(6, Math.floor(options.fontSize ?? mmToPx(MIN_FONT_MM, dpi)));
   const lineSpacing = options.lineSpacing ?? 1.15;
+  // **Le titre a sa propre taille**, comme le texte : un titre long se lit mieux
+  // un peu plus petit, un titre court peut dominer. Tant que l'appelant ne
+  // demande rien, il vaut la taille du texte — le comportement d'avant, au pixel
+  // près. Ce que la géométrie doit connaître, c'est **combien de ses rangées
+  // supplémentaires sont des rangées de titre** : elles ne s'interlignent pas
+  // comme le corps.
+  // `undefined` = « la taille du texte », et non « la taille demandée » : la
+  // géométrie peut retenir une police plus petite que celle qu'on lui donne, et
+  // le titre doit suivre **celle qui est retenue**, sans quoi il s'interlignerait
+  // sur une taille qui n'est pas la sienne.
+  const titreTailleDemandee = Number.isFinite(options.titleFontSize)
+    ? Math.max(6, Math.floor(options.titleFontSize))
+    : undefined;
+  const titleRows = Math.max(0, Math.trunc(options.titleRows ?? 0));
   const alignment = options.alignment ?? DEFAULT_LABEL_ALIGNMENT;
 
   const innerWidth = Math.max(1, width - padding * 2);
@@ -452,8 +466,28 @@ export function computeLabelGeometry(options) {
   candidates.push({ size: fontSize, explicit: false });
 
   const textTarget = Math.floor(innerWidth * qrRatio);
-  const scale = Math.max(minScale, pickScale(textTarget, matrix.size));
-  const qrSize = matrix.size * scale;
+  // **Une taille de QR Code demandée** remplace la règle « aussi large que
+  // possible ». C'était le seul comportement : sur une tête de 12 mm le QR Code
+  // occupe déjà toute la largeur utile, mais sur une tête de 48 ou 72 mm il en
+  // prenait la même part, et rien ne permettait de le réduire pour laisser de la
+  // place au texte. La demande est **bornée des deux côtés** :
+  //   - en bas par la lisibilité, 2 px par module : sous ce seuil une tête
+  //     thermique fusionne les points, et un QR Code illisible n'est pas un
+  //     réglage, c'est une panne ;
+  //   - en haut par la largeur utile.
+  // Le côté obtenu est un **nombre entier de modules** : un QR Code arrondi au
+  // pixel près ne se lirait pas.
+  const demandé = Math.floor(options.qrTargetPx ?? 0);
+  const echelleMin = matrix.size * minScale;
+  const maxParLargeur = Math.floor(innerWidth / matrix.size) * matrix.size;
+  const ajusté = Math.floor(demandé / matrix.size) * matrix.size;
+  const tailleDemandee = demandé > 0
+    ? Math.max(echelleMin, Math.min(ajusté > 0 ? ajusté : echelleMin, maxParLargeur))
+    : 0;
+  const scale = tailleDemandee > 0
+    ? tailleDemandee / matrix.size
+    : Math.max(minScale, pickScale(textTarget, matrix.size));
+  const qrSize = tailleDemandee > 0 ? tailleDemandee : matrix.size * scale;
   const fits = qrSize <= innerWidth;
 
   // Le texte ne monte pas plus haut que cette part de la largeur de la tête :
@@ -482,7 +516,20 @@ export function computeLabelGeometry(options) {
     const borné = explicit ? Math.min(size, innerWidth) : Math.min(size, fontCeiling);
     const usable = Math.max(6, borné);
     const attempt = layoutText(usable);
-    const textHeight = (attempt.lines.length + extraLines) * attempt.lineHeight;
+    // Les rangées de titre s'interlignent à **leur** hauteur, le reste à celle du
+    // corps. Sans taille de titre demandée, les deux valent la même chose — la
+    // police retenue — et le total est celui d'avant, au pixel près.
+    // La police **essayée** est `usable` : `attempt` ne porte pas de taille, et
+    // lire la sienne donnait `NaN` jusque dans la hauteur de l'étiquette.
+    const titreTaille = titreTailleDemandee ?? usable;
+    // Sans demande, l'interligne du titre est **celui du corps**, tel quel : le
+    // défaut reproduit l'ancien comportement au pixel près, sans dépendre d'un
+    // `ceil` recalculé qui pourrait en différer d'un pixel.
+    const titreInterligne = titreTailleDemandee === undefined
+      ? attempt.lineHeight
+      : Math.ceil(titreTaille * lineSpacing);
+    const corpsRangees = attempt.lines.length + Math.max(0, extraLines - titleRows);
+    const textHeight = titleRows * titreInterligne + corpsRangees * attempt.lineHeight;
     // Hauteur complète : marge haute, QR Code, écart, texte, **et marge basse**.
     // C'est la plus petite hauteur d'étiquette qui contienne le tout. Oublier
     // la marge basse donnait une étiquette dont le texte touchait le bord, et
@@ -493,6 +540,8 @@ export function computeLabelGeometry(options) {
       fontSize: usable,
       lines: attempt.lines,
       lineHeight: attempt.lineHeight,
+      titleFontSize: titreTaille,
+      titleLineHeight: titreInterligne,
       textHeight,
       naturalHeight: natural,
       // Deux conditions, et la seconde est la plus importante : la taille doit
@@ -594,6 +643,12 @@ export function computeLabelGeometry(options) {
     textTop: Math.round(textAtTop),
     blockHeight,
     lineHeight,
+    // Le titre se dessine à sa propre taille : les deux valeurs voyagent avec la
+    // géométrie, sans quoi `drawLabel` le remettrait à la taille du corps et le
+    // réglage n'aurait aucun effet visible.
+    titleFontSize: placed.titleFontSize,
+    titleLineHeight: placed.titleLineHeight,
+    titleRows,
     lines,
     extraLines,
     fontSize: placed.fontSize,
@@ -951,18 +1006,30 @@ export function drawLabel(ctx, geometry, options = {}) {
     const lineHeight = geometry.lineHeight;
 
     // Les rangées réellement écrites, dans l'ordre de lecture.
+    // Chaque rangée porte **sa** hauteur : le titre peut être plus grand ou plus
+    // petit que le corps, et une hauteur unique pour toutes les rangees decalait
+    // celles du dessous.
+    const titreTaille = geometry.titleFontSize ?? geometry.fontSize;
+    const titreInterligne = geometry.titleLineHeight ?? lineHeight;
     const rangees = [
       ...(geometry.titleLines ?? (showTitle && title ? [title] : []))
-        .filter(Boolean).map((contenu) => ({ contenu, gras: true })),
-      ...geometry.lines.filter(Boolean).map((contenu) => ({ contenu, gras: false })),
-      ...extraText.filter(Boolean).map((contenu) => ({ contenu, gras: false })),
+        .filter(Boolean).map((contenu) => ({
+          contenu, gras: true, taille: titreTaille, interligne: titreInterligne,
+        })),
+      ...geometry.lines.filter(Boolean).map((contenu) => ({
+        contenu, gras: false, taille: geometry.fontSize, interligne: lineHeight,
+      })),
+      ...extraText.filter(Boolean).map((contenu) => ({
+        contenu, gras: false, taille: geometry.fontSize, interligne: lineHeight,
+      })),
     ];
 
     // L'épaisseur occupée n'est pas l'épaisseur réservée : la dernière rangée
     // descend d'une hauteur de police sous son origine, pas d'un interligne.
     // Centrer sur la valeur réservée décalait le bloc d'un demi-interligne.
     const occupee = rangees.length > 0
-      ? (rangees.length - 1) * lineHeight + geometry.fontSize
+      ? rangees.reduce((total, r) => total + r.interligne, 0) - rangees[rangees.length - 1].interligne
+        + rangees[rangees.length - 1].taille
       : 0;
     const travers = Math.max(0, (thickness - occupee) / 2);
 
@@ -986,8 +1053,8 @@ export function drawLabel(ctx, geometry, options = {}) {
     // un même `x` cumulait leurs longueurs et faisait dépasser le texte, qui
     // remontait alors par-dessus le QR Code.
     let rangee = 0;
-    for (const { contenu, gras } of rangees) {
-      ctx.font = `${gras ? 'bold ' : ''}${geometry.fontSize}px ${fontFamily}`;
+    for (const { contenu, gras, taille, interligne } of rangees) {
+      ctx.font = `${gras ? 'bold ' : ''}${taille}px ${fontFamily}`;
       // La longueur occupée est mesurée, jamais supposée : `fillText` condense
       // un texte trop long, et centrer sur une longueur fausse décalerait le
       // bloc dans un sens sans décaler l'autre.
@@ -995,10 +1062,10 @@ export function drawLabel(ctx, geometry, options = {}) {
       ctx.fillText(
         contenu,
         Math.max(0, (bandLength - largeur) / 2),
-        rangee * lineHeight,
+        rangee,
         bandLength,
       );
-      rangee += 1;
+      rangee += interligne;
     }
 
     ctx.restore();
@@ -1008,7 +1075,11 @@ export function drawLabel(ctx, geometry, options = {}) {
   ctx.textAlign = lateral ? 'left' : 'center';
 
   let y = geometry.textTop;
-  ctx.font = `bold ${geometry.fontSize}px ${fontFamily}`;
+  // Le titre a sa **propre** taille depuis que l'interface l'offre : l'écrire à
+  // celle du corps rendait le réglage sans effet visible.
+  const titreTaille = geometry.titleFontSize ?? geometry.fontSize;
+  const titreInterligne = geometry.titleLineHeight ?? geometry.lineHeight;
+  ctx.font = `bold ${titreTaille}px ${fontFamily}`;
   // Le titre peut occuper plusieurs lignes : il est découpé par l'appelant, qui
   // seul connaît la largeur utile. `titleLines` prime sur `title`.
   const titreLignes = Array.isArray(options.titleLines) && options.titleLines.length > 0
@@ -1016,7 +1087,7 @@ export function drawLabel(ctx, geometry, options = {}) {
     : (showTitle && title ? [title] : []);
   for (const ligne of titreLignes) {
     ctx.fillText(ligne, textX, y, maxWidth);
-    y += geometry.lineHeight;
+    y += titreInterligne;
   }
 
   ctx.font = `${geometry.fontSize}px ${fontFamily}`;

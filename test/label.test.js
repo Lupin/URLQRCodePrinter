@@ -777,3 +777,90 @@ test('une taille demandée échappe au plafond d\'équilibre, le choix automatiq
   });
   assert.equal(demande.fontSize, 32, 'la demande explicite doit passer le plafond');
 });
+
+// ---------------------------------------------------------------------------
+// Taille du titre, et taille demandée du QR Code
+//
+// Deux réglages demandés : « un champ pour la taille du titre en plus de la
+// taille du texte », et « pour le Niimbot M2 et M3, pouvoir changer la taille du
+// QR Code car on a de la place quand on compare au D110 ».
+// ---------------------------------------------------------------------------
+
+test('la taille du titre est indépendante de celle du texte', () => {
+  const measureFactory = (size) => (texte) => texte.length * size * 0.55;
+  const base = {
+    text: 'https://exemple.fr/a', qrText: 'https://exemple.fr/a',
+    widthPx: 384, dpi: 300, maxHeightPx: 600, measureFactory,
+    extraLines: 1, titleRows: 1, fontSize: 12,
+  };
+
+  const meme = computeLabelGeometry(base);
+  const grand = computeLabelGeometry({ ...base, titleFontSize: 30 });
+
+  // Le titre occupe une rangée dans les deux cas : c'est sa **hauteur** qui
+  // change, et donc celle du bloc entier.
+  assert.equal(meme.titleRows, 1);
+  assert.ok(grand.titleLineHeight > meme.titleLineHeight);
+  // `naturalHeight` est la hauteur d'étiquette que le bloc réclame : c'est elle
+  // qui dit que la hauteur du titre compte dans la composition.
+  assert.ok(
+    grand.naturalHeight > meme.naturalHeight,
+    `bloc ${grand.naturalHeight} px contre ${meme.naturalHeight} px`,
+  );
+  // La géométrie transporte la taille retenue : sans elle, le dessin remettrait
+  // le titre à la taille du corps et le réglage n'aurait aucun effet.
+  assert.equal(grand.titleFontSize, 30);
+});
+
+test('sans taille de titre demandée, rien ne change', () => {
+  // C'est ce qui protège les appelants existants : le défaut vaut la taille du
+  // texte, au pixel près.
+  const measureFactory = (size) => (texte) => texte.length * size * 0.55;
+  const base = {
+    text: 'https://exemple.fr/a', qrText: 'https://exemple.fr/a',
+    widthPx: 96, dpi: 203, maxHeightPx: 240, measureFactory, extraLines: 1, titleRows: 1,
+  };
+  const implicite = computeLabelGeometry(base);
+  const explicite = computeLabelGeometry({ ...base, titleFontSize: base.fontSize });
+  assert.equal(implicite.naturalHeight, explicite.naturalHeight);
+  assert.equal(implicite.titleLineHeight, explicite.lineHeight);
+});
+
+test('une taille de QR Code demandée est honorée, à un module près', () => {
+  const measureFactory = (size) => (texte) => texte.length * size * 0.55;
+  const base = {
+    text: '', qrText: 'https://exemple.fr/a',
+    widthPx: 567, dpi: 300, maxHeightPx: 800, measureFactory,
+  };
+
+  const auto = computeLabelGeometry(base);
+  // Sur une tête large, le choix automatique prend presque toute la largeur.
+  assert.ok(auto.qrSize > 400, `choix automatique : ${auto.qrSize} px`);
+
+  const petit = computeLabelGeometry({ ...base, qrTargetPx: 300 });
+  assert.ok(Math.abs(petit.qrSize - 300) <= petit.qrMatrix.size);
+  // Le côté reste un nombre entier de modules : un QR Code arrondi au pixel ne
+  // se lirait pas.
+  assert.equal(petit.qrSize % petit.qrMatrix.size, 0);
+  assert.ok(petit.qrSize < auto.qrSize);
+});
+
+test('la taille du QR Code est bornée par la lisibilité et par la largeur', () => {
+  const measureFactory = (size) => (texte) => texte.length * size * 0.55;
+  const base = {
+    text: '', qrText: 'https://exemple.fr/a',
+    widthPx: 96, dpi: 203, maxHeightPx: 240, measureFactory,
+  };
+  const modules = computeLabelGeometry(base).qrMatrix.size;
+
+  // Trop petit : on remonte au plancher de lisibilité, 2 px par module. Un QR
+  // Code illisible n'est pas un réglage, c'est une panne.
+  const minuscule = computeLabelGeometry({ ...base, qrTargetPx: 4 });
+  assert.equal(minuscule.qrSize, modules * 2);
+  assert.equal(minuscule.qrSize / modules, 2);
+
+  // Trop grand : on redescend à ce que la largeur utile accepte.
+  const enorme = computeLabelGeometry({ ...base, qrTargetPx: 5000 });
+  assert.ok(enorme.qrSize <= enorme.width - enorme.padding * 2);
+  assert.equal(enorme.fits, true);
+});

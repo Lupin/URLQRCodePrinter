@@ -3284,6 +3284,107 @@ async function main() {
         await pause(600);
       })()`);
 
+      // --- La taille du titre, et celle du QR Code ---------------------------
+      //
+      // Deux réglages demandés : « un champ pour la taille du titre en plus de la
+      // taille du texte », et « pour le Niimbot M2 et M3, pouvoir changer la
+      // taille du QR Code car on a de la place quand on compare au D110 ».
+      //
+      // Le second ne doit **pas** apparaître sur un D110 : le QR Code y occupe
+      // déjà toute la largeur utile, et un champ qui ne peut rien changer est une
+      // commande sans effet. Le contrôle vérifie les deux faces — le champ agit
+      // sur une tête large, et il est absent de la petite.
+      const reglages = await evalApp(`(async () => {
+        const pause = (ms) => new Promise((r) => setTimeout(r, ms));
+        const el = (id) => document.getElementById(id);
+        const chiffres = () => {
+          // La ligne du QR Code, et non la legende de l'etiquette : c'est elle
+          // qui annonce la taille obtenue et les pixels par module.
+          const fait = el('label-qr-hint')?.textContent.trim() ?? '';
+          const px = /([0-9]+(?:[.,][0-9]+)?) px par module/.exec(fait);
+          return {
+            fait,
+            pxParModule: px ? Number(px[1].replace(',', '.')) : null,
+            hauteur: document.querySelector('#preview canvas')?.height ?? 0,
+            encre: (() => {
+              const canvas = document.querySelector('#preview canvas');
+              if (!canvas || !canvas.width) return 0;
+              const donnees = canvas.getContext('2d')
+                .getImageData(0, 0, canvas.width, canvas.height).data;
+              let n = 0;
+              for (let i = 0; i < donnees.length; i += 4) if (donnees[i] < 128) n += 1;
+              return n;
+            })(),
+            qrHint: el('label-qr-hint')?.textContent.trim() ?? '',
+          };
+        };
+
+        [...document.querySelectorAll('.tab')].find((t) => t.dataset.mode === 'single').click();
+        await pause(1400);
+
+        // --- Le QR Code, sur une tete large puis sur la petite ---
+        const profil = el('label-profile');
+        const valeurs = [...profil.options].map((o) => o.value);
+        const m2 = valeurs.find((v) => /m2/i.test(v));
+        profil.value = m2;
+        profil.dispatchEvent(new Event('change', { bubbles: true }));
+        await pause(1400);
+        const champVisibleM2 = el('label-qr-field')?.hidden === false;
+
+        const poserQr = (mm) => {
+          el('label-qr-size').value = String(mm);
+          el('label-qr-size').dispatchEvent(new Event('input', { bubbles: true }));
+        };
+        poserQr(15);
+        await pause(900);
+        const qrPetit = chiffres();
+        poserQr(40);
+        await pause(900);
+        const qrGrand = chiffres();
+
+        // Puis le D110 : le champ doit disparaitre.
+        const d110 = valeurs.find((v) => /d110/i.test(v));
+        profil.value = d110;
+        profil.dispatchEvent(new Event('change', { bubbles: true }));
+        await pause(1400);
+        const champVisibleD110 = el('label-qr-field')?.hidden === false;
+        const qrRelache = chiffres();
+
+        // --- Le titre ---
+        const tailleTitre = el('label-title-size');
+        tailleTitre.value = '1.2';
+        tailleTitre.dispatchEvent(new Event('input', { bubbles: true }));
+        await pause(900);
+        const titrePetit = chiffres();
+        tailleTitre.value = '3';
+        tailleTitre.dispatchEvent(new Event('input', { bubbles: true }));
+        await pause(900);
+        const titreGrand = chiffres();
+
+        return {
+          champVisibleM2, champVisibleD110, qrPetit, qrGrand, qrRelache, titrePetit, titreGrand,
+        };
+      })()`);
+
+      record(
+        'la taille du QR Code se règle sur une tête large, et n\'existe pas sur un D110',
+        reglages?.champVisibleM2 === true
+          && reglages?.champVisibleD110 === false
+          && (reglages?.qrGrand?.pxParModule ?? 0) > (reglages?.qrPetit?.pxParModule ?? 0),
+        `M2 : champ visible ${reglages?.champVisibleM2}, `
+          + `15 mm → ${reglages?.qrPetit?.pxParModule} px par module, `
+          + `40 mm → ${reglages?.qrGrand?.pxParModule} px par module — `
+          + `D110 : champ visible ${reglages?.champVisibleD110} — « ${reglages?.qrPetit?.qrHint?.slice(0, 110)} »`,
+      );
+
+      record(
+        'la taille du titre change ce qui est imprimé, indépendamment du texte',
+        (reglages?.titreGrand?.encre ?? 0) !== (reglages?.titrePetit?.encre ?? 0),
+        `titre à 1,2 mm : ${reglages?.titrePetit?.encre} pixels d'encre, `
+          + `à 3 mm : ${reglages?.titreGrand?.encre} — `
+          + `hauteur ${reglages?.titrePetit?.hauteur} puis ${reglages?.titreGrand?.hauteur} px`,
+      );
+
       // --- L'interface anglaise ne montre plus de français --------------------
       //
       // Signalé : « la traduction anglaise de Orientation de la page > Paysage
