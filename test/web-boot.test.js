@@ -27,7 +27,21 @@ if (!existsSync(DIST_WEB)) {
 let bootError = null;
 let registry = new Map();
 
+/**
+ * Compteur d'appels réseau, posé **avant** le démarrage.
+ *
+ * Le raccourcissement est la seule fonction qui sorte de la machine, et il
+ * n'est déclenché que par un clic. Un appel au chargement signalerait qu'un
+ * chemin l'a déclenché tout seul — et le compteur le dit sans dépendre de la
+ * chance qu'aurait un service tiers de répondre ou non.
+ */
+let fetchCalls = 0;
+
 before(async () => {
+  globalThis.fetch = async () => {
+    fetchCalls += 1;
+    throw new Error('réseau interdit pendant les tests');
+  };
   ({ registry, bootError } = await bootApp({ distWeb: DIST_WEB }));
 });
 
@@ -41,7 +55,11 @@ test('le compteur affiche zéro lien au démarrage', () => {
 
 test('les dispositions de planche sont proposées, groupées par famille', () => {
   const preset = registry.get('preset');
-  assert.equal(preset.value, 'a4-3x8', 'le préréglage par défaut doit être sélectionné');
+  // **3 × 4, et non 3 × 8** : huit rangées laissent 33,9 mm de haut, où le QR
+  // Code et deux lignes de texte se disputent la place — chaque réglage en
+  // corrige un autre, et l'étiquette finit coupée. C'est le préréglage proposé
+  // d'emblée, et le test le tient depuis la constante, pas d'une chaîne recopiée.
+  assert.equal(preset.value, 'a4-3x4', 'le préréglage par défaut doit être sélectionné');
 
   // Les préréglages sont rangés par famille : les dispositions génériques se
   // règlent, les références Avery se choisissent sur l'emballage.
@@ -135,10 +153,14 @@ test('les services de raccourcissement sont proposés dès le démarrage', () =>
     // noms inconnus, alors qu'on veut juste un lien plus court.
     assert.match(label, /—/, `${value} : le libellé doit expliquer le service`);
   }
-  // Le service recommandé vient en tête, et il le dit.
-  assert.equal(choices[0][0], 'tinyurl');
-  assert.match(choices[0][1], /recommandé/);
-  // Le service retenu par défaut est appliqué avant le premier rendu.
+  // T.LY vient en tête, et il le dit : c'est le service que l'extension
+  // présélectionne, celui qui raccourcit sans clé ni compte.
+  assert.equal(choices[0][0], 'tly');
+  assert.match(choices[0][1], /défaut/);
+  // Ce démarrage-ci est celui de la **page web autonome** : T.LY n'y répond
+  // pas, puisqu'il n'accepte que les origines d'extension. Le service
+  // présélectionné y est donc un service qui répond depuis une origine
+  // ordinaire.
   assert.equal(registry.get('shortener').value, 'tinyurl');
 });
 
@@ -158,10 +180,20 @@ test('le QR Code vise l\'URL collectée, et le raccourci reste hors de portée',
 
 test('aucun raccourcissement n\'est déclenché de lui-même', () => {
   // Le stockage est vide et le bouton est inactif : ouvrir l'application ne
-  // contacte aucun service tiers.
+  // contacte aucun service tiers. Le compteur le prouve, plutôt que de s'en
+  // remettre à l'état des boutons — présélectionner T.LY ne doit rien émettre.
   assert.equal(registry.get('shorten').disabled, true);
   assert.equal(registry.get('shorten-clear').hidden, true);
   assert.equal(registry.get('shorten-status').textContent, '');
+  assert.equal(fetchCalls, 0, 'aucune requête ne doit partir au démarrage');
+});
+
+test("l'aide du sélecteur dit que le raccourcissement reste facultatif", () => {
+  // Le service est présélectionné, mais rien n'est raccourci : c'est la phrase
+  // qui l'annonce, et c'est elle qui évite de faire croire à un réglage actif.
+  const aide = registry.get('shortener-hint').textContent;
+  assert.match(aide, /rien ne change/i);
+  assert.match(aide, /TinyURL|T\.LY/, "l'aide rappelle le service retenu");
 });
 
 test('la planche se règle par une seule présentation, sans mode', () => {

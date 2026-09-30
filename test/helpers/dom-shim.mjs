@@ -17,6 +17,7 @@
  */
 
 import { join } from 'node:path';
+import { pathToFileURL } from 'node:url';
 
 // ---------------------------------------------------------------------------
 // DOM minimal
@@ -45,6 +46,10 @@ function createContext2D() {
 /** Élément DOM factice, avec juste ce qu'utilise app.js. */
 function createElement(tagName) {
   const classes = new Set();
+  // Les écouteurs sont conservés : un test doit pouvoir déclencher un geste —
+  // cocher une case, cliquer une commande — et constater ce qu'il produit. Le
+  // substitut ne fait rien de plus : il ne simule ni propagation ni délégation.
+  const listeners = new Map();
   const node = {
     tagName: String(tagName).toUpperCase(),
     children: [],
@@ -92,7 +97,10 @@ function createElement(tagName) {
       if (index !== -1) this.children.splice(index, 1);
       return child;
     },
-    addEventListener() {},
+    addEventListener(type, fn) {
+      if (!listeners.has(type)) listeners.set(type, []);
+      listeners.get(type).push(fn);
+    },
     removeEventListener() {},
     setAttribute(name, value) {
       this.attributes[name] = String(value);
@@ -108,6 +116,10 @@ function createElement(tagName) {
     querySelector: () => null,
     click() {},
     select() {},
+    // Le focus est une vraie action de l'application — reprise après une
+    // suppression, entrée dans un panneau. Le substitut l'accepte sans le
+    // simuler : ce qui compte est que le code puisse l'appeler.
+    focus() {},
     getContext: () => createContext2D(),
     getBoundingClientRect: () => ({ width: 900, height: 600, top: 0, left: 0 }),
   };
@@ -124,6 +136,10 @@ function createElement(tagName) {
     },
     configurable: true,
   });
+
+  // Exposés sous le nom qu'utilise déjà `test/extension-bundle.test.js`, pour
+  // que les deux substituts se lisent de la même façon.
+  node.__listeners = listeners;
 
   Object.defineProperty(node, 'innerHTML', {
     get: () => text,
@@ -157,6 +173,29 @@ const documentStub = {
 };
 
 /**
+ * Déclenche les gestionnaires d'un type d'événement sur un nœud.
+ *
+ * Rend ce que le dernier gestionnaire a rendu : les gestionnaires de
+ * l'application sont souvent asynchrones, et un test qui ne les attendrait pas
+ * dépendrait de l'ordonnancement.
+ *
+ * @param {object} node
+ * @param {string} type
+ * @param {object} [event] Propriétés supplémentaires (par exemple `key`).
+ * @returns {Promise<unknown>}
+ */
+export async function fire(node, type, event = {}) {
+  let resultat;
+  for (const listener of node?.__listeners?.get(type) ?? []) {
+    resultat = await listener({ preventDefault() {}, ...event });
+  }
+  return resultat;
+}
+
+/** Compteur d'exécutions : chaque démarrage doit repartir d'un état neuf. */
+let bootCount = 0;
+
+/**
  * Installe le DOM de substitution et exécute l'application construite.
  *
  * @param {{
@@ -164,18 +203,36 @@ const documentStub = {
  *   computedStyle?: (element: object) => object,
  *   windowExtras?: object,
  *   language?: string,
+ *   chrome?: object|null,
  * }} options
  * @returns {Promise<{ registry: Map<string, object>, bootError: Error|null }>}
  */
 export async function bootApp(options) {
-  const { distWeb, computedStyle, windowExtras = {}, language = 'fr-FR' } = options;
+  const {
+    distWeb, computedStyle, windowExtras = {}, language = 'fr-FR', chrome = null,
+  } = options;
+
+  // L'application se comporte différemment dans une extension : les collections
+  // viennent alors de `chrome.storage.local`, et la page autonome n'en a
+  // qu'une. Un scénario qui éprouve les collections doit donc fournir l'API.
+  if (chrome) globalThis.chrome = chrome;
+
+  // Le registre repart vierge : un second démarrage dans le même processus doit
+  // retrouver des nœuds neufs, et non ceux du premier — qui porteraient encore
+  // les écouteurs de l'exécution précédente, et répondraient deux fois aux
+  // mêmes gestes.
+  registry.clear();
 
   globalThis.document = documentStub;
   globalThis.window = {
     addEventListener() {},
     removeEventListener() {},
     print() {},
-    location: { href: 'http://localhost:4173/' },
+    // L'application web est servie par le site, sous `/app/` : c'est ce que
+    // décrit cette page. `protocol` et `pathname` comptent — le lien vers la
+    // page d'information se calcule à partir d'eux (`core/site.js`), et un
+    // scénario peut les remplacer par ceux d'une page d'extension.
+    location: { href: 'http://localhost:4173/app/', protocol: 'http:', pathname: '/app/' },
     ...windowExtras,
   };
   if (computedStyle) globalThis.getComputedStyle = computedStyle;
@@ -192,8 +249,11 @@ export async function bootApp(options) {
   let bootError = null;
   try {
     // Import réel du module assemblé : tous ses imports sont résolus et le
-    // chemin de démarrage s'exécute jusqu'au bout.
-    await import(join(distWeb, 'app.js'));
+    // chemin de démarrage s'exécute jusqu'au bout. Le cache d'`import()` est
+    // indexé par URL : sans paramètre distinct, un second démarrage rendrait le
+    // premier module sans le réexécuter.
+    bootCount += 1;
+    await import(`${pathToFileURL(join(distWeb, 'app.js')).href}?boot=${bootCount}`);
   } catch (error) {
     bootError = error;
   }

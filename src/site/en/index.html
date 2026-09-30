@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>URLQRCodePrinter — turn links into QR Code labels</title>
-  <meta name="description" content="Collect addresses from your browser and print them as QR Codes. No account, no server run by the publisher, no analytics.">
+  <meta name="description" content="Collect links from your browser and print them as QR Codes. No account, no server run by the publisher, no analytics.">
   <link rel="icon" href="../icon-512.png">
   <link rel="stylesheet" href="../style.css">
 </head>
@@ -22,18 +22,18 @@
          alt="URLQRCodePrinter icon: a stylised QR Code">
     <h1 class="hero__title">URLQRCodePrinter</h1>
     <p class="hero__lead">
-      Collect addresses from your browser. They stay on your machine, and you
-      print them as QR Codes. The extension reads the address and title of the
-      page or link you target, and saves them. The app lays out what you print:
-      sticky labels, a Niimbot printer over Bluetooth, or an image export. There
-      is no account to create, the publisher runs no server, and nothing is
-      measured.
+      Collect links from your browser and keep them in collections, one per
+      theme or project. They stay on your device, unless you ask for a
+      shortened link yourself. The extension reads the address and title of the
+      page you target, or the address of the link you target, and saves them.
+      The app lays out what you print: sheets of sticky labels, a Niimbot
+      printer over Bluetooth, or images to print elsewhere. No account to
+      create, no server run by the publisher, and no analytics.
     </p>
 
     <div class="actions">
       <a class="btn btn--primary" href="https://chromewebstore.google.com/detail/urlqrcodeprinter/fmfbpjekpbopeijaobdffbhhnfgjjbmi">Install the extension</a>
       <a class="btn" href="../app/">Try it in your browser</a>
-      <a class="btn" href="https://github.com/Lupin/URLQRCodePrinter">GitHub repo</a>
     </div>
   </div>
 </header>
@@ -42,48 +42,78 @@
 
 <section>
   <div class="wrap">
-    <h2>What it does</h2>
+    <h2>Features</h2>
     <ul class="features">
       <li class="feature">
-        <h3 class="feature__title">Collect in one gesture</h3>
+        <h3 class="feature__title">Quick link capture</h3>
         <p class="feature__text">
-          Right-click a page or a link, or use the toolbar button. The title is
-          kept, so the label stays recognisable.
+          Right-click a page or a link, or use the toolbar button. The page
+          title is kept, so the label stays recognisable.
         </p>
       </li>
       <li class="feature">
-        <h3 class="feature__title">Compose the sheet</h3>
+        <h3 class="feature__title">Managing collections</h3>
         <p class="feature__text">
-          Labels are laid out for the medium you are targeting, then printed to
-          PDF. The preview measures the real rendering, it is not an estimate.
+          Create as many collections as you need. A link you add goes into the
+          one on screen. You can move it to another collection later, without
+          it being created again.
+        </p>
+      </li>
+      <li class="feature">
+        <h3 class="feature__title">Index each collection on its own</h3>
+        <p class="feature__text">
+          Every collection has its own starting number: the first link takes
+          it, and the next ones follow. Clearing the collection does not send
+          it back to 1.
+        </p>
+      </li>
+      <li class="feature">
+        <h3 class="feature__title">Lay out and print</h3>
+        <p class="feature__text">
+          Four outputs: A4 or Letter label sheets, a printed table, a Niimbot
+          printer, or images to print elsewhere. You pick a ready-made layout,
+          or set the grid by hand. The preview shows the layout at the scale of
+          the window: it is not a print proof.
         </p>
       </li>
       <li class="feature">
         <h3 class="feature__title">Print directly</h3>
         <p class="feature__text">
-          To a Niimbot D110 or M2 printer over Bluetooth, with no intermediate
-          file.
+          To a Niimbot D110, M2 or M3 printer over Bluetooth, with no file in
+          between.
         </p>
       </li>
       <li class="feature">
-        <h3 class="feature__title">Shorten for a smaller QR Code</h3>
+        <h3 class="feature__title">Shorten links</h3>
         <p class="feature__text">
-          A shorter link gives a smaller code that scans faster and fits on a
-          narrow label.
+          A shorter link gives a smaller QR Code. Shortening goes through an
+          outside service: nothing leaves until you click, and the original
+          address stays saved. <a href="https://t.ly/register?via=gael">Create
+          a T.LY account (referral)</a> credits the project if you follow that
+          link; it changes nothing in what is sent.
         </p>
       </li>
       <li class="feature">
         <h3 class="feature__title">Export</h3>
         <p class="feature__text">
-          CSV, Markdown, JSON, or the PNG images as an archive, so you can take
-          your data away at any time in a readable format.
+          CSV, Markdown, a JSON archive, a spreadsheet with the QR Codes, or PNG
+          images in a ZIP archive. You take your data away in a readable format.
         </p>
       </li>
       <li class="feature">
-        <h3 class="feature__title">Nothing to run server-side</h3>
+        <h3 class="feature__title">Import collection</h3>
         <p class="feature__text">
-          The web app works on its own. The extension adds collection from the
-          browser, into the same collection.
+          A JSON archive or a CSV exported from here reads back. The links
+          return, with no duplicate. The import then asks whether to add to the
+          collection on screen, replace it (name and note included), or file the
+          links in a new collection.
+        </p>
+      </li>
+      <li class="feature">
+        <h3 class="feature__title">No server</h3>
+        <p class="feature__text">
+          The web app works on its own, with nothing to install. The extension
+          adds collection from the browser.
         </p>
       </li>
     </ul>
@@ -92,21 +122,96 @@
 
 <section>
   <div class="wrap">
-    <h2>Why I built it</h2>
+    <h2>Genesis of the extension</h2>
     <p>
       I built this extension for my own notebook. I keep my research and my finds
       on paper, and I used to copy the addresses into it by hand. Writing them
-      took time, and finding them again took just as long. I started by printing
-      the QR Codes one at a time on a small Niimbot, then decided it could all be
-      done automatically.
+      took time, and finding them again took just as long.
     </p>
     <p>
-      It matters most for what you want to keep within reach: a research paper, a
-      product page, a video that stayed with you. You scan the label, and when you
-      come back to the notebook, whatever caught your attention is there to find
-      and to share.
+      I started by printing the QR Codes one at a time on a Niimbot. Each label
+      took time, and went through a third-party app on my phone. The friction
+      soon outweighed the benefit. Collecting and printing had to become faster
+      and smoother.
+    </p>
+    <p>
+      I wanted collections so that links could be found again by theme and by
+      project. They let you build reference pages, subject by subject, for a
+      research notebook.
+    </p>
+    <p>
+      It is useful for what you want to keep within reach: an article, a product
+      page, a video, a track or a record, a location on a map. You scan the
+      label and find the link again, without copying it. You share it too: you
+      hand over the label, and the link follows. And above all, a great deal of
+      knowledge fits on one sheet: print a table of QR Codes, and you carry the
+      whole collection away.
     </p>
     <p class="signature">- Gaël A.G. -</p>
+  </div>
+</section>
+
+
+<section>
+  <div class="wrap">
+    <h2>How to use it</h2>
+    <ol class="steps">
+      <li>Install the extension, or open the application in your browser.</li>
+      <li>There are two ways to add a link. The <strong>extension button</strong> in the browser toolbar opens a window: the page title is already filled in, and one click on “Add this page” saves it. <strong>Right-click</strong> works too, on the page, on a specific link or on selected text.</li>
+      <li>Choose the collection: the one on screen receives what you add. The application creates more, and “Move to…” files a link elsewhere afterwards.</li>
+      <li>Open the application: your links are there, with search, sorting and collections.</li>
+      <li>Tick the links you want to print, choose the layout, then click Print. The browser’s print window opens, with your printers.</li>
+      <li>For a Niimbot printer, open the “Niimbot label” tab, connect it over Bluetooth, then print.</li>
+      <li>To take your data away, use the exports: label images (ZIP archive), sheet or table (ZIP archive), a spreadsheet with the QR Codes, CSV, Markdown, a JSON archive. They are also how you print from another program.</li>
+      <li>To read them back elsewhere, click “Import…” and give the JSON archive or the CSV exported from here. The import then asks whether to merge into the collection on screen, replace it, or file the links in a new collection; links already present never create a duplicate.</li>
+    </ol>
+    <p class="note">
+      Shortening links and exports are options.
+    </p>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2>Frequently asked questions</h2>
+    <div class="faq">
+      <details>
+        <summary>Do I need an account?</summary>
+        <p>No. There is no sign-up, no publisher server, and no analytics.</p>
+      </details>
+      <details>
+        <summary>Where are my links stored?</summary>
+        <p>On your device, in the browser’s storage. They go nowhere unless you ask for a shortened link yourself.</p>
+      </details>
+      <details>
+        <summary>Can I use it without the extension?</summary>
+        <p>Yes. The application open in your browser lays out and prints. The extension adds collection from the browser: the toolbar button and the right-click menu.</p>
+      </details>
+      <details>
+        <summary>Is shortening automatic?</summary>
+        <p>No. Nothing is shortened until you click Shorten. The original address is always kept.</p>
+      </details>
+      <details>
+        <summary>Which label printers are supported?</summary>
+        <p>The Niimbot D110, M2 and M3, over Bluetooth. For the others, print the sheet on A4 label paper or on plain paper, or export the images.</p>
+      </details>
+      <details>
+        <summary>Can I print on an ordinary printer?</summary>
+        <p>Yes. You print the sheet or the table from the browser, on a sheet of sticky labels or on paper. To print from another program, export the images.</p>
+      </details>
+      <details>
+        <summary>How do I move my links elsewhere?</summary>
+        <p>Through the exports: CSV, Markdown, a JSON archive, or the PNG images in a ZIP archive.</p>
+      </details>
+      <details>
+        <summary>How do I delete everything?</summary>
+        <p>The “Clear collection” button erases the links in the collection on screen. Removing the extension also erases its local storage.</p>
+      </details>
+      <details>
+        <summary>Is it free?</summary>
+        <p>Yes. The code is open source, under the MIT licence.</p>
+      </details>
+    </div>
   </div>
 </section>
 
@@ -116,18 +221,19 @@
     <div class="note">
       <p>
         <strong>What is read.</strong> The address and title of the page you act
-        on, only that one and only at the moment you ask.
+        on, and nothing else. Only at the moment you ask.
       </p>
       <p>
-        <strong>What is not done.</strong> No access to your history, no reading
-        in the background, no account, no server run by the publisher, no
+        <strong>What is not done.</strong> No access to your history. No reading
+        in the background. No account, no server run by the publisher. No
         analytics, no advertising, no selling of data. No code is loaded
-        remotely: everything ships with the app.
+        remotely: everything ships inside.
       </p>
       <p>
         <strong>The only network request.</strong> If you ask for a link to be
-        shortened, that address is sent to the service you chose: TinyURL,
-        is.gd, v.gd or spoo.me. Without that action, no request is made.
+        shortened, that address is sent to the service you chose: T.LY,
+        TinyURL, is.gd, v.gd or spoo.me. Nothing is shortened by default.
+        Without that click, no request is made.
       </p>
       <p>
         <a href="https://github.com/Lupin/URLQRCodePrinter/blob/main/PRIVACY.md">Full privacy policy</a>
@@ -139,29 +245,41 @@
 <section>
   <div class="wrap">
     <h2>What it does not do</h2>
-    <p>
-      Better said here than discovered in use:
-    </p>
     <ul class="limits">
       <li>
-        <strong>Safari and Firefox cannot print directly.</strong> Neither
-        implements Web Bluetooth, and Safari imposes its engine on every browser
-        on iPhone and iPad. Image export remains available everywhere.
+        <strong>Safari cannot print directly.</strong> Safari does not implement
+        Web Bluetooth, and it imposes its engine on every browser on iPhone and
+        iPad. Image export remains available everywhere.
       </li>
       <li>
         <strong>Brave needs a manual step.</strong> Web Bluetooth is disabled by
-        default there, behind a flag to enable in <code>brave://flags</code>.
+        default there. It has to be enabled through the
+        <code>brave://flags/#brave-web-bluetooth-api</code> flag, then Brave
+        restarted.
+      </li>
+      <li>
+        <strong>Niimbot printing has only been tried on a D110.</strong> The M2
+        and M3 profiles exist, but printing on those machines has not been
+        tested on real hardware.
       </li>
       <li>
         <strong>The web app and the extension do not share data.</strong> The
-        first stores in the browser, the second in the extension's storage. Use
-        one or the other; export is the bridge.
+        web app stores in the browser, the extension in its own storage. Use
+        one or the other: export is the bridge.
       </li>
       <li>
-        <strong><a href="https://chromewebstore.google.com/detail/urlqrcodeprinter/fmfbpjekpbopeijaobdffbhhnfgjjbmi">The
-        extension is published on the Chrome Web Store</a>.</strong> It targets
-        Chrome, Brave and Edge. The Safari version is compiled from source, and
-        the web app stays usable without installing anything.
+        <strong>Shortening depends on a third party.</strong> T.LY, TinyURL,
+        is.gd, v.gd and spoo.me are outside services. If they close, a link
+        already printed stops working. The original address stays in your
+        collection and in your exports.
+      </li>
+      <li>
+        <strong>Not every browser is covered.</strong>
+        <a href="https://chromewebstore.google.com/detail/urlqrcodeprinter/fmfbpjekpbopeijaobdffbhhnfgjjbmi">The
+        extension is published on the Chrome Web Store</a>, for Chrome, Brave
+        and Edge. No Firefox version is published. The Safari version is built
+        from source and needs a few settings by hand, once. The web app stays
+        usable with nothing installed.
       </li>
     </ul>
   </div>
@@ -169,11 +287,17 @@
 
 </main>
 
-<footer>
+<footer class="site-footer">
   <div class="wrap">
-    <p>
-      Open source, MIT licence.
-      <a href="https://github.com/Lupin/URLQRCodePrinter">github.com/Lupin/URLQRCodePrinter</a>
+    <p class="site-footer__repo">
+      <a href="https://github.com/Lupin/URLQRCodePrinter">Source code on GitHub</a>
+    </p>
+    <!-- The year and the version are set when the site is built: written by
+         hand, they would have claimed 2026 until the next rebuild. -->
+    <p class="site-footer__signature">
+      © __APP_YEAR__ G. Abegg-Gauthey
+      <span aria-hidden="true">·</span> MIT
+      <span aria-hidden="true">·</span> version __APP_VERSION__
     </p>
   </div>
 </footer>

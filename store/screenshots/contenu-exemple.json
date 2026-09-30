@@ -1,0 +1,86 @@
+{
+  "_lisezMoi": "Contenu d'exemple pour les captures de la fiche. Format du bouton « Archive » — la clé « collection » porte le nom et la note de collection, « links » les liens. Les adresses sont publiques et vérifiables (aucune page privée, aucun document partagé), et chacune a été relevée : celles qui ne répondaient plus ont été remplacées. Les titres tiennent sous 45 caractères parce qu'ils s'affichent dans une colonne étroite — la fenêtre de l'extension ne fait que 380 px de large, et un titre replié sur deux lignes devient illisible une fois la capture réduite à 640 × 400 par le magasin. Relu par l'importateur du produit dans test/publication.test.js, et chargé par scripts/capture-store-shots.mjs.",
+  "format": "url-qr-code-printer/links",
+  "version": 1,
+  "exportedAt": "2026-09-30T10:00:00.000Z",
+  "app": "url-qr-code-printer",
+  "collection": {
+    "name": "Notices et garanties",
+    "note": "Manuels, garanties et rangement du matériel."
+  },
+  "count": 12,
+  "links": [
+    {
+      "url": "https://www.thomann.de/fr/rode_ds3.htm",
+      "title": "Rode DS3 — fiche produit",
+      "tags": ["audio", "garantie"],
+      "note": "Garantie 3 ans. Facture de janvier dans le dossier audio."
+    },
+    {
+      "url": "https://www.son-video.com/",
+      "title": "Son-Vidéo — câbles et connectique",
+      "tags": ["audio", "rangement"],
+      "note": ""
+    },
+    {
+      "url": "https://www.audiophonics.fr/fr/",
+      "title": "Audiophonics — pièces détachées",
+      "tags": ["audio"],
+      "note": ""
+    },
+    {
+      "url": "https://www.ikea.com/fr/fr/cat/rangement-des-cables-16295/",
+      "title": "Ranger les câbles — accessoires",
+      "tags": ["rangement"],
+      "note": ""
+    },
+    {
+      "url": "https://www.service-public.fr/particuliers/vosdroits/F11094",
+      "title": "Garantie légale de conformité",
+      "tags": ["garantie", "droits"],
+      "note": ""
+    },
+    {
+      "url": "https://www.manualslib.fr/",
+      "title": "Manuels d'appareils — bibliothèque",
+      "tags": ["notice"],
+      "note": ""
+    },
+    {
+      "url": "https://archive.org/details/manuals",
+      "title": "Notices scannées (archive)",
+      "tags": ["notice"],
+      "note": ""
+    },
+    {
+      "url": "https://fr.wikipedia.org/wiki/Imprimante_thermique",
+      "title": "Imprimante thermique — principe",
+      "tags": ["impression"],
+      "note": ""
+    },
+    {
+      "url": "https://fr.wikipedia.org/wiki/Étiqueteuse",
+      "title": "Étiqueteuse — usages",
+      "tags": ["impression"],
+      "note": ""
+    },
+    {
+      "url": "https://www.niimbot.com/",
+      "title": "Niimbot — étiqueteuses",
+      "tags": ["impression", "garantie"],
+      "note": ""
+    },
+    {
+      "url": "https://www.quechoisir.org/",
+      "title": "Que Choisir — comparatifs",
+      "tags": ["lecture"],
+      "note": ""
+    },
+    {
+      "url": "https://www.60millions-mag.com/",
+      "title": "60 Millions — essais et enquêtes",
+      "tags": ["lecture"],
+      "note": ""
+    }
+  ]
+}

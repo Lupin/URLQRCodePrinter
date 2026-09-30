@@ -15,18 +15,39 @@
  *   retombe sur le document, en haut de la fenêtre. La ligne suivante reprend
  *   donc le focus — c'est `focusAfterRemoval`, et c'est la seule partie de ce
  *   fichier qui n'est pas évidente à la lecture.
+ * - **Les liens de la navigation privée ne touchent pas le disque.** La fenêtre
+ *   lit deux zones — `chrome.storage.local` pour les liens ordinaires,
+ *   `chrome.storage.session` pour la collection privée — et c'est le magasin
+ *   composé qui route chaque écriture selon la collection. Il n'existe donc
+ *   aucun chemin par lequel une URL privée pourrait être écrite quelque part de
+ *   durable, et la collection privée n'apparaît même pas hors d'une fenêtre
+ *   privée : c'est `visibleCollections` qui en décide, une fois pour toutes.
  */
 
-import { createChromeStorageStore, createMemoryStore } from './core/store.js';
+import {
+  createChromeStorageStore, createCompositeStore, createMemoryStore, withCollection,
+} from './core/store.js';
+import {
+  DEFAULT_COLLECTION_NAME,
+  PRIVATE_COLLECTION_ID,
+  PRIVATE_LINKS_KEY,
+  collectionDisplayName,
+  createCollectionStore,
+  displayedDocuments,
+  isPrivateCollection,
+  isPrivateContext,
+} from './core/collections.js';
+
 import { captureFromTab } from './core/capture.js';
 import { toCsv, toMarkdown, exportFilename } from './core/exporters.js';
 import { downloadText } from './core/download.js';
 import {
   hostOf, hasShortUrl, safeHref, DEFAULT_TITLE_MAX,
 } from './core/link.js';
-import { resolveApi, readTabContext } from './api.js';
-import { initI18n, applyTranslations, setLocale, getLocale, t, tpl } from './core/i18n.js';
+import { resolveApi, readTabContext, sessionStorageArea } from './api.js';
+import { initI18n, applyTranslations, getLocale, t } from './core/i18n.js';
 import { readConsent, isAccepted } from './core/privacy.js';
+import { informationPageHref } from './core/site.js';
 
 const api = resolveApi();
 
@@ -55,6 +76,12 @@ const ICON_PATHS = {
     'M205.66,194.34a8,8,0,0,1-11.32,11.32L128,139.31,61.66,205.66a8,8,0,0,1-11.32-11.32' +
     'L116.69,128,50.34,61.66A8,8,0,0,1,61.66,50.34L128,116.69l66.34-66.35a8,8,0,0,1,11.32,11.32' +
     'L139.31,128Z',
+  caretLeft:
+    'M165.66,202.34a8,8,0,0,1-11.32,11.32l-80-80a8,8,0,0,1,0-11.32l80-80a8,8,0,0,1,11.32,11.32' +
+    'L91.31,128Z',
+  caretRight:
+    'M181.66,133.66l-80,80a8,8,0,0,1-11.32-11.32L164.69,128,90.34,53.66a8,8,0,0,1,11.32-11.32' +
+    'l80,80A8,8,0,0,1,181.66,133.66Z',
 };
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
@@ -85,22 +112,58 @@ function icon(name) {
 }
 
 /**
- * Résout le stockage sans jamais faire échouer la fenêtre.
+ * Résout les stockages sans jamais faire échouer la fenêtre.
+ *
+ * Trois zones, et une composition :
+ *
+ * - **locale** (`chrome.storage.local`) — les liens ordinaires, ceux que
+ *   l'application et le service worker lisent ;
+ * - **session** (`chrome.storage.session`) — les liens de la collection de
+ *   navigation privée, en mémoire, jamais sur le disque. Elle n'existe pas
+ *   partout (Chrome 102 et Safari 16.4 l'ont apportée), et une zone absente
+ *   fait **disparaître la collection privée** au lieu de laisser croire à une
+ *   persistance qui n'aurait pas lieu ;
+ * - **collections** — la liste des collections et celle qui est courante.
  *
  * Une API absente ou incomplète ne doit pas emporter toute l'interface : au
  * pire, la collection vit le temps de la fenêtre.
+ *
+ * @returns {{ store: object, collections: object, privateStore: object|null }}
  */
-function createStore() {
+function createStores() {
+  let localArea = null;
+  let sessionArea = null;
   try {
-    const area = api?.storage?.local;
-    if (area) return createChromeStorageStore({ area });
+    localArea = api?.storage?.local ?? null;
+    sessionArea = sessionStorageArea(api);
   } catch {
-    // On retombe en mémoire.
+    // On retombe en mémoire, pour les liens comme pour les collections.
   }
-  return createMemoryStore();
+
+  let local = null;
+  let prive = null;
+  try {
+    local = localArea ? createChromeStorageStore({ area: localArea }) : createMemoryStore();
+    prive = sessionArea
+      ? createChromeStorageStore({ area: sessionArea, key: PRIVATE_LINKS_KEY })
+      : null;
+  } catch {
+    local = createMemoryStore();
+  }
+
+  return {
+    store: prive
+      ? createCompositeStore([
+        { store: local, match: (id) => id !== PRIVATE_COLLECTION_ID },
+        { store: prive, match: (id) => id === PRIVATE_COLLECTION_ID },
+      ])
+      : local,
+    collections: createCollectionStore({ area: localArea }),
+    privateStore: prive,
+  };
 }
 
-const store = createStore();
+const { store, collections, privateStore } = createStores();
 
 /**
  * Borne une attente dans le temps.
@@ -126,7 +189,6 @@ function withTimeout(promise, ms, label) {
 const el = {
   countLabel: document.getElementById('count-label'),
   count: document.getElementById('count'),
-  countUnit: document.getElementById('count-unit'),
   currentTab: document.getElementById('current-tab'),
   captureTitle: document.getElementById('link-title'),
   addCurrent: document.getElementById('add-current'),
@@ -141,11 +203,59 @@ const el = {
   exportMd: document.getElementById('export-md'),
   clear: document.getElementById('clear'),
   toast: document.getElementById('toast'),
+  collectionTitle: document.getElementById('collection-title'),
+  collectionPrev: document.getElementById('collection-prev'),
+  collectionNext: document.getElementById('collection-next'),
+  privateNotice: document.getElementById('private-notice'),
 };
+
+/**
+ * Icônes des flèches de collection.
+ *
+ * Posées ici, une fois : ces boutons ne sont jamais reconstruits, et une icône
+ * reposée à chaque rendu ferait clignoter la barre.
+ */
+el.collectionPrev.append(icon('caretLeft'));
+el.collectionNext.append(icon('caretRight'));
 
 /** @type {{ url?: string, title?: string }} */
 let activeTab = {};
 let toastTimer = null;
+
+/**
+ * La fenêtre s'ouvre-t-elle dans un contexte privé ?
+ *
+ * Deux sources : l'onglet visé (`tabs.Tab.incognito`, Safari 14 minimum) et
+ * l'API d'extension (`extension.inIncognitoContext`, Safari 18 seulement). La
+ * première est renseignée par `loadActiveTab`, la seconde est lue ici.
+ */
+let privateMode = false;
+
+/** La collection affichée, et celles qui sont visibles dans ce contexte. */
+let activeCollectionId = '';
+/** @type {Array<{id: string, name: string, note: string, private?: boolean}>} */
+let visibleList = [];
+
+/**
+ * La collection de navigation privée est-elle réellement utilisable ?
+ *
+ * Être dans une fenêtre privée ne suffit pas : sans `chrome.storage.session`,
+ * la collection privée n'existe pas, et les liens doivent alors rejoindre une
+ * collection ordinaire — ce que l'avis affiché explique.
+ */
+function privateCollectionAvailable() {
+  return privateMode && privateStore !== null;
+}
+
+/** Le magasin borné à la collection affichée. */
+function currentStore() {
+  return withCollection(store, activeCollectionId);
+}
+
+/** La collection affichée, ou `undefined` tant que rien n'est chargé. */
+function currentCollection() {
+  return visibleList.find((collection) => collection.id === activeCollectionId);
+}
 
 /**
  * Affiche un message transitoire.
@@ -190,6 +300,12 @@ async function loadActiveTab() {
   }
 
   activeTab = context ? { url: context.url, title: context.title } : {};
+  // L'onglet est la source la plus fiable — et la seule disponible sur les
+  // Safari antérieurs à la version 18, où l'API d'extension n'existe pas.
+  privateMode = isPrivateContext({
+    tabIncognito: tab?.incognito,
+    inIncognitoContext: api?.extension?.inIncognitoContext,
+  });
 
   const capture = captureFromTab(activeTab);
   if (capture) {
@@ -216,16 +332,35 @@ async function loadActiveTab() {
 }
 
 /**
- * Reconstruit la liste affichée.
+ * Reconstruit la barre de collection, l'avis privé, puis la liste affichée.
+ *
+ * L'ordre compte : la collection courante se résout **avant** de lire les
+ * liens, sans quoi la liste afficherait un instant les liens d'une autre
+ * collection — celle qui était courante avant que l'utilisateur ne change de
+ * fenêtre ou ne renomme quelque chose.
+ *
  * @returns {Promise<void>}
  */
 async function render() {
-  const links = await store.list();
+  const prive = privateCollectionAvailable();
+  visibleList = await collections.visible({ isPrivate: prive });
 
-  // Le nombre et son unité vivent dans deux nœuds : la région live reste
-  // lisible (« 3 liens »), et `#count` seul porte le chiffre.
+  if (!visibleList.some((collection) => collection.id === activeCollectionId)) {
+    // La collection mémorisée a disparu, ou n'existe pas dans ce contexte : la
+    // collection privée n'est visible qu'en fenêtre privée, par exemple.
+    activeCollectionId = await collections.getActive(prive);
+  }
+
+  renderCollectionBar();
+  renderPrivateNotice();
+
+  const links = await currentStore().list();
+
+  // Le nombre et son signe vivent dans deux nœuds : la région live reste
+  // lisible (« Liens enregistrés : 3 »), et `#count` seul porte le chiffre. Le
+  // signe est écrit une fois dans le HTML — U+1F517 n'a pas de traduction, et
+  // une unité posée ici aurait divergé de celle du document livré.
   el.count.textContent = String(links.length);
-  el.countUnit.textContent = tpl(links.length, 'lien', 'liens');
   el.list.textContent = '';
 
   const hasLinks = links.length > 0;
@@ -238,6 +373,68 @@ async function render() {
   for (const link of links) {
     el.list.appendChild(renderItem(link));
   }
+}
+
+/**
+ * Peint le nom de la collection et l'état des flèches.
+ *
+ * Les flèches sont désactivées — et non masquées — quand il n'y a qu'une seule
+ * collection : leur place reste occupée, la barre ne se réorganise pas quand on
+ * en crée une seconde, et rien ne disparaît sans explication.
+ */
+function renderCollectionBar() {
+  const courante = currentCollection();
+  el.collectionTitle.textContent = courante
+    ? collectionDisplayName(courante)
+    : t(DEFAULT_COLLECTION_NAME);
+
+  // Les flèches restent en place, désactivées quand il n'y a rien à parcourir :
+  // la barre ne se réorganise pas à la création d'une seconde collection, et
+  // rien ne disparaît sans explication.
+  const plusieurs = visibleList.length > 1;
+  el.collectionPrev.disabled = !plusieurs;
+  el.collectionNext.disabled = !plusieurs;
+}
+
+/**
+ * Affiche, ou retire, l'avis de navigation privée.
+ *
+ * C'est le seul endroit où l'utilisateur apprend ce que devient un lien
+ * enregistré depuis une fenêtre privée. Deux textes, parce que deux situations
+ * différentes : la collection privée, qui s'efface à la fermeture du
+ * navigateur, et une collection ordinaire, qui reste sur l'appareil.
+ */
+function renderPrivateNotice() {
+  let texte = '';
+  if (privateMode) {
+    texte = isPrivateCollection(currentCollection())
+      ? t("Fenêtre privée : cette collection n'est conservée que jusqu'à la fermeture du navigateur.")
+      : t('Fenêtre privée : les liens enregistrés rejoignent une collection conservée sur votre appareil.');
+  }
+  el.privateNotice.textContent = texte;
+  el.privateNotice.hidden = texte === '';
+}
+
+/**
+ * Passe à la collection suivante ou précédente.
+ *
+ * Le parcours boucle : avec deux collections, les deux flèches restent utiles,
+ * et l'utilisateur n'a pas à savoir dans quel sens il est en train de tourner.
+ *
+ * @param {number} pas -1 ou 1.
+ * @returns {Promise<void>}
+ */
+async function switchCollection(pas) {
+  if (visibleList.length < 2) return;
+  const rang = visibleList.findIndex((collection) => collection.id === activeCollectionId);
+  const cible = visibleList[((rang < 0 ? 0 : rang) + pas + visibleList.length) % visibleList.length];
+
+  activeCollectionId = cible.id;
+  await collections.setActive(cible.id, privateCollectionAvailable());
+  await notifyBadge();
+  await render();
+  // Le nom est annoncé par la région live de `#collection-title` : pas de
+  // message transitoire, qui doublerait l'annonce et masquerait la liste.
 }
 
 /**
@@ -336,7 +533,7 @@ async function removeLink(id) {
   const items = [...el.list.children];
   const index = items.findIndex((node) => node.dataset?.id === id);
 
-  await store.remove(id);
+  await currentStore().remove(id);
   await notifyBadge();
   await render();
 
@@ -366,10 +563,18 @@ function focusAfterRemoval(index) {
   target.focus();
 }
 
-/** Demande au service worker de rafraîchir le compteur de l'icône. */
+/**
+ * Demande au service worker de rafraîchir le compteur de l'icône.
+ *
+ * Le contexte est transmis : le compteur suit la collection courante, et celle
+ * d'une fenêtre privée n'est pas celle d'une fenêtre ordinaire.
+ */
 async function notifyBadge() {
   try {
-    await api.runtime.sendMessage({ type: 'refresh-badge' });
+    await api.runtime.sendMessage({
+      type: 'refresh-badge',
+      isPrivate: privateCollectionAvailable(),
+    });
   } catch {
     // Le service worker peut être endormi ; le badge se remettra à jour seul.
   }
@@ -387,11 +592,14 @@ async function addCurrentTab() {
   // en oublier un ferait de la mention une formalité contournable.
   const consent = await readConsent(api?.storage?.local);
   if (!isAccepted(consent)) {
-    // Même règle que dans le service worker : la mention n'est rouverte que si
-    // l'utilisateur ne s'est jamais prononcé. Après un refus, on explique au
-    // lieu de rouvrir un onglet à chaque clic.
+    // Même règle que dans le service worker, et les trois cas se distinguent :
+    // jamais prononcé, accord porté sur un texte antérieur, refus explicite.
+    // Les confondre ferait dire « refus enregistré » à quelqu'un qui a accepté
+    // — et qui doit seulement relire la mention, qui a changé.
     if (consent === null) openPrivacyNotice();
-    else toast(t('Refus enregistré : acceptez la mention pour enregistrer un lien.'));
+    else if (consent.decision === 'accepted') {
+      toast(t('La mention a changé : relisez-la pour continuer à enregistrer.'));
+    } else toast(t('Refus enregistré : acceptez la mention pour enregistrer un lien.'));
     return;
   }
 
@@ -406,7 +614,7 @@ async function addCurrentTab() {
 
   // Un titre différent de celui déjà enregistré est **adopté**, et on le dit :
   // refuser la correction obligeait à supprimer le lien pour le rajouter.
-  const { duplicate, updated } = await store.add(capture);
+  const { duplicate, updated } = await currentStore().add(capture);
   await notifyBadge();
   await render();
   if (updated) toast(t('Lien mis à jour'));
@@ -419,12 +627,15 @@ async function addCurrentTab() {
  * @returns {Promise<void>}
  */
 async function exportAs(format) {
-  const links = await store.list();
+  // Ce qui sort est ce qui est affiché : exporter toute la base alors que la
+  // fenêtre montre une collection surprendrait, et personne ne s'en apercevrait
+  // avant d'ouvrir le fichier.
+  const links = await currentStore().list();
   if (links.length === 0) return;
 
   const isCsv = format === 'csv';
   const text = isCsv ? toCsv(links) : toMarkdown(links);
-  const filename = exportFilename('liens-qr', isCsv ? 'csv' : 'md');
+  const filename = exportFilename(collectionDisplayName(currentCollection()), isCsv ? 'csv' : 'md');
 
   const ok = downloadText(filename, text, {
     mime: isCsv ? 'text/csv;charset=utf-8' : 'text/markdown;charset=utf-8',
@@ -436,11 +647,19 @@ el.addCurrent.addEventListener('click', addCurrentTab);
 el.exportCsv.addEventListener('click', () => exportAs('csv'));
 el.exportMd.addEventListener('click', () => exportAs('md'));
 el.clear.addEventListener('click', async () => {
-  await store.clear();
+  // Seule la collection affichée est vidée : les autres ne sont même pas à
+  // l'écran, et « Vider » ne doit pas les emporter.
+  await currentStore().clear();
   await notifyBadge();
   await render();
-  toast(t('Liste vidée'));
+  toast(t('Collection vidée'));
 });
+
+// Le parcours des collections, et lui seul : la fenêtre ne crée rien. Créer une
+// collection demande un nom, une note, et la place de les relire — c'est le
+// travail de l'application, où le sélecteur et ses commandes vivent.
+el.collectionPrev.addEventListener('click', () => switchCollection(-1));
+el.collectionNext.addEventListener('click', () => switchCollection(1));
 
 /**
  * Ouvre l'application dans un onglet.
@@ -502,41 +721,24 @@ function reportStartupFailure(error) {
 
   el.countLabel.textContent = t('Erreur :');
   el.count.textContent = '!';
-  el.countUnit.textContent = '';
 }
-
-/**
- * Démarre la fenêtre.
- *
- * On évite volontairement l'`await` de premier niveau : une exception y
- * laisserait une page à moitié initialisée, sans message. Ici, tout échec est
- * rattrapé et affiché.
- */
-/**
- * Adresse publique de la page d'information, par langue.
- *
- * La page française vit à la racine du site, l'anglaise sous `/en/`. Le choix
- * suit celui de l'interface, et non celui du navigateur : un utilisateur qui a
- * réglé l'extension en français n'a rien à faire sur la page anglaise.
- */
-const SITE_URLS = Object.freeze({
-  fr: 'https://lupin.github.io/URLQRCodePrinter/',
-  en: 'https://lupin.github.io/URLQRCodePrinter/en/',
-});
 
 /**
  * Pose l'adresse de la page d'information, et annonce le nouvel onglet.
  *
  * Le `href` est écrit ici plutôt que dans le HTML : il dépend de la langue, et
  * une adresse écrite en dur enverrait la moitié des utilisateurs sur la
- * mauvaise page. Le texte, lui, reste dans le HTML, où `applyTranslations` le
- * traduit avec le reste.
+ * mauvaise page. Le calcul vit dans `core/site.js`, partagé avec l'application,
+ * qui affiche le même lien. Le texte, lui, reste dans le HTML, où
+ * `applyTranslations` le traduit avec le reste.
  */
 function wireSiteLink() {
   const link = el.siteLink;
   if (!link) return;
 
-  link.href = SITE_URLS[getLocale()] ?? SITE_URLS.fr;
+  // La fenêtre est toujours servie par l'extension : le calcul, laissé à la page
+  // courante, rend donc l'adresse publiée, dans la langue de l'interface.
+  link.href = informationPageHref(getLocale());
 
   // Le changement de contexte est annoncé : sans cela, un utilisateur de lecteur
   // d'écran ne sait pas qu'un onglet va s'ouvrir.
@@ -546,24 +748,6 @@ function wireSiteLink() {
     hint.textContent = t(' (ouvre un nouvel onglet)');
     link.appendChild(hint);
   }
-}
-
-/**
- * Branche le sélecteur de langue.
- *
- * Le changement mémorise la langue puis recharge la fenêtre : toute
- * l'interface est ainsi rendue dans la bonne langue, sans avoir à repasser
- * sur chaque nœud.
- */
-function wireLocaleSwitcher() {
-  const select = document.getElementById('locale');
-  if (!select) return;
-  select.value = getLocale();
-  select.addEventListener('change', async () => {
-    if (select.value === getLocale()) return;
-    await setLocale(select.value);
-    location.reload();
-  });
 }
 
 /**
@@ -581,20 +765,51 @@ async function syncConsentNotice() {
   return accepted;
 }
 
+/**
+ * La fenêtre suit le stockage, comme l'application.
+ *
+ * Elle sait déjà relire ce qu'elle affiche — c'est `render` —, et c'est ce qu'il
+ * faut quand une autre page a écrit. Le cas n'est pas théorique : l'entrée
+ * « Ouvrir URLQRCodePrinter » du menu contextuel ouvre **cette page** dans un
+ * onglet, et elle peut alors rester ouverte pendant qu'une autre page vide la
+ * collection.
+ *
+ * Ses propres écritures déclenchent le même événement : `render` ne fait que
+ * relire et redessiner, sans jamais écrire, donc la boucle s'arrête là.
+ */
+function followStorage() {
+  api?.storage?.onChanged?.addListener((changes, area) => {
+    if (!displayedDocuments(area).some((cle) => cle in changes)) return;
+    render().catch(() => {});
+  });
+}
+
+/**
+ * Démarre la fenêtre.
+ *
+ * On évite volontairement l'`await` de premier niveau : une exception y
+ * laisserait une page à moitié initialisée, sans message. Ici, tout échec est
+ * rattrapé et affiché.
+ */
 async function main() {
   try {
     await initI18n();
     applyTranslations(document);
-    wireLocaleSwitcher();
     wireSiteLink();
 
     // La borne du champ vient de la constante qui borne déjà les titres
     // enregistrés. Recopiée dans le HTML, elle aurait fini par diverger, et la
     // saisie se serait fait couper sans que rien ne l'annonce.
     if (el.captureTitle) el.captureTitle.maxLength = DEFAULT_TITLE_MAX;
+
+    // La collection par défaut est matérialisée ici, une fois, plutôt que
+    // devinée à chaque lecture : c'est elle qui reçoit les liens de qui n'a
+    // jamais créé de collection.
+    await collections.ensureDefault();
     await syncConsentNotice();
     await loadActiveTab();
     await render();
+    followStorage();
   } catch (error) {
     reportStartupFailure(error);
   }

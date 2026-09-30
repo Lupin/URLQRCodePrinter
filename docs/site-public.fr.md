@@ -10,6 +10,27 @@ Le site sert deux choses sous une même adresse, et les sépare volontairement :
 | `/en/` | La même, en anglais |
 | `/app/` | L'application elle-même |
 
+## La page d'information
+
+Trois sections s'y ajoutent aux sections de présentation, dans les deux langues :
+
+- **Comment s'en servir** — huit étapes, de l'installation à l'import. Une liste
+  numérotée, parce que c'est l'ordre qu'on vient chercher.
+- **Questions fréquentes** — neuf questions, en accordéon (`<details>`) : la page
+  reste courte pour qui ne cherche rien, la réponse est à un clic pour qui
+  cherche. Les réponses disent ce qui se passe sans jargon : pas de compte, les
+  liens restent sur l'appareil, le raccourcissement n'est jamais automatique.
+- **La signature du pied** — `© <année> G. Abegg-Gauthey · MIT · version <x>`,
+  comme le pied de l'application. L'année et la version sont posées **à la
+  construction** (`__APP_YEAR__`, `__APP_VERSION__` → `scripts/build-site.mjs`) :
+  une page statique n'a pas de script pour les poser, et écrites à la main elles
+  auraient annoncé 2026 jusqu'à la prochaine refonte.
+
+Le bouton « Dépôt GitHub » de l'en-tête a été **retiré** : le lien du pied suffit,
+et l'en-tête ne garde que les deux appels à l'action utiles — installer, essayer.
+`test/site-build.test.js` vérifie que le bouton ne revient pas et que le lien du
+pied est toujours là.
+
 ## Pourquoi cette séparation
 
 Une page de présentation et un outil n'ont pas les mêmes contraintes. La

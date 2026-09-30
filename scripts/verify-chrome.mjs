@@ -371,6 +371,93 @@ async function main() {
     const rows = await evalPopup("document.querySelectorAll('#list .item').length");
     record('la fenêtre affiche les liens collectés', rows === 2, `${rows} ligne(s)`);
 
+    // --- L'en-tête, tel qu'il doit se lire --------------------------------
+    //
+    // Le nom du produit occupait la place du seul titre qui informe. L'en-tête
+    // porte donc l'icône, le nom de la collection entre ses deux flèches, et le
+    // sélecteur de langue — et la fenêtre ne crée rien : ce qui est constaté ici
+    // est autant l'absence que la présence.
+    const enteteFenetre = await evalPopup(`(() => {
+      const barre = document.querySelector('.app-header');
+      const logo = document.querySelector('.app-header__logo');
+      const titre = document.getElementById('collection-title');
+      const dedans = (id) => Boolean(barre && barre.contains(document.getElementById(id)));
+      return {
+        nom: titre ? titre.textContent.trim() : '',
+        titreDansEnTete: Boolean(barre && titre && barre.contains(titre)),
+        fleches: dedans('collection-prev') && dedans('collection-next'),
+        logoCharge: Boolean(logo && logo.complete && logo.naturalWidth > 0),
+        nomProduitEcrit: /URLQRCodePrinter/.test(barre ? barre.innerText : ''),
+        creation: Boolean(
+          document.getElementById('collection-add')
+          || document.querySelector('[id^="collection-new"]'),
+        ),
+      };
+    })()`);
+
+    record(
+      'en-tête : le nom de la collection, entre ses deux flèches',
+      enteteFenetre?.titreDansEnTete === true && enteteFenetre?.fleches === true
+        && enteteFenetre?.nom !== '',
+      `« ${enteteFenetre?.nom} », flèches dans l'en-tête : ${enteteFenetre?.fleches}`,
+    );
+
+    record(
+      "en-tête : le nom du produit n'est plus écrit, l'icône le porte",
+      enteteFenetre?.nomProduitEcrit === false && enteteFenetre?.logoCharge === true,
+      `nom écrit : ${enteteFenetre?.nomProduitEcrit}, icône chargée : ${enteteFenetre?.logoCharge}`,
+    );
+
+    record(
+      'la fenêtre ne crée pas de collection',
+      enteteFenetre?.creation === false,
+      `commande de création présente : ${enteteFenetre?.creation}`,
+    );
+
+    // --- Le compteur, les deux actions sur une ligne, et la langue --------
+    const barre = await evalPopup(`(() => {
+      const unite = document.getElementById('count-unit');
+      const chiffre = document.getElementById('count');
+      const ajouter = document.getElementById('add-current');
+      const ouvrir = document.getElementById('open-app');
+      const boite = (node) => {
+        const r = node.getBoundingClientRect();
+        return { haut: Math.round(r.top), largeur: Math.round(r.width) };
+      };
+      return {
+        signe: unite ? unite.textContent.trim() : '',
+        decoratif: unite ? unite.getAttribute('aria-hidden') === 'true' : false,
+        chiffre: chiffre ? chiffre.textContent.trim() : '',
+        memeLigne: Boolean(ajouter && ouvrir)
+          && Math.abs(boite(ajouter).haut - boite(ouvrir).haut) <= 2,
+        libelleOuvrir: ouvrir ? ouvrir.textContent.trim() : '',
+        langue: Boolean(document.getElementById('locale')),
+      };
+    })()`);
+
+    record(
+      'le compteur écrit le signe U+1F517 au lieu du mot, et reste muet pour un lecteur d\'écran',
+      barre?.signe === '\u{1F517}' && barre?.decoratif === true && /^\d+$/.test(barre?.chiffre ?? ''),
+      `signe : ${JSON.stringify(barre?.signe)}, décoratif : ${barre?.decoratif}, chiffre : ${barre?.chiffre}`,
+    );
+
+    record(
+      "« Ajouter cette page » et « Ouvrir l'application » sont sur la même ligne",
+      // Le libellé est contrôlé dans les deux langues : ce profil-ci peut être
+      // en anglais, et un contrôle qui ne reconnaîtrait que le français
+      // échouerait sur une interface juste.
+      barre?.memeLigne === true
+        && /(Ouvrir|Open)/.test(barre?.libelleOuvrir ?? '')
+        && (barre?.libelleOuvrir ?? '').length <= 24,
+      `même ligne : ${barre?.memeLigne}, libellé : « ${barre?.libelleOuvrir} »`,
+    );
+
+    record(
+      'la fenêtre ne règle plus la langue',
+      barre?.langue === false,
+      `sélecteur de langue présent : ${barre?.langue}`,
+    );
+
     // Les commandes du pied ne se mesurent qu'**actives** : inactives, 1.4.11
     // les exempte, et le contrôle de contraste ne dirait plus rien. On le
     // vérifie au lieu de l'espérer — c'est ce qui manquait au premier relevé.
@@ -417,22 +504,19 @@ async function main() {
         return precedent;
       };
       const textes = [
-        { nom: 'titre de la fenêtre', sel: '.app-header__title' },
+        { nom: 'nom de la collection (en-tête)', sel: '.collection__name' },
         { nom: 'page courante', sel: '.capture__page' },
         { nom: 'compteur', sel: '.count' },
-        { nom: 'titre de section', sel: '.section-title' },
         { nom: 'titre d\\'une ligne', sel: '.item__title' },
         { nom: 'URL d\\'une ligne', sel: '.item__url' },
         { nom: 'bouton principal', sel: '.btn--primary' },
         { nom: 'bouton neutre (pied)', sel: '#open-app' },
         { nom: 'bouton discret CSV', sel: '#export-csv' },
         { nom: 'bouton destructeur', sel: '#clear' },
-        { nom: 'sélecteur de langue', sel: '#locale' },
       ];
       const composants = [
         { nom: 'contour du bouton discret', sel: '#export-csv' },
         { nom: 'contour du bouton destructeur', sel: '#clear' },
-        { nom: 'contour du sélecteur de langue', sel: '#locale' },
         { nom: 'contour d\\'une ligne de liste', sel: '.item' },
       ];
 
@@ -564,6 +648,20 @@ async function main() {
         style.outlineStyle !== 'none' && Number.parseFloat(style.outlineWidth) > 0
           ? \`\${style.outlineWidth} \${style.outlineStyle} \${style.outlineColor}\`
           : (style.boxShadow !== 'none' ? style.boxShadow : '');
+
+      // **Un fond teinté est un marqueur de focus, lui aussi.** Un champ n'a plus
+      // d'anneau : il se teint. On lit la couleur attendue sur une sonde plutôt
+      // que de la recopier, sinon le contrôle comparerait à une valeur qui peut
+      // changer sans lui.
+      const sonde = document.createElement('div');
+      sonde.style.background = 'var(--focus-fill)';
+      document.body.appendChild(sonde);
+      const fondFocus = getComputedStyle(sonde).backgroundColor;
+      sonde.remove();
+      const marqueur = anneau !== ''
+        ? anneau
+        : (style.backgroundColor === fondFocus ? 'fond ' + style.backgroundColor : '');
+
       return {
         tag: node.tagName,
         id: node.id || '',
@@ -571,7 +669,7 @@ async function main() {
         texte: (node.getAttribute('aria-label') || node.textContent || '').trim().slice(0, 44),
         largeur: Math.round(box.width),
         hauteur: Math.round(box.height),
-        anneau,
+        anneau: marqueur,
         visible: box.width > 0 && box.height > 0,
         // Le fait qui tranche : l'anneau manque-t-il parce que la règle CSS ne
         // s'applique pas, ou parce que le navigateur ne considère pas ce focus
@@ -617,8 +715,12 @@ async function main() {
       `${parcours.length} arrêt(s) : ${parcours.map((p) => p.id || p.classe || p.tag).join(' → ')}`,
     );
 
-    // Un anneau manquant a deux causes possibles, et les confondre ferait
+    // Un marqueur manquant a deux causes possibles, et les confondre ferait
     // accuser la feuille de style à tort — ou l'innocenter.
+    //
+    // Depuis que le focus d'un champ se dit par un fond teinté, et non par un
+    // anneau, c'est le **marqueur** qui compte : anneau pour les commandes, fond
+    // pour les champs de saisie.
     //
     // - `:focus-visible` est faux : le navigateur n'a pas classé ce focus comme
     //   venant du clavier. C'est son heuristique, pas notre règle, et elle
@@ -630,11 +732,11 @@ async function main() {
     const heuristic = sansAnneau.filter((p) => p.focusVisible !== true);
 
     record(
-      'chaque arrêt de tabulation porte un anneau de focus visible',
+      'chaque arrêt de tabulation porte un marqueur de focus visible',
       fautifs.length === 0,
       fautifs.length
         ? `règle en défaut sur : ${fautifs.map((p) => p.id || p.classe).join(', ')}`
-        : `${parcours.length} arrêt(s) tous cerclés`
+        : `${parcours.length} arrêt(s) tous marqués`
           + (heuristic.length
             ? ` — ${heuristic.length} sans anneau mais hors :focus-visible `
               + `(${heuristic.map((p) => p.id || p.classe).join(', ')}), heuristique du navigateur`
@@ -880,6 +982,212 @@ async function main() {
     }
     await app.session.call('Emulation.clearDeviceMetricsOverride');
 
+    // --- Le lien vers la page d'information -------------------------------
+    //
+    // La fenêtre de l'extension portait ce lien ; l'application, non — alors que
+    // c'est elle qui sert de documentation à qui l'ouvre en grand. Le contrôle
+    // porte sur ce qui ne se lit pas dans le source : l'adresse réellement posée
+    // (`chrome-extension://…/app.html`, donc l'adresse publiée, et non le
+    // voisinage du site), la couleur calculée, qui doit rester à l'encre
+    // secondaire — l'accent est réservé aux actions — et le fait que le pied ne
+    // rouvre pas un débordement horizontal.
+    const lienSite = await evalApp(`(() => {
+      const lien = document.getElementById('site-link');
+      if (!lien) return null;
+      const style = getComputedStyle(lien);
+      const indice = document.getElementById('target-hint');
+      const boite = lien.getBoundingClientRect();
+      const principal = document.getElementById('print');
+      return {
+        // Le libellé **visible** seul : l'annonce du nouvel onglet est un texte
+        // masqué, et la compter ici ferait échouer la comparaison sur un lien
+        // pourtant correct.
+        texte: [...lien.childNodes]
+          .filter((n) => !n.classList?.contains('sr-only'))
+          .map((n) => n.textContent)
+          .join('')
+          .trim(),
+        annonce: [...lien.childNodes].some((n) => n.classList?.contains('sr-only')
+          && /nouvel onglet/.test(n.textContent)),
+        href: lien.href,
+        cible: lien.target,
+        rel: lien.rel,
+        couleur: style.color,
+        couleurIndice: indice ? getComputedStyle(indice).color : null,
+        fondAction: principal ? getComputedStyle(principal).backgroundColor : null,
+        souligne: style.textDecorationLine,
+        hauteur: Math.round(boite.height),
+        // L'alignement : le lien doit tomber sous le bord gauche des panneaux,
+        // et non sous le bord de la fenêtre. Les marges du pied reprennent
+        // celles de la grille, mais rien ne le prouve sans le mesurer.
+        gaucheLien: Math.round(boite.left),
+        gauchePanneau: (() => {
+          const panneau = document.querySelector('.layout > .panel');
+          return panneau ? Math.round(panneau.getBoundingClientRect().left) : null;
+        })(),
+        // Le pied est **centré** : on compare le milieu du lien à celui du pied,
+        // et non plus son bord gauche à celui des panneaux.
+        centreLien: boite.left + boite.width / 2,
+        centrePied: (() => {
+          const pied = lien.closest('.app-footer');
+          if (!pied) return null;
+          const b = pied.getBoundingClientRect();
+          return b.left + b.width / 2;
+        })(),
+        signature: (() => {
+          const ligne = document.querySelector('.app-footer__signature');
+          return ligne ? ligne.textContent.replace(/\\s+/g, ' ').trim() : null;
+        })(),
+        sousLesPanneaux: (() => {
+          const pied = lien.closest('.app-footer');
+          const main = document.querySelector('main');
+          if (!pied || !main) return null;
+          return Math.round(pied.getBoundingClientRect().top)
+            >= Math.round(main.getBoundingClientRect().bottom) - 1;
+        })(),
+        debordement: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
+      };
+    })()`);
+
+    record(
+      'l\'application renvoie à la page d\'information',
+      lienSite?.texte === 'Page d\'information'
+        && lienSite?.annonce === true
+        && lienSite?.href === 'https://lupin.github.io/URLQRCodePrinter/'
+        && lienSite?.cible === '_blank'
+        && /\bnoopener\b/.test(lienSite?.rel ?? ''),
+      lienSite
+        ? `« ${lienSite.texte} » (nouvel onglet annoncé : ${lienSite.annonce}) `
+          + `→ ${lienSite.href} (${lienSite.cible}, ${lienSite.rel})`
+        : 'lien absent du document',
+    );
+    // L'encre secondaire, mesurée par comparaison : la couleur du lien doit être
+    // celle d'une aide, et non le fond de l'action principale.
+    record(
+      'le lien du pied reste à l\'encre secondaire',
+      lienSite?.couleur === lienSite?.couleurIndice
+        && lienSite?.couleur !== lienSite?.fondAction
+        && lienSite?.souligne === 'underline',
+      `${lienSite?.couleur} (aide ${lienSite?.couleurIndice}, action ${lienSite?.fondAction})`,
+    );
+    record(
+      'le pied est centré sous les panneaux, sans déborder',
+      lienSite?.sousLesPanneaux === true
+        && lienSite?.debordement === false
+        && lienSite?.centrePied !== null
+        && Math.abs(lienSite.centreLien - lienSite.centrePied) <= 1.5,
+      `sous les panneaux : ${lienSite?.sousLesPanneaux} · débordement : ${lienSite?.debordement}`
+        + ` · centre du lien ${Math.round(lienSite?.centreLien ?? -1)} px,`
+        + ` centre du pied ${Math.round(lienSite?.centrePied ?? -1)} px`,
+    );
+
+    // La signature : le nom, la licence, la version — et l'année **du jour**,
+    // comparée à celle de la machine qui conduit le relevé : une année écrite en
+    // dur dans le balisage se serait périmée au 1er janvier.
+    const anneeCourante = String(new Date().getFullYear());
+    record(
+      'la signature du pied nomme l\'auteur, la licence et la version',
+      /G\. Abegg-Gauthey/.test(lienSite?.signature ?? '')
+        && /\bMIT\b/.test(lienSite?.signature ?? '')
+        && /version \d+\.\d+\.\d+/.test(lienSite?.signature ?? '')
+        && (lienSite?.signature ?? '').includes(anneeCourante),
+      `« ${lienSite?.signature ?? ''} »`,
+    );
+
+    // --- Un seul filet autour des champs ----------------------------------
+    //
+    // Le défaut signalé à l'œil : deux lignes pour une seule limite — le cadre du
+    // panneau, puis celui du champ. Ce qui se mesure ici n'est pas l'intention
+    // mais ce que le navigateur dessine : l'épaisseur calculée des contenants
+    // doit être nulle, celle du champ non, et le contraste de ce filet sur son
+    // fond doit tenir les 3:1 de WCAG 1.4.11 — c'est la seule limite qui reste,
+    // elle doit donc être visible.
+    const filets = await evalApp(`(() => {
+      /**
+       * La couleur **réellement vue** derrière un nœud.
+       *
+       * Le fond d'un champ est désormais transparent : la surface qui le porte
+       * est celle du panneau, ou du blanc dans l'éditeur. Lire
+       * \`backgroundColor\` du champ rendrait "rgba(0, 0, 0, 0)", et le contraste
+       * calculé contre du noir ne voudrait rien dire. On remonte donc les
+       * ancêtres jusqu'à une couleur opaque.
+       */
+      const fondEffectif = (node) => {
+        for (let n = node; n; n = n.parentElement) {
+          const couleur = getComputedStyle(n).backgroundColor;
+          // Une couleur opaque : ni transparent, ni un rgba dont l'alpha est zero.
+          if (!couleur || couleur === 'transparent' || couleur.endsWith(', 0)')) continue;
+          return couleur;
+        }
+        return getComputedStyle(document.body).backgroundColor;
+      };
+      const epaisseur = (selecteur) => {
+        const node = document.querySelector(selecteur);
+        if (!node) return null;
+        const style = getComputedStyle(node);
+        return {
+          selecteur,
+          haut: style.borderTopWidth,
+          gauche: style.borderLeftWidth,
+          couleur: style.borderTopColor,
+          fond: fondEffectif(node),
+          texte: style.color,
+        };
+      };
+      return {
+        contenants: ['.panel', '.sheet-group', '.series', '.link__editor-form', '.columns']
+          .map(epaisseur),
+        champ: epaisseur('.input'),
+      };
+    })()`);
+
+    /**
+     * Rapport de contraste WCAG entre deux couleurs `rgb(...)`.
+     * @param {string} a
+     * @param {string} b
+     * @returns {number}
+     */
+    const contrasteRgb = (a, b) => {
+      const canal = (valeur) => {
+        const c = valeur / 255;
+        return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+      };
+      const lire = (couleur) => (couleur.match(/\d+(\.\d+)?/g) ?? []).slice(0, 3).map(Number);
+      const lum = (couleur) => {
+        const [r, g, bl] = lire(couleur).map(canal);
+        return 0.2126 * r + 0.7152 * g + 0.0722 * bl;
+      };
+      const [clair, sombre] = [lum(a), lum(b)].sort((x, y) => y - x);
+      return (clair + 0.05) / (sombre + 0.05);
+    };
+
+    // Tous les contenants ne sont pas montés en même temps : l'éditeur d'un lien
+    // n'existe que déplié, les réglages « série » que dans l'onglet Niimbot. Le
+    // contrôle porte donc sur ceux qui sont **là**, et exige d'en avoir vu au
+    // moins trois — sinon il passerait au vert sur une page vide.
+    const contenantsSansCadre = (filets?.contenants ?? []).filter(Boolean);
+    record(
+      'les contenants de champs ne dessinent plus de cadre',
+      contenantsSansCadre.length >= 3
+        && contenantsSansCadre.every((c) => c.haut === '0px' && c.gauche === '0px'),
+      contenantsSansCadre
+        .map((c) => `${c.selecteur} ${c.haut}`)
+        .join(' · '),
+    );
+
+    const contrasteFilet = filets?.champ
+      ? contrasteRgb(filets.champ.couleur, filets.champ.fond)
+      : null;
+    record(
+      'le champ garde un seul filet, et il se voit',
+      filets?.champ?.haut === '1px'
+        && contrasteFilet !== null
+        && contrasteFilet >= 3,
+      `champ : ${filets?.champ?.haut} ${filets?.champ?.couleur} sur ${filets?.champ?.fond}`
+        + ` → ${contrasteFilet === null ? '?' : contrasteFilet.toFixed(2)}:1`,
+    );
+
+
     // --- La grille de la planche ne se bloque plus ------------------------
     //
     // Le défaut : une grille impossible était refusée, et l'application gardait
@@ -1105,12 +1413,39 @@ async function main() {
         const boite = document.querySelector('#preview .print-cell');
         const bas = tete ? Math.round(tete.getBoundingClientRect().bottom) : null;
         const haut = boite ? Math.round(boite.getBoundingClientRect().top) : null;
+
+        // **Ce que la bande porte, et si elle le porte.** Le contrôle ne mesurait
+        // que le bas de l'en-tête face au haut de la première étiquette : la
+        // question de la note — « la place du nom de collection, celle de la note,
+        // et l'air laissé sous lui » — n'était mesurée nulle part. Ici, chaque
+        // bloc est situé **dans** la bande, et l'on regarde s'il en sort.
+        const dedans = (n) => {
+          if (!tete || !n) return null;
+          const a = tete.getBoundingClientRect();
+          const b = n.getBoundingClientRect();
+          return {
+            haut: Math.round(b.top - a.top),
+            bas: Math.round(b.bottom - a.top),
+            hauteur: Math.round(b.height),
+          };
+        };
+        const hauteurBoite = tete ? Math.round(tete.getBoundingClientRect().height) : null;
+        const titre = dedans(tete?.querySelector('.print-page__title'));
+        const note = dedans(tete?.querySelector('.print-page__note'));
+
         return {
           present: Boolean(tete),
           texte: tete ? tete.textContent.trim() : null,
           basEntete: bas,
           hautCellule: haut,
           hauteurEntete: document.querySelector('#preview .print-page__header')?.style.height ?? '',
+          hauteurBoite,
+          titre,
+          note,
+          // Positif : le texte descend sous sa bande. C'est le débordement que
+          // l'œil verrait comme « le nom touche la première étiquette ».
+          debord: titre && hauteurBoite !== null ? titre.bas - hauteurBoite : null,
+          margeY: champ('sheet-margin-y').value,
           message: champ('sheet-header-hint').textContent.trim(),
           messageGrille: champ('sheet-grid-hint').textContent.trim().slice(0, 80),
         };
@@ -1127,11 +1462,23 @@ async function main() {
       await pause(800);
       const sans = lire();
 
+      // **La marge de la disposition, elle, est plus courte que l'en-tête.** Le
+      // défaut d'ici — 8,53 mm pour 9 mm demandés — faisait qu'on cochait la case
+      // sans rien voir changer : le refus s'écrivait à l'encre des aides, sous la
+      // case, et passait pour un aperçu qui ne se rafraîchit pas. Cocher doit
+      // faire la place.
+      poser('sheet-header', false);
+      nombre('sheet-margin-y', '8.5');
+      await pause(600);
+      poser('sheet-header', true);
+      await pause(900);
+      const parDefaut = lire();
+
       // Remise en état.
       poser('sheet-header', false);
       nombre('sheet-margin-y', '8.5');
       await pause(500);
-      return { avec, sans };
+      return { avec, sans, parDefaut };
     })()`);
 
     const nomCollection = await evalApp("document.getElementById('collection-name').value");
@@ -1141,11 +1488,41 @@ async function main() {
       `« ${entete?.avec?.texte} » en tête de page`
         + (entete?.avec?.messageGrille ? ` · ${entete.avec.messageGrille}` : ''),
     );
+    // Cocher la case **fait la place** : la marge du haut est portée à ce que
+    // l'en-tête demande, et le message de refus disparaît.
+    record(
+      'cocher l\'en-tête de page fait la place, au lieu de refuser en silence',
+      entete?.parDefaut?.present === true
+        && Number(entete?.parDefaut?.margeY) >= 9
+        && entete?.parDefaut?.message === '',
+      `marge portée à ${entete?.parDefaut?.margeY} mm · en-tête `
+        + `${entete?.parDefaut?.present ? 'dessiné' : 'absent'} · message : `
+        + `« ${(entete?.parDefaut?.message ?? '').slice(0, 60)} »`,
+    );
+
     record(
       'l\'en-tête ne recouvre pas la première étiquette',
       entete?.avec?.basEntete !== null && entete?.avec?.basEntete <= entete?.avec?.hautCellule,
       `bas de l\'en-tête ${entete?.avec?.basEntete} px, haut de la première étiquette `
         + `${entete?.avec?.hautCellule} px`,
+    );
+    // Ce que la bande porte, et si elle le porte : le nom, la note, l'air laissé
+    // sous elle. C'est la question du §5 de la note — « la place du nom de
+    // collection, celle de la note, et l'air laissé sous lui » — posée en
+    // chiffres plutôt qu'à l'œil.
+    record(
+      "l'en-tête porte son nom et sa note dans sa bande, sans la déborder",
+      entete?.avec?.present === true
+        && (entete?.avec?.titre?.haut ?? -1) >= 0
+        && (entete?.avec?.debord ?? 99) <= 0
+        && (entete?.avec?.note === null || entete.avec.note.bas <= entete.avec.hauteurBoite),
+      `bande de ${entete?.avec?.hauteurBoite} px · nom à `
+        + `${entete?.avec?.titre?.haut}–${entete?.avec?.titre?.bas} px · note `
+        + (entete?.avec?.note
+          ? `à ${entete.avec.note.haut}–${entete.avec.note.bas} px`
+          : 'absente')
+        + ` · débordement ${entete?.avec?.debord} px · air sous l'en-tête `
+        + `${(entete?.avec?.hautCellule ?? 0) - (entete?.avec?.basEntete ?? 0)} px`,
     );
     record(
       'une marge trop courte refuse l\'en-tête, en le disant',
@@ -1379,12 +1756,399 @@ async function main() {
     );
     record(
       'un autre service est proposé, sans être imposé',
-      /is\.gd/.test(serviceEnPanne?.statut ?? ''),
+      // Le service proposé est le premier du catalogue qui n'a pas échoué :
+      // depuis que T.LY l'ouvre, c'est lui — et non plus is.gd. Le contrôle
+      // nomme donc le service retenu *et* la proposition, sans figer une marque.
+      /TinyURL/.test(serviceEnPanne?.statut ?? '')
+        && /T\.LY/.test(serviceEnPanne?.statut ?? '')
+        && /Essayez/.test(serviceEnPanne?.statut ?? ''),
       `« ${serviceEnPanne?.statut?.slice(0, 140)} »`,
     );
 
     await app.session.call('Network.setBlockedURLs', { urls: [] });
     await app.session.call('Network.disable');
+
+    // --- La numérotation, propre à chaque collection -----------------------
+    //
+    // Le champ « Numéroter à partir de » porte sur la collection affichée :
+    // régler 101 ici, passer à côté, régler 7, revenir — et retrouver 101. C'est
+    // ce que « chaque collection a sa numérotation » veut dire, et cela ne se
+    // constate qu'en basculant pour de vrai.
+    const numerotationParCollection = await evalApp(`(async () => {
+      const pause = (ms) => new Promise((r) => setTimeout(r, ms));
+      const champ = document.getElementById('collection-start');
+      const select = document.getElementById('collection-select');
+      const numero = () => Number(champ.value);
+      const rangs = () => [...document.querySelectorAll('#list .link__index')]
+        .map((n) => n.textContent.trim());
+
+      const lireDocument = () => new Promise((resolve) => chrome.storage.local.get(
+        'url-qr-code-printer/collections', resolve,
+      ));
+
+      // Une seconde collection, vide, pour que la bascule ne change pas la liste.
+      const valeur = await lireDocument();
+      const document_ = valeur['url-qr-code-printer/collections']
+        ?? { version: 1, migratedAt: Date.now(), items: [{ id: 'default', name: '', note: '', createdAt: 0 }] };
+      const items = document_.items.some((item) => item.id === 'numerotation')
+        ? document_.items
+        : [...document_.items, {
+          id: 'numerotation', name: 'Numérotation', note: '', startIndex: 7, createdAt: Date.now(),
+        }];
+      await new Promise((resolve) => chrome.storage.local.set({
+        'url-qr-code-printer/collections': { ...document_, items },
+      }, resolve));
+      return {
+        collections: items.map((item) => item.id),
+        // La valeur d'avant : les contrôles suivants comptent sur leur propre
+        // numérotation, et ce scénario la déplace exprès.
+        numeroAvant: document_.items.find((item) => item.id === 'default')?.startIndex ?? 1,
+      };
+    })()`);
+
+    await recharger(app.session);
+    await forcerPeinture(app.session, 700);
+
+    const parCollection = await evalApp(`(async () => {
+      const pause = (ms) => new Promise((r) => setTimeout(r, ms));
+      const champ = document.getElementById('collection-start');
+      const select = document.getElementById('collection-select');
+      const numero = () => Number(champ.value);
+      const rangs = () => [...document.querySelectorAll('#list .link__index')]
+        .map((n) => n.textContent.trim());
+
+      // **On attend l'état, jamais un temps fixe.** Ce contrôle lisait le champ
+      // après 200 ms de sommeil, et il a échoué une fois sur deux (« retour : 7 »
+      // au lieu de 101) : la lecture tombait avant que la collection affichée ne
+      // soit relue. Un contrôle qui dépend du hasard ne prouve rien — c'est la
+      // règle du relevé, et elle vaut aussi ici. On attend donc que le numéro soit
+      // **celui de la collection affichée**, avec un plafond : si le produit ne
+      // l'atteint pas, le contrôle échoue avec la valeur lue.
+      const attendre = async (condition, plafond = 4000) => {
+        const debut = Date.now();
+        while (Date.now() - debut < plafond) {
+          if (condition()) return true;
+          await pause(50);
+        }
+        return false;
+      };
+      const basculer = async (id, attendu) => {
+        select.value = id;
+        select.dispatchEvent(new Event('change', { bubbles: true }));
+        await attendre(() => numero() === attendu);
+      };
+
+      // La collection par défaut : on règle 101, et la liste suit.
+      select.value = 'default';
+      select.dispatchEvent(new Event('change', { bubbles: true }));
+      await attendre(() => numero() !== 0);
+      champ.value = '101';
+      champ.dispatchEvent(new Event('input', { bubbles: true }));
+      champ.dispatchEvent(new Event('change', { bubbles: true }));
+      await attendre(() => rangs()[0] === '101');
+      const ici = { numero: numero(), rangs: rangs() };
+
+      // On bascule sur l'autre collection : elle annonce la sienne, 7.
+      await basculer('numerotation', 7);
+      const ailleurs = { numero: numero(), rangs: rangs() };
+
+      // Et l'on revient : la première a gardé la sienne.
+      await basculer('default', 101);
+      const retour = { numero: numero(), rangs: rangs() };
+
+      const apres = await new Promise((resolve) => chrome.storage.local.get(
+        'url-qr-code-printer/collections', resolve,
+      ));
+      const items = apres['url-qr-code-printer/collections']?.items ?? [];
+      return {
+        ici,
+        ailleurs,
+        retour,
+        enregistre: items.find((item) => item.id === 'numerotation')?.startIndex,
+      };
+    })()`);
+
+    record(
+      'le premier numéro appartient à la collection affichée',
+      parCollection?.ici?.numero === 101
+        && (parCollection?.ici?.rangs ?? []).every((rang) => Number(rang) >= 101)
+        && parCollection?.ailleurs?.numero === 7
+        && parCollection?.enregistre === 7
+        && parCollection?.retour?.numero === 101,
+      `ici : ${parCollection?.ici?.numero} (rangs ${(parCollection?.ici?.rangs ?? []).join(', ')}), `
+        + `ailleurs : ${parCollection?.ailleurs?.numero} (rangs ${(parCollection?.ailleurs?.rangs ?? []).join(', ')}), `
+        + `retour : ${parCollection?.retour?.numero}`,
+    );
+
+    // Remise en état : la collection d'épreuve repart, et la numérotation de la
+    // collection par défaut revient à sa valeur d'avant — ce scénario l'a réglée
+    // à 101, et les contrôles suivants comptent à partir de 1.
+    await evalApp(`new Promise((resolve) => {
+      chrome.storage.local.get('url-qr-code-printer/collections', (valeur) => {
+        const document_ = valeur['url-qr-code-printer/collections'] ?? { items: [] };
+        chrome.storage.local.set({
+          'url-qr-code-printer/collections': {
+            ...document_,
+            items: document_.items
+              .filter((item) => item.id !== 'numerotation')
+              .map((item) => (
+                item.id === 'default'
+                  ? { ...item, startIndex: ${Number(numerotationParCollection?.numeroAvant ?? 1)} }
+                  : item
+              )),
+          },
+          'url-qr-code-printer/active-collection': { normal: 'default', private: '' },
+        }, resolve);
+      });
+    })`);
+    await recharger(app.session);
+    await forcerPeinture(app.session, 700);
+
+    // --- Supprimer une collection -----------------------------------------
+    //
+    // Deux constats, et aucun lien perdu : la collection supprimée ici est une
+    // collection de contrôle, **vide**, créée pour l'épreuve. Supprimer celle
+    // qui porte les liens de vérification obligerait à les sauvegarder et à les
+    // rendre, et le scénario laisserait des traces dans la suite du relevé.
+    //
+    // Ce que la règle doit dire : le bouton ne se grise que sur la **dernière**
+    // collection — la collection par défaut n'a rien de particulier, et la
+    // garder obligeait à créer une seconde collection pour pouvoir se
+    // débarrasser de la première.
+    await evalApp(`new Promise((resolve) => {
+      chrome.storage.local.get('url-qr-code-printer/collections', (valeur) => {
+        const document_ = valeur['url-qr-code-printer/collections']
+          ?? { version: 1, migratedAt: Date.now(), items: [{ id: 'default', name: '', note: '', createdAt: 0 }] };
+        const items = document_.items.some((item) => item.id === 'default')
+          ? document_.items
+          : [{ id: 'default', name: '', note: '', createdAt: 0 }, ...document_.items];
+        chrome.storage.local.set({
+          'url-qr-code-printer/collections': {
+            ...document_,
+            items: [...items, { id: 'controle', name: 'Contrôle', note: '', createdAt: Date.now() }],
+          },
+          'url-qr-code-printer/active-collection': { normal: 'default', private: '' },
+        }, resolve);
+      });
+    })`);
+
+    await recharger(app.session);
+    await forcerPeinture(app.session, 700);
+
+    const surLaPremiere = await evalApp(`(async () => {
+      const pause = (ms) => new Promise((r) => setTimeout(r, ms));
+      await pause(80);
+      const select = document.getElementById('collection-select');
+      const bouton = document.getElementById('collection-delete');
+      return {
+        affichee: select ? select.value : '',
+        collections: select ? [...select.options].map((o) => o.value) : [],
+        actif: bouton ? !bouton.disabled : null,
+      };
+    })()`);
+
+    record(
+      "sur la première collection, la suppression est offerte dès qu'une autre existe",
+      surLaPremiere?.affichee === 'default'
+        && surLaPremiere?.actif === true
+        && (surLaPremiere?.collections ?? []).length === 2,
+      `affichée : ${surLaPremiere?.affichee}, bouton actif : ${surLaPremiere?.actif}, `
+        + `collections : ${(surLaPremiere?.collections ?? []).join(', ')}`,
+    );
+
+    const apresSuppression = await evalApp(`(async () => {
+      const pause = (ms) => new Promise((r) => setTimeout(r, ms));
+      // On passe sur la collection de contrôle, puis on la supprime en deux
+      // temps : la confirmation annonce ce qui est perdu, le second clic exécute.
+      const select = document.getElementById('collection-select');
+      select.value = 'controle';
+      select.dispatchEvent(new Event('change', { bubbles: true }));
+      await pause(200);
+
+      const bouton = document.getElementById('collection-delete');
+      bouton.click();
+      await pause(60);
+      const confirme = { texte: bouton.textContent.trim(), arme: bouton.dataset.confirm === '1' };
+      bouton.click();
+      await pause(500);
+
+      const valeur = await new Promise((resolve) => chrome.storage.local.get(
+        'url-qr-code-printer/collections', resolve,
+      ));
+      const items = valeur['url-qr-code-printer/collections']?.items ?? [];
+      const restant = document.getElementById('collection-select');
+      return {
+        confirme,
+        restantes: items.map((item) => item.id),
+        affichee: restant ? restant.value : '',
+        grise: document.getElementById('collection-delete').disabled,
+      };
+    })()`);
+
+    record(
+      'supprimer une collection demande confirmation, puis la retire',
+      apresSuppression?.confirme?.arme === true
+        && /perdu/.test(apresSuppression?.confirme?.texte ?? '')
+        && (apresSuppression?.restantes ?? []).join('|') === 'default'
+        && apresSuppression?.affichee === 'default',
+      `confirmation : « ${apresSuppression?.confirme?.texte} », `
+        + `restantes : ${(apresSuppression?.restantes ?? []).join(', ')}, `
+        + `affichée : ${apresSuppression?.affichee}`,
+    );
+
+    record(
+      'la dernière collection ne se supprime pas',
+      apresSuppression?.grise === true,
+      `bouton grisé : ${apresSuppression?.grise}`,
+    );
+
+    // Remise en état : la collection de contrôle **repart**. Elle n'existait que
+    // pour cette épreuve, et la laisser fausserait les contrôles suivants — le
+    // déplacement proposerait trois destinations au lieu d'une.
+    await evalApp(`new Promise((resolve) => {
+      chrome.storage.local.get('url-qr-code-printer/collections', (valeur) => {
+        const document_ = valeur['url-qr-code-printer/collections'] ?? { items: [] };
+        chrome.storage.local.set({
+          'url-qr-code-printer/collections': {
+            ...document_,
+            items: document_.items.filter((item) => item.id !== 'controle'),
+          },
+          'url-qr-code-printer/active-collection': { normal: 'default', private: '' },
+        }, resolve);
+      });
+    })`);
+    await recharger(app.session);
+    await forcerPeinture(app.session, 700);
+
+    // --- Déplacer la sélection --------------------------------------------
+    //
+    // La commande vit et meurt avec la sélection : absente au repos, présente
+    // dès qu'une case est cochée, et ne proposant que les autres collections.
+    // Le déplacement lui-même est exécuté ici, sur le document réel : c'est le
+    // seul endroit où l'on peut constater qu'un lien change de collection sans
+    // être recréé.
+    //
+    // Le profil de vérification ne contient qu'une collection : on en ajoute
+    // une seconde, puis on remet le stockage exactement comme on l'a trouvé —
+    // les contrôles suivants comptent les liens de cette collection.
+    const avantDeplacement = await evalApp(`new Promise((resolve) => {
+      chrome.storage.local.get(['links', 'url-qr-code-printer/collections'], (valeur) => {
+        const collections = valeur['url-qr-code-printer/collections']
+          ?? { version: 1, migratedAt: Date.now(), items: [{ id: 'default', name: '', note: '', createdAt: 0 }] };
+        const items = collections.items.some((item) => item.id === 'veille')
+          ? collections.items
+          : [...collections.items, { id: 'veille', name: 'Veille', note: '', createdAt: Date.now() }];
+        chrome.storage.local.set({
+          links: valeur.links ?? [],
+          'url-qr-code-printer/collections': { ...collections, items },
+          'url-qr-code-printer/active-collection': { normal: 'default', private: '' },
+        }, () => resolve({
+          liens: (valeur.links ?? []).length,
+          collections: JSON.stringify(valeur['url-qr-code-printer/collections'] ?? null),
+        }));
+      });
+    })`);
+
+    await recharger(app.session);
+    await forcerPeinture(app.session, 700);
+
+    const auRepos = await evalApp(`(() => {
+      const groupe = document.getElementById('move-group');
+      return { cache: groupe ? groupe.hidden : null };
+    })()`);
+    record(
+      'sans sélection, aucune commande de déplacement',
+      auRepos?.cache === true,
+      `groupe masqué : ${auRepos?.cache}`,
+    );
+
+    const apresCochage = await evalApp(`(async () => {
+      const pause = (ms) => new Promise((r) => setTimeout(r, ms));
+      const premiere = document.querySelector('#list .link__check');
+      if (!premiere) return { erreur: 'aucune case' };
+      premiere.checked = true;
+      premiere.dispatchEvent(new Event('change', { bubbles: true }));
+      await pause(60);
+      const groupe = document.getElementById('move-group');
+      const bouton = document.getElementById('move-to');
+      bouton.click();
+      await pause(60);
+      const menu = document.getElementById('move-menu');
+      return {
+        cache: groupe.hidden,
+        ouvert: !menu.hidden,
+        nomme: bouton.getAttribute('aria-expanded'),
+        choix: [...menu.children].map((n) => n.textContent.trim()),
+      };
+    })()`);
+
+    record(
+      'cocher un lien fait apparaître « Déplacer vers… », qui propose les autres collections',
+      apresCochage?.cache === false && apresCochage?.ouvert === true
+        && apresCochage?.nomme === 'true'
+        && (apresCochage?.choix ?? []).join('|') === 'Veille',
+      `masqué : ${apresCochage?.cache}, panneau ouvert : ${apresCochage?.ouvert}, `
+        + `choix : ${(apresCochage?.choix ?? []).join(' · ')}`,
+    );
+
+    const apresDeplacement = await evalApp(`(async () => {
+      const pause = (ms) => new Promise((r) => setTimeout(r, ms));
+      const premier = document.querySelector('#list .link');
+      const identifiant = premier?.dataset.id ?? '';
+      const titre = document.querySelector('#list .link__title')?.textContent.trim() ?? '';
+      document.querySelector('#move-menu button')?.click();
+      await pause(400);
+      const valeur = await new Promise((resolve) => chrome.storage.local.get('links', resolve));
+      const deplace = (valeur.links ?? []).find((lien) => lien.id === identifiant) ?? {};
+      const groupe = document.getElementById('move-group');
+      return {
+        collection: deplace.collectionId ?? '',
+        titre,
+        titreApres: deplace.title ?? '',
+        cache: groupe.hidden,
+        lignes: document.querySelectorAll('#list .link').length,
+        total: (valeur.links ?? []).length,
+      };
+    })()`);
+
+    record(
+      'choisir une collection déplace le lien, sans le recréer',
+      apresDeplacement?.collection === 'veille'
+        && apresDeplacement?.total === avantDeplacement?.liens
+        && apresDeplacement?.lignes === (avantDeplacement?.liens ?? 0) - 1
+        && apresDeplacement?.titreApres === apresDeplacement?.titre,
+      `collection : ${apresDeplacement?.collection}, liens : ${apresDeplacement?.total} `
+        + `(inchangé : ${apresDeplacement?.total === avantDeplacement?.liens}), `
+        + `lignes affichées : ${apresDeplacement?.lignes}`,
+    );
+
+    record(
+      'la commande disparaît une fois la sélection vidée',
+      apresDeplacement?.cache === true,
+      `groupe masqué : ${apresDeplacement?.cache}`,
+    );
+
+    // Remise en état : les liens et les collections retrouvent leur état
+    // d'avant, sans quoi les contrôles suivants compteraient autre chose.
+    await evalApp(`new Promise((resolve) => {
+      chrome.storage.local.get(['links', 'url-qr-code-printer/collections'], (valeur) => {
+        const collections = valeur['url-qr-code-printer/collections'] ?? { items: [] };
+        chrome.storage.local.set({
+          'url-qr-code-printer/collections': {
+            ...collections,
+            items: (collections.items ?? []).filter((item) => item.id !== 'veille'),
+          },
+          // Le lien déplacé revient dans la collection par défaut : sans cela il
+          // appartiendrait à une collection qui n'existe plus, et disparaîtrait
+          // des contrôles suivants.
+          links: (valeur.links ?? []).map((lien) => (
+            lien.collectionId === 'veille' ? { ...lien, collectionId: 'default' } : lien
+          )),
+        }, resolve);
+      });
+    })`);
+    await recharger(app.session);
+    await forcerPeinture(app.session, 700);
 
     // --- Le tri et le rangement -------------------------------------------
     //
@@ -1875,7 +2639,7 @@ async function main() {
       const avant = lire();
       [...document.querySelectorAll('#list .link')]
         .find((l) => l.querySelector('.link__title')?.textContent.includes('Une adresse trop longue'))
-        ?.querySelector('.link__target input')?.click();
+        ?.querySelector('.link__short input')?.click();
       await pause(1200);
       return { avant, apres: lire() };
     })()`);
@@ -2482,6 +3246,130 @@ async function main() {
         + `au-dessus des onglets : ${placeRaccourci?.avantLesOnglets}`,
     );
 
+    // --- Ce que le sélecteur propose, et ce qu'il ne fait pas --------------
+    //
+    // T.LY est le service proposé d'emblée dans l'extension : il y raccourcit
+    // sans clé ni compte, ce qui n'est vrai que depuis une origine d'extension.
+    // Vérifier le libellé et la sélection ne demande aucun accès réseau — c'est
+    // justement ce qu'on veut constater : présélectionner ne raccourcit rien.
+    //
+    // Le profil de vérification est réutilisé d'une exécution à l'autre : la
+    // préférence enregistrée par la précédente gagnerait, et le contrôle
+    // mesurerait un choix d'utilisateur plutôt qu'un défaut. On part donc d'une
+    // préférence vide — ce que voit une installation neuve.
+    await evalApp(`(() => {
+      localStorage.removeItem('url-qr-code-printer/settings');
+      return true;
+    })()`);
+    await recharger(app.session);
+    await forcerPeinture(app.session, 700);
+
+    const etatService = await evalApp(`(() => {
+      const select = document.getElementById('shortener');
+      const premiere = select.options[0];
+      return {
+        choisi: select.value,
+        premier: premiere?.value,
+        libelle: premiere?.textContent.trim() ?? '',
+        aide: document.getElementById('shortener-hint')?.textContent.trim() ?? '',
+      };
+    })()`);
+
+    record(
+      'T.LY est proposé d\'emblée dans l\'extension',
+      etatService?.choisi === 'tly' && etatService?.premier === 'tly'
+        && /défaut/.test(etatService?.libelle ?? ''),
+      `service retenu : ${etatService?.choisi}, premier du catalogue : ${etatService?.premier} `
+        + `(${etatService?.libelle})`,
+    );
+
+    record(
+      "l'aide dit que le raccourcissement reste facultatif",
+      /rien ne change/i.test(etatService?.aide ?? ''),
+      (etatService?.aide ?? '').slice(0, 120),
+    );
+
+    // --- Le lien de parrainage T.LY ---------------------------------------
+    //
+    // Le projet est inscrit au programme d'affiliation T.LY. Le lien n'apparaît
+    // que sous le service T.LY, et il est mesuré là où il se produit : dans
+    // l'aide du raccourcissement, avec son libellé, son adresse et le nouvel
+    // onglet. Le repasser sur un autre service doit le faire disparaître — sinon
+    // il promettrait un parrainage au nom d'un service qui n'est pas choisi.
+    const parrainage = await evalApp(`(async () => {
+      const pause = (ms) => new Promise((r) => setTimeout(r, ms));
+      const lire = () => {
+        const aide = document.getElementById('shortener-hint');
+        const lien = aide?.querySelector('a');
+        return {
+          service: document.getElementById('shortener').value,
+          texte: lien ? lien.textContent.trim() : '',
+          href: lien ? lien.href : '',
+          cible: lien ? lien.target : '',
+          rel: lien ? lien.rel : '',
+          titre: lien ? lien.title : '',
+          annonce: lien
+            ? [...lien.childNodes].some((n) => n.classList?.contains('sr-only')
+              && /nouvel onglet/.test(n.textContent))
+            : false,
+        };
+      };
+      const avant = lire();
+
+      const select = document.getElementById('shortener');
+      const autre = [...select.options].map((o) => o.value).find((v) => v !== 'tly');
+      select.value = autre;
+      select.dispatchEvent(new Event('change', { bubbles: true }));
+      await pause(400);
+      const pendant = lire();
+
+      // Remise en état : la suite du parcours compte sur le service par défaut.
+      select.value = 'tly';
+      select.dispatchEvent(new Event('change', { bubbles: true }));
+      await pause(400);
+      return { avant, pendant, apres: lire() };
+    })()`);
+
+    record(
+      'le parrainage T.LY est proposé, et dit ce qu\'il est',
+      /^https:\/\/t\.ly\/register\?via=/.test(parrainage?.avant?.href ?? '')
+        && /parrainage/i.test(parrainage?.avant?.texte ?? '')
+        && parrainage?.avant?.cible === '_blank'
+        && /\bnoopener\b/.test(parrainage?.avant?.rel ?? '')
+        && parrainage?.avant?.annonce === true
+        && /parrainage/i.test(parrainage?.avant?.titre ?? ''),
+      `« ${parrainage?.avant?.texte} » → ${parrainage?.avant?.href} `
+        + `(${parrainage?.avant?.cible}, ${parrainage?.avant?.rel})`,
+    );
+    record(
+      'le parrainage disparaît sous un autre service',
+      parrainage?.avant?.href !== '' && parrainage?.pendant?.href === ''
+        && parrainage?.apres?.href === parrainage?.avant?.href,
+      `T.LY : ${parrainage?.avant?.href ? 'présent' : 'absent'} · `
+        + `${parrainage?.pendant?.service} : ${parrainage?.pendant?.href ? 'présent' : 'absent'} · `
+        + `retour : ${parrainage?.apres?.href ? 'présent' : 'absent'}`,
+    );
+
+    // --- Les collections, dans l'application -------------------------------
+    const etatCollections = await evalApp(`(() => {
+      const select = document.getElementById('collection-select');
+      const picker = document.getElementById('collection-picker');
+      const liens = document.querySelectorAll('#list > li').length;
+      return {
+        options: select ? [...select.options].map((o) => o.textContent.trim()) : [],
+        choisi: select?.value ?? '',
+        visible: picker ? !picker.hidden : false,
+        lignes: liens,
+      };
+    })()`);
+
+    record(
+      'l\'application propose ses collections et affiche celle qui est courante',
+      etatCollections?.visible === true && etatCollections.options.length >= 1
+        && etatCollections.choisi !== '',
+      `${etatCollections?.options.length} collection(s) : ${(etatCollections?.options ?? []).join(', ')}`,
+    );
+
     // Le raccourci factice reste crédible : même forme qu'un vrai, et assez
     // court pour que la matrice change de taille.
     await evalApp(`new Promise((resolve) => chrome.storage.local.get('links', (valeur) => {
@@ -2533,7 +3421,10 @@ async function main() {
         };
       };
 
-      const cases = [...document.querySelectorAll('#list .link__target input')];
+      // La case vit **dans la ligne du lien court**, dont elle est le libellé :
+      // l'adresse courte n'est plus un lien, et cette ligne n'a donc qu'une
+      // action.
+      const cases = [...document.querySelectorAll('#list .link__short input')];
       const cocheeAuDepart = cases[0] ? cases[0].checked : null;
       const titreDeLaCase = cases[0]?.closest('.link')?.querySelector('.link__title')?.textContent.trim();
       const libelle = cases[0]?.getAttribute('aria-label') ?? null;
@@ -2563,8 +3454,9 @@ async function main() {
         + `${cibleParLien?.cocheeAuDepart}`,
     );
     record(
-      'la case de cible s\'annonce par ce qu\'elle fait, lien nommé',
-      /raccourci/i.test(cibleParLien?.libelle ?? '')
+      'la case de cible s\'annonce par ce qu\'elle fait, et nomme ce qu\'elle encode',
+      /Encod/i.test(cibleParLien?.libelle ?? '')
+        && (cibleParLien?.libelle ?? '').includes('is.gd')
         && (cibleParLien?.libelle ?? '').includes(cibleParLien?.titreDuRaccourci ?? '\u0000'),
       `« ${cibleParLien?.libelle} »`,
     );
@@ -2592,11 +3484,43 @@ async function main() {
       `réglages par lien : ${JSON.stringify(cibleParLien?.reglages)}`,
     );
 
+    // La ligne telle qu'elle se présente : **une seule action**, et pas de
+    // débordement. Une vision d'écran ne se lit pas ici, mais ces trois mesures
+    // disent l'essentiel — l'adresse courte n'est plus un lien, la ligne tient
+    // dans sa colonne, et la navigation reste possible par le titre et l'adresse
+    // d'origine.
+    const ligneCourte = await evalApp(`(() => {
+      const ligne = document.querySelector('#list .link__short');
+      if (!ligne) return null;
+      const menu = [...ligne.children].map((n) => n.tagName.toLowerCase());
+      return {
+        // Aucun lien **dans la ligne courte** : elle n'a qu'une action.
+        liensDansLaLigne: ligne.querySelectorAll('a').length,
+        // Mais la navigation reste possible ailleurs : le titre et l'adresse
+        // d'origine sont toujours des liens.
+        liensDansLaListe: document.querySelectorAll('#list .link a').length,
+        deborde: ligne.scrollWidth > ligne.clientWidth + 1,
+        enfants: menu,
+      };
+    })()`);
+
+    record(
+      'la ligne du lien court n\'a qu\'une action, et ne déborde pas',
+      ligneCourte?.liensDansLaLigne === 0
+        && (ligneCourte?.liensDansLaListe ?? 0) > 0
+        && ligneCourte?.deborde === false
+        && (ligneCourte?.enfants ?? []).includes('input')
+        && (ligneCourte?.enfants ?? []).includes('span'),
+      `liens dans la ligne courte : ${ligneCourte?.liensDansLaLigne} · dans la liste : `
+        + `${ligneCourte?.liensDansLaListe} · débordement : ${ligneCourte?.deborde} · contenu : `
+        + `${(ligneCourte?.enfants ?? []).join(', ')}`,
+    );
+
     // Décocher doit rendre exactement l'état d'avant : un réglage qu'on ne peut
     // pas défaire serait pire que pas de réglage du tout.
     const retourArriere = await evalApp(`(async () => {
       const pause = (ms) => new Promise((r) => setTimeout(r, ms));
-      document.querySelector('#list .link__target input')?.click();
+      document.querySelector('#list .link__short input')?.click();
       await pause(1100);
       const cellules = [...document.querySelectorAll('#preview .print-cell')];
       return {
@@ -3126,6 +4050,205 @@ async function main() {
         );
       }
 
+      // --- L'ajout au clic droit, éprouvé sur le produit lui-même -----------
+      //
+      // Signalé le 29 septembre 2026 : « l'ajout au clic droit peut jouer des
+      // tours. Il faudra bien faire des tests plus poussés plus tard. »
+      //
+      // Le **menu natif** ne se clique pas : aucune API n'ouvre un menu
+      // contextuel, c'est écrit en tête de ce fichier, et cela reste vrai. Ce qui
+      // peut être éprouvé, c'est ce que le produit fait de ce que le navigateur
+      // lui donne : les trois entrées passent par `captureFromClick`, puis par
+      // `record`. On les appelle donc dans le service worker, avec les `info` que
+      // Chrome fournit réellement — y compris son habitude de remplir `linkUrl`
+      // dès que le clic tombe sur un lien, **quel que soit l'item choisi** :
+      // c'est le bug YouTube, et c'est ici qu'il se rejoue.
+      //
+      // Ce bloc ajoute des liens : il **les retire** avant de rendre la main, pour
+      // que les contrôles suivants — la planche de 49 liens — mesurent bien ce
+      // qu'ils annoncent.
+      const clicDroit = await evalWorker(`(async () => {
+        const page = 'https://exemple.fr/accueil';
+        const lien = 'https://exemple.fr/article-vise';
+        const selection = 'https://autre.fr/selection';
+        const onglet = { url: page, title: 'Accueil — exemple.fr', incognito: false };
+        const capturer = (info, tab = onglet) => {
+          const capture = captureFromClick(info, tab);
+          return capture ? { url: capture.url, title: capture.title } : null;
+        };
+        const lire = () => new Promise((resolve) => chrome.storage.local.get('links', (v) => resolve(v.links ?? [])));
+        const badge = () => chrome.action.getBadgeText({});
+
+        // 1. Trois entrées, trois cibles. L'image est incluse : « Ajouter cette
+        //    page » dessus doit donner la page, et non l'image.
+        const gestes = {
+          page: capturer({ menuItemId: 'urq-add-page', pageUrl: page, linkUrl: lien }),
+          lien: capturer({ menuItemId: 'urq-add-link', pageUrl: page, linkUrl: lien }),
+          selection: capturer({ menuItemId: 'urq-add-selection', pageUrl: page, selectionText: selection }),
+          image: capturer({ menuItemId: 'urq-add-page', pageUrl: page, srcUrl: 'https://exemple.fr/image.png' }),
+          interdite: capturer(
+            { menuItemId: 'urq-add-page', pageUrl: 'chrome://extensions' },
+            { url: 'chrome://extensions', title: 'Extensions' },
+          ),
+        };
+
+        // 2. Les trois chemins enregistrent vraiment, et le badge le dit.
+        const avant = (await lire()).length;
+        const resultats = {};
+        for (const [nom, info] of [
+          ['page', { menuItemId: 'urq-add-page', pageUrl: page }],
+          ['lien', { menuItemId: 'urq-add-link', linkUrl: lien }],
+          ['selection', { menuItemId: 'urq-add-selection', selectionText: selection }],
+        ]) {
+          const enregistre = await record(captureFromClick(info, onglet), { isPrivate: false });
+          resultats[nom] = { enregistre: enregistre.recorded, badge: await badge() };
+        }
+        const apres = await lire();
+        const titres = Object.fromEntries(apres
+          .filter((l) => [page, lien, selection].includes(l.url))
+          .map((l) => [l.url, l.title]));
+
+        // 3. La page **déjà** collectée : un doublon annoncé, pas un second lien.
+        const doublon = await record(
+          captureFromClick({ menuItemId: 'urq-add-page', pageUrl: page }, onglet),
+          { isPrivate: false },
+        );
+        const badgeDoublon = await badge();
+        const totalDoublon = (await lire()).length;
+
+        // 4. Une page que l'extension n'a pas le droit de lire.
+        const interdit = await record(
+          captureFromClick(
+            { menuItemId: 'urq-add-page', pageUrl: 'chrome://extensions' },
+            { url: 'chrome://extensions', title: 'Extensions' },
+          ),
+          { isPrivate: false },
+        );
+        const badgeInterdit = await badge();
+
+        // 5. La collection est rendue comme elle a été trouvée.
+        const restants = (await lire()).filter((l) => ![page, lien, selection].includes(l.url));
+        await new Promise((resolve) => chrome.storage.local.set({ links: restants }, resolve));
+
+        return {
+          gestes,
+          resultats,
+          avant,
+          apres: apres.length,
+          titres,
+          doublon: { enregistre: doublon.recorded, badge: badgeDoublon, total: totalDoublon },
+          interdit: { enregistre: interdit.recorded, raison: interdit.reason, badge: badgeInterdit },
+          rendus: restants.length,
+        };
+      })()`);
+
+      if (clicDroit?.__erreur) {
+        // Le service worker est un script **classique** : ses déclarations de
+        // premier niveau sont donc atteignables ici. Si elles ne l'étaient plus,
+        // le contrôle le dit — il n'accuse pas le produit d'une panne de méthode.
+        record('le clic droit est éprouvable dans le service worker', false, clicDroit.__erreur);
+      } else {
+        record(
+          "l'item choisi commande : trois entrées, trois cibles distinctes",
+          clicDroit?.gestes?.page?.url === 'https://exemple.fr/accueil'
+            && clicDroit?.gestes?.lien?.url === 'https://exemple.fr/article-vise'
+            && clicDroit?.gestes?.selection?.url === 'https://autre.fr/selection'
+            && clicDroit?.gestes?.image?.url === 'https://exemple.fr/accueil'
+            && clicDroit?.gestes?.page?.title === 'Accueil — exemple.fr',
+          `page ${clicDroit?.gestes?.page?.url} · lien ${clicDroit?.gestes?.lien?.url} · `
+            + `sélection ${clicDroit?.gestes?.selection?.url} · image ${clicDroit?.gestes?.image?.url} · `
+            + `titre « ${clicDroit?.gestes?.page?.title} »`,
+        );
+
+        record(
+          'les trois chemins du clic droit enregistrent vraiment, et le badge le dit',
+          clicDroit?.resultats?.page?.enregistre === true
+            && clicDroit?.resultats?.lien?.enregistre === true
+            && clicDroit?.resultats?.selection?.enregistre === true
+            && clicDroit?.resultats?.page?.badge === '+'
+            && clicDroit?.resultats?.lien?.badge === '+'
+            && clicDroit?.resultats?.selection?.badge === '+'
+            && clicDroit?.apres === (clicDroit?.avant ?? -1) + 3
+            // Le titre suit la provenance : celui de la page pour la page, le
+            // domaine pour un lien — l'API ne donne pas le texte du lien.
+            && clicDroit?.titres?.['https://exemple.fr/accueil'] === 'Accueil — exemple.fr'
+            && clicDroit?.titres?.['https://exemple.fr/article-vise'] === 'exemple.fr',
+          `${clicDroit?.avant} → ${clicDroit?.apres} lien(s) · badges `
+            + `${clicDroit?.resultats?.page?.badge}/${clicDroit?.resultats?.lien?.badge}/`
+            + `${clicDroit?.resultats?.selection?.badge} · titres `
+            + `${JSON.stringify(clicDroit?.titres)}`,
+        );
+
+        record(
+          'une page déjà collectée ne fait pas de doublon, et le badge le dit',
+          clicDroit?.doublon?.enregistre === true
+            && clicDroit?.doublon?.badge === '='
+            && clicDroit?.doublon?.total === clicDroit?.apres,
+          `${clicDroit?.doublon?.total} lien(s) après le second ajout de la même page · `
+            + `badge « ${clicDroit?.doublon?.badge} »`,
+        );
+
+        record(
+          "une page que l'extension ne peut pas lire est refusée, et le badge le dit",
+          clicDroit?.gestes?.interdite === null
+            && clicDroit?.interdit?.enregistre === false
+            && clicDroit?.interdit?.badge === '!',
+          `capture ${JSON.stringify(clicDroit?.gestes?.interdite)} · badge `
+            + `« ${clicDroit?.interdit?.badge} » · raison « ${clicDroit?.interdit?.raison} »`,
+        );
+
+        // Le relevé se rend propre : les contrôles suivants comptent les liens de
+        // la collection, et ils doivent compter les leurs.
+        record(
+          "l'épreuve du clic droit rend la collection comme elle l'a trouvée",
+          clicDroit?.rendus === clicDroit?.avant,
+          `${clicDroit?.rendus} lien(s) rendus, ${clicDroit?.avant} avant l'épreuve`,
+        );
+      }
+
+      // --- La fenêtre, et ce qu'elle peut dire de la page courante -----------
+      //
+      // « L'ajout peut aussi se faire via le bouton de l'extension, qui ouvre une
+      // popup » : la fenêtre propose le titre de la page, **modifiable**, parce
+      // qu'un titre faux ne se corrige qu'ici.
+      //
+      // Ce pré-remplissage repose sur `activeTab`, que Chrome n'accorde **qu'au
+      // clic sur l'icône de la barre d'outils**. Un relevé automatisé ne fait pas
+      // ce clic : la fenêtre chargée dans un onglet ne reçoit ni l'URL ni le titre
+      // d'une page ordinaire — mesuré ici, `chrome.tabs.query` rend un onglet sans
+      // URL — et elle prend donc la branche « cette page ne peut pas être
+      // enregistrée ». C'est une limite de l'instrument, pas un défaut : elle est
+      // écrite dans la note, et le pré-remplissage n'est pas éprouvé ici.
+      //
+      // Ce qui **est** mesurable, et qui compte, c'est la cohérence des deux
+      // commandes : un champ qui accepterait une saisie que le bouton refusera
+      // d'enregistrer serait un piège. On relève l'état réel, sans exiger lequel.
+      const fenetreCapture = await evalPopup(`(() => {
+        const champ = document.getElementById('link-title');
+        const bouton = document.getElementById('add-current');
+        const page = document.getElementById('current-tab');
+        return {
+          valeur: champ ? champ.value : null,
+          type: champ ? champ.type : null,
+          longueurMax: champ ? champ.maxLength : null,
+          champInactif: champ ? champ.disabled : null,
+          boutonInactif: bouton ? bouton.disabled : null,
+          message: page ? page.textContent.trim() : '',
+        };
+      })()`);
+
+      record(
+        'la fenêtre ne propose jamais une saisie que le bouton refuserait',
+        fenetreCapture?.type === 'text'
+          && fenetreCapture?.longueurMax === 300
+          && fenetreCapture?.champInactif === fenetreCapture?.boutonInactif
+          // Un champ inactif ne porte rien : ce qui s'y trouverait serait perdu.
+          && (fenetreCapture?.champInactif !== true || (fenetreCapture?.valeur ?? '') === ''),
+        `champ ${fenetreCapture?.type} de ${fenetreCapture?.longueurMax} caractères · `
+          + `inactif : ${fenetreCapture?.champInactif} · bouton inactif : `
+          + `${fenetreCapture?.boutonInactif} · « ${fenetreCapture?.message} »`,
+      );
+
       // --- Une longue liste sort sur plusieurs pages --------------------------
       //
       // Signalé : « en mode tableau, quand une ligne est coupée, il faut gérer
@@ -3222,6 +4345,26 @@ async function main() {
         return { attendues: attendues.length, tableau, planche, legende };
       })()`);
 
+      // **Le PDF est mesuré dans l'état du tableau, et non dans celui que la
+      // mesure précédente a laissé.** Le relevé du 29 septembre 2026 a accusé le
+      // produit d'un défaut qui n'existait pas : « 3 pages construites, 5 pages
+      // PDF ». Les trois pages étaient bien celles du tableau ; les cinq, celles
+      // de la **planche**, restées dans la racine d'impression — et que
+      // `beforeprint` ne rebâtissait pas, puisqu'elle n'était pas vide. C'est la
+      // leçon du piège de peinture, retournée : la mesure portait sur autre chose
+      // que ce qu'elle croyait mesurer. On prépare donc le tableau pour de bon
+      // avant d'imprimer.
+      await evalApp(`(async () => {
+        const pause = (ms) => new Promise((r) => setTimeout(r, ms));
+        [...document.querySelectorAll('.tab')].find((t) => t.dataset.mode === 'table').click();
+        await pause(1200);
+        const racine = document.getElementById('print-root');
+        racine.textContent = '';
+        window.dispatchEvent(new Event('beforeprint'));
+        await pause(1200);
+        return racine.querySelectorAll('.print-page').length;
+      })()`);
+
       // Le **vrai** paginateur du navigateur, pour ne pas se contenter de nos
       // propres boîtes : `preferCSSPageSize` lui fait honorer le `@page` du
       // produit.
@@ -3230,6 +4373,480 @@ async function main() {
       });
       const pagesPdf = (Buffer.from(pdfTable.data, 'base64').toString('latin1')
         .match(/\/Type\s*\/Page[^s]/g) ?? []).length;
+
+      // --- La grille du tableau, mesurée sous médiation d'impression --------
+      //
+      // Deux précautions, apprises à la première version de ce contrôle :
+      //
+      // - **La racine doit porter le tableau.** Le relevé précédent l'a rebâtie
+      //   pour la planche ; on remet donc le mode tableau, hors média
+      //   d'impression — sous ce média, l'interface est masquée et l'on ne peut
+      //   plus cliquer un onglet.
+      // - **`#print-root` est `display: none` hors impression** : sa géométrie
+      //   vaut zéro, et un contrôle pris dans cet état passerait sans rien
+      //   regarder. On active le média le temps de la mesure, comme le fait le
+      //   navigateur au moment d'imprimer.
+      await evalApp(`(async () => {
+        const pause = (ms) => new Promise((r) => setTimeout(r, ms));
+        [...document.querySelectorAll('.tab')].find((t) => t.dataset.mode === 'table').click();
+        await pause(1400);
+        const racine = document.getElementById('print-root');
+        racine.textContent = '';
+        window.dispatchEvent(new Event('beforeprint'));
+        await pause(1400);
+        return true;
+      })()`);
+
+      await app.session.call('Emulation.setEmulatedMedia', { media: 'print' });
+      await forcerPeinture(app.session, 600);
+
+      const grilleTable = await evalApp(`(() => {
+        const pages = [...document.querySelectorAll('#print-root .print-page')];
+        const cadre = (page) => page.getBoundingClientRect();
+        const colonnes = (page) => {
+          const rangee = page.querySelector('.print-table tbody tr') ?? page.querySelector('.print-table thead tr');
+          return rangee
+            ? [...rangee.children].map((c) => Math.round(c.getBoundingClientRect().left - cadre(page).left))
+            : [];
+        };
+        return {
+          parPage: pages.map(colonnes),
+          largeur: pages[0] ? Math.round(pages[0].clientWidth) : 0,
+          // Une cellule qui dépasse la page est coupée par le débordement caché.
+          cellulesHorsPage: pages.reduce((total, page) => (
+            total + [...page.querySelectorAll('.print-table td, .print-table th')].filter((c) => (
+              c.getBoundingClientRect().right - cadre(page).left > page.clientWidth + 1
+            )).length
+          ), 0),
+          // Et une ligne plus haute que la page serait coupée de la même façon.
+          rangeesHorsPage: pages.reduce((total, page) => (
+            total + [...page.querySelectorAll('.print-table tr')].filter((l) => (
+              l.getBoundingClientRect().bottom - cadre(page).top > page.clientHeight + 1
+            )).length
+          ), 0),
+        };
+      })()`);
+
+      await app.session.call('Emulation.setEmulatedMedia', { media: '' });
+      await forcerPeinture(app.session, 300);
+
+      const grille = grilleTable?.parPage ?? [];
+      const reference = grille.find((colonnes) => colonnes.length > 0) ?? [];
+      record(
+        'les colonnes du tableau sont les mêmes sur toutes les pages',
+        // **Une géométrie non nulle est exigée.** Sans cela, le contrôle passe
+        // quand rien n'a été mesuré : `[0, 0, 0, 0]` sur chaque page est une
+        // égalité parfaite, et c'est exactement ainsi que la première version
+        // de ce contrôle a menti.
+        reference.length > 0
+          && reference.some((x) => x > 0)
+          && grille.every((colonnes) => (
+            colonnes.length === reference.length
+            && colonnes.every((x, i) => Math.abs(x - reference[i]) <= 2)
+          )),
+        `page large de ${grilleTable?.largeur} px · abscisses : `
+          + `${grille.map((c) => `[${c.join(', ')}]`).join(' · ')}`,
+      );
+
+      record(
+        'aucune cellule du tableau ne sort de la page',
+        grilleTable?.cellulesHorsPage === 0,
+        `${grilleTable?.cellulesHorsPage} cellule(s) au-delà du bord`,
+      );
+
+      record(
+        'aucune ligne du tableau ne dépasse sa page',
+        grilleTable?.rangeesHorsPage === 0,
+        `${grilleTable?.rangeesHorsPage} ligne(s) plus hautes que la page`,
+      );
+
+      // --- Et avec un QR Code réglé au maximum ------------------------------
+      //
+      // C'est le cas qui casse une grille calculée naïvement : le code réclame
+      // sa place, et si les colonnes de texte ne cèdent pas, il déborde sur sa
+      // voisine. Ce sont elles qui doivent se replier — une adresse se coupe,
+      // une matrice non.
+      // Le média d'impression a été rendu juste avant : on le reprend, sans quoi
+      // la racine est de nouveau `display: none` et la mesure rend des zéros.
+      await evalApp(`(() => {
+        const racine = document.getElementById('print-root');
+        racine.textContent = '';
+        return true;
+      })()`);
+      const qrMax = await evalApp(`(() => {
+        const curseur = document.getElementById('table-qr');
+        if (!curseur) return null;
+        const avant = curseur.value;
+        curseur.value = curseur.max;
+        curseur.dispatchEvent(new Event('input', { bubbles: true }));
+        curseur.dispatchEvent(new Event('change', { bubbles: true }));
+        return { avant, max: curseur.max };
+      })()`);
+      await new Promise((r) => setTimeout(r, 600));
+      await evalApp(`(() => {
+        const racine = document.getElementById('print-root');
+        racine.textContent = '';
+        window.dispatchEvent(new Event('beforeprint'));
+        return true;
+      })()`);
+      await new Promise((r) => setTimeout(r, 900));
+      await app.session.call('Emulation.setEmulatedMedia', { media: 'print' });
+      await forcerPeinture(app.session, 500);
+
+      const grilleLarge = await evalApp(`(() => {
+        const pages = [...document.querySelectorAll('#print-root .print-page')];
+        const cadre = (page) => page.getBoundingClientRect();
+        const colonnes = (page) => {
+          const rangee = page.querySelector('.print-table tbody tr') ?? page.querySelector('.print-table thead tr');
+          return rangee
+            ? [...rangee.children].map((c) => Math.round(c.getBoundingClientRect().left - cadre(page).left))
+            : [];
+        };
+        return {
+          parPage: pages.map(colonnes),
+          matrices: pages.reduce((total, page) => (
+            total + page.querySelectorAll('.print-table__qr svg').length
+          ), 0),
+          // La matrice elle-même : dépasse-t-elle sa cellule ?
+          qrHorsCellule: pages.reduce((total, page) => (
+            total + [...page.querySelectorAll('.print-table__qr svg')].filter((svg) => {
+              const cellule = svg.closest('td');
+              if (!cellule) return false;
+              const a = svg.getBoundingClientRect();
+              const b = cellule.getBoundingClientRect();
+              return a.left < b.left - 1 || a.right > b.right + 1;
+            }).length
+          ), 0),
+        };
+      })()`);
+
+      await app.session.call('Emulation.setEmulatedMedia', { media: '' });
+      await forcerPeinture(app.session, 300);
+
+      const large = grilleLarge?.parPage ?? [];
+      const referenceLarge = large.find((colonnes) => colonnes.length > 0) ?? [];
+      record(
+        'un QR Code réglé au maximum ne déborde ni sa colonne ni la page',
+        grilleLarge?.qrHorsCellule === 0
+          && (grilleLarge?.matrices ?? 0) > 0
+          && referenceLarge.length > 0
+          && referenceLarge.some((x) => x > 0)
+          && large.every((colonnes) => colonnes.length === referenceLarge.length
+            && colonnes.every((x, i) => Math.abs(x - referenceLarge[i]) <= 2)),
+        `taille maximale ${qrMax?.max} · ${grilleLarge?.matrices} matrice(s) mesurée(s) · `
+          + `${grilleLarge?.qrHorsCellule} hors cellule · `
+          + `abscisses : ${large.map((c) => `[${c.join(', ')}]`).join(' · ')}`,
+      );
+
+      // On rend au curseur sa valeur d'avant : les contrôles suivants mesurent
+      // l'aperçu avec la taille par défaut.
+      await evalApp(`(() => {
+        const curseur = document.getElementById('table-qr');
+        if (!curseur || ${JSON.stringify(qrMax?.avant ?? null)} === null) return true;
+        curseur.value = ${JSON.stringify(qrMax?.avant ?? '')};
+        curseur.dispatchEvent(new Event('input', { bubbles: true }));
+        curseur.dispatchEvent(new Event('change', { bubbles: true }));
+        return true;
+      })()`);
+      await new Promise((r) => setTimeout(r, 400));
+
+      // --- La mise en page automatique --------------------------------------
+      //
+      // Elle doit faire mieux que le tâtonnement : au moins autant d'étiquettes
+      // par page que la disposition choisie à la main, calculées pour le
+      // contenu, et **aucun texte coupé** — puisque chaque étiquette est
+      // dimensionnée pour ce qu'elle porte.
+      //
+      // Et quand le contenu ne tient pas sur une page, elle doit **paginer**
+      // plutôt que de tasser les étiquettes : le 29 septembre 2026, sur l'A4 3 × 4
+      // mise par défaut, 49 liens sortaient en `10 × 5 = 50` étiquettes de
+      // 18,2 × 55 mm dont **45 coupées**, sous une grille annoncée « calculée
+      // pour ce contenu ». Les deux faits sont donc mesurés ici : aucune
+      // étiquette perdue, aucune page au-delà de ce que la grille annonce.
+      const plancheAuto = await evalApp(`(async () => {
+        const pause = (ms) => new Promise((r) => setTimeout(r, ms));
+        // **Le mode planche doit être actif** : le rendu ne recalcule que
+        // l'onglet affiché, et un contrôle pris sur le tableau lirait des champs
+        // que personne n'a touchés — c'est ce qui a fait échouer la première
+        // version de ce contrôle.
+        [...document.querySelectorAll('.tab')].find((t) => t.dataset.mode === 'sheet').click();
+        await pause(1400);
+        const preset = document.getElementById('preset').value;
+        const case_ = document.getElementById('sheet-auto');
+        const avant = { cochee: case_.checked, colonnes: document.getElementById('sheet-columns').value };
+        case_.checked = true;
+        case_.dispatchEvent(new Event('change', { bubbles: true }));
+        await pause(1400);
+        const info = document.getElementById('sheet-info');
+        const champs = {
+          colonnes: Number(document.getElementById('sheet-columns').value),
+          rangees: Number(document.getElementById('sheet-rows').value),
+          inactifs: ['sheet-columns', 'sheet-rows', 'sheet-margin-x', 'sheet-margin-y']
+            .every((id) => document.getElementById(id).disabled),
+        };
+        const liens = document.querySelectorAll('#list .link').length;
+        const racine = document.getElementById('print-root');
+        racine.textContent = '';
+        window.dispatchEvent(new Event('beforeprint'));
+        await pause(1200);
+        const cellules = [...racine.querySelectorAll('.print-cell')];
+        const coupees = [...racine.querySelectorAll('.print-cell__text span')]
+          .filter((n) => n.textContent.trim().endsWith('…')).length;
+        // Ce que chaque page porte, pour vérifier la pagination et non seulement
+        // son nombre.
+        const parPage = [...racine.querySelectorAll('.print-page')]
+          .map((page) => page.querySelectorAll('.print-cell').length);
+        return {
+          preset,
+          avant,
+          champs,
+          info: info.textContent,
+          aide: document.getElementById('sheet-auto-hint').textContent,
+          pages: parPage.length,
+          parPage,
+          liens,
+          cellules: cellules.length,
+          coupees,
+        };
+      })()`);
+
+      const grilleAuto = plancheAuto?.champs ?? {};
+      const parPageAuto = (grilleAuto.colonnes ?? 0) * (grilleAuto.rangees ?? 0);
+      record(
+        'la mise en page automatique dimensionne la grille au contenu, sans rien couper',
+        parPageAuto > 24
+          && plancheAuto?.champs?.inactifs === true
+          && plancheAuto?.coupees === 0
+          && /Mise en page automatique/.test(plancheAuto?.aide ?? ''),
+        `disposition ${plancheAuto?.preset} · ${plancheAuto?.champs?.colonnes} × ${plancheAuto?.champs?.rangees} = `
+          + `${parPageAuto} par page `
+          + `(avant : ${plancheAuto?.avant?.colonnes} colonnes) · champs calculés : `
+          + `${plancheAuto?.champs?.inactifs} · ${plancheAuto?.coupees} ligne(s) coupée(s) · `
+          + `« ${(plancheAuto?.aide ?? '').slice(0, 90)} »`,
+      );
+
+      // La pagination, et rien de perdu : toutes les étiquettes sont là, aucune
+      // page n'en porte plus que la grille annoncée, et le nombre de pages est
+      // celui que le contenu demande.
+      record(
+        'la planche calculée pagine au lieu de tasser, sans perdre une étiquette',
+        (plancheAuto?.cellules ?? 0) === (plancheAuto?.liens ?? -1)
+          && plancheAuto?.pages === Math.ceil((plancheAuto?.liens ?? 0) / parPageAuto)
+          && (plancheAuto?.parPage ?? []).every((n) => n <= parPageAuto),
+        `${plancheAuto?.liens} lien(s) → ${plancheAuto?.cellules} étiquette(s) sur `
+          + `${plancheAuto?.pages} page(s) [${(plancheAuto?.parPage ?? []).join(', ')}] `
+          + `pour ${parPageAuto} par page`,
+      );
+
+      // --- Décocher la mise en page automatique doit se voir ----------------
+      //
+      // Le défaut signalé : « quand on décoche une option de layout il faut faire
+      // un refresh de la preview, sinon on a l'impression que c'est un bug
+      // d'affichage que rien ne change ». Le rendu était bien relancé ; ce qui ne
+      // changeait pas, c'est ce qu'il lisait — le calcul avait réécrit les six
+      // cotes, et décocher les laissait en place. La planche restait identique au
+      // millimètre près.
+      //
+      // On mesure donc ce qui compte : les cotes d'avant le cochage reviennent,
+      // et la planche **change** vraiment. `avant.colonnes` a été relevé juste
+      // avant de cocher la case.
+      const apresDecochage = await evalApp(`(async () => {
+        const pause = (ms) => new Promise((r) => setTimeout(r, ms));
+        const champ = (id) => document.getElementById(id);
+        const lire = () => ({
+          colonnes: champ('sheet-columns').value,
+          rangees: champ('sheet-rows').value,
+          inactifs: ['sheet-columns', 'sheet-rows', 'sheet-margin-x', 'sheet-margin-y']
+            .every((id) => champ(id).disabled),
+          cellules: document.querySelectorAll('#preview .print-cell').length,
+        });
+
+        // **On part de l'état décoché** : c'est la référence. Le bloc précédent a
+        // laissé la case cochée, et les champs portent donc les cotes calculées —
+        // les prendre pour celles de l'utilisateur ferait échouer le contrôle sur
+        // une remise en état pourtant juste.
+        const case_ = champ('sheet-auto');
+        if (case_.checked) {
+          case_.checked = false;
+          case_.dispatchEvent(new Event('change', { bubbles: true }));
+          await pause(1200);
+        }
+        const avant = lire();
+
+        case_.checked = true;
+        case_.dispatchEvent(new Event('change', { bubbles: true }));
+        await pause(1200);
+        const cochee = lire();
+
+        case_.checked = false;
+        case_.dispatchEvent(new Event('change', { bubbles: true }));
+        await pause(1200);
+        const rendue = lire();
+
+        return { avant, cochee, rendue };
+      })()`);
+
+      record(
+        'décocher la mise en page automatique rend les cotes de l\'utilisateur',
+        apresDecochage?.rendue?.colonnes === apresDecochage?.avant?.colonnes
+          && apresDecochage?.rendue?.rangees === apresDecochage?.avant?.rangees
+          && apresDecochage?.cochee?.colonnes !== apresDecochage?.avant?.colonnes
+          && apresDecochage?.rendue?.inactifs === false
+          && apresDecochage?.cochee?.inactifs === true,
+        `${apresDecochage?.avant?.colonnes} × ${apresDecochage?.avant?.rangees} avant · `
+          + `${apresDecochage?.cochee?.colonnes} × ${apresDecochage?.cochee?.rangees} cochée · `
+          + `${apresDecochage?.rendue?.colonnes} × ${apresDecochage?.rendue?.rangees} après décochage `
+          + `(champs inactifs : ${apresDecochage?.cochee?.inactifs} → ${apresDecochage?.rendue?.inactifs})`,
+      );
+      record(
+        'l\'aperçu change vraiment quand la case est décochée',
+        (apresDecochage?.cochee?.cellules ?? 0) !== (apresDecochage?.rendue?.cellules ?? 0)
+          || apresDecochage?.cochee?.colonnes !== apresDecochage?.rendue?.colonnes,
+        `${apresDecochage?.cochee?.colonnes} × ${apresDecochage?.cochee?.rangees} = `
+          + `${apresDecochage?.cochee?.cellules} cellule(s) cochée → `
+          + `${apresDecochage?.rendue?.colonnes} × ${apresDecochage?.rendue?.rangees} = `
+          + `${apresDecochage?.rendue?.cellules} cellule(s) décochée`,
+      );
+
+      // --- La planche annonce-t-elle le texte qu'elle coupe ? ---------------
+      //
+      // Le défaut rapporté : en A4 3 × 8, le QR Code au minimum et le titre
+      // coupé, sans un mot. La légende de l'étiquette Niimbot annonçait déjà ce
+      // cas ; la planche le taisait.
+      //
+      // Ce qui se vérifie ici est un **accord**, et non une valeur attendue : le
+      // message et le rendu doivent dire la même chose. La collection de ce
+      // relevé porte des adresses longues, et il serait faux de supposer qu'elles
+      // tiennent toutes ; ce qui serait un défaut, c'est une ligne coupée sans
+      // message, ou un message sans ligne coupée.
+      //
+      // Deux précautions, apprises des contrôles précédents : on remet le mode
+      // **planche** (le relevé du tableau a laissé l'onglet ailleurs), et l'on
+      // rebâtit la racine d'impression avant de lire.
+      const lirePlanche = async (reglages = '') => evalApp(`(async () => {
+        const pause = (ms) => new Promise((r) => setTimeout(r, ms));
+        ${reglages}
+        [...document.querySelectorAll('.tab')].find((t) => t.dataset.mode === 'sheet').click();
+        await pause(1400);
+        const racine = document.getElementById('print-root');
+        racine.textContent = '';
+        window.dispatchEvent(new Event('beforeprint'));
+        await pause(1400);
+        const info = document.getElementById('sheet-info');
+        const coupees = [...racine.querySelectorAll('.print-cell__text span')]
+          .map((n) => n.textContent)
+          .filter((texte) => texte.trim().endsWith('…'));
+        const champ = document.getElementById('sheet-font');
+        const curseur = document.getElementById('sheet-qr');
+        // Le titre et l'URL doivent être deux blocs : aucune ligne de titre ne
+        // porte d'adresse, et toute adresse est marquée comme telle.
+        const cellules = [...racine.querySelectorAll('.print-cell__text')];
+        const melangees = cellules.filter((text) => {
+          const lignes = [...text.children];
+          const premierUrl = lignes.findIndex((n) => n.classList.contains('print-cell__url'));
+          if (premierUrl === -1) return false;
+          return lignes.slice(0, premierUrl).some((n) => n.textContent.includes('://'));
+        }).length;
+        const urlSansMarque = cellules.filter((text) => [...text.children]
+          .some((n) => n.textContent.includes('://') && !n.classList.contains('print-cell__url'))).length;
+        return {
+          message: info.textContent,
+          couleur: info.style.color,
+          coupes: coupees.length,
+          exemple: coupees[0] ?? '',
+          police: champ ? champ.value : null,
+          qr: curseur ? curseur.value : null,
+          cellules: cellules.length,
+          melangees,
+          urlSansMarque,
+        };
+      })()`);
+
+      const accord = (etat) => ({
+        annonce: /Texte coupé/.test(etat?.message ?? ''),
+        coupe: (etat?.coupes ?? 0) > 0,
+      });
+
+      const plancheDefaut = await lirePlanche();
+      const accordDefaut = accord(plancheDefaut);
+
+      record(
+        "titre et URL forment deux blocs : aucune ligne ne les mélange",
+        (plancheDefaut?.cellules ?? 0) > 0
+          && plancheDefaut?.melangees === 0
+          && plancheDefaut?.urlSansMarque === 0,
+        `${plancheDefaut?.cellules} cellule(s) · ${plancheDefaut?.melangees} ligne(s) de titre `
+          + `portant une adresse · ${plancheDefaut?.urlSansMarque} adresse(s) sans marque`,
+      );
+
+      record(
+        "la planche annonce exactement ce qu'elle coupe",
+        accordDefaut.annonce === accordDefaut.coupe,
+        `${plancheDefaut?.coupes} ligne(s) coupée(s) · `
+          + `message présent : ${accordDefaut.annonce} · exemple : « ${plancheDefaut?.exemple} »`,
+      );
+
+      record(
+        'un texte coupé est signalé à l\'alerte, pas au rang d\'un détail',
+        accordDefaut.annonce === false || plancheDefaut?.couleur !== '',
+        `couleur de la ligne : ${plancheDefaut?.couleur || '(défaut)'}`,
+      );
+
+      // Au minimum du curseur, le QR Code cède la place qu'il peut : sur une
+      // A4 3 × 8, il descend maintenant au minimum **lisible** de ses modules au
+      // lieu de buter sur une proportion choisie à l'œil (30 % du petit côté).
+      const plancheQrMin = await lirePlanche(`{
+        const curseur = document.getElementById('sheet-qr');
+        curseur.value = curseur.min;
+        curseur.dispatchEvent(new Event('input', { bubbles: true }));
+        curseur.dispatchEvent(new Event('change', { bubbles: true }));
+        await pause(700);
+      }`);
+      const qrMin = await evalApp(`(() => {
+        const curseur = document.getElementById('sheet-qr');
+        return { valeur: curseur.value, min: curseur.min, max: curseur.max };
+      })()`);
+
+      record(
+        'le curseur du QR Code descend au minimum lisible, et la planche coupe moins',
+        Number(qrMin?.min) <= Number(qrMin?.valeur)
+          && (plancheQrMin?.coupes ?? 0) <= (plancheDefaut?.coupes ?? 0),
+        `curseur ${qrMin?.min}–${qrMin?.max} %, réglé à ${qrMin?.valeur} % · `
+          + `${plancheDefaut?.coupes} → ${plancheQrMin?.coupes} ligne(s) coupée(s)`,
+      );
+
+      // Au plus petit corps de texte, la planche coupe moins — et si elle ne
+      // coupe plus, elle ne doit plus rien annoncer.
+      const planchePetite = await lirePlanche(`{
+        const champ = document.getElementById('sheet-font');
+        champ.value = champ.min;
+        champ.dispatchEvent(new Event('input', { bubbles: true }));
+        champ.dispatchEvent(new Event('change', { bubbles: true }));
+        await pause(700);
+      }`);
+      const accordPetit = accord(planchePetite);
+
+      record(
+        'au plus petit texte, la planche coupe moins, et le dit toujours autant',
+        (planchePetite?.coupes ?? 0) <= (plancheDefaut?.coupes ?? 0)
+          && accordPetit.annonce === accordPetit.coupe,
+        `${plancheDefaut?.coupes} → ${planchePetite?.coupes} ligne(s) coupée(s) · `
+          + `message : ${accordPetit.annonce}`,
+      );
+
+      // La police revient à sa valeur, et la planche est rebâtie : les contrôles
+      // suivants mesurent l'aperçu dans son état ordinaire.
+      await lirePlanche(`{
+        const champ = document.getElementById('sheet-font');
+        champ.value = ${JSON.stringify(plancheDefaut?.police ?? '')};
+        champ.dispatchEvent(new Event('input', { bubbles: true }));
+        champ.dispatchEvent(new Event('change', { bubbles: true }));
+        const curseur = document.getElementById('sheet-qr');
+        curseur.value = ${JSON.stringify(plancheDefaut?.qr ?? '')};
+        curseur.dispatchEvent(new Event('input', { bubbles: true }));
+        curseur.dispatchEvent(new Event('change', { bubbles: true }));
+        await pause(700);
+      }`);
 
       record(
         'un tableau long sort sur plusieurs pages, sans perdre une ligne',
@@ -3267,6 +4884,142 @@ async function main() {
           && pagination?.planche?.horsPage === 0,
         `${pagination?.planche?.pages} page(s), ${pagination?.planche?.cellules} étiquette(s) `
           + `pour ${pagination?.tableau?.liens} lien(s), ${pagination?.planche?.horsPage} hors page`,
+      );
+
+      // --- L'alignement des étiquettes d'une planche ------------------------
+      //
+      // Le défaut signalé : « la mise en page automatique doit aligner les QR
+      // Codes, l'alignement des URL est chaotique ». La cause était le centrage
+      // vertical du contenu dans chaque case — une étiquette dont le titre tient
+      // sur une ligne posait son QR Code plus haut que sa voisine qui en porte
+      // trois — et l'absence de hauteur commune entre les blocs de texte.
+      //
+      // Ce qui se mesure ici est la position réelle dans la racine d'impression :
+      // pour une même rangée de la grille, les QR Codes doivent partir de la même
+      // hauteur et faire la même taille, et les URL aussi. On allume l'URL pour
+      // la mesure — c'est elle dont l'alignement est en cause — puis on rend le
+      // réglage tel qu'on l'a trouvé.
+      //
+      // **Sous médiation d'impression**, et pas à l'écran : la racine est en
+      // `display: none` hors impression, et toute sa géométrie vaut alors zéro —
+      // la première version de ce contrôle mesurait 0 px d'écart sur 49
+      // étiquettes empilées à l'origine, autrement dit un alignement parfait dans
+      // un document qui n'était pas dessiné. C'est la règle d'écriture du fichier,
+      // payée une fois de plus.
+      await app.session.call('Emulation.setEmulatedMedia', { media: 'print' });
+      const alignement = await evalApp(`(async () => {
+        const pause = (ms) => new Promise((r) => setTimeout(r, ms));
+        const champ = (id) => document.getElementById(id);
+        const poser = (id, valeur) => {
+          const noeud = champ(id);
+          noeud.checked = valeur;
+          noeud.dispatchEvent(new Event('change', { bubbles: true }));
+        };
+        const racine = document.getElementById('print-root');
+        const avant = { titre: champ('sheet-title').checked, url: champ('sheet-url').checked };
+
+        /** Reconstruit la planche et mesure l'alignement de la grille. */
+        const mesurer = async () => {
+          racine.textContent = '';
+          window.dispatchEvent(new Event('beforeprint'));
+          await pause(1400);
+
+          const cases = [...racine.querySelectorAll('.print-cell')].map((cellule) => {
+            const boite = cellule.getBoundingClientRect();
+            const qr = cellule.querySelector('.print-cell__qr');
+            const url = cellule.querySelector('.print-cell__url');
+            const qrBoite = qr ? qr.getBoundingClientRect() : null;
+            return {
+              rangee: Math.round(boite.top),
+              qr: qrBoite ? qrBoite.top : null,
+              hauteurQr: qrBoite ? qrBoite.height : 0,
+              url: url ? url.getBoundingClientRect().top : null,
+            };
+          });
+
+          const rangees = new Map();
+          for (const c of cases) {
+            if (!rangees.has(c.rangee)) rangees.set(c.rangee, []);
+            rangees.get(c.rangee).push(c);
+          }
+          const etendue = (valeurs) => (valeurs.length > 1
+            ? Math.max(...valeurs) - Math.min(...valeurs)
+            : null);
+
+          const ecartsQr = [];
+          const ecartsUrl = [];
+          const tailles = [];
+          for (const [, rangee] of rangees) {
+            const qr = rangee.map((c) => c.qr).filter((v) => v !== null);
+            const url = rangee.map((c) => c.url).filter((v) => v !== null);
+            const taille = rangee.map((c) => c.hauteurQr).filter((v) => v > 0);
+            if (etendue(qr) !== null) ecartsQr.push(etendue(qr));
+            if (etendue(url) !== null) ecartsUrl.push(etendue(url));
+            if (etendue(taille) !== null) tailles.push(etendue(taille));
+          }
+
+          return {
+            cellules: cases.length,
+            rangees: rangees.size,
+            parRangee: Math.max(0, ...[...rangees.values()].map((r) => r.length)),
+            // Un QR Code de zéro pixel veut dire que rien n'était dessiné : les
+            // écarts qui suivent seraient alors nuls sans rien prouver.
+            hauteurQr: Math.max(0, ...cases.map((c) => c.hauteurQr)),
+            avecUrl: cases.filter((c) => c.url !== null).length,
+            ecartQr: ecartsQr.length ? Math.max(...ecartsQr) : null,
+            ecartUrl: ecartsUrl.length ? Math.max(...ecartsUrl) : null,
+            ecartTaille: tailles.length ? Math.max(...tailles) : null,
+          };
+        };
+
+        [...document.querySelectorAll('.tab')].find((t) => t.dataset.mode === 'sheet').click();
+        await pause(1200);
+
+        // **Deux états, parce qu'ils ne mesurent pas la même chose.** Titre seul :
+        // chaque étiquette porte un QR Code, et la grille est celle du cas
+        // ordinaire. URL seule : toutes les étiquettes portent une adresse — avec
+        // le titre aussi, le budget de lignes la fait disparaître sur la plupart,
+        // et il ne resterait que quatre adresses à comparer.
+        poser('sheet-title', true);
+        poser('sheet-url', false);
+        const titreSeul = await mesurer();
+        poser('sheet-title', false);
+        poser('sheet-url', true);
+        const urlSeule = await mesurer();
+
+        poser('sheet-url', avant.url);
+        poser('sheet-title', avant.titre);
+        await pause(900);
+        return { titreSeul, urlSeule, avant };
+      })()`);
+      await app.session.call('Emulation.setEmulatedMedia', { media: '' });
+
+      // Une tolérance de 1,5 px : les cotes sont en millimètres, et le navigateur
+      // les arrondit au pixel du rendu. Un décalage d'une ligne de texte vaut
+      // 7 px à cette taille — la tolérance ne peut donc pas masquer le défaut.
+      const aligne = (mesure) => (mesure?.cellules ?? 0) > 1
+        && (mesure?.rangees ?? 0) > 1
+        && (mesure?.parRangee ?? 0) > 1
+        && (mesure?.hauteurQr ?? 0) > 4;
+
+      record(
+        'sur une planche, les QR Codes s\'alignent en ligne',
+        aligne(alignement?.titreSeul)
+          && alignement.titreSeul.ecartQr !== null && alignement.titreSeul.ecartQr <= 1.5
+          && alignement.titreSeul.ecartTaille !== null && alignement.titreSeul.ecartTaille <= 1.5,
+        `${alignement?.titreSeul?.cellules} étiquette(s) sur ${alignement?.titreSeul?.rangees} rangée(s) `
+          + `(jusqu'à ${alignement?.titreSeul?.parRangee} par rangée) · QR Code de `
+          + `${Math.round(alignement?.titreSeul?.hauteurQr ?? 0)} px · écart vertical : `
+          + `${alignement?.titreSeul?.ecartQr} px · écart de taille : ${alignement?.titreSeul?.ecartTaille} px`,
+      );
+      record(
+        'sur une planche, les URL s\'alignent en ligne',
+        aligne(alignement?.urlSeule)
+          && (alignement?.urlSeule?.avecUrl ?? 0) > 1
+          && alignement.urlSeule.ecartUrl !== null && alignement.urlSeule.ecartUrl <= 1.5,
+        `${alignement?.urlSeule?.avecUrl} URL(s) sur ${alignement?.urlSeule?.rangees} rangée(s) `
+          + `(jusqu'à ${alignement?.urlSeule?.parRangee} par rangée) · écart vertical : `
+          + `${alignement?.urlSeule?.ecartUrl} px`,
       );
 
       // Remise en état : la collection longue disparaît, et l'onglet revient à

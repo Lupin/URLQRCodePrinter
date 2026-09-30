@@ -29,8 +29,9 @@ retrouve et se partage facilement.
 | Protocole Niimbot (trames, profils D110 / M2 / M3) | fait, testé |
 | Transport Web Bluetooth + session d'impression D110 / M2 / M3 | fait, testé, **impression réelle sur une D110** |
 | Extension Brave / Chrome (clic droit, popup, liens cliquables) | fait, vérifié dans Brave et dans Chrome |
+| **Fiche Chrome Web Store** | **publiée** — `0.1.0` en ligne ; voir [les notes de fiche](docs/chrome-web-store.md) avant de livrer une mise à jour |
 | Application web autonome (liste, exports, mises en page) | fait, vérifié dans Brave |
-| Raccourcissement d'URL en option (TinyURL, is.gd, v.gd, spoo.me) | fait, vérifié dans Brave |
+| Raccourcissement d'URL en option (T.LY d'abord, puis TinyURL, is.gd, v.gd, spoo.me) | fait, vérifié dans Brave |
 | Planches Avery A4 et Letter, calibrage d'impression | fait, géométrie confrontée aux cotes publiées |
 | Aperçu d'étiquette Niimbot sans imprimante connectée | fait, vérifié dans Brave |
 | Extension Safari — projet Xcode multiplateforme | généré, **compile pour macOS** |
@@ -39,7 +40,7 @@ retrouve et se partage facilement.
 | Socle natif Swift (protocole, session, CoreBluetooth) | fait, testé |
 | Application iOS qui utilise ce socle | à faire |
 
-**956 tests, tous verts** — 852 en JavaScript et 104 en Swift — dont :
+**1146 tests, tous verts** — 1042 en JavaScript et 104 en Swift — dont :
 
 - la validation **octet à octet** des trames Niimbot contre les relevés
   documentés, **dans les deux langages** : deux implémentations indépendantes
@@ -57,7 +58,10 @@ retrouve et se partage facilement.
   marges et écarts, pour le A4 comme pour le Letter ;
 - les **bornes du QR Code** par type d'impression : la taille du curseur est calculée
   avant le rendu, et la découpe du texte qui en découle est vérifiée ligne à
-  ligne.
+  ligne ;
+- la **rédaction des deux pages publiques** : le même nombre de blocs dans
+  chaque langue, les espaces insécables du français, et les noms d'imprimantes
+  et de services de raccourcissement lus dans le produit plutôt que recopiés.
 
 **L'application est vérifiée dans un vrai navigateur** : `npm run verify:brave`
 lance Brave sur un profil isolé, collecte un lien, le raccourcit, exporte le CSV
@@ -182,6 +186,47 @@ dérivable, donc elle n'est pas conservée.
 
 Chaque écriture est une transaction attendue jusqu'à sa complétion : « ajouté »
 veut dire validé, pas mis en file.
+
+### Les collections, et celle qui n'est jamais écrite
+
+Les liens se rangent en **collections**. Un enregistrement porte un
+`collectionId` ; celui qui n'en porte pas appartient à la collection par défaut —
+c'est ainsi que les liens enregistrés avant les collections continuent de
+fonctionner, sans en réécrire un seul. La liste des collections vit dans
+`url-qr-code-printer/collections`, et chaque surface travaille à travers un
+magasin borné à une collection (`withCollection`) : aucune liste ne peut donc en
+mélanger deux par inadvertance.
+
+**Chaque collection a son premier numéro.** La numérotation sert à continuer une
+série — un lot de cartons numérotés 101 à 120, effacés, puis 121 la fois
+suivante — et ce geste appartient à la collection qu'on range, pas à
+l'application : plusieurs séries peuvent donc coexister. Le champ porte sur la
+collection affichée, et le régler ne touche pas les autres.
+
+**Toutes les collections se suppriment, sauf la dernière.** La collection par
+défaut n'y fait pas exception : la garder quand une autre existe obligerait à
+créer une collection pour pouvoir se débarrasser de la première. Elle n'est
+synthétisée que si la liste est vide — la réinjecter dès qu'elle manque la
+rendrait impérissable, et sa suppression se déferait à la lecture suivante.
+
+**Un nom vide est un nom, pas un refus.** Vider le champ du nom n'écrivait rien :
+le nom d'avant restait dans le document, la liste continuait de l'afficher, et
+rien à l'écran ne disait que la correction avait été perdue. `rename` accepte
+désormais le vide, et l'affichage retombe alors sur le libellé intégré — « Mes
+liens », traduit au moment de l'affichage et jamais écrit. Un nom vide n'entre
+pas dans le contrôle des doublons : deux collections sans nom restent deux
+collections. `create` continue d'exiger un nom, parce que le bouton qui crée une
+collection en propose toujours un.
+
+La collection de navigation privée est l'exception, et elle est construite comme
+telle : elle n'est **jamais** écrite dans `chrome.storage.local`. Ses liens vont
+dans `chrome.storage.session`, sous la clé `links/private` — en mémoire, pour la
+durée de la session — à travers un magasin composite qui route chaque écriture
+selon la collection. Aucun chemin de code n'écrit une URL privée sur le disque.
+Là où `storage.session` n'existe pas (Chrome antérieur à 102, Safari antérieur à
+16.4), la collection n'est pas proposée du tout : mieux vaut une fonction absente
+qu'une promesse fausse. Et être dans une fenêtre privée ne suffit pas à la faire
+apparaître — encore faut-il que le navigateur autorise l'extension dans ce mode.
 
 Ce que coûte le tout-local n'est pas la place, c'est la perte. Désinstaller
 l'extension, ou effacer les données de navigation, efface la collection. Le seul
@@ -498,17 +543,38 @@ est signalée plutôt que rendue de travers.
 
 Trois règles, décidées pour que l'import ne fasse jamais de dégât :
 
-1. **il ajoute, il ne remplace pas** — la collection courante est conservée ;
+1. **il ajoute**, il ne remplace pas de lui-même : la collection courante est
+   conservée, et c'est le seul mode qui existait avant le choix ci-dessous ;
 2. **un doublon est ignoré**, pas fusionné : réimporter deux fois la même archive
    ne crée rien, et le message distingue « déjà présent » de « illisible » plutôt
    que d'annoncer un échec ;
 3. **une ligne illisible ne fait pas échouer le reste** : elle est comptée.
 
+**Et il demande où ranger**, parce qu'aucune des issues n'est un bon défaut. Le
+fichier est lu d'abord — le panneau peut donc annoncer ce qu'il porte —, puis
+trois choix sont proposés, nommés d'après les collections concernées :
+
+- **fusionner** : les liens rejoignent la collection affichée, qui garde son nom
+  et sa note ;
+- **remplacer** : la collection affichée est vidée d'abord, puis son nom et sa
+  note sont repris du fichier — `parseImportFile` les relève (`collection.name`,
+  `collection.note` dans une archive de liens, `title` dans un manifeste
+  d'étiquettes) — et vidés quand le fichier n'en porte aucun ;
+- **nouvelle collection** : elle est créée avec le nom du fichier, suffixé s'il
+  est déjà pris (`freeCollectionName`, dans `core/collections.js`), et les liens
+  y sont rangés sans toucher à la collection affichée.
+
+Rien n'est écrit avant le choix : annuler ne laisse aucune trace. Un CSV ne
+décrit que des liens — pas de nom, pas de note — et le panneau le dit avant que
+« Remplacer » ne les vide.
+
 Un garde-fou de test accompagne cela : `test/web.test.js` vérifie que **chaque nom
 importé par `app.js` est bien exporté par le module visé**. Il est né d'une erreur
 réelle — `parseImportFile` appelé sans avoir été importé — qu'aucun test de
 démarrage ne pouvait voir, puisque le corps de la fonction n'est jamais exécuté
-au chargement.
+au chargement. Le choix du rangement, lui, est exécuté pour de vrai dans
+`test/web-import.test.js` : le contrôle statique dirait que les trois commandes
+existent, pas ce qu'elles font.
 
 ## Dater une étiquette : une option, jamais un fragment
 
@@ -575,6 +641,13 @@ tous les exports de données.
 
 ## Planches d'étiquettes
 
+La première grille générique, proposée d'emblée, est une **A4 3 × 4**
+(63,5 × 69,1 mm). Le 3 × 8 ne laissait que 33,9 mm de haut, où le QR Code et deux
+lignes de texte se disputaient la place : chaque réglage en corrigeait un autre,
+et l'étiquette finissait coupée. Quatre rangées donnent 69,1 mm, donc un QR Code
+à sa taille lisible et un texte qui garde ses lignes. C'est aussi le format sur
+lequel part la mise en page automatique.
+
 Les dispositions sont rangées en deux familles : des **grilles génériques**, à
 régler soi-même, et des **références commerciales** dont les cotes sont
 reproduites telles que les fabricants les publient — Avery L7160, L7159, L7162,
@@ -627,6 +700,38 @@ toute la grille, sans la modifier. Et la taille du papier est posée
 dynamiquement (`@page`), sans quoi une planche Letter partirait sur du A4, donc
 réduite et décalée.
 
+## Une adresse de moteur de recherche n'est pas la page visée
+
+Le cas est banal, et il a été rapporté tel quel : chercher « wikipedia qrcode »
+dans Google, faire un clic droit sur le résultat Wikipédia, « Ajouter ce lien à
+URLQRCodePrinter ». Le compteur de l'icône s'incrémente — l'ajout a bien eu
+lieu —, mais la liste ne contient aucune ligne qui ressemble à ce qu'on vient de
+cliquer.
+
+La raison est que Google n'expose pas la destination dans `info.linkUrl` : le
+clic vise une **enveloppe** du moteur, `google.com/url?q=<destination>&sa=U&ved=…`.
+Enregistrée telle quelle, cette adresse a trois défauts, tous visibles :
+
+- la liste affiche « google.com » en face d'un lien qui mène à Wikipédia : le
+  titre est le domaine, et c'est celui de l'enveloppe ;
+- le QR Code encode une adresse deux à trois fois plus longue, donc plus dense,
+  et qui ne tient plus sur une étiquette étroite ;
+- la même page, ajoutée ensuite depuis la barre d'adresse, ne ressemble pas au
+  même lien : elle entre une seconde fois dans la collection.
+
+`normalizeUrl` déplie donc les redirections connues — Google (`q`, `url`), Bing
+(`u`, en base64url), DuckDuckGo (`uddg`) — et la destination suit ensuite la
+normalisation ordinaire : paramètres de campagne retirés, fragment retiré. Le
+dépliage est **borné** (quatre sauts, adresses déjà vues mémorisées) et n'accepte
+qu'une destination http(s) absolue : une valeur relative ou un `javascript:` laisse
+l'enveloppe en place, plutôt que de faire entrer autre chose qu'un lien web dans la
+collection. La table des moteurs est **courte à dessein** : chaque entrée est une
+convention d'un tiers, qui peut changer sans prévenir, et un moteur absent garde
+son adresse d'origine.
+
+Le titre d'une capture au clic droit suit la même règle (`unwrapRedirectUrl`) :
+« fr.wikipedia.org », et non « google.com ».
+
 ## Raccourcir les URL, et ouvrir les liens collectés
 
 Deux fonctions qui se répondent, autour de la même question : quelle adresse
@@ -643,21 +748,35 @@ web, et un `javascript:` n'a rien à y faire.
 la sélection, ou toute la collection si rien n'est coché — à un service tiers,
 et enregistre le résultat à côté de l'URL d'origine.
 
-Le champ « Service » ne demande pas d'arbitrer entre quatre marques : son
-libellé dit ce que chaque service change pour un usage ordinaire, et
-**TinyURL — recommandé** est proposé d'emblée. Qui veut seulement un lien plus
-court clique « Raccourcir » sans toucher au réglage.
+Le champ « Service » ne demande pas d'arbitrer entre cinq marques : son libellé
+dit ce que chaque service change pour un usage ordinaire, et **T.LY** est proposé
+d'emblée. Qui veut seulement un lien plus court clique « Raccourcir » sans toucher
+au réglage.
 
 | Service | Libellé affiché | Clé d'API | Remarque |
 |---|---|---|---|
-| TinyURL | TinyURL — recommandé | aucune | défaut ; HTTPS, liens durables |
+| T.LY | T.LY (défaut) — lien plus court | aucune | défaut ; liens anonymes, origines d'extension seulement |
 | is.gd | is.gd — sans statistiques | aucune | service bénévole, régulièrement indisponible |
 | v.gd | v.gd — avertissement avant redirection | aucune | même infrastructure que is.gd, avec page d'avertissement |
 | spoo.me | spoo.me — statistiques de clics | aucune | répond en HTTP, ramené en HTTPS |
+| spoo.me | spoo.me — statistiques de clics | aucune | répond en HTTP, ramené en HTTPS |
+
+L'aide sous le champ se lit en phrases simples : choisissez un service, cliquez
+sur Raccourcir, rien ne change tant que vous ne le faites pas ; T.LY est proposé
+par défaut et le lien reste anonyme ; un autre service est à un clic. Le lien
+d'inscription T.LY crédite le projet — le mot « parrainage » est écrit plutôt que
+tu — et il ne change rien à ce qui est envoyé au raccourcissement.
 
 Aucun de ces services n'exige d'autorisation d'hôte supplémentaire : leur réponse
 porte un en-tête CORS permissif. C'est délibéré — un outil qui lit les URL de
 tous vos onglets ne devrait pas demander plus de permissions que nécessaire.
+
+T.LY est le seul dont l'usage anonyme dépende de l'**origine appelante** : il
+répond à une requête venue d'une origine d'extension, et refuse celle d'une page
+web ordinaire. La page web autonome présélectionne donc TinyURL, et T.LY y reste
+sélectionnable avec un message qui dit pourquoi il ne peut pas répondre. Les liens
+qu'il crée sont anonymes : ils ne sont rattachés à aucun compte T.LY, et
+l'extension ne consulte aucune statistique.
 
 Trois garde-fous, parce qu'un lien imprimé engage dans la durée :
 
@@ -690,6 +809,7 @@ npm run test:all   # les deux
 
 npm run verify:brave  # parcours complet dans Brave, sur un profil isolé
 npm run verify:chrome # éprouve la fenêtre dans le Chrome réel, mesures à l'appui
+npm run verify:menu   # un ajout par clic droit, du service worker à l'application
 npm run verify:safari # parcours de la page d'extension dans le Safari réel
 ```
 
@@ -727,6 +847,8 @@ construit échoue avec un message explicite.
 
 ## Documents de référence
 
+- [CHANGELOG.fr.md](CHANGELOG.fr.md) — le journal des versions, et la source de la
+  note de version déposée sur le magasin ([en anglais](CHANGELOG.md)).
 - [docs/guide.fr.md](docs/guide.fr.md) — le parcours complet, de la collecte à
   l'impression : raccourcissement, planches Avery et leur calibrage, aperçu
   Niimbot hors ligne, exports sans imprimante, dépannage.
@@ -817,7 +939,7 @@ pull request :
 
 ```bash
 npm install
-npm run test:all   # 852 tests JavaScript + 104 Swift tests
+npm run test:all   # 1042 tests JavaScript + 104 tests Swift
 ```
 
 Les conventions du dépôt — cœur sans DOM ni réseau implicite, zéro dépendance,

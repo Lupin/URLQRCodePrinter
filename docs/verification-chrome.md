@@ -115,9 +115,10 @@ cible**. Le harnais implémente ce calcul : il relève toutes les cibles peintes
 écarte le document lui-même et tout ce qui porte un `tabindex` négatif, puis
 teste l'intersection.
 
-Les cibles concernées — le sélecteur de langue, les deux liens de titre de la
-liste, et le lien vers la page d'information ajouté depuis — sont **isolées**.
-Aucune ne réclame de correction.
+Les cibles concernées — les deux liens de titre de la liste, et le lien vers la
+page d'information ajouté depuis — sont **isolées**. Aucune ne réclame de
+correction. (Le sélecteur de langue en faisait partie tant qu'il vivait dans la
+fenêtre ; il n'y est plus, le réglage ayant été ramené à l'application.)
 
 Réclamer une correction sur un critère mal appliqué coûte autant qu'en manquer
 une : cela fait épaissir des lignes et déplacer des éléments pour rien.
@@ -509,6 +510,40 @@ page, 0 adresse manquante, PDF de 9 pages — et la planche sur **7 pages**, 150
 étiquettes dont aucune hors page. Le nombre de pages suit donc bien la longueur,
 et pas seulement le cas de 45.
 
+### Trois pages de tableau, cinq pages mesurées
+
+Le passage de l'A4 3 × 8 à l'A4 3 × 4 par défaut a fait tomber un contrôle : le
+tableau construisait **3 pages** et le PDF du navigateur en sortait **5**. Le
+soupçon portait sur le produit — la taille de texte par défaut suit la hauteur de
+l'étiquette, 69 mm au lieu de 33,9 mm donnant un corps plus grand, que le tableau
+imprime aussi.
+
+**Le soupçon était faux, et deux mesures l'ont montré.** D'abord sur un profil
+neuf, avec `node scripts/measure-print-pages.mjs 49` : le tableau construit 3
+pages **et** le PDF en sort 3. Ensuite en relisant le relevé : les 5 pages
+mesurées étaient celles de la **planche**, restées dans la racine d'impression.
+La séquence du contrôle préparait le tableau, puis la planche, et imprimait
+ensuite — et `beforeprint` ne rebâtissait rien, puisque la racine n'était pas
+vide. Trois pages annoncées, cinq pages mesurées : la mesure portait sur un autre
+document que celui qu'elle nommait.
+
+C'est le piège de peinture du début de ce fichier, retourné. Là, quatre constats
+concordants **fabriquaient** un défaut inexistant ; ici, un chiffre unique
+accusait le produit d'un défaut qui était dans l'instrument. La règle est la même
+dans les deux sens : **une mesure qui accuse demande une seconde source**.
+
+Deux corrections en sont sorties, l'une pour l'instrument, l'autre pour le
+produit :
+
+1. **Le contrôle prépare le tableau pour de bon avant d'imprimer**, au lieu de
+   compter sur l'état laissé par la mesure précédente. Ce qu'il mesure est ce
+   qu'il nomme.
+2. **Le produit rebâtit la racine quand le mode a changé** : `beforeprint`
+   n'était appelé que sur une racine **vide**, si bien qu'un Ctrl+P après un
+   changement d'onglet imprimait les pages de l'autre mode — exactement ce que le
+   relevé venait de faire sans le vouloir. Le mode qui a rempli la racine est
+   désormais retenu, et la racine est refaite s'il diffère.
+
 ---
 
 ## « Paysage » dans l'interface anglaise, ou l'angle mort du relevé des clés
@@ -667,7 +702,20 @@ duplication, pas dans l'alignement.
 
 - **Le menu contextuel ne se clique pas.** Aucune API n'ouvre le menu natif ni
   n'en choisit une entrée. L'existence des entrées a été sondée ; leur *effet* ne
-  peut être obtenu qu'à la main.
+  peut être obtenu qu'à la main — ce que le produit **fait** de ce que le
+  navigateur lui donne est mesuré depuis le 30 septembre 2026, voir « L'ajout au
+  clic droit, éprouvé sur le produit lui-même ».
+- **Le pré-remplissage du titre, dans la fenêtre, n'est pas éprouvable ici.**
+  `chrome.tabs.query` ne rend l'URL et le titre d'une page ordinaire qu'avec
+  `activeTab`, que Chrome n'accorde qu'au clic sur l'icône de la barre d'outils —
+  un geste qu'un relevé automatisé ne produit pas. Mesuré : l'onglet actif rend
+  une URL vide, la fenêtre prend la branche « cette page ne peut pas être
+  enregistrée ». Seule la cohérence du champ et du bouton est mesurée.
+- **Le comportement en fenêtre privée n'est pas reproduit** : Chrome n'ouvre pas
+  de fenêtre privée avec l'extension chargée en mode automatisé. La collection
+  privée n'existe donc pas dans ce profil, et une capture marquée privée y
+  retombe sur la collection courante — le contrôle du clic droit n'exerce que le
+  chemin public.
 - **La fenêtre réelle n'est pas ouvrable.** `popup.html` a été chargé dans un
   onglet : même document, mêmes règles, même largeur imposée de 380 px — mais pas
   le même cadre. Un défaut qui ne dépend que du document se voit ici ; un défaut
@@ -700,6 +748,105 @@ qu'il avait demandé, concluait que l'ajout n'avait pas eu lieu.
 les trois sont traitées : le titre perdu sur les vignettes, le doublon muet, et
 l'absence de retour lisible. Sept tests fixent la nouvelle règle dans
 `test/capture.test.js`.
+
+---
+
+## L'ajout au clic droit, éprouvé sur le produit lui-même
+
+Signalé le 29 septembre 2026 : « sur la page d'information, sur l'utilisation, on
+a deux façons d'utiliser l'extension — soit avec le clic droit, soit via le bouton
+de l'extension — car l'ajout au clic droit peut jouer des tours. Il faudra bien
+faire des tests plus poussés plus tard. »
+
+**Le menu natif ne se clique toujours pas** : aucune API n'ouvre un menu
+contextuel, et c'est écrit plus haut dans ce fichier. Ce qui **est** éprouvable,
+c'est ce que le produit fait de ce que le navigateur lui donne — les trois entrées
+passent par `captureFromClick`, puis par `record`. Le relevé les appelle donc
+**dans le service worker**, avec les `info` que Chrome fournit réellement, et lit
+ce qui en sort. Cinq contrôles en sont nés :
+
+| Contrôle | Mesure |
+|---|---|
+| Trois entrées, trois cibles | page `https://exemple.fr/accueil` · lien `…/article-vise` · sélection `https://autre.fr/selection` |
+| L'item commande, même sur une image | « Ajouter cette page » sur une image → la **page**, et le titre de la page (« Accueil — exemple.fr ») |
+| Les trois chemins enregistrent | 4 → 7 liens, badge `+` pour chacun ; titres : celui de la page, le domaine pour un lien, rien pour une sélection |
+| Page déjà collectée | 7 liens **avant et après** le second ajout, badge `=` |
+| Page interdite (`chrome://`) | capture `null`, badge `!` |
+
+Le contrôle de l'image est celui du bug YouTube, rejoué : Chrome remplit
+`linkUrl` dès que le clic tombe sur un lien, et le produit doit malgré tout
+enregistrer ce que l'item annonce. Et le relevé **se rend propre** : il retire les
+liens qu'il a ajoutés, un contrôle l'atteste (4 liens rendus pour 4 avant), sans
+quoi la planche de 49 liens mesurée ensuite ne serait plus celle qu'elle annonce.
+
+**Ce que ces contrôles ne disent pas.** Que le menu *affiche* ces entrées dans ces
+contextes : la sonde d'existence (`chrome.contextMenus.update`) dit qu'elles sont
+installées, pas qu'elles apparaissent sur une image ou sur un texte sélectionné.
+Et le chemin réel — le clic dans le menu natif — n'est pas exercé : c'est ce que
+la note garde ouvert pour un essai à la main.
+
+**La fenêtre, et ce qu'elle peut dire de la page courante.** Le pré-remplissage du
+titre repose sur `activeTab`, que Chrome n'accorde **qu'au clic sur l'icône de la
+barre d'outils**. Un relevé automatisé ne fait pas ce clic : mesuré ici,
+`chrome.tabs.query` rend un onglet **sans URL ni titre**, la fenêtre prend donc la
+branche « cette page ne peut pas être enregistrée », et le pré-remplissage n'est
+pas éprouvé. Ce qui est mesuré, c'est la **cohérence des deux commandes** : le
+champ (`#link-title`, texte, 300 caractères) et le bouton sont dans le même état
+— un champ qui accepterait une saisie que le bouton refuserait serait un piège.
+
+---
+
+## La passe de rédaction : ce qui est attesté, ce qui ne l'est pas
+
+Signalé le 29 septembre 2026 : « il faudra faire une passe avec un rédacteur qui
+teste et atteste des dires du manuel et de la FAQ ». C'est la règle appliquée ici :
+**chaque affirmation contrôlée a une mesure ou un test derrière elle**, et ce qui
+n'en a pas est écrit comme tel plutôt que reformulé.
+
+### Attesté par une mesure dans ce relevé
+
+| Affirmation | Où | Mesure |
+|---|---|---|
+| « Vous y choisissez votre imprimante, ou un fichier » — la fenêtre d'impression du navigateur prend le relais | page d'information, guide | Chrome produit le PDF par son propre paginateur : tableau 49 lignes → **3 pages**, planche → **5 pages**, `@page` du produit honoré (`preferCSSPageSize`) |
+| « Exporter la planche (ZIP) » produit trois fichiers : `planche.html`, `planche.json`, `liens.csv` | guide, README | archive relue **par le lecteur du produit** : `liens.csv, planche.html, planche.json` |
+| « La page exportée **est** celle de l'aperçu » | guide | proportions mesurées identiques : `0,3024 × 0,2325` à l'aperçu comme à l'export |
+| Les étiquettes s'exportent **sans aucune imprimante** | guide, « Étiquette (divers) » | export mesuré sans imprimante connectée : ZIP `Mes-liens-niimbot…`, 1 image, profil D110 / 12 × 22 |
+| « Les images sont des PNG à une échelle donnée » | page d'information | dimensions mesurées = celles de la tête : **96 × 197 px** annoncés, 96 × 197 obtenus |
+| L'aperçu annonce son échelle, plafonnée à quatre fois la taille réelle | guide | « Aperçu à 4,0 × la taille réelle (12,0 × 25,8 mm) », et 182 px → 45 px à la taille réelle |
+| Imprimantes prises en charge : **D110, M2, M3** | page d'information, guide | noms lus **dans le code** (`PROFILES`) par `test/site-redaction.test.js` : une page qui citerait une machine absente du produit échoue |
+| « Aucun service n'est contacté au chargement, ni à la collecte » | README | compté dans le navigateur : ressources demandées au chargement puis après une collecte, **aucune hors de l'extension** |
+| « L'URL d'origine n'est jamais remplacée » | README, guide | `shortUrl` est un champ **à côté** de `url` ; l'étiquette ne prend le raccourci que si on le demande (`veutLeRaccourci`), et `test/shorten.test.js` fixe les deux cas |
+
+### Les limites annoncées : il n'y en a pas
+
+Le point de la note — « les limites annoncées : longueurs de titre, de note, de
+collection » — s'est révélé **vide** : ni le guide, ni le README, ni la page
+d'information n'annoncent de longueur maximale. Rien à attester, donc, et rien à
+corriger : les limites du produit vivent là où elles s'appliquent, dans les champs
+eux-mêmes — 300 caractères pour un titre, 600 pour une note de collection, 80 pour
+un nom. Un document qui les annoncerait prendrait le risque d'annoncer faux.
+
+### Attesté par un test, et non par ce relevé
+
+- **`table.json`, `table.html`, `qr/<id>.png`** (dossier du tableau) :
+  `test/table-export.test.js` relit l'archive et vérifie son contenu ;
+- **le tableur avec les QR Codes**, le **CSV**, le **Markdown** et l'**archive
+  JSON** : `test/spreadsheet.test.js`, `test/table-export.test.js`,
+  `test/import.test.js` — dont l'aller-retour d'un export vers un import ;
+- **les noms de consommables et de préréglages** cités par la page d'information :
+  lus dans le code par `test/site-redaction.test.js`.
+
+### Ce qui reste **non attesté**, et qui doit se lire comme tel
+
+1. **La fenêtre d'impression sur Safari et sur Brave.** La mesure ci-dessus est
+   faite dans Chrome. `npm run verify:brave` existe, mais il exige Brave **et un
+   accès réseau** (le raccourcissement interroge un vrai service) ; Safari n'a pas
+   d'instrument équivalent. Ce que chaque navigateur propose réellement dans sa
+   fenêtre d'impression reste donc à voir, à la main.
+2. **L'impression sur papier.** Aucun matériel n'est connecté à cette machine :
+   tout ce qui est mesuré ici l'est sur le document rendu, jamais sur une feuille.
+3. **L'élégance.** Ce relevé porte sur des positions, des contrastes et des
+   accords ; il ne dit rien du goût — c'est l'objet de la note ouverte.
 
 ---
 
@@ -746,6 +893,465 @@ d'impression, puis rend deux PDF dans `.verify-chrome-pages/`. Les constats du
 relevé portent la même mesure sur 45 liens ; ce script sert à en essayer une
 autre longueur.
 
+Pour **comprendre une grille automatique** — pourquoi celle-ci et pas une autre —
+sans passer par le relevé entier :
+
+```bash
+node scripts/measure-auto-layout.mjs 49 a4-3x4 tous
+```
+
+Il importe le **même module** que l'application (`core/sheet.js`, servi en HTTP
+pour que Chrome accepte un module ES) et mesure le texte par un canevas réglé sur
+la même police. Il rend la courbe du besoin (lignes réclamées par largeur), ce que
+le calcul à deux passes choisissait, ce que le rendu en ferait — lignes coupées
+comprises — et la table des grilles candidates. C'est l'instrument qui a établi
+que le défaut du 30 septembre 2026 tenait à une largeur, et non à la formule.
+
+Pour **éprouver un ajout par clic droit**, du service worker à l'application :
+
+```bash
+npm run build
+npm run verify:menu
+```
+
+Aucune API n'ouvre puis ne choisit une entrée du menu natif : le script exécute
+donc **les modules du service worker** hors navigateur — `captureFromClick`, le
+magasin, la normalisation —, écrit l'enregistrement obtenu dans une vraie
+extension chargée, recharge l'application et lit la ligne affichée. Il rend son
+verdict : la destination est enregistrée, l'application l'affiche, et la même page
+ajoutée par son adresse directe est reconnue comme un doublon.
+
+Pour **éprouver ensemble le compteur de l'icône et « Vider la collection »**,
+depuis les deux pages qui portent le bouton :
+
+```bash
+npm run build
+npm run verify:badge
+```
+
+Le script charge une vraie extension, sème trois liens, puis vide la collection
+**d'abord depuis l'application, ensuite depuis la fenêtre**, en relevant à chaque
+fois le badge de l'icône, ce que l'application affiche et ce que la fenêtre
+affiche. Il rend son verdict : après l'un ou l'autre vidage, les trois doivent
+dire la même chose. Ce qu'il ne fait pas : il ne déclenche aucun clic droit —
+aucune API ne choisit une entrée du menu natif —, donc le retour transitoire
+(« + », « = », « ✎ ») reste du ressort de `verify-chrome.mjs` et de
+`test/extension-bundle.test.js`.
+
+Pour **regarder le choix d'import**, qui ne s'ouvre qu'après un fichier lu :
+
+```bash
+node scripts/shot-import.mjs
+```
+
+Il sert l'application construite, lui pose une API d'extension en mémoire — c'est
+ce qui fait exister plusieurs collections, donc un choix à proposer —, puis
+déclenche un **vrai** import en posant un fichier sur le champ de fichier par
+`DataTransfer`. Le chemin est donc celui de l'utilisateur : lecture, panneau,
+libellés, et le nom vidé qui suit. Il relève les libellés tels quels, mesure le
+débordement des trois issues plutôt que de l'estimer, et rend deux captures dans
+`.verify-chrome-captures/`.
+
+Ce qu'il ne fait pas : il n'ouvre pas la page de l'extension, et ne clique aucun
+des trois choix — cela écrirait dans le stockage. Les trois issues et le nom vide
+sont exécutés pour de bon dans `test/web-import.test.js`.
+
+## L'en-tête de la fenêtre, et ce qu'elle ne fait pas
+
+Le contrôle charge `popup.html` dans un onglet et lit le document rendu. Trois
+constats y portent sur une **absence** autant que sur une présence :
+
+1. **L'en-tête porte le nom de la collection, entre ses deux flèches.** L'icône
+   du produit le précède, avec son alternative textuelle — le nom du produit
+   n'est plus écrit en clair, il occupait la place du seul titre qui informe.
+2. **La fenêtre ne crée pas de collection.** Créer, renommer et supprimer se
+   font dans l'application : ces gestes demandent un nom, une note, et la place
+   de les relire. Un contrôle statique (`test/extension.test.js`) vérifie en
+   plus que ni `collection-add` ni `collection-new` n'existent dans le document.
+3. **Le choix de la langue n'y est plus.** Le sélecteur vit dans l'application ;
+   la fenêtre suit la langue mémorisée, et la page d'information qu'elle ouvre
+   suit la même.
+
+## Une seule action sur la ligne du lien court
+
+Le contrôle signalé : « la case *encode the short link* dans la liste n'est pas
+claire, surtout quand on clique sur l'hyper lien ». Deux intentions vivaient dans
+le même bloc — l'adresse courte était un lien (pour aller la vérifier) et, juste
+en dessous, une case dont la phrase ne disait pas *laquelle* encoder.
+
+La case porte maintenant l'adresse comme libellé : on coche ce qu'on lit, la ligne
+n'a plus qu'une action, et l'adresse courte reste vérifiable dans l'éditeur de la
+ligne — le seul endroit d'où l'on peut la contrôler avant d'imprimer.
+
+Le relevé vérifie les deux bouts : une seule case, sur le seul lien qui a un
+raccourci ; son libellé nomme ce qu'elle encode (« Encoder https://is.gd/abcd pour
+« Un article de fond » ») ; la cocher encode le raccourci sans toucher au réglage
+global ; la décocher rend exactement l'état d'avant.
+
+## La mise en page automatique calculait la grille sans regarder le contenu
+
+Le signalement : « la mise en page automatique n'est pas optimale, ça calcule mal
+l'espace disponible, ça calcule mal les espacements, l'équilibre. Il est par
+exemple absurde de proposer 11 colonnes quand on a que 5 liens ».
+
+C'était exact, et la cause tenait en une ligne : `autoSheetLayout` cherchait la
+grille **la plus dense** qui tienne à la taille minimale d'étiquette, puis
+agrandissait les étiquettes pour remplir la page. Elle ne savait pas combien
+d'étiquettes il y avait à placer. Cinq liens donnaient donc 11 × 7 = 77 cases —
+des timbres, et une page à moitié vide.
+
+Le calcul reçoit maintenant le **nombre d'étiquettes**, et choisit la grille en
+trois temps :
+
+1. **la grille doit contenir le contenu, et pas davantage** — une case vide est
+   une étiquette qui n'existe pas ; on tolère la case qui rend la grille
+   équilibrée, jamais deux ;
+2. **une lame n'est pas une étiquette** — à remplissage égal, on écarte les
+   grilles dont l'étiquette s'éloigne de plus du double de la forme du contenu ;
+3. **la plus grande étiquette gagne** — les cotes restantes sont partagées, donc
+   les étiquettes occupent la page jusqu'à ses bords.
+
+Ce que cela donne sur une A4 (marges 8,5 mm, écarts 1,25 mm), mesuré par un test
+unitaire qui parcourt treize nombres d'étiquettes :
+
+| Liens | Grille | Étiquette |
+|---|---|---|
+| 1 | 1 × 1 | 193 × 280 mm |
+| 3 | 1 × 3 | 193 × 92 mm |
+| **5** | **2 × 3** | **96 × 92 mm** — et non 11 × 7 |
+| 12 | 3 × 4 | 63 × 69 mm |
+| 49 | 7 × 7 | 26,5 × 38,9 mm, exactement |
+| 77 | 7 × 11 | 26,5 × 24,3 mm |
+
+Le relevé navigateur le confirme sur la planche de 49 liens : **7 × 7 = 49 par
+page** (contre 11 × 7 = 77 avant), 0 ligne coupée, et les champs calculés. Sans
+nombre d'étiquettes — un appelant qui ne connaît pas son contenu —, le calcul
+garde son ancien comportement : il remplit la page.
+
+## La mise en page automatique
+
+Un contrôle, et il porte sur le résultat plutôt que sur la mécanique : avec la
+case cochée sur une A4 3 × 8 — 24 étiquettes par page —, l'application propose
+**11 × 7 = 77 étiquettes de 16,4 × 38,9 mm**, les six champs de géométrie sont
+calculés et inactifs, et **aucune ligne n'est coupée** (contre 45 au réglage
+manuel). C'est la promesse du mode : ne plus tâtonner, et ne plus rien tronquer.
+
+Le contrôle a d'abord échoué, et pour une raison qui n'appartenait pas au
+produit : il lisait les champs de la planche alors que l'onglet **tableau** était
+actif — le rendu ne recalcule que l'onglet affiché, et personne n'avait donc
+touché ces champs. C'est la troisième fois dans ce relevé qu'un contrôle doit
+explicitement remettre le mode qu'il mesure.
+
+## La mise en page automatique mesurait le besoin à une autre largeur que la sienne
+
+Le format A4 3 × 4 (63,5 × 69,1 mm) étant passé par défaut, le relevé a mesuré
+deux régressions. Celle-ci est la plus grave, et elle n'a rien d'une affaire de
+goût : **la grille annoncée « calculée pour ce contenu » ne portait pas le
+contenu**.
+
+Mesuré le 29 septembre 2026, sur les 49 liens du relevé :
+
+| | Avant | Après |
+|---|---|---|
+| Grille choisie | **10 × 5 = 50** | **11 × 4 = 44** |
+| Étiquette | **18,2 × 55 mm** | **16,4 × 69,1 mm** |
+| Lignes de texte coupées | **45** | **0** |
+| Pages de la planche | 1 (tassée) | **2** — 44 puis 5 |
+
+**La cause tient à une largeur.** Le besoin de texte était calculé en **deux
+passes** : la première le mesurait à la largeur de la disposition (63,5 mm), la
+seconde à la largeur que la première avait retenue (26,4 mm) — et la grille
+finalement choisie en avait une troisième, plus étroite encore (18,2 mm), où le
+même texte réclame plus de lignes. Le calcul ne se trompait donc pas sur la
+formule : il l'appliquait à une étiquette qui n'était pas celle qu'il retenait.
+Ce que la mesure a montré, sur la courbe du besoin : à 26,4 mm le titre réclame
+**4** lignes, à 18,2 mm il en réclame **8** — la grille retenue en offrait **7**.
+
+**Et une seconde divergence, dans la même fonction.** Le rendu dessine le QR Code
+à la proportion du curseur (70 % du petit côté), la mise en page le supposait à
+son minimum lisible (0,4 mm par module) : deux formules pour une même place, donc
+deux réponses. Le budget de texte vit désormais dans **une seule fonction**
+(`sheetTextBudget`, `src/core/sheet.js`), appelée par le rendu et par le calcul —
+et la contrainte de contenu est une **fonction des cotes candidates**
+(`autoSheetLayout({ tient })`), évaluée sur chaque grille possible plutôt qu'à une
+largeur choisie d'avance.
+
+**Ce que le calcul fait quand rien ne tient.** Il ne tasse plus : aucune grille ne
+porte 49 étiquettes de 16,4 mm à une largeur où leur texte tient, et il retient
+donc la plus dense qui **porte son texte**, la planche paginant. Le contrôle le
+mesure : 49 liens → **49 étiquettes sur 2 pages [44, 5]**, 0 coupée. C'est le
+comportement demandé par la note — « 49 étiquettes sur une page qui n'en porte que
+20 font trois pages, ce qui est acceptable » — et il est dit à l'écran :
+« Les 49 étiquettes ne tiennent pas sur une page : la planche en demande 2. »
+
+**Ce que le contrôle ne dit pas** : que la grille soit la plus élégante possible.
+Il dit que chaque étiquette porte son texte entier, sur les cotes qu'elle a
+réellement — le reste est une affaire de goût, et la tolérance de forme (facteur 2)
+reste une constante assumée.
+
+## Les QR Codes et les URL ne s'alignaient pas sur une planche
+
+Le signalement : « la mise en page automatique doit aligner les QR Codes,
+actuellement l'alignement des URL est un peu chaotique ». Deux causes, trouvées
+dans la feuille et dans le script :
+
+1. **le contenu d'une case était centré verticalement** (`justify-content:
+   center`). Une étiquette dont le titre tient sur une ligne posait donc son QR
+   Code plus haut que sa voisine qui en porte trois : sur une grille, les codes
+   montaient et descendaient d'une case à l'autre.
+2. **le titre et l'URL n'avaient pas de hauteur commune.** Le bloc d'adresse
+   commençait après le titre, dont le nombre de lignes varie : l'URL descendait
+   d'autant de lignes que le titre en occupait.
+
+**Un troisième défaut, signalé ensuite** : « quand on décoche une option de
+layout il faut faire un refresh de la preview, sinon on a l'impression que c'est
+un bug d'affichage que rien ne change ». Le rendu était bien relancé à chaque
+case décochée ; ce qui ne changeait pas, c'est ce qu'il **lisait**. La case
+« Mise en page automatique » réécrit les six cotes de la planche, et la décocher
+les laissait en place : la planche restait identique au millimètre près, ce qui
+ressemble exactement à un aperçu qui ne se rafraîchit pas.
+
+Le calcul met donc de côté ce que l'utilisateur avait réglé **avant** de
+l'écraser, et le lui rend au décochage ; à défaut de mémoire — la case cochée
+avant l'ouverture —, c'est la grille de la disposition choisie qui revient. La
+mesure le dit : **3 × 8 avant · 11 × 7 cochée · 3 × 8 après décochage**, les six
+champs repassant d'inactifs à réglables, et l'aperçu changeant vraiment de
+contenu (77 étiquettes par page contre 24). Le scénario est aussi joué sans
+navigateur, par `test/web-auto-layout.test.js`, application démarrée pour de bon.
+
+La correction tient en deux lignes de feuille et une passe de plus dans le
+script : le contenu part du **haut** de la case, et chaque page calcule la
+hauteur de ses blocs — le titre le plus long, l'URL la plus longue — puis réserve
+la différence à chaque étiquette par un blanc de mise en page (`aria-hidden`, sans
+texte). Les blocs suivants commencent donc à la même hauteur partout.
+
+**Ce que la mesure dit**, sur la planche de 49 étiquettes du relevé, en médiation
+d'impression (la racine d'impression est en `display: none` à l'écran) :
+
+| | |
+|---|---|
+| QR Codes, 5 rangées, jusqu'à 11 par rangée | écart vertical **0 px**, écart de taille **0 px** |
+| URL, mêmes rangées | écart vertical **0 px** |
+
+Le contrôle a d'abord été écrit deux fois de travers, et les deux fautes valent
+d'être connues :
+
+- **il mesurait à l'écran.** `getBoundingClientRect` sur une racine en
+  `display: none` rend zéro : le relevé annonçait « 0 px d'écart » sur 49
+  étiquettes empilées à l'origine — un alignement parfait dans un document qui
+  n'était pas dessiné. La règle « peindre avant de mesurer » a été payée une fois
+  de plus.
+- **il ne mesurait que quatre URL.** Avec le titre *et* l'URL demandés, le budget
+  de lignes fait disparaître l'adresse sur la plupart des étiquettes de ce
+  relevé : il ne restait que quatre adresses à comparer. La mesure se fait donc en
+  **deux états** — titre seul pour les QR Codes, URL seule pour les adresses — et
+  rend ensuite les réglages trouvés.
+
+**Un mot sur le profil de vérification.** Il est réutilisé d'une exécution à
+l'autre, et il porte donc les liens que les contrôles y ont laissés. Une
+exécution **interrompue** — tuée au bout de dix minutes, ou doublée par une
+seconde qui écrit dans le même profil — laisse des liens en place : le relevé
+suivant comptait 95 liens au lieu de 49, et quatre constats se sont mis à
+échouer — « la fenêtre affiche les liens collectés », un tri qui ne correspond
+plus, « 45 doublon(s) », une première étiquette à 101. Rien de tout cela n'était
+un défaut du produit : profil effacé (`rm -rf .verify-chrome/profile`), le même
+relevé passe **157/157**. Une seule vérification à la fois, et un profil neuf
+quand une exécution n'est pas allée à son terme.
+
+## Le « double filet » des champs de saisie
+
+Le signalement, répété : « je ne suis pas fan en style du double filet pour les
+champs d'input, restons sur quelque chose de plus simple et élégant ». Deux
+choses faisaient bien deux traits là où un seul suffisait :
+
+1. **Un cadre et un fond.** Le champ portait une bordure *et* un fond blanc :
+   dans un panneau gris, cela faisait une boîte dans une boîte — deux contours
+   pour une seule zone de saisie. Le fond est désormais **transparent** : le
+   champ est une aire soulignée par son seul filet, posée sur la surface qui le
+   porte.
+2. **Deux marqueurs de focus.** Au focus, la bordure passait à l'accent *et*
+   l'anneau s'ajoutait à 2 px de là — deux lignes concentriques pour dire une
+   seule chose. Puis, l'anneau étant resté seul, le signalement est revenu : le
+   contour ajouté autour du champ **est** le double filet. Le focus se dit
+   désormais par le **fond du champ**, qui se teinte (`--focus-fill`), et par
+   aucun trait ajouté. `:focus` et non `:focus-visible` : cliquer dans un champ
+   doit le montrer actif, lui aussi. La correction vaut des deux côtés :
+   `style.css` et `popup.css`, avec le même jeton — c'est le seul marqueur de
+   focus d'un champ, il ne peut pas diverger d'une surface à l'autre.
+
+   Conséquence sur le contrôle du clavier : il exigeait un **anneau** à chaque
+   arrêt de tabulation. Un champ n'en a plus, et le contrôle aurait échoué sur un
+   produit juste. Il accepte donc l'un ou l'autre — anneau pour les commandes,
+   fond teinté pour les champs —, la couleur attendue étant lue sur une sonde
+   plutôt que recopiée. `--focus-fill` entre au passage dans les jetons partagés,
+   avec deux paires de contraste (le texte doit rester lisible sur le champ
+   actif : 12,8:1 en clair, 9,9:1 en sombre).
+
+Ce qui reste, et qui est mesuré : **un seul filet**, `1px rgb(141, 141, 141)`,
+sur la surface du panneau → **3,02:1**. C'est le seuil de WCAG 1.4.11 pour la
+limite d'un composant, tenu de justesse — et c'est la raison pour laquelle le
+filet ne peut pas être éclairci : `--border-line` (le gris des séparateurs) ne
+donne que 1,1:1 sur ce fond, et le champ disparaîtrait.
+
+Le contrôle qui mesure cela lit la couleur **réellement vue** derrière le champ,
+en remontant les ancêtres : un fond transparent se lit `rgba(0, 0, 0, 0)`, et un
+contraste calculé contre du noir ne voudrait rien dire.
+
+## « En-tête de page » : coché, et rien à l'écran
+
+Le signalement : « en mode planche d'étiquettes, si on clique sur les options
+dans « En-tête de page » rien ne s'affiche dans la preview, ni même dans la
+preview de l'imprimante ».
+
+La cause n'était pas le rendu : l'en-tête vit dans la marge du haut, qui doit
+mesurer **9 mm** pour le porter, et la disposition par défaut — A4 3 × 8,
+63,5 × 33,9 mm — déclare une marge de **8,5 mm**, soit 8,53 après centrage. Le
+refus s'écrivait bien, mais sous la case et **à l'encre des aides** : on cochait,
+rien ne bougeait, et l'on croyait à un aperçu figé.
+
+Deux corrections, mesurées :
+
+1. **La case fait la place.** Cocher « En-tête de page » porte la marge haute à
+   9 mm — c'est ce que la case demande —, et le rendu suit : l'en-tête apparaît
+   dans l'aperçu (`#preview .print-page__header` : 0 → 1) **et** dans la racine
+   d'impression (0 → 1), mesuré sur le document réel. Sous mise en page
+   automatique, le plan reçoit la même marge : sans cela, il recalculait 8,5 mm
+   à chaque rendu et le refus revenait indéfiniment.
+2. **Le refus restant est à l'alerte.** Si la marge redescend sous 9 mm — elle ne
+   peut de toute façon pas porter l'en-tête —, le message nomme la valeur à
+   atteindre (« Portez la marge haute à 9 mm, ou décochez l'en-tête ») et passe
+   en `--danger`, comme les autres refus de la planche. Il était en encre
+   secondaire, c'est-à-dire invisible pour qui ne le cherchait pas.
+
+Le scénario est aussi joué sans navigateur (`test/web-sheet-header.test.js`,
+application démarrée pour de bon) : la marge est portée à 9 mm et le message
+disparaît ; une marge redescendue à 3 mm rallume le message, en rouge.
+
+## Un texte coupé sur la planche, et un chiffre qui mentait
+
+Deux défauts, découverts par le même contrôle — et le second est celui qui compte.
+
+**Le premier est un mensonge du calcul.** Le nombre de lignes laissées au texte
+sous le QR Code était compté depuis le minimum **lisible** du QR Code (0,4 mm par
+module), alors que le curseur s'arrête à 30 % de la hauteur d'étiquette. Sur une
+A4 3 × 8 et 21 modules, l'application promettait donc **huit** lignes et le rendu
+n'en laissait que **sept** : un titre était coupé alors qu'elle venait d'annoncer
+qu'il tenait. Le nombre annoncé se calcule maintenant sur le côté que le curseur
+laisse réellement atteindre, et l'invariant est tenu par un test unitaire qui
+parcourt tous les préréglages, quatre densités de QR Code et toutes les
+réservations de une à dix lignes (`test/sheet.test.js`).
+
+**Le second est un silence.** La planche tronquait le texte avec des points de
+suspension **sans un mot** — comme l'onglet Niimbot avant que ce message y existe.
+Une adresse ou un titre amputé sortait de l'imprimante comme s'il tenait entier.
+Elle l'annonce désormais, à l'alerte, en nommant le remède :
+
+> Texte coupé sur 45 étiquettes : ils ne tiennent pas entiers à cette taille.
+> Raccourcissez les adresses, décochez le titre ou l'URL, ou prenez une étiquette
+> plus grande.
+
+**Le coupable, mis à l'épreuve.** Le plancher du curseur était une proportion
+choisie à l'œil — 30 % du petit côté de l'étiquette —, sans rapport avec ce qui
+s'imprime. Le vrai plancher est la lisibilité : les modules de l'adresse fois
+0,4 mm. Le curseur descend maintenant jusque-là, et la mesure dit ce que cela
+change : sur la A4 3 × 8 du relevé, au réglage par défaut **45 lignes coupées**,
+au minimum du curseur **0**. Ce que l'utilisateur demandait — « pourquoi ne
+peut-on pas réduire le QR Code, alors que c'est lui le coupable ? » — était donc
+juste, et l'interdiction venait d'une constante décorative.
+
+Le contrôle navigateur ne compare pas à une valeur espérée : il vérifie un
+**accord** entre le message et le rendu. La collection du relevé porte des
+adresses longues, et supposer qu'elles tiennent toutes serait une supposition,
+pas une mesure. Ce qui serait un défaut, c'est une ligne coupée sans message ou
+un message sans ligne coupée. Mesuré : 45 lignes coupées et le message présent au
+corps de texte par défaut ; **0** ligne coupée et aucun message au plus petit
+corps. Les deux disent la même chose.
+
+## Deux grilles de tableau, sur la même page
+
+Le tableau imprimé est découpé en **un `<table>` par page**. Rien ne leur
+imposait de largeurs : chacun se dimensionnait sur son propre contenu, et les
+colonnes ne s'alignaient plus d'une page à l'autre. Mesuré dans Chrome, sur un
+document de trois pages : la colonne des titres commençait à **465 px** sur la
+première, **430 px** sur la deuxième, **436 px** sur la troisième — au point
+qu'une colonne étroite peut se réduire à presque rien et paraître absente.
+
+La correction est une grille unique : `table-layout: fixed` et un `<colgroup>`
+calculé une fois (`tableColumnWidths`), en millimètres, depuis la largeur utile
+de la page — le QR Code garde sa taille, les colonnes de texte se partagent le
+reste au prorata de ce qu'elles portent. Après correction, les trois pages
+donnent les mêmes abscisses : `[38, 120, 169, 475]`.
+
+### Ce que la mesure a appris sur elle-même
+
+Le premier contrôle de ce défaut **passait sans rien regarder** : il lisait la
+géométrie de `#print-root`, qui est `display: none` hors impression — toutes les
+valeurs valaient zéro, et « toutes les pages ont les mêmes colonnes » était vrai
+par vacuité. Il fallait deux précautions, et les deux sont maintenant dans le
+script :
+
+1. **Mesurer sous médiation d'impression** (`Emulation.setEmulatedMedia`), comme
+   le navigateur le fait au moment d'imprimer. Hors de là, la racine n'a pas de
+   géométrie.
+2. **Vérifier que la racine porte bien ce qu'on mesure** : le relevé précédent
+   l'avait rebâtie pour la planche, et la mesure rendait `[]` — un tableau vide
+   n'a pas de colonnes, donc pas de désalignement non plus.
+
+Un contrôle qui rend zéro ou une liste vide doit être traité comme un contrôle
+qui n'a pas eu lieu : c'est la règle qu'applique désormais ce bloc, en exigeant
+au moins une colonne trouvée avant de comparer.
+
+## La numérotation, propre à chaque collection
+
+Un constat, exécuté sur le document réel : on règle 101 sur la collection par
+défaut — la liste affiche 101, 102, 103 —, on bascule sur une collection de
+contrôle qui annonce 7, puis on revient : la première a gardé 101. Le contrôle
+relit aussi `chrome.storage.local`, pour vérifier que la valeur est bien *écrite*
+et non seulement affichée.
+
+Le scénario crée la collection de contrôle, la retire ensuite, **et rend à la
+collection par défaut sa numérotation d'avant** : les contrôles suivants comptent
+à partir de 1, et une valeur laissée à 101 les ferait échouer — ce qui est arrivé
+à la première version de ce bloc.
+
+## Déplacer une sélection
+
+Quatre constats, hors réseau, exécutés sur le document réel : la commande est
+absente au repos, apparaît dès qu'une case est cochée en proposant **les autres**
+collections, déplace le lien quand on en choisit une — vérifié en relisant
+`chrome.storage.local` : le lien a changé de collection, leur nombre total n'a
+pas bougé, et le titre est intact —, et disparaît une fois la sélection vidée.
+
+Le scénario ajoute une seconde collection au profil, puis le remet exactement
+comme il l'a trouvé : les contrôles suivants comptent les liens de cette
+collection, et un déplacement laissé en place les ferait mentir.
+
+## Collections et service proposé d'emblée
+
+Trois contrôles ajoutés avec les collections, tous **hors réseau** :
+
+1. **T.LY est proposé d'emblée dans l'extension.** Le premier service du
+   catalogue est `tly`, il est sélectionné au démarrage, et son libellé porte
+   « défaut ». C'est le seul service qui raccourcisse sans clé ni compte — et
+   seulement depuis une origine d'extension, ce que ce contrôle ne peut pas
+   prouver sans sortir : c'est `test/shorten.test.js` qui tient la forme de la
+   requête, et une sonde manuelle qui a établi le fait.
+2. **L'aide dit que le raccourcissement reste facultatif.** La phrase sous le
+   sélecteur est lue dans le DOM et doit contenir « rien n'est raccourci » :
+   présélectionner un service ne doit jamais passer pour un réglage actif.
+3. **L'application propose ses collections.** Le sélecteur existe, il est
+   visible dans l'extension, il porte au moins la collection par défaut, et il
+   affiche celle qui est courante.
+
+Ce que ces contrôles ne couvrent pas, et qui reste manuel : un vrai
+raccourcissement T.LY (il sort sur le réseau), la bascule d'une collection à
+l'autre à la souris, et la collection de navigation privée — Chrome en mode
+automatisé n'ouvre pas de fenêtre privée avec l'extension chargée. La
+navigation privée est couverte autrement : `test/extension-bundle.test.js`
+exécute le service worker et la fenêtre assemblés, avec un onglet privé, et
+vérifie que le lien part dans `storage.session` et **jamais** dans
+`storage.local`.
+
 Deux règles d'écriture pour quiconque étend ces scripts, et toutes deux ont coûté
 une fausse accusation ou une heure perdue :
 
@@ -757,3 +1363,151 @@ une fausse accusation ou une heure perdue :
    page vivent dans des gabarits de chaîne ; un accent grave dans un commentaire
    les referme, et l'erreur de syntaxe est signalée à côté. Le piège a été payé
    une quatrième fois en écrivant le contrôle de pagination.
+
+## Le lien vers la page d'information, dans l'application aussi
+
+La fenêtre de l'extension portait ce lien depuis le début ; l'application, non —
+alors que c'est elle qui sert de documentation à qui l'ouvre en grand. Trois
+contrôles, hors réseau, le mesurent sur le document rendu :
+
+1. **Le lien existe, et dit où il mène.** Le libellé **visible** est
+   « Page d'information », l'adresse posée est celle du site, `target="_blank"` et
+   `rel` porteur de `noopener`. L'annonce du nouvel onglet est vérifiée à part :
+   c'est un texte masqué, et la compter dans le libellé ferait échouer la
+   comparaison sur un lien pourtant correct — l'erreur a été commise, puis
+   corrigée, en écrivant ce contrôle.
+2. **L'adresse dépend de la page courante.** Dans l'extension
+   (`chrome-extension://…/app.html`), aucune page n'est voisine : le relevé
+   attend l'adresse publiée. Servie par le site sous `/app/`, l'application
+   renvoie à sa voisine (`../`), sans quoi une copie du site hébergée ailleurs
+   enverrait ses visiteurs sur le site d'origine. Le second cas ne se mesure pas
+   ici — le relevé ouvre la page de l'extension — et c'est
+   `test/site-links.test.js` qui le tient, application démarrée pour de bon.
+3. **Le lien reste à l'encre secondaire, et sous les panneaux.** Sa couleur
+   calculée est comparée à celle d'une aide : elle doit être identique, et
+   différente du fond de l'action principale. L'accent est réservé aux actions ;
+   ce lien n'en est pas une. Le pied se place après `</main>` et ne rouvre pas le
+   débordement horizontal — mesuré à huit largeurs, de 1280 à 380 px.
+4. **Le pied est centré, et signé.** Une demande ultérieure : « le lien page
+   d'information doit être centré dans la page dans le footer, et ajouter aussi
+   mon nom G. Abegg-Gauthey, l'année et le type de licence de l'application ainsi
+   que la version ». Le contrôle compare donc le **milieu** du lien à celui du
+   pied (et non plus son bord gauche à celui des panneaux), et lit la signature :
+   le nom, `MIT`, la version — et l'année **du jour**, comparée à celle de la
+   machine qui conduit le relevé. Écrite en dur, elle se serait périmée au
+   1er janvier ; la version, elle, est injectée à la construction depuis
+   `package.json` (`__APP_VERSION__`), où un test vérifie qu'aucune page livrée
+   ne garde le jeton.
+
+
+## Le panneau de choix d'import, et deux `[hidden]` qui ne masquaient rien
+
+Le panneau qui demande où ranger un import est **dans le flux**, sous le bouton
+qui l'a ouvert : trois issues nommées d'après les collections concernées, et
+« Annuler ». Ses libellés portent des noms de collection, donc leur longueur ne
+se devine pas — d'où la capture, prise avec un nom volontairement long.
+
+Ce qu'elle a montré, et qu'aucun test de DOM ne pouvait montrer : **« Annuler »
+fermait le panneau dans le document et le laissait peint à l'écran**. `.import-menu
+{ display: flex }` l'emporte sur le `display: none` que le navigateur attache à
+l'attribut `hidden` — le piège est documenté dans la feuille de style depuis le
+premier jour, pour `.field`, et il a été commis deux fois de plus : le sélecteur
+de collection de la page web autonome restait visible avec une seule option et
+deux commandes sans effet, et la commande de collection nouvelle du panneau
+d'import restait visible hors de l'extension.
+
+Les deux règles manquantes sont désormais là, et `test/web.test.js` les tient :
+pour chaque panneau qui s'ouvre et se ferme, une règle `<sélecteur>[hidden]`
+doit exister. Un substitut de DOM ne peint pas : il ne peut pas voir ce défaut,
+et une assertion sur la propriété `hidden` ne le voit pas non plus — elle était
+verte.
+
+Deuxième constat de la même capture, sur le nom vidé : le champ est vide, la
+liste affiche « Mes liens », l'aide sous le sélecteur dit ce que ce vide veut
+dire, et le titre de la page suit. C'est le défaut d'origine — vider le champ
+n'écrivait rien, et l'ancien nom restait — vu depuis l'écran plutôt que depuis le
+stockage.
+
+## Le clic droit sur un résultat de recherche enregistrait le moteur
+
+Rapporté tel quel : chercher « wikipedia qrcode » dans Google, faire un clic droit
+sur le résultat Wikipédia, « Ajouter ce lien ». Le compteur de l'icône
+s'incrémentait — l'ajout avait donc eu lieu —, et l'application ne montrait
+**rien qui ressemble à ce qu'on venait de cliquer**.
+
+Le constat, établi sur une extension réellement chargée
+(`scripts/verify-context-menu.mjs`) : la liste contenait bien une ligne, mais
+c'était l'enveloppe du moteur.
+
+| | Avant | Après |
+|---|---|---|
+| Adresse enregistrée | `https://www.google.com/url?q=https://fr.wikipedia.org/wiki/Code_QR&sa=U&ved=2ahUKEwi` | `https://fr.wikipedia.org/wiki/Code_QR` |
+| Titre affiché | `google.com` | `fr.wikipedia.org` |
+| Même page par son adresse directe | second lien | doublon reconnu |
+
+Trois défauts pour un seul clic : la ligne ne disait pas ce qu'elle contenait, le
+QR Code encodait une adresse deux à trois fois plus longue — donc plus dense, et
+qui ne tient plus sur une étiquette étroite —, et la même page ajoutée ensuite
+depuis la barre d'adresse entrait une seconde fois.
+
+`normalizeUrl` déplie désormais les redirections connues (Google `q`/`url`, Bing
+`u` en base64url, DuckDuckGo `uddg`), et la destination suit la normalisation
+ordinaire. Le dépliage est borné à quatre sauts, garde les adresses déjà vues, et
+n'accepte qu'une destination http(s) absolue : une valeur relative, vide ou
+`javascript:` laisse l'enveloppe en place. La table des moteurs est courte à
+dessein — chaque entrée est une convention d'un tiers, qui peut changer sans
+prévenir, et un moteur absent garde son adresse d'origine.
+
+Ce que les tests tiennent, et où : `test/core.test.js` pour la normalisation,
+`test/capture.test.js` pour le titre, et `test/web-context-menu.test.js` pour le
+contrat entre les deux moitiés — le service worker écrit, l'application lit, sur
+la même zone. Ce dernier fichier est né de ce rapport : c'est précisément
+l'intervalle que rien ne regardait.
+
+## Le compteur de l'icône survivait à une collection vidée
+
+Rapporté tel quel : « si on fait vider la collection et que la page qui est
+affichée est l'application, la page ne se rafraîchit pas et même en ayant vidé la
+collection j'ai toujours un artefact avec un nombre qui reste sur l'icône alors
+qu'il ne devrait plus rien y avoir ou être à 0. »
+
+Le rapport décrit **deux** défauts, et la mesure les a séparés — trois liens,
+puis « Vider la collection » depuis l'une ou l'autre page
+(`npm run verify:badge`) :
+
+| Vidage depuis | | Icône | Application | Fenêtre |
+|---|---|---|---|---|
+| l'application | avant | `3` | « 3 liens » | 3 lignes |
+| | après | **`3`** | « 0 lien » | 3 lignes |
+| la fenêtre | avant | `3` | « 3 liens » | 3 lignes |
+| | après | *rien* | **« 3 liens »** | 0 ligne |
+
+En gras, ce qui restait faux : le compteur de l'icône gardait le nombre d'avant
+quand l'application vidait la collection, et l'application gardait ses liens
+quand c'était la fenêtre. Un seul intervalle pour les deux : **les trois
+contextes partagent les mêmes documents sans se parler**. Le badge n'était peint
+que par le service worker, sur événement — installation, démarrage, ou message de
+la fenêtre —, et l'application n'envoyait aucun message ; la fenêtre, elle, ne
+relisait rien.
+
+Deux écouteurs de `storage.onChanged` ferment l'intervalle : celui du service
+worker repose le compteur quand les liens, la liste des collections ou la
+collection courante changent, où que l'écriture vienne ; celui de l'application —
+et celui de la fenêtre, que le menu contextuel ouvre dans un onglet — relit ce qui
+est affiché. La liste des documents surveillés vit dans `displayedDocuments()`,
+avec les clés qu'elle nomme, pour qu'un contexte ne puisse pas en oublier un.
+
+Deux précautions, apprises des mesures :
+
+- **le retour transitoire n'est pas écrasé.** La collecte écrit le lien *avant*
+  de poser son signe : sans échéance, le rafraîchissement déclenché par sa propre
+  écriture remplacerait le « + » dans le même souffle ;
+- **la page ne se redessine pas pour rien.** L'application compare ce qu'elle
+  relit à ce qu'elle affiche, et laisse passer les événements de ses propres
+  écritures — un redessin emporterait, au passage, un éditeur de lien ouvert.
+
+Ce que les tests tiennent, et où : `test/extension-bundle.test.js` pour le
+service worker et la fenêtre — l'icône suit un stockage écrit ailleurs, le signe
+d'un clic droit survit à sa propre écriture, la fenêtre se met à jour —, et
+`test/web-sync.test.js` pour l'application, exécutée pour de vrai : vidage,
+changement de collection, et écriture de la page elle-même.

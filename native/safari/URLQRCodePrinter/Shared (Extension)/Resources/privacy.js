@@ -1,0 +1,1266 @@
+// privacy.js — fichier assemblé par scripts/build.mjs.
+// Ne pas modifier ici : éditez les modules de src/ et reconstruisez.
+
+// ────────────────────────────────────────────────────────────────────────
+// dist/extension-safari/core/locales/en.js
+// ────────────────────────────────────────────────────────────────────────
+
+/**
+ * Traductions anglaises.
+ *
+ * Les clés sont les messages français **tels qu'ils apparaissent dans le code**
+ * (interface, infobulles, messages transitoires). Un message absent d'ici
+ * s'affiche en français : la table peut donc être complétée sans jamais casser
+ * l'interface. `test/i18n.test.js` vérifie qu'aucune clé employée ne manque.
+ */
+const EN_MESSAGES = {
+  // -------------------------------------------------------------------------
+  // Fenêtre de l'extension
+  // -------------------------------------------------------------------------
+  "Liens enregistrés :": "Saved links:",
+  "Liens enregistrés": "Saved links",
+  "Ajouter la page courante": "Add the current page",
+  "Ajouter cette page": "Add this page",
+  "Aucun lien pour l'instant.": "No links yet.",
+  "Utilisez le clic droit sur une page ou un lien.": "Right-click a page or a link to save it.",
+  "Ouvrir l'application": "Open the app",
+  "Titre du lien": "Link title",
+  // Planche : recadrage de la grille, mise en page, tri et note de collection
+  "{asked} colonnes ne tiennent pas : {kept} au maximum sur cette feuille.":
+    "{asked} columns do not fit: {kept} at most on this sheet.",
+  "{asked} rangées ne tiennent pas : {kept} au maximum sur cette feuille.":
+    "{asked} rows do not fit: {kept} at most on this sheet.",
+  "Réduisez l'écart ou la marge pour en placer davantage.":
+    "Reduce the gap or the margin to fit more.",
+  "Les marges ne laissent aucune place à une étiquette sur cette feuille.":
+    "The margins leave no room for a label on this sheet.",
+  "Page d'information": "Information page",
+  "Découpe": "Cutting",
+  "Page": "Page",
+  "Ce qu'on imprime": "What gets printed",
+  "Trier": "Sort",
+  "{label} pour {title}": "{label} for {title}",
+  "raison inconnue": "unknown reason",
+  "{label} — n'a pas répondu": "{label} — did not respond",
+  "{label} n'a pas répondu à l'instant : {message} Essayez {autre}.":
+    "{label} did not respond just now: {message} Try {autre}.",
+  "{label} n'a pas répondu à l'instant : {message} Aucun autre service n'est proposé.":
+    "{label} did not respond just now: {message} No other service is offered.",
+  "Réorganiser": "Reorder",
+  "Terminer le rangement": "Finish reordering",
+  "Le rangement déplace un lien dans la collection, et le tableau imprimé suit cet ordre. Un tri le renumérote.":
+    "Reordering moves a link within the collection, and the printed table follows that order. Sorting renumbers it instead.",
+  "Faites glisser une ligne par sa poignée, ou servez-vous des flèches. Échap referme le rangement.":
+    "Drag a row by its handle, or use the arrows. Escape closes reordering.",
+  "Ordre manuel": "Manual order",
+  "Titre, A → Z": "Title, A → Z",
+  "Titre, Z → A": "Title, Z → A",
+  "Domaine, A → Z": "Domain, A → Z",
+  "Domaine, Z → A": "Domain, Z → A",
+  "Tag, A → Z": "Tag, A → Z",
+  "Tag, Z → A": "Tag, Z → A",
+  "Date, du plus récent": "Date, newest first",
+  "Date, du plus ancien": "Date, oldest first",
+  "Monter": "Move up",
+  "Descendre": "Move down",
+  "Déplacer {title} vers le haut": "Move {title} up",
+  "Déplacer {title} vers le bas": "Move {title} down",
+  "Le tri range la liste et renumérote le tableau imprimé. Le rangement n'existe qu'en ordre manuel : on ne réordonne pas une liste triée.":
+    "Sorting orders the list and renumbers the printed table. Reordering exists only in manual order: you do not reorder a sorted list.",
+  "Note de la collection (facultative)": "Collection note (optional)",
+  "Numéroter à partir de": "Number from",
+  "Le numéro du premier lien. Il s'affiche dans la liste et s'imprime avec la planche et le tableau ; effacer les liens ne le remet pas à 1.":
+    "The number of the first link. It shows in the list and prints with the sheet and the table; clearing the links does not reset it to 1.",
+  "De quoi parle cette collection…": "What this collection is about…",
+  "Exporter ces étiquettes (ZIP)": "Export these labels (ZIP)",
+  "Export impossible": "Export failed",
+  "Étiquettes exportées : {filename}": "Labels exported: {filename}",
+  "{count} étiquette — {filename} enregistré": "{count} label — {filename} saved",
+  "{count} étiquettes — {filename} enregistré": "{count} labels — {filename} saved",
+  "Exemplaires": "Copies",
+  "Un seul lien": "A single link",
+  "Plusieurs": "Several",
+  "Toute la collection ({count} lien)": "The whole collection ({count} link)",
+  "Toute la collection ({count} liens)": "The whole collection ({count} links)",
+  "Seulement ceux que je coche ({count} lien coché)": "Only the ones I tick ({count} link ticked)",
+  "Seulement ceux que je coche ({count} liens cochés)": "Only the ones I tick ({count} links ticked)",
+  "le lien affiché": "the displayed link",
+  "Arrêter": "Stop",
+  "Aperçu à la taille réelle": "Preview at real size",
+  "Étiquette": "Label",
+  "En-tête de page": "Page header",
+  "Exporter la planche (ZIP)": "Export the sheet (ZIP)",
+  "Planche exportée : {filename}": "Sheet exported: {filename}",
+  "Nom de la collection en haut de chaque page": "Collection name at the top of every page",
+  "Avec la date d'impression": "With the print date",
+  "Avec la note de collection": "With the collection note",
+  "Ajuster l'espacement": "Adjust the spacing",
+  "Aperçu à {multiple} × la taille réelle ({width} × {height} mm).":
+    "Preview at {multiple} × real size ({width} × {height} mm).",
+  "Aperçu à la taille réelle ({width} × {height} mm).":
+    "Preview at real size ({width} × {height} mm).",
+  "Date non imprimée : elle exigerait un texte trop petit pour être lu.":
+    "Date not printed: it would need text too small to read.",
+  "Date non imprimée : elle ne tient pas sur ce format, réduisez la taille du texte.":
+    "Date not printed: it does not fit this format, reduce the text size.",
+  "Texte empilé : le QR Code laisse trop peu de largeur pour une colonne de texte.":
+    "Text stacked: the QR Code leaves too little width for a text column.",
+  "Orientation : {label}": "Orientation: {label}",
+  "Ce lien a un raccourci : cochez son adresse courte dans la liste, et le QR Code l'encodera à la place.":
+    "This link has a short URL: tick its short address in the list, and the QR Code will encode that instead.",
+  "Lien court :": "Short link:",
+  "Encoder {url} pour « {title} »": "Encode {url} for “{title}”",
+  "Encoder ce lien dans le QR Code, à la place de l'adresse d'origine.":
+    "Encode this link in the QR Code, instead of the original address.",
+  "Le texte imprimé n'y change rien : c'est la largeur du QR Code qui dépasse celle de l'étiquette.":
+    "The printed text changes nothing here: it is the QR Code's width that exceeds the label's.",
+  "La place manque en hauteur : décochez du texte sous le QR Code, ou prenez une étiquette plus longue.":
+    "Height is what runs short: untick some text below the QR Code, or use a longer label.",
+  "Disposition précédente": "Previous layout",
+  "Disposition suivante": "Next layout",
+  "Les {asked} ne peuvent pas tenir sur une page : {columns} × {rows} à la place.":
+    "The {asked} cannot fit on one page: {columns} × {rows} instead.",
+  "Écart {gap} mm et marge {margin} mm : les {columns} × {rows} tiennent sur la feuille.":
+    "Gap {gap} mm and margin {margin} mm: the {columns} × {rows} fit on the sheet.",
+  "Imprimer la note de collection sous le nom": "Print the collection note under the name",
+  "Écrivez d'abord la note de collection, dans le panneau de gauche.":
+    "Write the collection note first, in the left-hand panel.",
+  "L'en-tête a besoin de {need} mm de marge en haut, et la marge actuelle est de {margin} mm. Augmentez la marge, ou décochez l'en-tête.":
+    "The header needs {need} mm of top margin, and the current margin is {margin} mm. Increase the margin, or untick the header.",
+  "Tracer une bordure autour de chaque étiquette": "Draw a border around each label",
+  "Vider la collection": "Clear collection",
+  "Collection": "Collection",
+  "Collection précédente": "Previous collection",
+  "Collection suivante": "Next collection",
+  "Nouvelle collection": "New collection",
+  "Mise en page automatique": "Automatic layout",
+  "Mise en page automatique : {columns} × {rows} = {perPage} étiquettes de {width} × {height} mm par page, calculées pour ce contenu.":
+    "Automatic layout: {columns} × {rows} = {perPage} labels of {width} × {height} mm per page, computed for this content.",
+  "Mise en page automatique : non appliquée — les cotes du fabricant sont conservées.":
+    "Automatic layout: not applied — the manufacturer’s dimensions are kept.",
+  "Les {count} étiquettes ne tiennent pas sur une page : la planche en demande {pages}.":
+    "The {count} labels do not fit on one page: the sheet needs {pages}.",
+  "Une planche du commerce garde les cotes de son fabricant : la mise en page automatique ne s'y applique pas.":
+    "A commercial sheet keeps its manufacturer’s dimensions: automatic layout does not apply to it.",
+  "Création impossible": "Could not create the collection",
+  "Suppression impossible": "Could not delete the collection",
+  "Il doit rester au moins une collection": "At least one collection must remain",
+  "Renommage impossible": "Could not rename the collection",
+  "Collection supprimée": "Collection deleted",
+  "Collection affichée": "Displayed collection",
+  "Nouvelle": "New",
+  "Déplacer vers…": "Move to…",
+  "Déplacer vers une collection": "Move to a collection",
+  "{count} lien déplacé vers « {name} »": "{count} link moved to “{name}”",
+  "{count} liens déplacés vers « {name} »": "{count} links moved to “{name}”",
+  "{count} adresse déjà présente : fusionnée": "{count} address already there: merged",
+  "{count} adresses déjà présentes : fusionnées": "{count} addresses already there: merged",
+  "Confirmer : {count} lien sera perdu": "Confirm: {count} link will be lost",
+  "Confirmer : {count} liens seront perdus": "Confirm: {count} links will be lost",
+  "Les collections ne sont disponibles que dans l'extension":
+    "Collections are available in the extension only",
+  "Navigation privée : ces liens ne sont conservés que jusqu'à la fermeture du navigateur.":
+    "Private browsing: these links are kept only until the browser closes.",
+  "Si vous voulez un lien plus court, choisissez un service puis cliquez sur Raccourcir. Rien ne change tant que vous ne le faites pas.":
+    "If you want a shorter link, choose a service and then click Shorten. Nothing changes until you do.",
+  "T.LY est proposé par défaut : le lien est plus court et reste anonyme.":
+    "T.LY is offered by default: the link is shorter and stays anonymous.",
+  "{name} est le service que vous avez choisi : {note}":
+    "{name} is the service you chose: {note}",
+  "Vous pouvez aussi choisir un autre service de raccourcissement.":
+    "You can also choose another shortening service.",
+  "{reason} Portez la marge haute à {mm} mm, ou décochez l'en-tête.":
+    "{reason} Raise the top margin to {mm} mm, or untick the header.",
+  "Créer un compte T.LY (parrainage)": "Create a T.LY account (referral)",
+  "Ouvre la page d'inscription T.LY : le projet est crédité du parrainage.":
+    "Opens the T.LY sign-up page: the project is credited with the referral.",
+  "Navigation privée": "Private browsing",
+  "Fenêtre privée : cette collection n'est conservée que jusqu'à la fermeture du navigateur.":
+    "Private window: this collection is kept only until the browser closes.",
+  "Fenêtre privée : les liens enregistrés rejoignent une collection conservée sur votre appareil.":
+    "Private window: saved links go to a collection kept on your device.",
+  "Chargement…": "Loading…",
+  "Cette page ne peut pas être enregistrée.": "This page cannot be saved.",
+  "Lien supprimé": "Link deleted",
+  "Rien à enregistrer sur cette page": "Nothing to save on this page",
+  "Déjà enregistré": "Already saved",
+  "Page ajoutée": "Page added",
+  "Liste vidée": "List cleared",
+  "Téléchargement impossible": "Download failed",
+  "{filename} enregistré": "{filename} saved",
+  " (ouvre un nouvel onglet)": " (opens in a new tab)",
+  "Supprimer": "Delete",
+  "Supprimer « {title} »": "Delete “{title}”",
+  "{label} : aucune réponse après {ms} ms": "{label}: no response after {ms} ms",
+  "tabs.query": "tabs.query",
+  "lecture de l'onglet": "reading the tab",
+  "Démarrage impossible": "Startup failed",
+  "API détectée :": "API detected:",
+  "{message} — API détectée : {api}": "{message} — detected API: {api}",
+  "Erreur :": "Error:",
+
+  // -------------------------------------------------------------------------
+  // Menus contextuels
+  // -------------------------------------------------------------------------
+  "Ajouter cette page à URLQRCodePrinter": "Add this page to URLQRCodePrinter",
+  "Ajouter ce lien à URLQRCodePrinter": "Add this link to URLQRCodePrinter",
+  "Ajouter « %s » à URLQRCodePrinter": "Add “%s” to URLQRCodePrinter",
+  "Ouvrir URLQRCodePrinter": "Open URLQRCodePrinter",
+
+  // -------------------------------------------------------------------------
+  // Application — coquille HTML
+  // -------------------------------------------------------------------------
+  "Collectez vos liens, imprimez-les en QR Codes.": "Collect your links, print them as QR Codes.",
+  "Feuille de style obsolète.": "Outdated stylesheet.",
+  "Le navigateur utilise une ancienne version du style : l'aperçu de la planche ne reflète pas ce qui sera imprimé.": "The browser is using an old version of the stylesheet: the sheet preview does not reflect what will be printed.",
+  "Rechargez l'extension (↻ dans brave://extensions), puis rouvrez cette page. Si cela persiste, videz le cache du navigateur.": "Reload the extension (↻ in brave://extensions), then reopen this page. If it persists, clear the browser cache.",
+  "Ma collection": "My collection",
+  "Nom de la collection": "Collection name",
+  "Mes liens": "My links",
+  "URL à ajouter": "URL to add",
+  "https://exemple.com/page": "https://example.com/page",
+  "Ajouter": "Add",
+  "Rechercher": "Search",
+  "Rechercher…": "Search…",
+  "Raccourcir les liens": "Shorten links",
+  "(option)": "(optional)",
+  "Raccourcir": "Shorten",
+  "Retirer": "Remove",
+  "Service": "Service",
+  "T.LY (défaut) — lien plus court": "T.LY (default) — shorter link",
+  "TinyURL — liens durables": "TinyURL — durable links",
+  "Lien plus court, servi par t.ly. Les liens créés ici sont anonymes : ils ne sont rattachés à aucun compte T.LY.":
+    "Shorter link, served by t.ly. Links created here are anonymous: they are not attached to any T.LY account.",
+  "Sans clé d'API, HTTPS, liens durables. Service commercial.":
+    "No API key, HTTPS, durable links. Commercial service.",
+  "Sans clé ni statistiques. Service bénévole, régulièrement indisponible.":
+    "No key and no statistics. Volunteer-run service, regularly unavailable.",
+  "Même infrastructure que is.gd, mais les liens affichent un avertissement avant redirection.":
+    "Same infrastructure as is.gd, but links show a warning before redirecting.",
+  "Sans clé, statistiques de clics. Répond en HTTP : le lien est ramené en HTTPS.":
+    "No key, click statistics. Answers over HTTP: the link is brought back to HTTPS.",
+  "T.LY n'accepte un lien anonyme que depuis l'extension. Choisissez un autre service, ou passez par la fenêtre de l'extension.":
+    "T.LY accepts an anonymous link only from the extension. Choose another service, or use the extension window.",
+  "is.gd — sans statistiques": "is.gd — no statistics",
+  "v.gd — avertissement avant redirection": "v.gd — warning before redirect",
+  "spoo.me — statistiques de clics": "spoo.me — click statistics",
+  "Tout sélectionner": "Select all",
+  "Aucun lien.": "No links.",
+  "Ajoutez-en un ci-dessus, importez une archive, ou utilisez l'extension navigateur pour les collecter au clic droit.": "Add one above, import an archive, or use the browser extension to collect them by right-clicking.",
+  "Exporter": "Export",
+  "Tableur + QR Code": "Spreadsheet + QR Code",
+  "Archive": "Archive",
+  "Importer…": "Import…",
+  "Relit l'archive JSON, le dossier d'étiquettes .zip ou un CSV exporté d'ici": "Reads back the JSON archive, the .zip label folder or a CSV exported from here",
+  "Importer relit l'Archive, le .zip d'étiquettes ou un CSV, puis demande s'il faut fusionner, remplacer ou créer une collection ; les liens déjà présents sont ignorés.":
+    "Import reads back the Archive, the label .zip or a CSV, then asks whether to merge, replace or create a collection; links already present are ignored.",
+  "{count} lien lu dans {file}": "{count} link read from {file}",
+  "{count} liens lus dans {file}": "{count} links read from {file}",
+  "Fusionner avec « {name} »": "Merge into “{name}”",
+  "Ajoute les liens lus à la collection affichée ; son nom et sa note ne changent pas.":
+    "Adds the links read to the displayed collection; its name and note stay unchanged.",
+  "Remplacer « {name} »": "Replace “{name}”",
+  "Vide la collection affichée, puis y met les liens du fichier : son nom et sa note deviennent ceux du fichier.":
+    "Empties the displayed collection, then puts the file’s links in it: its name and note become those of the file.",
+  "Nouvelle collection « {name} »": "New collection “{name}”",
+  "Crée une collection à part et y range les liens lus ; la collection affichée n'est pas touchée.":
+    "Creates a separate collection and files the links read there; the displayed collection is left untouched.",
+  "Le fichier porte le nom de collection « {name} ».":
+    "The file carries the collection name “{name}”.",
+  "Le fichier porte le nom de collection « {name} » et sa note.":
+    "The file carries the collection name “{name}” and its note.",
+  "Le fichier ne porte ni nom ni note de collection : « Remplacer » viderait aussi le nom et la note de la collection affichée.":
+    "The file carries no collection name or note: “Replace” would also empty the name and note of the displayed collection.",
+  "Navigation privée : seuls les liens changent ; son nom et sa note ne sont pas modifiables.":
+    "Private browsing: only the links change; its name and note cannot be edited.",
+  "Nom vide : cette collection s'affiche et s'exporte sous le nom « {name} ».":
+    "Empty name: this collection is displayed and exported as “{name}”.",
+  "Mise en forme": "Layout",
+  "Le QR Code pointe vers": "The QR Code points to",
+  "Planche d'étiquettes": "Label sheet",
+  "Tableau": "Table",
+  "Étiquette Niimbot": "Niimbot label",
+  "Étiquette (divers)": "Label (misc.)",
+  "Disposition": "Layout",
+  "Largeur du QR Code": "QR Code width",
+  "Taille du texte (pt)": "Text size (pt)",
+  "Sous chaque QR Code": "Below each QR Code",
+  "URL": "URL",
+  "Date de collecte": "Collection date",
+  "Avec l'heure": "With time",
+  "N° du lien": "Link no.",
+  "Colonnes": "Columns",
+  "Rangées": "Rows",
+  "Marge gauche et droite (mm)": "Left and right margin (mm)",
+  "Marge haut et bas (mm)": "Top and bottom margin (mm)",
+  "Écart entre étiquettes — horizontal (mm)": "Gap between labels — horizontal (mm)",
+  "Écart entre étiquettes — vertical (mm)": "Gap between labels — vertical (mm)",
+  "Décalage horizontal (mm)": "Horizontal offset (mm)",
+  "Décalage vertical (mm)": "Vertical offset (mm)",
+  "Imprimez d'abord sur papier ordinaire, superposez la feuille obtenue à votre planche : si le texte est trop haut ou trop à gauche, corrigez ici.": "Print on plain paper first and overlay the result on your sheet: if the text is too high or too far left, correct it here.",
+  "Taille du QR Code": "QR Code size",
+  "Orientation de la page": "Page orientation",
+  // Le sens de la feuille, sous « Orientation de la page ». Les deux libellés
+  // sont donnés à `t()` par variable : ils échappaient au relevé des clés, et
+  // « Paysage » s'affichait en français dans l'interface anglaise.
+  "Portrait": "Portrait",
+  "Paysage": "Landscape",
+  "Tableau imprimé": "Printed table",
+  "N°": "No.",
+  "QR Code": "QR Code",
+  "Titre": "Title",
+  "Tags": "Tags",
+  "Note": "Note",
+  "Date": "Date",
+  "Grille et bordures": "Grid and borders",
+  "{count} ligne imprimée sur {pages} page.": "{count} row printed on {pages} page.",
+  "{count} lignes imprimées sur {pages} pages.": "{count} rows printed on {pages} pages.",
+  "Un tableau dense, adapté à une relecture ou à un archivage papier.": "A dense table, suited to review or paper archiving.",
+  "Exporter le tableau (ZIP)": "Export table (ZIP)",
+  "L'export du tableau produit un modèle JSON, les QR Codes en PNG et une page HTML. La sélection et les colonnes cochées s'appliquent.": "The table export produces a JSON model, the QR Codes as PNG and an HTML page. The selection and checked columns apply.",
+  "Format d'étiquette": "Label format",
+  "Densité": "Density",
+  "Copies": "Copies",
+  "Disposition du texte": "Text orientation",
+  // Les cinq dispositions de texte. Mêmes mots que le guide anglais, qui les
+  // portait déjà : les libellés vivent dans un tableau d'`app.js` et sont donnés
+  // à `t()` par variable, donc le relevé des clés ne les voyait pas — la liste
+  // entière s'affichait en français dans l'interface anglaise.
+  "Texte droit, sous le QR Code": "Text upright, below the QR Code",
+  "Texte droit, au-dessus du QR Code": "Text upright, above the QR Code",
+  "Texte tourné, se lit de bas en haut": "Rotated text, read bottom to top",
+  "Texte tourné, se lit de haut en bas": "Rotated text, read top to bottom",
+  "Texte à droite du QR Code": "Text to the right of the QR Code",
+  "Lien à imprimer": "Link to print",
+  "Consommable": "Supply",
+  "Taille du texte (mm)": "Text size (mm)",
+  "Taille du titre (mm)": "Title size (mm)",
+  "Taille du QR Code (mm)": "QR Code size (mm)",
+  "QR Code : {mm} mm de côté, {px} px par module. Réglable de {min} à {max} mm sur cette tête.": "QR Code: {mm} mm wide, {px} px per module. Adjustable from {min} to {max} mm on this printhead.",
+  "La taille demandée a été ramenée à ce qui tient.": "The requested size was brought back to what fits.",
+  "Contenu de l'étiquette": "Label content",
+  "Domaine seul": "Host only",
+  "Aucune imprimante connectée": "No printer connected",
+  "Connecter": "Connect",
+  "Déconnecter": "Disconnect",
+  "Imprimer cette étiquette": "Print this label",
+  "Imprimer en série": "Batch printing",
+  "Quels liens": "Which links",
+  "Exemplaires de chacun": "Copies of each",
+  "Imprimer la collection": "Print the collection",
+  "Marge (mm)": "Margin (mm)",
+  "Traits de coupe": "Cut marks",
+  "Un dossier d'images prêtes à imprimer, avec une planche HTML et un CSV. Fonctionne avec n'importe quelle étiqueteuse, ou sur papier.": "A folder of print-ready images, with an HTML sheet and a CSV. Works with any label printer, or on paper.",
+  "Exporter les images (ZIP)": "Export images (ZIP)",
+  "Exporter l'image (ZIP)": "Export image (ZIP)",
+  "Exporter les {count} images (ZIP)": "Export {count} images (ZIP)",
+  "Exporter la sélection ({count})": "Export selection ({count})",
+  "Imprimer": "Print",
+  "Langue": "Language",
+
+  // -------------------------------------------------------------------------
+  // Application — messages dynamiques
+  // -------------------------------------------------------------------------
+  " Le lien le plus dense est « {title} ».": " The densest link is “{title}”.",
+  " et ": " and ",
+  " — aucune date : elle ne tient pas sur une ligne à cette taille de texte.": " — no date: it does not fit on one line at this text size.",
+  " — date non imprimée : elle exigerait un texte trop petit pour être lu.": " — date not printed: it would require text too small to read.",
+  " — texte empilé : le QR Code laisse trop peu de largeur pour une colonne de texte.": " — stacked text: the QR Code leaves too little width for a text column.",
+  " — {count} raccourci en place": " — {count} short link in place",
+  " — {count} raccourcis en place": " — {count} short links in place",
+  "Ajoutez des liens pour voir un aperçu.": "Add links to see a preview.",
+  "Ajoutez un tag ou une note depuis la liste (bouton ✎) pour pouvoir les imprimer.": "Add a tag or a note from the list (✎ button) to be able to print them.",
+  "Annuler": "Cancel",
+  "Enregistrer": "Save",
+  "Fermer": "Close",
+  "Aperçu composé avec le {profile} ({mm} mm utiles, {dpi} dpi), sans imprimante connectée : les dimensions et le nombre de modules sont exacts.": "Preview composed with the {profile} ({mm} mm usable, {dpi} dpi), without a connected printer: the dimensions and module count are exact.",
+  "Arrêt demandé : la série s'arrête après l'étiquette en cours.": "Stop requested: the series stops after the current label.",
+  "Arrêter la série": "Stop the series",
+  "Assemblage…": "Assembling…",
+  "Aucun lien coché : cochez les liens à imprimer dans la liste, ou choisissez « Toute la collection ».": "No link checked: check the links to print in the list, or choose “the whole collection”.",
+  "Aucun lien coché : cochez les étiquettes à imprimer, ou choisissez « toute la collection »": "No link checked: check the labels to print, or choose “the whole collection”",
+  "Aucun lien coché : l'impression portera sur toute la collection": "No link checked: printing will cover the whole collection",
+  "Aucun lien coché : l'impression portera sur toute la collection ({count}).": "No link checked: printing will cover the whole collection ({count}).",
+  "Aucun lien dans la collection": "No link in the collection",
+  "Aucun lien dans la collection.": "No link in the collection.",
+  "Aucun lien exploitable dans {file}": "No usable link in {file}",
+  "Aucun lien n'a de {what} : ajoutez-en un avec le bouton ✎ de la liste.": "No link has a {what}: add one with the ✎ button in the list.",
+  "Aucun lien ne correspond à la recherche.": "No link matches the search.",
+  "Aucun lien à imprimer": "No link to print",
+  "Aucun lien. Ajoutez-en un ci-dessus, importez une archive, ou utilisez l'extension navigateur.": "No links. Add one above, import an archive, or use the browser extension.",
+  "Aucune colonne sélectionnée : cochez au moins une colonne.": "No column selected: check at least one column.",
+  "Aucune date imprimée.": "No date printed.",
+  "CSV": "CSV",
+  "Ce lien est déjà dans la collection": "This link is already in the collection",
+  "Chaque ligne de plus réduit la place du QR Code.": "Each extra line reduces the space for the QR Code.",
+  "Collection vidée": "Collection cleared",
+  "Composition de l'étiquette…": "Composing the label…",
+  "Connecté : {details}.": "Connected: {details}.",
+  "Date de collecte sur sa propre ligne — {sample}.": "Collection date on its own line — {sample}.",
+  "Date non imprimée sur {count} étiquette : elle ne tient pas sur une ligne à cette largeur.": "Date not printed on {count} label: it does not fit on one line at this width.",
+  "Texte coupé sur {count} étiquette : il ne tient pas entier à cette taille. Raccourcissez l'adresse, réduisez le QR Code, décochez le titre ou l'URL, ou prenez une étiquette plus grande.":
+    "Text cut on {count} label: it does not fit whole at this size. Shorten the address, reduce the QR Code, untick the title or the URL, or use a larger label.",
+  "Texte coupé sur {count} étiquettes : ils ne tiennent pas entiers à cette taille. Raccourcissez les adresses, réduisez le QR Code, décochez le titre ou l'URL, ou prenez une étiquette plus grande.":
+    "Text cut on {count} labels: they do not fit whole at this size. Shorten the addresses, reduce the QR Code, untick the title or the URL, or use a larger label.",
+  "Date non imprimée sur {count} étiquettes : elle ne tient pas sur une ligne à cette largeur.": "Date not printed on {count} labels: it does not fit on one line at this width.",
+  "Décalage appliqué : {moves}.": "Offset applied: {moves}.",
+  "Entrée pour enregistrer, Échap pour annuler. Tags séparés par des virgules.": "Enter to save, Escape to cancel. Tags separated by commas.",
+  "Envoi en cours…": "Sending…",
+  "Export impossible : {message}": "Export failed: {message}",
+  "Filtrer sur le tag « {tag} »": "Filter by tag “{tag}”",
+  "Génération…": "Generating…",
+  "Import impossible : {message}": "Import failed: {message}",
+  "Impression directe indisponible — voir le message ci-dessus.": "Direct printing unavailable — see the message above.",
+  "Impression impossible": "Printing failed",
+  "Impression {page}/{copies}…": "Printing {page}/{copies}…",
+  "Imprimante connectée : {id}. Aperçu et impression identiques.": "Printer connected: {id}. Preview and printing are identical.",
+  "Imprimante connectée : {id}. L'aperçu montre le {profile} choisi ; « Imprimer » se fera au format du {connected}.": "Printer connected: {id}. The preview shows the chosen {profile}; “Print” will use the format of the {connected}.",
+  "Imprimante déconnectée": "Printer disconnected",
+  "Imprimer la colonne « {what} »": "Print the “{what}” column",
+  "Imprimer la sélection ({count})": "Print the selection ({count})",
+  "Imprimer le lien": "Print the link",
+  "Imprimer les {count} liens": "Print the {count} links",
+  "Imprimer {count} étiquette": "Print {count} label",
+  "Imprimer {count} étiquettes": "Print {count} labels",
+  "L'URL collectée": "The collected URL",
+  "Le QR Code encode l'URL collectée.": "The QR Code encodes the collected URL.",
+  "Ce choix vaut pour toute la collection ; chaque lien peut dire le contraire dans la liste.":
+    "This choice applies to the whole collection; each link can say the opposite in the list.",
+  "Le QR Code seul, sans texte sous lui.": "The QR Code alone, with no text below it.",
+  "Le lien raccourci": "The shortened link",
+  "Le navigateur n'a pas pu encoder l'image.": "The browser could not encode the image.",
+  "Le numéro du lien s'imprime au-dessus du titre.": "The link number is printed above the title.",
+  "Lecture…": "Reading…",
+  "Les tags et la note saisis dans la liste (bouton ✎) peuvent être imprimés ici.": "Tags and the note entered in the list (✎ button) can be printed here.",
+  "Les {count} liens sont cochés.": "All {count} links are checked.",
+  "Lien ajouté": "Link added",
+  "Lien mis à jour": "Link updated",
+  "Longueur imposée par le rouleau : {mm} mm.": "Length imposed by the roll: {mm} mm.",
+  "Markdown": "Markdown",
+  "Modifier le titre, les tags et la note": "Edit the title, tags and note",
+  "Modifier titre, tags et note de {title}": "Edit title, tags and note for {title}",
+  "Niimbot {id} — {mm} mm utiles, {dpi} dpi": "Niimbot {id} — {mm} mm usable, {dpi} dpi",
+  "Note libre": "Free note",
+  "QR Code de {side} mm ({module} mm par module, minimum {minimum} mm) — réglable de {range} — {lines} de texte.": "QR Code {side} mm ({module} mm per module, minimum {minimum} mm) — adjustable from {range} — {lines} of text.",
+  "QR Code {done}/{total}…": "QR Code {done}/{total}…",
+  "Raccourcissement impossible : {message}": "Shortening failed: {message}",
+  "Raccourcissement via {name}…": "Shortening via {name}…",
+  "Rang dans la collection, celui du tableau imprimé": "Rank in the collection, the one in the printed table",
+  "Recherche de l'imprimante…": "Searching for the printer…",
+  "Rouleau continu : la longueur suit le contenu.": "Continuous roll: the length follows the content.",
+  "Saisissez une URL.": "Enter a URL.",
+  "Sous le QR Code : {list}. Le texte est découpé à la largeur de la tête.": "Below the QR Code: {list}. The text is wrapped to the width of the printhead.",
+  "Stockage temporaire : IndexedDB indisponible, les liens seront perdus": "Temporary storage: IndexedDB unavailable, links will be lost",
+  "Supprimer {title}": "Delete {title}",
+  "Sélectionner {title}": "Select {title}",
+  "Rien à imprimer : cochez au moins un lien dans la liste, ou choisissez « Toute la collection ».":
+    "Nothing to print: tick at least one link in the list, or choose \u201cThe whole collection\u201d.",
+  "{profile} — « {title} » : {reason}": "{profile} — \u201c{title}\u201d: {reason}",
+  "Taille des étiquettes déduite de ces six valeurs : {size}, {columns} × {rows} par feuille.": "Label size derived from these six values: {size}, {columns} × {rows} per sheet.",
+  "Texte de {size} mm de haut, {lines} de texte.": "Text {size} mm high, {lines} of text.",
+  "Texte coupé : il ne tient pas entier sur cette étiquette. Raccourcissez l'adresse, décochez du contenu, ou prenez une étiquette plus longue.": "Text cut off: it does not fit whole on this label. Shorten the address, untick some content, or take a longer label.",
+  "Titre de la page": "Page title",
+  "Tous les liens visés sont déjà raccourcis.": "All targeted links are already shortened.",
+  "bas": "bottom",
+  "droite": "right",
+  "gauche": "left",
+  "haut": "top",
+  "impression impossible": "printing failed",
+  "l'URL": "the URL",
+  "la date de collecte": "the collection date",
+  "la date et l'heure": "the date and time",
+  "largeur mesurée {count} px": "measured width {count} px",
+  "le domaine": "the host",
+  "le numéro du lien": "the link number",
+  "le titre": "the title",
+  "les {count} liens de la collection": "the {count} links in the collection",
+  "longueur libre": "free length",
+  "modèle non rapporté": "model not reported",
+  "modèle {id}": "model {id}",
+  "note": "note",
+  "sur {count}.": "out of {count}.",
+  "série arrêtée": "series stopped",
+  "tag": "tag",
+  "toute la collection": "the whole collection",
+  "veille, travail": "reading, work",
+  "{columns} × {rows} = {perPage} de {size} mm, {pages}": "{columns} × {rows} = {perPage} of {size} mm, {pages}",
+  "{count} déjà présent": "{count} already present",
+  "{count} déjà présents": "{count} already present",
+  "{count} en échec — {message}": "{count} failed — {message}",
+  "{count} illisible": "{count} unreadable",
+  "{count} illisibles": "{count} unreadable",
+  "{count} lien": "{count} link",
+  "{count} lien coché": "{count} checked link",
+  "{count} lien importé": "{count} imported link",
+  "{count} lien raccourci : un QR Code plus court se scanne plus vite et tient sur une plus petite étiquette.": "{count} shortened link: a shorter QR Code scans faster and fits on a smaller label.",
+  "{count} liens": "{count} links",
+  "{count} liens cochés": "{count} checked links",
+  "{count} liens importés": "{count} imported links",
+  "{count} liens raccourcis : un QR Code plus court se scanne plus vite et tient sur une plus petite étiquette.": "{count} shortened links: a shorter QR Code scans faster and fits on a smaller label.",
+  "{count} ligne": "{count} line",
+  "{count} lignes": "{count} lines",
+  "{count} page": "{count} page",
+  "{count} pages": "{count} pages",
+  "{count} px de tête": "{count} px printhead",
+  "{count} raccourci retiré": "{count} short link removed",
+  "{count} raccourcis retirés": "{count} short links removed",
+  "{count} étiquette imprimée": "{count} label printed",
+  "{count} étiquette par page": "{count} label per page",
+  "{count} étiquettes imprimées": "{count} labels printed",
+  "{count} étiquettes par page": "{count} labels per page",
+  "{label} pour {url}": "{label} for {url}",
+  "{min} à {max} %": "{min} to {max} %",
+  "{mm} mm vers la {direction}": "{mm} mm to the {direction}",
+  "{mm} mm vers le {direction}": "{mm} mm to the {direction}",
+  "{name} · {done}/{total}…": "{name} · {done}/{total}…",
+  "{label} · {scope}{done}. L'URL complète est transmise au service.": "{label} · {scope}{done}. The full URL is sent to the service.",
+  "{profile} — {reason}": "{profile} — {reason}",
+  "{profile} — {width} × {height} px, {px} px par module": "{profile} — {width} × {height} px, {px} px per module",
+  "{source}, {count} exemplaire de chacun.": "{source}, {count} copy of each.",
+  "{source}, {count} exemplaires de chacun.": "{source}, {count} copies of each.",
+  "Étiquette imprimée : {rows} lignes, {frames} trames.": "Label printed: {rows} lines, {frames} frames.",
+  "Étiquette {index}/{total} — {title}": "Label {index}/{total} — {title}",
+  "Étiquette {index}/{total}…": "Label {index}/{total}…",
+
+  // -------------------------------------------------------------------------
+  // Cœur — messages visibles (Bluetooth, raccourcissement, erreurs)
+  // -------------------------------------------------------------------------
+  "Brave désactive Web Bluetooth par défaut. Ouvrez brave://flags/#brave-web-bluetooth-api, mettez « Web Bluetooth API » sur Enabled, puis relancez Brave. Chrome et Edge fonctionnent sans réglage.": "Brave disables Web Bluetooth by default. Open brave://flags/#brave-web-bluetooth-api, set “Web Bluetooth API” to Enabled, then restart Brave. Chrome and Edge work without any setting.",
+  "Web Bluetooth n'est pas disponible dans ce navigateur.": "Web Bluetooth is not available in this browser.",
+  "Safari (macOS et iOS) ne l'implémente pas. {brave}": "Safari (macOS and iOS) does not implement it. {brave}",
+  "Web Bluetooth exige un contexte sécurisé (HTTPS ou localhost).": "Web Bluetooth requires a secure context (HTTPS or localhost).",
+  "Ouvrez l'application via https:// ou http://localhost.": "Open the app over https:// or http://localhost.",
+  "Web Bluetooth est désactivé dans ce navigateur — ou le Bluetooth de cet ordinateur est éteint.": "Web Bluetooth is disabled in this browser — or this computer's Bluetooth is off.",
+  "Web Bluetooth est désactivé dans ce navigateur. {brave}": "Web Bluetooth is disabled in this browser. {brave}",
+  "Aucun appareil choisi. Réveillez l'imprimante, puis relancez la connexion.": "No device chosen. Wake the printer, then start the connection again.",
+  "Le navigateur a refusé l'accès au Bluetooth : autorisez-le pour cette page, puis réessayez.": "The browser denied Bluetooth access: allow it for this page, then try again.",
+  "Connexion impossible : {message}": "Connection failed: {message}",
+  "Transport non connecté": "Transport not connected",
+  "Service de raccourcissement inconnu : {provider}": "Unknown shortening service: {provider}",
+  "Raccourcissement indisponible : fetch absent": "Shortening unavailable: fetch is missing",
+  "Lien à raccourcir invalide : {url}": "Invalid link to shorten: {url}",
+  "Raccourcissement annulé": "Shortening cancelled",
+  "{name} n'a pas répondu en {seconds} s": "{name} did not respond within {seconds} s",
+  "Impossible de joindre {name} : {message}": "Could not reach {name}: {message}",
+  "{count} lien raccourci": "{count} shortened link",
+  "{count} liens raccourcis": "{count} shortened links",
+  "{count} déjà fait": "{count} already done",
+  "{count} déjà faits": "{count} already done",
+  "{count} échec": "{count} failure",
+  "{count} échecs": "{count} failures",
+  "Rouleau continu 12 mm (longueur libre)": "Continuous roll 12 mm (free length)",
+  "Rouleau continu 48 mm (longueur libre)": "Continuous roll 48 mm (free length)",
+  "trop large pour cette tête": "too wide for this printhead",
+  "plus longue que la fenêtre d'impression": "longer than the print window",
+  "marge non imprimée sur les côtés": "unprinted margin on the sides",
+  // Les consommables dont le libellé porte un mot français — les cotes seules
+  // s'écrivent pareil dans les deux langues et n'ont pas besoin d'entrée. Ces
+  // libellés sont eux aussi donnés à `t()` par variable : ils manquaient sans
+  // que rien ne le signale, et s'affichaient en français.
+  "25 × 9,5 mm": "25 × 9.5 mm",
+  "36,5 × 9,5 mm": "36.5 × 9.5 mm",
+  "30 × 70 mm (bijouterie)": "30 × 70 mm (jewellery)",
+  "25 × 78 mm (câble)": "25 × 78 mm (cable)",
+  "35,25 × 50 mm (auto-pelliculé)": "35.25 × 50 mm (self-laminating)",
+  "20 × 20 mm (rond)": "20 × 20 mm (round)",
+  "24 × 13 mm (rond)": "24 × 13 mm (round)",
+  "28 × 14 mm (rond)": "28 × 14 mm (round)",
+  "28 × 15 mm (rond)": "28 × 15 mm (round)",
+  "31 × 31 mm (rond)": "31 × 31 mm (round)",
+  "34 × 17 mm (rond)": "34 × 17 mm (round)",
+  "50 × 50 mm (rond)": "50 × 50 mm (round)",
+  "Niimbot D110 — 12 mm utile (203 dpi)": "Niimbot D110 — 12 mm usable (203 dpi)",
+  "Zebra 2 pouces — 54 mm (203 dpi)": "Zebra 2 inches — 54 mm (203 dpi)",
+  "Générique — 50 × 30 mm (300 dpi)": "Generic — 50 × 30 mm (300 dpi)",
+  "Générique — 70 × 40 mm (300 dpi)": "Generic — 70 × 40 mm (300 dpi)",
+  "Planche A4 — 3 × 8 (63,5 × 33,9 mm)": "A4 sheet — 3 × 8 (63.5 × 33.9 mm)",
+  "Centré": "Centered",
+  "En haut": "Top",
+  "Réparti (QR Code en haut, texte en bas)": "Spread (QR Code at top, text at bottom)",
+  "URL trop longue : le QR Code fait {size} px pour {width} px de large. Raccourcissez l'URL ou utilisez une étiquette plus large.": "URL too long: the QR Code is {size} px for {width} px of width. Shorten the URL or use a wider label.",
+  "QR Code trop dense : {px} px par module (minimum {min}). Raccourcissez l'URL ou augmentez la largeur de l'étiquette.": "QR Code too dense: {px} px per module (minimum {min}). Shorten the URL or increase the label width.",
+  "Dispositions génériques": "Generic layouts",
+  "Avery — A4": "Avery — A4",
+  "Avery — Letter (US)": "Avery — Letter (US)",
+  "A4 — 3 × 4 grandes étiquettes QR Code (60 × 60 mm)": "A4 — 3 × 4 large QR Code labels (60 × 60 mm)",
+  "L'imprimante a signalé une erreur : {label}": "The printer reported an error: {label}",
+  "L'impression n'a pas confirmé son achèvement après {ms} ms. L'étiquette est peut-être incomplète.": "Printing did not confirm completion after {ms} ms. The label may be incomplete.",
+  "URL attendue sous forme de chaîne": "URL must be a string",
+  "URL vide": "Empty URL",
+  "Seuls les schémas http et https sont pris en charge": "Only http and https schemes are supported",
+  "URL invalide : {input}": "Invalid URL: {input}",
+  "Nom d'hôte invalide : {host}": "Invalid host name: {host}",
+  "createLink exige au minimum { url }": "createLink requires at least { url }",
+  "{width} mm × {height} px — {widthPx} × {heightPx} px à {dpi} dpi": "{width} mm × {height} px — {widthPx} × {heightPx} px at {dpi} dpi",
+  "URL trop longue pour ce format : le QR Code fait {size} px pour {width} px de large.": "URL too long for this format: the QR Code is {size} px for {width} px of width.",
+  " — date non imprimée : elle ne tient pas sur ce format, réduisez la taille du texte.": " — date not printed: it does not fit on this format, reduce the text size.",
+  "{detail} Formats acceptés : l'archive JSON du bouton « Archive », le dossier d'étiquettes (.zip) ou son export.json, ou un CSV exporté d'ici.": "{detail} Accepted formats: the JSON archive from the “Archive” button, the label folder (.zip) or its export.json, or a CSV exported from here.",
+  "Fichier illisible : {message}.": "Unreadable file: {message}.",
+  "Archive JSON sans liste de liens": "JSON archive without a link list",
+  "Archive JSON sans liste de liens (format « {format} »)": "JSON archive without a link list (format “{format}”)",
+  "CSV sans ligne de données.": "CSV without a data row.",
+  "CSV sans colonne « URL » (colonnes trouvées : {columns}).": "CSV without an “URL” column (columns found: {columns}).",
+  "Rouleau continu 72 mm (longueur libre)": "Continuous roll 72 mm (free length)",
+  "Brother DK-11218 — 24 mm rond (300 dpi)": "Brother DK-11218 — 24 mm round (300 dpi)",
+  "Brother DK-11219 — 12 mm rond (300 dpi)": "Brother DK-11219 — 12 mm round (300 dpi)",
+  "Brother DK-22205 — 62 mm continu (300 dpi)": "Brother DK-22205 — 62 mm continuous (300 dpi)",
+  "Brother DK-22210 — 29 mm continu (300 dpi)": "Brother DK-22210 — 29 mm continuous (300 dpi)",
+  "Zebra 4 × 6 po — 104 × 152 mm (203 dpi)": "Zebra 4 × 6 in — 104 × 152 mm (203 dpi)",
+
+  // Mention de confidentialité — page présentée avant toute collecte.
+  "Confidentialité — URLQRCodePrinter": "Privacy — URLQRCodePrinter",
+  "Confidentialité": "Privacy",
+  "URLQRCodePrinter collecte les liens que vous choisissez, et rien d'autre. Avant de commencer, voici exactement ce qu'il lit.":
+    "URLQRCodePrinter collects the links you choose, and nothing else. Before you start, here is exactly what it reads.",
+  "Ce que l'extension lit": "What the extension reads",
+  "L'adresse et le titre de la page sur laquelle vous agissez — celle du clic droit, ou celle de l'onglet courant quand vous cliquez sur le bouton. Uniquement à ce moment-là.":
+    "The address and title of the page you act on — the one you right-clicked, or the current tab when you click the button. Only at that moment.",
+  "Ce que l'extension ne fait pas": "What the extension does not do",
+  "Aucun accès à votre historique de navigation.": "No access to your browsing history.",
+  "Aucune lecture en arrière-plan, ni des onglets que vous ne visez pas.":
+    "No reading in the background, and no reading of tabs you did not target.",
+  "Aucun compte, aucun serveur de l'éditeur.": "No account, and no server run by the publisher.",
+  "Aucune mesure d'audience, aucune publicité, aucune revente de données.":
+    "No analytics, no advertising, no selling of data.",
+  "Aucun code hébergé à distance : tout est embarqué dans l'extension.":
+    "No remotely hosted code: everything ships inside the extension.",
+  "Où vont vos liens": "Where your links go",
+  "Ils restent sur votre appareil, dans le stockage local du navigateur. Une seule action envoie quelque chose sur le réseau : si vous demandez le raccourcissement d'un lien, cette adresse est transmise au service que vous avez choisi (TinyURL, is.gd, v.gd ou spoo.me).":
+    "They stay on your device, in the browser's local storage. One action alone sends anything over the network: if you ask for a link to be shortened, that address is sent to the service you chose (TinyURL, is.gd, v.gd or spoo.me).",
+  "Votre accord": "Your consent",
+  "J'accepte": "I accept",
+  "Je refuse": "I decline",
+  "Sans votre accord, l'extension reste installée mais n'enregistre aucun lien. Vous pourrez changer d'avis depuis sa fenêtre.":
+    "Without your consent, the extension stays installed but records no link. You can change your mind from its popup.",
+  "En savoir plus": "Learn more",
+  "La politique de confidentialité complète est publiée avec le code source du projet.":
+    "The full privacy policy is published alongside the project's source code.",
+  "Accord enregistré. Vous pouvez ajouter des liens.":
+    "Consent recorded. You can now add links.",
+  "Refus enregistré. Aucun lien ne sera collecté.":
+    "Refusal recorded. No link will be collected.",
+  "Enregistrement impossible : stockage indisponible.":
+    "Could not record your choice: storage is unavailable.",
+
+  // Rappel dans la fenêtre tant que la mention n'a pas été acceptée.
+  "Avant d'enregistrer un lien, lisez la mention de confidentialité.":
+    "Before recording a link, please read the privacy notice.",
+  "Lire la mention": "Read the notice",
+  "La mention a changé : relisez-la pour continuer à enregistrer.":
+    "The notice has changed: read it again to keep saving links.",
+  "Refus enregistré : acceptez la mention pour enregistrer un lien.":
+    "Consent declined: accept the notice to record a link.",
+};
+
+// ────────────────────────────────────────────────────────────────────────
+// dist/extension-safari/core/i18n.js
+// ────────────────────────────────────────────────────────────────────────
+
+/**
+ * Internationalisation de l'interface — français et anglais.
+ *
+ * Le français est la langue source : les messages sont écrits en français dans
+ * le code, et le catalogue ne contient que les traductions. Une clé absente
+ * retombe donc sur le texte français, jamais sur un identifiant technique — ce
+ * qui rend la migration incrémentale sans jamais afficher de « clé manquante ».
+ *
+ * Les messages peuvent contenir des emplacements `{nom}`, remplacés par `t()`.
+ * Le pluriel passe par `tpl()`, qui choisit la forme adaptée à la langue avec
+ * `Intl.PluralRules` : le français met « 0 lien » au singulier, l'anglais écrit
+ * « 0 links » au pluriel.
+ *
+ * La langue retenue est mémorisée — `chrome.storage.local` dans l'extension
+ * (le service worker y a accès, contrairement à `localStorage`), `localStorage`
+ * sur le Web. La première visite suit la langue du navigateur.
+ */
+
+
+
+/** Langues proposées, dans l'ordre d'affichage. */
+const SUPPORTED_LOCALES = Object.freeze(['fr', 'en']);
+
+/** Langue de repli, et langue source des messages. */
+const DEFAULT_LOCALE = 'fr';
+
+/** Clé de mémorisation, partagée avec le service worker. */
+const LOCALE_STORAGE_KEY = 'locale';
+
+/** Catalogues de traduction. Le français est le texte source, donc absent. */
+const CATALOGS = Object.freeze({ en: EN_MESSAGES });
+
+let currentLocale = DEFAULT_LOCALE;
+const listeners = new Set();
+
+/**
+ * Ramène un code de langue à une langue gérée : « en-GB » → « en ».
+ * @param {unknown} value
+ * @returns {'fr'|'en'|null}
+ */
+function normalizeLocale(value) {
+  if (typeof value !== 'string') return null;
+  const base = value.trim().toLowerCase().split(/[-_]/)[0];
+  return SUPPORTED_LOCALES.includes(base) ? base : null;
+}
+
+/**
+ * Choisit la langue du navigateur, ou le français par défaut.
+ * @param {Navigator|undefined} [navigatorLike]
+ * @returns {'fr'|'en'}
+ */
+function detectLocale(navigatorLike = globalThis.navigator) {
+  const candidates = [navigatorLike?.languages, navigatorLike?.language]
+    .flat()
+    .filter((entry) => typeof entry === 'string' && entry !== '');
+  for (const candidate of candidates) {
+    const normalized = normalizeLocale(candidate);
+    if (normalized) return normalized;
+  }
+  return DEFAULT_LOCALE;
+}
+
+/** La langue actuellement appliquée. */
+function getLocale() {
+  return currentLocale;
+}
+
+/** L'espace de stockage à utiliser, ou `null` hors extension. */
+function resolveArea(area) {
+  if (area) return area;
+  return globalThis.chrome?.storage?.local ?? null;
+}
+
+/**
+ * Lit la langue mémorisée. Ne lève jamais : un stockage indisponible n'est pas
+ * une raison d'échouer au démarrage.
+ * @param {any} [area]
+ * @returns {Promise<'fr'|'en'|null>}
+ */
+async function readStoredLocale(area) {
+  const resolved = resolveArea(area);
+  if (resolved) {
+    try {
+      const data = await resolved.get(LOCALE_STORAGE_KEY);
+      return normalizeLocale(data?.[LOCALE_STORAGE_KEY]);
+    } catch {
+      return null;
+    }
+  }
+  try {
+    return normalizeLocale(globalThis.localStorage?.getItem(LOCALE_STORAGE_KEY));
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Mémorise la langue. Ne lève jamais.
+ * @param {any} [area]
+ * @param {'fr'|'en'} locale
+ * @returns {Promise<void>}
+ */
+async function writeStoredLocale(area, locale) {
+  const resolved = resolveArea(area);
+  if (resolved) {
+    try {
+      await resolved.set({ [LOCALE_STORAGE_KEY]: locale });
+    } catch {
+      // La langue reste appliquée pour la session en cours.
+    }
+    return;
+  }
+  try {
+    globalThis.localStorage?.setItem(LOCALE_STORAGE_KEY, locale);
+  } catch {
+    // Idem.
+  }
+}
+
+/**
+ * Détermine la langue de départ d'une page.
+ *
+ * L'ordre reflète les priorités : un choix explicite passé en option, puis la
+ * langue mémorisée, puis celle du navigateur.
+ *
+ * @param {{ area?: any, locale?: unknown, navigator?: Navigator }} [options]
+ * @returns {Promise<'fr'|'en'>}
+ */
+async function initI18n(options = {}) {
+  const stored = await readStoredLocale(options.area);
+  currentLocale =
+    normalizeLocale(options.locale) ?? stored ?? detectLocale(options.navigator);
+  return currentLocale;
+}
+
+/**
+ * Change la langue, la mémorise et prévient les abonnés.
+ * @param {unknown} locale
+ * @param {{ area?: any }} [options]
+ * @returns {Promise<'fr'|'en'>}
+ */
+async function setLocale(locale, options = {}) {
+  const normalized = normalizeLocale(locale);
+  if (!normalized) return currentLocale;
+  currentLocale = normalized;
+  await writeStoredLocale(options.area, normalized);
+  for (const listener of listeners) {
+    try {
+      listener(normalized);
+    } catch {
+      // Un abonné fautif ne doit pas empêcher les autres d'être prévenus.
+    }
+  }
+  return currentLocale;
+}
+
+/**
+ * S'abonne aux changements de langue.
+ * @param {(locale: 'fr'|'en') => void} listener
+ * @returns {() => void} désabonnement
+ */
+function onLocaleChange(listener) {
+  listeners.add(listener);
+  return () => listeners.delete(listener);
+}
+
+/**
+ * Traduit un message source.
+ * @param {string} source
+ * @param {Record<string, string|number>} [params]
+ * @returns {string}
+ */
+function t(source, params) {
+  const table = CATALOGS[currentLocale];
+  const message = table?.[source] ?? source;
+  if (!params) return message;
+  return message.replace(/\{(\w+)\}/g, (match, name) =>
+    Object.prototype.hasOwnProperty.call(params, name) ? String(params[name]) : match,
+  );
+}
+
+/**
+ * Traduit un message au pluriel.
+ *
+ * `one` et `other` sont les deux formes françaises ; la règle de la langue
+ * courante choisit laquelle traduire. `count` est fourni d'office aux
+ * emplacements du message.
+ *
+ * @param {number} count
+ * @param {string} one
+ * @param {string} other
+ * @param {Record<string, string|number>} [params]
+ * @returns {string}
+ */
+function tpl(count, one, other, params = {}) {
+  const rule = typeof Intl !== 'undefined' && Intl.PluralRules
+    ? new Intl.PluralRules(currentLocale).select(count)
+    : (count === 1 ? 'one' : 'other');
+  return t(rule === 'one' ? one : other, { ...params, count });
+}
+
+/**
+ * Applique les traductions aux éléments balisés du document.
+ *
+ * Les attributs reconnus : `data-i18n` (texte), `data-i18n-placeholder`,
+ * `data-i18n-title` et `data-i18n-aria-label`. Seuls des éléments sans balise
+ * enfant portent `data-i18n` : le texte remplace tout le contenu.
+ *
+ * @param {ParentNode} [root]
+ */
+function applyTranslations(root = globalThis.document) {
+  if (!root?.querySelectorAll) return;
+
+  for (const node of root.querySelectorAll('[data-i18n]')) {
+    const key = node.getAttribute('data-i18n');
+    if (key) node.textContent = t(key);
+  }
+  for (const node of root.querySelectorAll('[data-i18n-placeholder]')) {
+    const key = node.getAttribute('data-i18n-placeholder');
+    if (key) node.setAttribute('placeholder', t(key));
+  }
+  for (const node of root.querySelectorAll('[data-i18n-title]')) {
+    const key = node.getAttribute('data-i18n-title');
+    if (key) node.setAttribute('title', t(key));
+  }
+  for (const node of root.querySelectorAll('[data-i18n-aria-label]')) {
+    const key = node.getAttribute('data-i18n-aria-label');
+    if (key) node.setAttribute('aria-label', t(key));
+  }
+  if (root.documentElement) root.documentElement.lang = currentLocale;
+}
+
+// ────────────────────────────────────────────────────────────────────────
+// dist/extension-safari/core/privacy.js
+// ────────────────────────────────────────────────────────────────────────
+
+/**
+ * Consentement à la mention de confidentialité.
+ *
+ * La FAQ du Chrome Web Store est explicite (questions 10 et 13) : la mention
+ * doit être présentée **dans l'interface du produit**, et l'utilisateur doit
+ * accomplir une action claire pour l'accepter *avant* toute collecte. Une
+ * description soignée sur la fiche du magasin ne satisfait pas cette exigence.
+ *
+ * D'où ce module : il porte l'état du consentement, et c'est lui qui décide si
+ * une collecte peut avoir lieu. Les chemins de collecte — clic droit et fenêtre
+ * — l'interrogent avant d'enregistrer quoi que ce soit.
+ *
+ * `DISCLOSURE_VERSION` existe pour pouvoir **redemander** le consentement si le
+ * texte change de nature. Sans elle, un consentement donné pour une version
+ * antérieure vaudrait pour une version qui dit autre chose.
+ *
+ * Le stockage est injecté, comme pour les réglages : le module se teste sans
+ * navigateur. L'interface attendue est celle de `chrome.storage.local` — un
+ * `get(clé)` qui rend `{ [clé]: valeur }`, et un `set({ [clé]: valeur })`.
+ * C'est le seul stockage auquel le service worker a accès.
+ */
+
+/** Clé de stockage, préfixée pour ne pas entrer en collision avec un autre outil. */
+const CONSENT_KEY = 'url-qr-code-printer/privacy-consent';
+
+/**
+ * Version du texte de mention affiché.
+ *
+ * À incrémenter dès que la mention dit autre chose. Un consentement enregistré
+ * pour une version antérieure ne vaut alors plus rien, et la mention est
+ * présentée de nouveau.
+ *
+ * Version 2 : cinq services de raccourcissement au lieu de quatre, T.LY proposé
+ * d'emblée, et une collection de navigation privée dont les liens vivent en
+ * mémoire. Trois ajouts qui changent ce que la mention décrit — donc un accord à
+ * redemander, comme la règle ci-dessus l'exige.
+ */
+const DISCLOSURE_VERSION = 2;
+
+/** Décisions possibles. Le refus est un état de plein droit, pas une absence. */
+const CONSENT_DECISIONS = Object.freeze(['accepted', 'declined']);
+
+/**
+ * Valide un enregistrement de consentement lu du stockage.
+ *
+ * Un enregistrement illisible ou d'une version périmée vaut `null` — c'est-à-dire
+ * « pas de consentement ». Le défaut penche du côté sûr : on redemande, on ne
+ * suppose jamais l'accord.
+ *
+ * @param {unknown} value
+ * @returns {{ version: number, decision: 'accepted'|'declined', at: number } | null}
+ */
+function sanitizeConsent(value) {
+  if (!value || typeof value !== 'object') return null;
+
+  const version = Number.isInteger(value.version) ? value.version : null;
+  if (version === null || version < 1) return null;
+
+  if (!CONSENT_DECISIONS.includes(value.decision)) return null;
+
+  const at = Number.isFinite(value.at) ? value.at : 0;
+  return { version, decision: value.decision, at };
+}
+
+/**
+ * Le consentement autorise-t-il la collecte ?
+ *
+ * Il faut une acceptation **à la version courante**. Un refus, une absence, ou
+ * une acceptation d'une version antérieure rendent tous `false`.
+ *
+ * @param {{ version: number, decision: string } | null} record
+ * @returns {boolean}
+ */
+function isAccepted(record) {
+  return Boolean(record) && record.decision === 'accepted' && record.version === DISCLOSURE_VERSION;
+}
+
+/**
+ * Faut-il présenter la mention avant de collecter ?
+ * @param {{ version: number, decision: string } | null} record
+ * @returns {boolean}
+ */
+function needsDisclosure(record) {
+  return !isAccepted(record);
+}
+
+/**
+ * Lit le consentement enregistré.
+ *
+ * Une lecture qui échoue vaut « pas de consentement » : c'est le seul défaut
+ * acceptable, puisqu'il empêche la collecte au lieu de la permettre.
+ *
+ * @param {{ get: (key: string) => Promise<object> }} area
+ * @returns {Promise<{ version: number, decision: 'accepted'|'declined', at: number } | null>}
+ */
+async function readConsent(area) {
+  if (!area || typeof area.get !== 'function') return null;
+
+  try {
+    const data = await area.get(CONSENT_KEY);
+    return sanitizeConsent(data?.[CONSENT_KEY]);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Enregistre une décision.
+ *
+ * @param {{ set: (items: object) => Promise<void> }} area
+ * @param {'accepted'|'declined'} decision
+ * @param {{ now?: number, version?: number }} [options]
+ * @returns {Promise<{ version: number, decision: 'accepted'|'declined', at: number }>}
+ * @throws {TypeError} si la décision n'est pas reconnue.
+ */
+async function writeConsent(area, decision, options = {}) {
+  if (!CONSENT_DECISIONS.includes(decision)) {
+    throw new TypeError(`Décision de consentement inconnue : ${decision}`);
+  }
+
+  const record = {
+    version: Number.isInteger(options.version) ? options.version : DISCLOSURE_VERSION,
+    decision,
+    at: Number.isFinite(options.now) ? options.now : Date.now(),
+  };
+
+  await area.set({ [CONSENT_KEY]: record });
+  return record;
+}
+
+// ────────────────────────────────────────────────────────────────────────
+// dist/extension-safari/api.js
+// ────────────────────────────────────────────────────────────────────────
+
+/**
+ * Adaptateur entre les deux implémentations d'API d'extension.
+ *
+ * Chrome expose `chrome`, Safari expose `browser` (et accepte `chrome` en
+ * alias). Les deux renvoient des promesses pour `storage` en MV3, mais leurs
+ * surfaces diffèrent sur des points qui comptent ici :
+ *
+ * - **`contextMenus` n'existe pas sur Safari iOS.** MDN l'annonce non supporté
+ *   et l'API n'y est pas documentée ; le code doit donc se contenter de son
+ *   absence plutôt que d'échouer au chargement.
+ * - **`tab.url` n'est pas garanti sur Safari iOS** avec la seule permission
+ *   `activeTab`. Le motif recommandé par Apple passe par l'injection d'un
+ *   script dans l'onglet actif, ce que fait `readTabContext`.
+ *
+ * Ces fonctions reçoivent l'API en paramètre plutôt que de lire un global :
+ * elles restent ainsi testables hors navigateur.
+ */
+
+/**
+ * Retrouve l'espace de noms des API d'extension.
+ *
+ * @param {any} [scope]
+ * @returns {any|null} `browser` s'il existe, sinon `chrome`, sinon null.
+ */
+function resolveApi(scope = globalThis) {
+  if (scope?.browser?.runtime) return scope.browser;
+  if (scope?.chrome?.runtime) return scope.chrome;
+  // Certains environnements exposent `browser` sans `runtime` : on l'accepte
+  // en dernier recours plutôt que de déclarer l'extension inutilisable.
+  if (scope?.browser) return scope.browser;
+  if (scope?.chrome) return scope.chrome;
+  return null;
+}
+
+/**
+ * Indique si le menu contextuel est utilisable.
+ *
+ * @param {any} api
+ * @returns {boolean}
+ */
+function contextMenusAvailable(api) {
+  return Boolean(api?.contextMenus?.create && api?.contextMenus?.onClicked);
+}
+
+/**
+ * La zone de stockage de session, ou `null` si elle n'existe pas.
+ *
+ * C'est là que vivent les liens de la collection de navigation privée : en
+ * mémoire, pour la durée du navigateur, et nulle part sur le disque. L'API
+ * existe depuis Chrome 102 et **Safari 16.4** — la version minimale du projet —
+ * mais on ne la suppose pas : une zone absente fait disparaître la collection
+ * privée de l'interface plutôt que de laisser croire à une persistance qui
+ * n'aurait pas lieu.
+ *
+ * @param {any} api
+ * @returns {any|null}
+ */
+function sessionStorageArea(api) {
+  const area = api?.storage?.session;
+  if (!area || typeof area.get !== 'function' || typeof area.set !== 'function') return null;
+  return area;
+}
+
+/**
+ * Lit l'URL et le titre de l'onglet actif.
+ *
+ * On tente d'abord `tab.url`, qui suffit sur Chrome et sur Safari macOS. En
+ * l'absence — cas attendu sur Safari iOS — on injecte une lecture dans la page,
+ * ce qui fonctionne avec la seule permission `activeTab`, accordée au moment
+ * où l'utilisateur ouvre la fenêtre de l'extension.
+ *
+ * @param {any} api
+ * @param {{ id?: number, url?: string, title?: string }} tab
+ * @returns {Promise<{ url: string, title: string, injected: boolean }|null>}
+ */
+async function readTabContext(api, tab) {
+  if (!tab) return null;
+
+  if (typeof tab.url === 'string' && tab.url !== '') {
+    return { url: tab.url, title: tab.title ?? '', injected: false };
+  }
+
+  if (typeof tab.id !== 'number' || !api?.scripting?.executeScript) return null;
+
+  try {
+    const results = await api.scripting.executeScript({
+      target: { tabId: tab.id },
+      func: () => ({ url: location.href, title: document.title }),
+    });
+    const first = Array.isArray(results) ? results[0] : results;
+    const value = first?.result;
+    if (!value || typeof value.url !== 'string' || value.url === '') return null;
+    return { url: value.url, title: value.title ?? '', injected: true };
+  } catch {
+    // Page interne du navigateur, onglet non autorisé, injection refusée :
+    // dans tous ces cas il n'y a simplement rien à enregistrer.
+    return null;
+  }
+}
+
+/**
+ * Enregistre les entrées de menu en tolérant leur absence.
+ *
+ * @param {any} api
+ * @param {Array<object>} definitions
+ * @returns {Promise<{ supported: boolean, created: number }>}
+ */
+async function installContextMenus(api, definitions) {
+  if (!contextMenusAvailable(api)) return { supported: false, created: 0 };
+
+  try {
+    await api.contextMenus.removeAll();
+  } catch {
+    // `removeAll` peut échouer au tout premier lancement : sans conséquence.
+  }
+
+  let created = 0;
+  for (const definition of definitions) {
+    try {
+      await api.contextMenus.create(definition);
+      created++;
+    } catch {
+      // Un identifiant déjà pris fait échouer `create` : on continue, le menu
+      // existant reste utilisable.
+    }
+  }
+  return { supported: true, created };
+}
+
+// ────────────────────────────────────────────────────────────────────────
+// dist/extension-safari/privacy.js
+// ────────────────────────────────────────────────────────────────────────
+
+/**
+ * Page de mention de confidentialité.
+ *
+ * Elle n'a qu'un rôle : présenter la mention **dans l'interface du produit** et
+ * recueillir une décision explicite avant toute collecte. La FAQ du Chrome Web
+ * Store (question 10) exclut la fiche du magasin comme support de cette
+ * mention, et exige une action claire de l'utilisateur.
+ *
+ * Le refus est un état de plein droit. Refuser n'installe rien de cassé :
+ * l'extension reste en place, n'enregistre aucun lien, et cette page reste
+ * joignable depuis la fenêtre pour revenir sur la décision.
+ */
+
+
+
+
+
+const api = resolveApi();
+const area = api?.storage?.local;
+
+const el = {
+  accept: document.getElementById('accept'),
+  decline: document.getElementById('decline'),
+  state: document.getElementById('state'),
+};
+
+/**
+ * Met à jour l'affichage de l'état courant.
+ *
+ * Les deux boutons restent actifs après une décision : la FAQ prévoit qu'un
+ * consentement puisse être retiré, et une page qui se figerait obligerait à
+ * désinstaller l'extension pour changer d'avis.
+ *
+ * @param {{ decision: string } | null} record
+ */
+function renderState(record) {
+  if (!el.state) return;
+
+  if (isAccepted(record)) {
+    el.state.textContent = t('Accord enregistré. Vous pouvez ajouter des liens.');
+    el.state.className = 'consent__state consent__state--ok';
+    return;
+  }
+
+  if (record?.decision === 'declined') {
+    el.state.textContent = t('Refus enregistré. Aucun lien ne sera collecté.');
+    el.state.className = 'consent__state consent__state--off';
+    return;
+  }
+
+  el.state.textContent = '';
+  el.state.className = 'consent__state';
+}
+
+/**
+ * Enregistre une décision et rafraîchit l'affichage.
+ *
+ * @param {'accepted'|'declined'} decision
+ */
+async function decide(decision) {
+  if (!area) {
+    // Sans stockage, la décision ne peut pas être conservée : la dire plutôt que
+    // de laisser croire qu'elle a été prise.
+    if (el.state) {
+      el.state.textContent = t('Enregistrement impossible : stockage indisponible.');
+      el.state.className = 'consent__state consent__state--off';
+    }
+    return;
+  }
+
+  const record = await writeConsent(area, decision);
+  renderState(record);
+}
+
+el.accept?.addEventListener('click', () => decide('accepted'));
+el.decline?.addEventListener('click', () => decide('declined'));
+
+/**
+ * Point d'entrée.
+ *
+ * L'`await` de premier niveau est évité, comme dans la fenêtre : une exception
+ * y laisserait une page à moitié initialisée, sans message. Ici, elle est
+ * rattrapée et affichée dans la région d'état.
+ *
+ * @returns {Promise<void>}
+ */
+async function main() {
+  try {
+    // La langue vient d'abord : les messages d'état sont traduits, et un état
+    // affiché avant l'initialisation resterait dans la mauvaise langue.
+    await initI18n({ area: area ?? undefined });
+    applyTranslations();
+
+    renderState(area ? await readConsent(area) : null);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    if (el.state) {
+      el.state.textContent = t('Enregistrement impossible : stockage indisponible.');
+      el.state.className = 'consent__state consent__state--off';
+      el.state.title = message;
+    }
+  }
+}
+
+main();

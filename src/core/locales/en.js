@@ -16,7 +16,7 @@ export const EN_MESSAGES = {
   "Ajouter cette page": "Add this page",
   "Aucun lien pour l'instant.": "No links yet.",
   "Utilisez le clic droit sur une page ou un lien.": "Right-click a page or a link to save it.",
-  "Voir les QR Codes": "View the QR Codes",
+  "Ouvrir l'application": "Open the app",
   "Titre du lien": "Link title",
   // Planche : recadrage de la grille, mise en page, tri et note de collection
   "{asked} colonnes ne tiennent pas : {kept} au maximum sur cette feuille.":
@@ -32,7 +32,6 @@ export const EN_MESSAGES = {
   "Page": "Page",
   "Ce qu'on imprime": "What gets printed",
   "Trier": "Sort",
-  "Encoder le lien raccourci": "Encode the short link",
   "{label} pour {title}": "{label} for {title}",
   "raison inconnue": "unknown reason",
   "{label} — n'a pas répondu": "{label} — did not respond",
@@ -100,8 +99,12 @@ export const EN_MESSAGES = {
   "Texte empilé : le QR Code laisse trop peu de largeur pour une colonne de texte.":
     "Text stacked: the QR Code leaves too little width for a text column.",
   "Orientation : {label}": "Orientation: {label}",
-  "Ce lien a un raccourci : encodez-le à sa place, avec « Encoder le lien raccourci ».":
-    "This link has a short URL: encode it instead, with \u201cEncode the short link\u201d.",
+  "Ce lien a un raccourci : cochez son adresse courte dans la liste, et le QR Code l'encodera à la place.":
+    "This link has a short URL: tick its short address in the list, and the QR Code will encode that instead.",
+  "Lien court :": "Short link:",
+  "Encoder {url} pour « {title} »": "Encode {url} for “{title}”",
+  "Encoder ce lien dans le QR Code, à la place de l'adresse d'origine.":
+    "Encode this link in the QR Code, instead of the original address.",
   "Le texte imprimé n'y change rien : c'est la largeur du QR Code qui dépasse celle de l'étiquette.":
     "The printed text changes nothing here: it is the QR Code's width that exceeds the label's.",
   "La place manque en hauteur : décochez du texte sous le QR Code, ou prenez une étiquette plus longue.":
@@ -118,10 +121,58 @@ export const EN_MESSAGES = {
   "L'en-tête a besoin de {need} mm de marge en haut, et la marge actuelle est de {margin} mm. Augmentez la marge, ou décochez l'en-tête.":
     "The header needs {need} mm of top margin, and the current margin is {margin} mm. Increase the margin, or untick the header.",
   "Tracer une bordure autour de chaque étiquette": "Draw a border around each label",
-  "Tout effacer": "Clear all",
+  "Vider la collection": "Clear collection",
+  "Collection": "Collection",
+  "Collection précédente": "Previous collection",
+  "Collection suivante": "Next collection",
+  "Nouvelle collection": "New collection",
+  "Mise en page automatique": "Automatic layout",
+  "Mise en page automatique : {columns} × {rows} = {perPage} étiquettes de {width} × {height} mm par page, calculées pour ce contenu.":
+    "Automatic layout: {columns} × {rows} = {perPage} labels of {width} × {height} mm per page, computed for this content.",
+  "Mise en page automatique : non appliquée — les cotes du fabricant sont conservées.":
+    "Automatic layout: not applied — the manufacturer’s dimensions are kept.",
+  "Les {count} étiquettes ne tiennent pas sur une page : la planche en demande {pages}.":
+    "The {count} labels do not fit on one page: the sheet needs {pages}.",
+  "Une planche du commerce garde les cotes de son fabricant : la mise en page automatique ne s'y applique pas.":
+    "A commercial sheet keeps its manufacturer’s dimensions: automatic layout does not apply to it.",
+  "Création impossible": "Could not create the collection",
+  "Suppression impossible": "Could not delete the collection",
+  "Il doit rester au moins une collection": "At least one collection must remain",
+  "Renommage impossible": "Could not rename the collection",
+  "Collection supprimée": "Collection deleted",
+  "Collection affichée": "Displayed collection",
+  "Nouvelle": "New",
+  "Déplacer vers…": "Move to…",
+  "Déplacer vers une collection": "Move to a collection",
+  "{count} lien déplacé vers « {name} »": "{count} link moved to “{name}”",
+  "{count} liens déplacés vers « {name} »": "{count} links moved to “{name}”",
+  "{count} adresse déjà présente : fusionnée": "{count} address already there: merged",
+  "{count} adresses déjà présentes : fusionnées": "{count} addresses already there: merged",
+  "Confirmer : {count} lien sera perdu": "Confirm: {count} link will be lost",
+  "Confirmer : {count} liens seront perdus": "Confirm: {count} links will be lost",
+  "Les collections ne sont disponibles que dans l'extension":
+    "Collections are available in the extension only",
+  "Navigation privée : ces liens ne sont conservés que jusqu'à la fermeture du navigateur.":
+    "Private browsing: these links are kept only until the browser closes.",
+  "Si vous voulez un lien plus court, choisissez un service puis cliquez sur Raccourcir. Rien ne change tant que vous ne le faites pas.":
+    "If you want a shorter link, choose a service and then click Shorten. Nothing changes until you do.",
+  "T.LY est proposé par défaut : le lien est plus court et reste anonyme.":
+    "T.LY is offered by default: the link is shorter and stays anonymous.",
+  "{name} est le service que vous avez choisi : {note}":
+    "{name} is the service you chose: {note}",
+  "Vous pouvez aussi choisir un autre service de raccourcissement.":
+    "You can also choose another shortening service.",
+  "{reason} Portez la marge haute à {mm} mm, ou décochez l'en-tête.":
+    "{reason} Raise the top margin to {mm} mm, or untick the header.",
+  "Créer un compte T.LY (parrainage)": "Create a T.LY account (referral)",
+  "Ouvre la page d'inscription T.LY : le projet est crédité du parrainage.":
+    "Opens the T.LY sign-up page: the project is credited with the referral.",
+  "Navigation privée": "Private browsing",
+  "Fenêtre privée : cette collection n'est conservée que jusqu'à la fermeture du navigateur.":
+    "Private window: this collection is kept only until the browser closes.",
+  "Fenêtre privée : les liens enregistrés rejoignent une collection conservée sur votre appareil.":
+    "Private window: saved links go to a collection kept on your device.",
   "Chargement…": "Loading…",
-  "lien": "link",
-  "liens": "links",
   "Cette page ne peut pas être enregistrée.": "This page cannot be saved.",
   "Lien supprimé": "Link deleted",
   "Rien à enregistrer sur cette page": "Nothing to save on this page",
@@ -169,7 +220,20 @@ export const EN_MESSAGES = {
   "Raccourcir": "Shorten",
   "Retirer": "Remove",
   "Service": "Service",
-  "TinyURL — recommandé": "TinyURL — recommended",
+  "T.LY (défaut) — lien plus court": "T.LY (default) — shorter link",
+  "TinyURL — liens durables": "TinyURL — durable links",
+  "Lien plus court, servi par t.ly. Les liens créés ici sont anonymes : ils ne sont rattachés à aucun compte T.LY.":
+    "Shorter link, served by t.ly. Links created here are anonymous: they are not attached to any T.LY account.",
+  "Sans clé d'API, HTTPS, liens durables. Service commercial.":
+    "No API key, HTTPS, durable links. Commercial service.",
+  "Sans clé ni statistiques. Service bénévole, régulièrement indisponible.":
+    "No key and no statistics. Volunteer-run service, regularly unavailable.",
+  "Même infrastructure que is.gd, mais les liens affichent un avertissement avant redirection.":
+    "Same infrastructure as is.gd, but links show a warning before redirecting.",
+  "Sans clé, statistiques de clics. Répond en HTTP : le lien est ramené en HTTPS.":
+    "No key, click statistics. Answers over HTTP: the link is brought back to HTTPS.",
+  "T.LY n'accepte un lien anonyme que depuis l'extension. Choisissez un autre service, ou passez par la fenêtre de l'extension.":
+    "T.LY accepts an anonymous link only from the extension. Choose another service, or use the extension window.",
   "is.gd — sans statistiques": "is.gd — no statistics",
   "v.gd — avertissement avant redirection": "v.gd — warning before redirect",
   "spoo.me — statistiques de clics": "spoo.me — click statistics",
@@ -181,7 +245,29 @@ export const EN_MESSAGES = {
   "Archive": "Archive",
   "Importer…": "Import…",
   "Relit l'archive JSON, le dossier d'étiquettes .zip ou un CSV exporté d'ici": "Reads back the JSON archive, the .zip label folder or a CSV exported from here",
-  "Importer relit l'Archive, le .zip d'étiquettes ou un CSV ; les liens déjà présents sont ignorés.": "Import reads back the Archive, the label .zip or a CSV; links already present are ignored.",
+  "Importer relit l'Archive, le .zip d'étiquettes ou un CSV, puis demande s'il faut fusionner, remplacer ou créer une collection ; les liens déjà présents sont ignorés.":
+    "Import reads back the Archive, the label .zip or a CSV, then asks whether to merge, replace or create a collection; links already present are ignored.",
+  "{count} lien lu dans {file}": "{count} link read from {file}",
+  "{count} liens lus dans {file}": "{count} links read from {file}",
+  "Fusionner avec « {name} »": "Merge into “{name}”",
+  "Ajoute les liens lus à la collection affichée ; son nom et sa note ne changent pas.":
+    "Adds the links read to the displayed collection; its name and note stay unchanged.",
+  "Remplacer « {name} »": "Replace “{name}”",
+  "Vide la collection affichée, puis y met les liens du fichier : son nom et sa note deviennent ceux du fichier.":
+    "Empties the displayed collection, then puts the file’s links in it: its name and note become those of the file.",
+  "Nouvelle collection « {name} »": "New collection “{name}”",
+  "Crée une collection à part et y range les liens lus ; la collection affichée n'est pas touchée.":
+    "Creates a separate collection and files the links read there; the displayed collection is left untouched.",
+  "Le fichier porte le nom de collection « {name} ».":
+    "The file carries the collection name “{name}”.",
+  "Le fichier porte le nom de collection « {name} » et sa note.":
+    "The file carries the collection name “{name}” and its note.",
+  "Le fichier ne porte ni nom ni note de collection : « Remplacer » viderait aussi le nom et la note de la collection affichée.":
+    "The file carries no collection name or note: “Replace” would also empty the name and note of the displayed collection.",
+  "Navigation privée : seuls les liens changent ; son nom et sa note ne sont pas modifiables.":
+    "Private browsing: only the links change; its name and note cannot be edited.",
+  "Nom vide : cette collection s'affiche et s'exporte sous le nom « {name} ».":
+    "Empty name: this collection is displayed and exported as “{name}”.",
   "Mise en forme": "Layout",
   "Le QR Code pointe vers": "The QR Code points to",
   "Planche d'étiquettes": "Label sheet",
@@ -305,6 +391,10 @@ export const EN_MESSAGES = {
   "Connecté : {details}.": "Connected: {details}.",
   "Date de collecte sur sa propre ligne — {sample}.": "Collection date on its own line — {sample}.",
   "Date non imprimée sur {count} étiquette : elle ne tient pas sur une ligne à cette largeur.": "Date not printed on {count} label: it does not fit on one line at this width.",
+  "Texte coupé sur {count} étiquette : il ne tient pas entier à cette taille. Raccourcissez l'adresse, réduisez le QR Code, décochez le titre ou l'URL, ou prenez une étiquette plus grande.":
+    "Text cut on {count} label: it does not fit whole at this size. Shorten the address, reduce the QR Code, untick the title or the URL, or use a larger label.",
+  "Texte coupé sur {count} étiquettes : ils ne tiennent pas entiers à cette taille. Raccourcissez les adresses, réduisez le QR Code, décochez le titre ou l'URL, ou prenez une étiquette plus grande.":
+    "Text cut on {count} labels: they do not fit whole at this size. Shorten the addresses, reduce the QR Code, untick the title or the URL, or use a larger label.",
   "Date non imprimée sur {count} étiquettes : elle ne tient pas sur une ligne à cette largeur.": "Date not printed on {count} labels: it does not fit on one line at this width.",
   "Décalage appliqué : {moves}.": "Offset applied: {moves}.",
   "Entrée pour enregistrer, Échap pour annuler. Tags séparés par des virgules.": "Enter to save, Escape to cancel. Tags separated by commas.",
@@ -549,6 +639,8 @@ export const EN_MESSAGES = {
   "Avant d'enregistrer un lien, lisez la mention de confidentialité.":
     "Before recording a link, please read the privacy notice.",
   "Lire la mention": "Read the notice",
+  "La mention a changé : relisez-la pour continuer à enregistrer.":
+    "The notice has changed: read it again to keep saving links.",
   "Refus enregistré : acceptez la mention pour enregistrer un lien.":
     "Consent declined: accept the notice to record a link.",
 };

@@ -310,8 +310,8 @@ test('les deux pages racontent la même origine', () => {
   // deux langues le portait, la page anglaise aurait l'air d'un produit sans
   // personne derrière.
   const pages = [
-    { file: join(SITE, 'index.html'), titre: 'Pourquoi cette extension' },
-    { file: join(SITE, 'en', 'index.html'), titre: 'Why I built it' },
+    { file: join(SITE, 'index.html'), titre: 'Genèse de l\'extension' },
+    { file: join(SITE, 'en', 'index.html'), titre: 'Genesis of the extension' },
   ];
   for (const { file, titre } of pages) {
     const html = readFileSync(file, 'utf8');
@@ -323,15 +323,43 @@ test('les deux pages racontent la même origine', () => {
   }
 });
 
-test('les deux pages mènent au dépôt', () => {
-  // C'est l'un des deux appels à l'action de l'en-tête. Le libellé peut changer,
-  // la cible non.
+test('les deux pages mènent au dépôt, depuis le pied', () => {
+  // Le gros bouton de l'en-tête a été retiré : « enlever le gros bouton vers le
+  // dépôt GitHub et ne garder que le lien en footer, qui est suffisant ». La
+  // cible reste donc atteignable, et depuis un seul endroit — ce que le test
+  // tient, pour que le lien ne disparaisse pas des deux à la fois.
   for (const page of [join(SITE, 'index.html'), join(SITE, 'en', 'index.html')]) {
-    assert.match(
-      readFileSync(page, 'utf8'),
-      /<a class="btn" href="https:\/\/github\.com\/Lupin\/URLQRCodePrinter">/,
-      `bouton vers le dépôt absent : ${page}`,
+    const html = readFileSync(page, 'utf8');
+    assert.doesNotMatch(
+      html,
+      /class="btn"[^>]*github\.com/,
+      `le bouton vers le dépôt est revenu dans l'en-tête : ${page}`,
     );
+    assert.match(
+      html,
+      /class="site-footer"[\s\S]*?github\.com\/Lupin\/URLQRCodePrinter/,
+      `lien vers le dépôt absent du pied : ${page}`,
+    );
+  }
+});
+
+test('les deux pages portent la signature du projet, datée et versionnée', () => {
+  // Comme le pied de l'application : le nom, la licence, la version. L'année et
+  // la version sont posées à la construction — écrites à la main, elles
+  // auraient annoncé 2026 jusqu'à la prochaine refonte.
+  const paquet = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8'));
+  const SOURCE = join(ROOT, 'src', 'site');
+  for (const page of [join(SOURCE, 'index.html'), join(SOURCE, 'en', 'index.html'),
+    join(SITE, 'index.html'), join(SITE, 'en', 'index.html')]) {
+    if (!existsSync(page)) continue;
+    const html = readFileSync(page, 'utf8');
+    assert.match(html, /G\. Abegg-Gauthey/, `nom absent : ${page}`);
+    assert.match(html, /\bMIT\b/, `licence absente : ${page}`);
+    if (page.startsWith(SITE)) {
+      assert.doesNotMatch(html, /__APP_VERSION__|__APP_YEAR__/, `jeton non remplacé : ${page}`);
+      assert.match(html, new RegExp(`version ${paquet.version.replace(/\./g, '\\.')}`));
+      assert.match(html, new RegExp(`© ${new Date().getFullYear()} G\. Abegg-Gauthey`));
+    }
   }
 });
 

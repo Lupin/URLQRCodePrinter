@@ -70,6 +70,44 @@ test('un tableau nu reste accepté', () => {
   assert.equal(records.length, 1);
 });
 
+test('le nom et la note de la collection se relisent dans une archive', () => {
+  // Sans eux, un import ne pourrait que deviner : c'est ce qui permet de
+  // proposer « remplacer, nom et note compris » ou une collection à ce nom-là.
+  const texte = toJson([fullLink()], { title: 'Veille tech', note: 'à relire\nle week-end' });
+  const { collection } = parseImportFile({ name: 'liens.json', text: texte });
+  assert.deepEqual(collection, { name: 'Veille tech', note: 'à relire\nle week-end' });
+
+  // Une archive sans note n'en invente pas : le champ reste vide, et c'est cet
+  // état-là que « remplacer » écrira.
+  const sansNote = parseImportFile({ name: 'liens.json', text: toJson([fullLink()]) });
+  assert.deepEqual(sansNote.collection, { name: 'Mes liens QR Code', note: '' });
+});
+
+test('un fichier sans nom de collection n\'en propose aucun', () => {
+  // Un tableau nu, un CSV : rien n'y décrit l'ensemble. Rendre un nom inventé
+  // ferait renommer la collection affichée par un nom que personne n'a écrit.
+  assert.deepEqual(
+    parseImportFile({ name: 'a.json', text: JSON.stringify([fullLink()]) }).collection,
+    { name: '', note: '' },
+  );
+  assert.deepEqual(
+    parseImportFile({ name: 'liens.csv', text: toCsv([fullLink()]) }).collection,
+    { name: '', note: '' },
+  );
+});
+
+test('le nom et la note sont bornés comme à la saisie', () => {
+  // Ce qui entre par un fichier ne doit pas dépasser ce qu'un champ accepte.
+  const texte = JSON.stringify({
+    format: 'url-qr-code-printer/links',
+    links: [fullLink()],
+    collection: { name: 'n'.repeat(200), note: 'x'.repeat(900) },
+  });
+  const { collection } = parseImportFile({ name: 'liens.json', text: texte });
+  assert.equal(collection.name.length, 80);
+  assert.equal(collection.note.length, 600);
+});
+
 test('une archive sans liens est refusée avec un message utile', () => {
   assert.throws(
     () => parseImportFile({ name: 'x.json', text: JSON.stringify({ format: 'autre', items: [] }) }),

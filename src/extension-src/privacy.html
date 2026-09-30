@@ -40,11 +40,49 @@
 
     <section class="block">
       <h2 class="block__title" data-i18n="Où vont vos liens">Où vont vos liens</h2>
-      <p data-i18n="Ils restent sur votre appareil, dans le stockage local du navigateur. Une seule action envoie quelque chose sur le réseau : si vous demandez le raccourcissement d'un lien, cette adresse est transmise au service que vous avez choisi (TinyURL, is.gd, v.gd ou spoo.me).">
+      <p data-i18n="Ils restent sur votre appareil, dans le stockage local du navigateur. Une seule action envoie quelque chose sur le réseau : si vous demandez le raccourcissement d'un lien, cette adresse est transmise au service que vous avez choisi (T.LY, TinyURL, is.gd, v.gd ou spoo.me).">
         Ils restent sur votre appareil, dans le stockage local du navigateur. Une
         seule action envoie quelque chose sur le réseau : si vous demandez le
         raccourcissement d'un lien, cette adresse est transmise au service que
-        vous avez choisi (TinyURL, is.gd, v.gd ou spoo.me).
+        vous avez choisi (T.LY, TinyURL, is.gd, v.gd ou spoo.me).
+      </p>
+    </section>
+
+    <!-- Le raccourcissement est la seule fonction qui sorte de la machine : il
+         a donc son propre bloc, et le premier mot en est « facultatif ». Le
+         service proposé d'emblée est nommé, ainsi que ce qu'il ne fait pas —
+         l'extension ne crée aucun compte et ne lit aucune statistique. -->
+    <section class="block">
+      <h2 class="block__title" data-i18n="Raccourcir un lien (facultatif)">Raccourcir un lien (facultatif)</h2>
+      <p data-i18n="Le raccourcissement est facultatif : rien n'est raccourci tant que vous ne le demandez pas, et le QR Code encode l'adresse d'origine. Si vous le demandez, l'adresse part uniquement vers le service choisi. T.LY est proposé par défaut. TinyURL, is.gd, v.gd et spoo.me restent disponibles, ainsi que l'impression de l'adresse d'origine.">
+        Le raccourcissement est facultatif : rien n'est raccourci tant que vous ne
+        le demandez pas, et le QR Code encode l'adresse d'origine. Si vous le
+        demandez, l'adresse part uniquement vers le service choisi. T.LY est
+        proposé par défaut. TinyURL, is.gd, v.gd et spoo.me restent disponibles,
+        ainsi que l'impression de l'adresse d'origine.
+      </p>
+      <p data-i18n="Les liens créés depuis l'extension sont anonymes : ils ne sont rattachés à aucun compte T.LY, et l'extension ne consulte aucune statistique. L'édition de destination et le suivi des visites se font chez T.LY, sur le compte de l'utilisateur s'il en a un.">
+        Les liens créés depuis l'extension sont anonymes : ils ne sont rattachés à
+        aucun compte T.LY, et l'extension ne consulte aucune statistique.
+        L'édition de destination et le suivi des visites se font chez T.LY, sur le
+        compte de l'utilisateur s'il en a un.
+      </p>
+      <p data-i18n="Le choix T.LY peut passer par un lien affilié. Cela ne modifie pas les données envoyées : seulement l'identifiant du parrainage auprès de T.LY.">
+        Le choix T.LY peut passer par un lien affilié. Cela ne modifie pas les
+        données envoyées : seulement l'identifiant du parrainage auprès de T.LY.
+      </p>
+    </section>
+
+    <!-- La collection de navigation privée : ce que devient un lien enregistré
+         depuis une fenêtre privée, dit au moment où l'utilisateur donne son
+         accord, et non seulement dans la fenêtre de l'extension. -->
+    <section class="block">
+      <h2 class="block__title" data-i18n="Navigation privée">Navigation privée</h2>
+      <p data-i18n="Depuis une fenêtre privée, l'extension propose une collection qui n'existe qu'à cet endroit. Ses liens vivent en mémoire, pour la durée de la session : ils ne sont pas écrits sur le disque et disparaissent à la fermeture du navigateur. Les autres collections, elles, restent sur votre appareil.">
+        Depuis une fenêtre privée, l'extension propose une collection qui n'existe
+        qu'à cet endroit. Ses liens vivent en mémoire, pour la durée de la session :
+        ils ne sont pas écrits sur le disque et disparaissent à la fermeture du
+        navigateur. Les autres collections, elles, restent sur votre appareil.
       </p>
     </section>
 

@@ -30,12 +30,16 @@ import {
   paginate,
   qrSideMm,
   fitGrid,
+  autoSheetLayout,
   presetToGrid,
   qrRatioBounds,
+  sheetTextBudget,
   sheetTextMetrics,
   sheetCellLines,
+  sheetCellBlocks,
   MIN_MODULE_MM_PAPER,
   SHEET_QR_GAP_MM,
+  SHEET_CELL_MARGIN_MM,
   minModuleMmThermal,
 } from '../src/core/sheet.js';
 
@@ -307,16 +311,30 @@ test('le rognage du texte est empêché, pas seulement signalé', () => {
       minModuleMm: 0.01,
     });
     assert.equal(roomy.fits, true, `${key} : un QR Code de 25 modules doit tenir`);
+    // **Les deux dimensions, et non le petit côté.** L'assertion portait sur le
+    // petit côté, ce qui vaut pour une étiquette plus large que haute ; une
+    // étiquette haute — le nouveau 3 × 4, 63,5 × 69,1 mm — porte un QR Code
+    // aussi large qu'elle, et le texte vit **sous** lui. Ce qui compte est donc :
+    // le QR Code tient dans la largeur, et la ligne de texte tient dans ce qui
+    // reste en hauteur.
     assert.ok(
-      roomy.maxSideMm < short,
-      `${key} : la borne haute (${roomy.maxSideMm} mm) doit laisser la place du texte`,
+      roomy.maxSideMm <= Math.min(preset.labelWidthMm, preset.labelHeightMm) + 1e-9,
+      `${key} : la borne haute (${roomy.maxSideMm} mm) dépasse le petit côté`,
     );
-    assert.ok(roomy.max < MAX_QR_RATIO, `${key} : la borne haute doit être sous 100 %`);
+    assert.ok(
+      roomy.maxSideMm + SHEET_QR_GAP_MM + sheetTextMetrics().lineHeightMm
+        <= preset.labelHeightMm + 1e-9,
+      `${key} : la borne haute (${roomy.maxSideMm} mm) ne laisse pas la place du texte`,
+    );
+    // Le rapport se mesure sur le **petit côté** : une étiquette haute peut donc
+    // légitimement porter un QR Code qui occupe 100 % de sa largeur, le texte
+    // vivant dessous. Ce qui ne doit pas arriver, c'est de dépasser le côté.
+    assert.ok(roomy.max <= MAX_QR_RATIO, `${key} : la borne haute dépasse 100 %`);
 
     // Et la place laissée doit suffire à une ligne, par construction.
     const metrics = sheetTextMetrics();
     assert.ok(
-      roomy.maxSideMm + SHEET_QR_GAP_MM + metrics.lineHeightMm <= short + 1e-9,
+      roomy.maxSideMm + SHEET_QR_GAP_MM + metrics.lineHeightMm <= preset.labelHeightMm + 1e-9,
       `${key} : QR Code + une ligne doit tenir dans le petit côté`,
     );
   }
@@ -765,4 +783,149 @@ test('une planche du commerce garde son pas, même si sa marge est recentrée', 
   // Le recentrage reste une constante, que le décalage peut rattraper.
   const shift = grid.marginXMm - preset.marginXMm;
   assert.ok(Math.abs(shift) < 3, `recentrage de ${shift} mm : à rattraper au décalage`);
+});
+
+// ---------------------------------------------------------------------------
+
+test('la mise en page automatique dimensionne la grille au contenu', () => {
+  // Le défaut signalé : « il est par exemple absurde de proposer 11 colonnes
+  // quand on a que 5 liens ». La grille cherchait la plus dense possible, sans
+  // regarder combien d'étiquettes il y avait à placer : cinq liens donnaient
+  // 11 × 7 = 77 cases, des timbres sur une page à moitié vide.
+  //
+  // Ce que le calcul garantit maintenant, sur une A4 avec des marges de 8,5 mm
+  // et des écarts de 1,25 mm :
+  const base = {
+    pageWidthMm: 210,
+    pageHeightMm: 297,
+    minLabelWidthMm: 25,
+    minLabelHeightMm: 20,
+    marginXMm: 8.5,
+    marginYMm: 8.5,
+    gapXMm: 1.25,
+    gapYMm: 1.25,
+  };
+
+  for (const count of [1, 2, 3, 4, 5, 6, 8, 10, 12, 20, 30, 49, 77]) {
+    const plan = autoSheetLayout({ ...base, count });
+    assert.ok(plan.perPage >= count, `${count} étiquettes doivent tenir (${plan.perPage})`);
+    // Une case vide est du papier, pas une étiquette : on tolère la case qui
+    // rend la grille équilibrée, jamais deux.
+    assert.ok(
+      plan.perPage - count <= 1,
+      `${count} étiquettes : ${plan.perPage} cases, soit ${plan.perPage - count} vide(s)`,
+    );
+    // Et l'étiquette ne s'éloigne pas démesurément de la forme de son contenu —
+    // cinq liens ne font pas une bande de 193 × 55 mm.
+    const forme = (plan.labelWidthMm / plan.labelHeightMm) / (25 / 20);
+    assert.ok(
+      forme >= 1 / 2 - 1e-9 && forme <= 2 + 1e-9,
+      `${count} étiquettes : forme ${forme.toFixed(2)} × celle du contenu`,
+    );
+  }
+
+  // Les cas qui ont motivé la correction, nommés.
+  assert.deepEqual(
+    (({ columns, rows }) => [columns, rows])(autoSheetLayout({ ...base, count: 5 })),
+    [2, 3],
+    'cinq liens : 2 × 3, et non 11 × 7',
+  );
+  assert.deepEqual(
+    (({ columns, rows }) => [columns, rows])(autoSheetLayout({ ...base, count: 49 })),
+    [7, 7],
+    'quarante-neuf liens : 7 × 7, exactement',
+  );
+
+  // Sans nombre d'étiquettes, le calcul garde son ancien comportement : il
+  // remplit la page. C'est ce que fait un appelant qui ne connaît pas son
+  // contenu — et le changer aurait été une surprise.
+  const sans = autoSheetLayout(base);
+  assert.ok(sans.perPage > 11 * 7 - 11, `sans count, la page reste remplie (${sans.perPage})`);
+});
+
+test('la mise en page automatique mesure le besoin sur les cotes de chaque grille', () => {
+  // **Le défaut mesuré le 29 septembre 2026.** Sur l'A4 3 × 4 mise par défaut,
+  // 49 liens donnaient `10 × 5 = 50` étiquettes de 18,2 × 55 mm, dont **45
+  // sortaient coupées** — sous une grille annoncée « calculée pour ce contenu ».
+  // La cause : le besoin de texte était mesuré à la largeur de la première grille
+  // trouvée (26,4 mm), et la grille retenue en avait une autre (18,2 mm), où le
+  // texte réclamait plus de lignes.
+  //
+  // Ce que le scénario reproduit : un texte qui se replie d'autant plus qu'on
+  // rétrécit l'étiquette, et une place que le QR Code prend au texte. Le modèle de
+  // mesure est déterministe — 9,2 px par caractère à 14 pt —, la propriété
+  // éprouvée, elle, ne l'est pas : **la grille retenue porte son texte**, et
+  // quand aucune ne le peut, la planche pagine au lieu de tasser.
+  const fontPt = 14;
+  const modules = 35;
+  const mesure = (texte) => texte.length * 9.2;
+  const contenu = Array.from({ length: 49 }, (_, i) => sheetCellBlocks({
+    title: `Article ${String(i + 1).padStart(3, '0')} — un titre de longueur ordinaire`,
+    url: `https://exemple.fr/article-${String(i + 1).padStart(3, '0')}?ref=releve`,
+  }, { title: true, url: false }));
+
+  const lignesPour = (largeurMm) => contenu.reduce((plus, blocs) => Math.max(
+    plus,
+    blocs.reduce((somme, bloc) => somme + sheetCellLines(bloc.text, {
+      measure: mesure,
+      innerWidthPx: ((largeurMm - SHEET_CELL_MARGIN_MM * 2) * 96) / 25.4,
+      maxLines: 99,
+    }).length, 0),
+  ), 1);
+
+  const budget = (largeurMm, hauteurMm) => sheetTextBudget({
+    labelWidthMm: largeurMm,
+    labelHeightMm: hauteurMm,
+    qrRatio: 0.7,
+    fontSizePt: fontPt,
+    marginMm: SHEET_CELL_MARGIN_MM,
+    gapMm: SHEET_QR_GAP_MM,
+  });
+
+  const tient = (largeurMm, hauteurMm) => budget(largeurMm, hauteurMm).textLines >= lignesPour(largeurMm);
+
+  const plan = autoSheetLayout({
+    pageWidthMm: 210,
+    pageHeightMm: 297,
+    marginXMm: 8.5,
+    marginYMm: 8.5,
+    gapXMm: 1.25,
+    gapYMm: 1.25,
+    minLabelWidthMm: modules * MIN_MODULE_MM_PAPER + SHEET_CELL_MARGIN_MM * 2,
+    minLabelHeightMm: modules * MIN_MODULE_MM_PAPER + SHEET_CELL_MARGIN_MM * 2
+      + SHEET_QR_GAP_MM + sheetTextMetrics({ fontSizePt: fontPt }).lineHeightMm,
+    count: contenu.length,
+    tient,
+  });
+
+  // 1. La grille retenue **porte son texte** : c'est la propriété qui manquait.
+  assert.ok(
+    tient(plan.labelWidthMm, plan.labelHeightMm),
+    `${plan.columns} × ${plan.rows} (${plan.labelWidthMm} × ${plan.labelHeightMm} mm) : `
+      + `${lignesPour(plan.labelWidthMm)} lignes pour ${budget(plan.labelWidthMm, plan.labelHeightMm).textLines} offertes`,
+  );
+
+  // 2. Aucun texte n'est coupé à ces cotes-là — le contrôle du relevé, ici, sans
+  //    navigateur.
+  const place = budget(plan.labelWidthMm, plan.labelHeightMm);
+  const largeurPx = ((plan.labelWidthMm - SHEET_CELL_MARGIN_MM * 2) * 96) / 25.4;
+  const coupes = contenu.filter((blocs) => blocs.some((bloc) => sheetCellLines(bloc.text, {
+    measure: mesure, innerWidthPx: largeurPx, maxLines: 99,
+  }).length > place.textLines));
+  assert.equal(coupes.length, 0, `${coupes.length} étiquette(s) coupée(s)`);
+
+  // 3. La grille absurde d'alors ne passe plus le contrôle : 18,2 × 55 mm laisse
+  //    7 lignes là où le texte en réclame 9. C'est ce qui la rendait absurde.
+  assert.ok(!tient(18.17, 55), 'la grille 10 × 5 de 18,2 × 55 mm doit être refusée');
+
+  // 4. Le contenu ne tient pas sur une page : le calcul le dit, et la planche
+  //    pagine — deux pages lisibles plutôt qu'une page tronquée.
+  assert.equal(plan.coversCount, false);
+  assert.equal(plan.pages, Math.ceil(contenu.length / plan.perPage));
+  assert.ok(plan.pages > 1, `la planche doit paginer (${plan.pages} page(s))`);
+
+  // 5. Elle reste plus dense que l'A4 3 × 8 qu'elle remplace, dont une page
+  //    portait 24 étiquettes : le calcul ne se paie pas d'une planche à moitié
+  //    vide.
+  assert.ok(plan.perPage > 24, `${plan.perPage} étiquettes par page`);
 });

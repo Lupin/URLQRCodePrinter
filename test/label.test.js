@@ -290,7 +290,7 @@ test('la disposition centrée partage la place en haut et en bas', () => {
     maxHeightPx: 240, alignment: 'center',
   });
   // La place libre se partage en deux : une moitié au-dessus du QR Code, le reste
-  // sous le texte. La marge de l'étiquette, elle, reste entière des deux côtés.
+  // **sous le texte**. La marge de l'étiquette, elle, reste entière des deux côtés.
   const above = g.qrTop - g.padding;
   const below = g.height - (g.textTop + (g.lines.length + g.extraLines) * g.lineHeight)
     - g.padding;
@@ -298,6 +298,16 @@ test('la disposition centrée partage la place en haut et en bas', () => {
   assert.ok(below >= 0, 'le texte ne passe pas sous la marge');
   assert.ok(Math.abs(above - Math.floor(g.slack / 2)) <= 1,
     `haut ${above} doit valoir la moitié de la place libre (${g.slack})`);
+  // **Et l'autre moitié va sous le texte, pas entre le QR Code et lui.** Le
+  // contrôle s'arrêtait à `below >= 0`, si bien que la seconde moitié pouvait se
+  // loger dans l'écart QR Code → texte sans que rien ne le dise : mesuré sur une
+  // 14 × 50 mm de D110, cet écart montait à 124 px (15,5 mm) au lieu de 6, et le
+  // texte se retrouvait collé au bas de l'étiquette. Signalé : « l'interlignage
+  // entre le QR Code et le texte est trop large, surtout en 14 × 50 ».
+  assert.ok(Math.abs(below - (g.slack - Math.floor(g.slack / 2))) <= 1,
+    `bas ${below} doit porter le reste de la place libre (${g.slack})`);
+  assert.equal(g.qrTextGap, g.padding,
+    "l'écart entre le QR Code et le texte reste la marge, jamais la place libre");
 });
 
 test('une longueur connue grossit le texte, jamais au-delà de la lisibilité', () => {

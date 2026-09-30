@@ -352,6 +352,65 @@ test('la fenêtre propose d\'ouvrir l\'application, où sont les QR Codes', () =
 
     assert.match(html, /id="open-app"/, `${dir} : bouton absent`);
     assert.match(script, /getURL\('app\.html'\)/, `${dir} : ouverture non branchée`);
+
+    // Les deux gestes de l'enchaînement — collecter, puis ouvrir — sont sur une
+    // même ligne, dans le bloc de capture : « Ajouter cette page » tout seul en
+    // haut et « Voir les QR Codes » tout seul en bas faisaient deux écrans pour
+    // une seule suite d'actions.
+    const actions = html.match(/<div class="capture__actions">([\s\S]*?)<\/div>/);
+    assert.ok(actions, `${dir} : les deux actions ne sont pas rassemblées`);
+    assert.match(actions[1], /id="add-current"/);
+    assert.match(actions[1], /id="open-app"/);
+
+    // Le libellé de la seconde a été raccourci : il tient sur une demi-largeur.
+    // Le contrôle porte sur le **document**, sans ses commentaires : le fichier
+    // explique le libellé abandonné, et l'expliquer n'est pas l'employer.
+    const sansCommentaires = html.replace(/<!--[\s\S]*?-->/g, '');
+    assert.doesNotMatch(
+      sansCommentaires,
+      /Voir les QR Codes/,
+      `${dir} : l'ancien libellé subsiste`,
+    );
+    assert.match(sansCommentaires, /data-i18n="Ouvrir l'application"/);
+  }
+});
+
+test('la fenêtre ne règle plus la langue, et compte avec le signe U+1F517', () => {
+  for (const dir of [EXT, join(ROOT, 'dist', 'extension')]) {
+    const html = readFileSync(join(dir, 'popup.html'), 'utf8');
+
+    // Le choix de langue vit dans l'application : un second sélecteur dans
+    // 380 px encombrait la fenêtre pour un réglage qu'on fait une fois.
+    assert.doesNotMatch(html, /id="locale"/, `${dir} : sélecteur de langue encore là`);
+
+    // Le mot « liens » est remplacé par le symbole, qui reste décoratif — le
+    // libellé lu par les lecteurs d'écran dit déjà de quoi il s'agit.
+    assert.match(html, /id="count-unit"[^>]*aria-hidden="true"[^>]*>&#x1F517;</);
+    assert.doesNotMatch(html, />liens?</, `${dir} : le mot « lien » est encore écrit`);
+  }
+});
+
+test('la fenêtre ne raccourcit rien, et n\'en offre pas le moyen', () => {
+  // Le raccourcissement reste une action explicite, posée dans l'application.
+  // La fenêtre collecte : elle n'appelle aucun service, et n'affiche aucun
+  // bouton qui le ferait — la seule façon d'être sûr qu'aucun chemin de
+  // collecte ne déclenche une requête.
+  for (const dir of [EXT, join(ROOT, 'dist', 'extension')]) {
+    const html = readFileSync(join(dir, 'popup.html'), 'utf8');
+    const script = readFileSync(join(dir, 'popup.js'), 'utf8');
+
+    assert.doesNotMatch(html, /id="shorten"/, `${dir} : un bouton de raccourcissement est présent`);
+    assert.doesNotMatch(script, /shortenUrl|createShortener/, `${dir} : la fenêtre appelle un service`);
+    assert.doesNotMatch(script, /\bfetch\(/, `${dir} : la fenêtre émet une requête`);
+  }
+});
+
+test('le service worker ne raccourcit rien non plus', () => {
+  // Même règle : le clic droit enregistre, il ne raccourcit pas.
+  for (const dir of [EXT, join(ROOT, 'dist', 'extension')]) {
+    const script = readFileSync(join(dir, 'background.js'), 'utf8');
+    assert.doesNotMatch(script, /shortenUrl|createShortener/, `${dir} : le worker appelle un service`);
+    assert.doesNotMatch(script, /\bfetch\(/, `${dir} : le worker émet une requête`);
   }
 });
 

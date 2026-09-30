@@ -43,6 +43,25 @@ export function contextMenusAvailable(api) {
 }
 
 /**
+ * La zone de stockage de session, ou `null` si elle n'existe pas.
+ *
+ * C'est là que vivent les liens de la collection de navigation privée : en
+ * mémoire, pour la durée du navigateur, et nulle part sur le disque. L'API
+ * existe depuis Chrome 102 et **Safari 16.4** — la version minimale du projet —
+ * mais on ne la suppose pas : une zone absente fait disparaître la collection
+ * privée de l'interface plutôt que de laisser croire à une persistance qui
+ * n'aurait pas lieu.
+ *
+ * @param {any} api
+ * @returns {any|null}
+ */
+export function sessionStorageArea(api) {
+  const area = api?.storage?.session;
+  if (!area || typeof area.get !== 'function' || typeof area.set !== 'function') return null;
+  return area;
+}
+
+/**
  * Lit l'URL et le titre de l'onglet actif.
  *
  * On tente d'abord `tab.url`, qui suffit sur Chrome et sur Safari macOS. En

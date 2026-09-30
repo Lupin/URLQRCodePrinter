@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <title>URLQRCodePrinter</title>
-  <link rel="stylesheet" href="popup.css?v=f968a0776c05">
+  <link rel="stylesheet" href="popup.css?v=a070f8d2ed14">
 </head>
 <body>
   <!-- `header`, `main` et `footer` sont de vrais repères : un utilisateur de
@@ -12,28 +12,49 @@
        `contentinfo` concurrents — et n'avait aucun `main`. -->
   <header class="app-header">
     <div class="app-header__top">
-      <h1 class="app-header__title">URLQRCodePrinter</h1>
+      <!-- L'icône, et rien d'autre pour la marque : écrire le nom du produit
+           dans une fenêtre de 380 px occupait la place du seul titre qui
+           informe — celui de la collection. Le nom reste porté par le titre de
+           la fenêtre et par l'alternative de l'image, donc par ce qu'annonce un
+           lecteur d'écran. -->
+      <img class="app-header__logo" src="icons/icon-32.png" alt="URLQRCodePrinter"
+           width="24" height="24">
 
-      <!-- Sélecteur de langue : la première visite suit la langue du
-           navigateur, puis le choix est mémorisé et partagé avec l'application
-           embarquée et le service worker. -->
-      <label class="locale">
-        <span class="sr-only" data-i18n="Langue">Langue</span>
-        <select id="locale" class="locale__select" data-i18n-aria-label="Langue" aria-label="Langue">
-          <option value="fr">Français</option>
-          <option value="en">English</option>
-        </select>
-      </label>
+      <!-- Le nom de la collection courante, encadré de ses deux flèches : c'est
+           le titre qui nomme la liste (`aria-labelledby` plus bas), et le seul
+           titre de la fenêtre. Il est aussi une région live : changer de
+           collection change ce que la liste contient, et cela doit s'annoncer.
+           On ne crée pas de collection ici — c'est l'affaire de l'application,
+           qui a la place de le faire proprement. -->
+      <div class="collection__bar" role="group" data-i18n-aria-label="Collection" aria-label="Collection">
+        <button id="collection-prev" class="collection__step" type="button"
+                data-i18n-aria-label="Collection précédente" data-i18n-title="Collection précédente"
+                aria-label="Collection précédente" title="Collection précédente"></button>
+        <h2 id="collection-title" class="collection__name" aria-live="polite" aria-atomic="true"></h2>
+        <button id="collection-next" class="collection__step" type="button"
+                data-i18n-aria-label="Collection suivante" data-i18n-title="Collection suivante"
+                aria-label="Collection suivante" title="Collection suivante"></button>
+      </div>
+
+      <!-- Pas de sélecteur de langue ici : la fenêtre suit la langue choisie
+           dans l'application — ou celle du navigateur à la première visite —
+           et un second réglage au même endroit n'aurait fait que la encombrer.
+           C'est l'application qui porte ce choix, et le service worker qui le
+           relit pour ses menus. -->
     </div>
 
-    <!-- Le compteur annonce « Liens enregistrés : 3 liens », pas « 3 ». Une
-         région live qui ne dit qu'un nombre oblige à deviner de quoi on parle.
-         `#count` reste seul porteur du chiffre : le libellé et l'unité vivent
+    <!-- Le compteur annonce « Liens enregistrés : 3 », pas « 3 » : une région
+         live qui ne dit qu'un nombre oblige à deviner de quoi on parle. Le mot
+         « liens » n'est plus écrit — U+1F517 LINK SYMBOL le dit d'un signe, et
+         le libellé lu par les lecteurs d'écran reste complet. Le symbole est
+         donc décoratif : il répéterait le libellé, et un lecteur d'écran
+         annoncerait « maillon » après « liens enregistrés ».
+         `#count` reste seul porteur du chiffre : le libellé et le signe vivent
          à côté, ce qui laisse le test vérifier « 0 » ou « 1 » sans unité. -->
     <p class="count" role="status" aria-live="polite" aria-atomic="true">
       <span id="count-label" class="sr-only" data-i18n="Liens enregistrés :">Liens enregistrés :</span>
+      <span id="count-unit" class="count__unit" aria-hidden="true">&#x1F517;</span>
       <span id="count" class="count__value">0</span>
-      <span id="count-unit" class="count__unit">lien</span>
     </p>
   </header>
 
@@ -41,14 +62,62 @@
     <section class="capture" aria-labelledby="capture-title">
       <h2 id="capture-title" class="sr-only" data-i18n="Ajouter la page courante">Ajouter la page courante</h2>
       <p id="current-tab" class="capture__page" title="">Chargement…</p>
-      <button id="add-current" class="btn btn--primary" type="button" disabled
-              data-i18n="Ajouter cette page">
-        Ajouter cette page
+
+      <!-- Le titre part tel quel dans la collection. S'il est faux ou vide, il
+           faut rouvrir l'application pour le corriger : il est donc modifiable
+           ici, avant l'enregistrement, et non après.
+           Le champ suit l'état du bouton — désactivé quand la page n'est pas
+           capturable — pour que les deux annoncent la même chose. -->
+      <label class="field">
+        <span class="sr-only" data-i18n="Titre du lien">Titre du lien</span>
+        <input id="link-title" class="field__input" type="text"
+               maxlength="300" autocomplete="off" spellcheck="false" disabled
+               data-i18n-placeholder="Titre de la page" placeholder="Titre de la page">
+      </label>
+
+      <!-- Deux actions, une ligne : ajouter la page courante, et ouvrir
+           l'application où sont les QR Codes, les mises en page et
+           l'impression. Elles se suivaient en deux endroits de la fenêtre —
+           l'une ici, l'autre dans le pied — pour deux gestes du même
+           enchaînement : collecter, puis imprimer.
+           Le libellé de la seconde a été raccourci : « Voir les QR Codes »
+           occupait toute la largeur à lui seul, et ce que la fenêtre ouvre est
+           l'application — qui dit ensuite ce qu'elle contient. -->
+      <div class="capture__actions">
+        <button id="add-current" class="btn btn--primary" type="button" disabled
+                data-i18n="Ajouter cette page">
+          Ajouter cette page
+        </button>
+        <button id="open-app" class="btn btn--neutral" type="button" disabled
+                data-i18n="Ouvrir l'application">
+          Ouvrir l'application
+        </button>
+      </div>
+    </section>
+
+    <!-- Rappel de la mention, tant qu'elle n'a pas été acceptée.
+         La collecte est verrouillée dans `popup.js` comme dans le service
+         worker ; cet encart existe pour que le verrou soit **expliqué** plutôt
+         que subi : sans lui, « Ajouter cette page » ouvrirait un onglet sans
+         raison apparente. -->
+    <section id="consent-notice" class="notice" aria-labelledby="consent-notice-title" hidden>
+      <h2 id="consent-notice-title" class="sr-only" data-i18n="Confidentialité">Confidentialité</h2>
+      <p class="notice__text"
+         data-i18n="Avant d'enregistrer un lien, lisez la mention de confidentialité.">
+        Avant d'enregistrer un lien, lisez la mention de confidentialité.
+      </p>
+      <button id="open-privacy" class="btn btn--neutral" type="button" data-i18n="Lire la mention">
+        Lire la mention
       </button>
     </section>
 
     <section class="collection" aria-labelledby="collection-title">
-      <h2 id="collection-title" class="section-title" data-i18n="Liens enregistrés">Liens enregistrés</h2>
+      <!-- Le seul endroit où l'utilisateur apprend ce que devient une collection
+           de navigation privée : elle n'est pas écrite sur le disque, et elle
+           disparaît à la fermeture du navigateur. Le texte est posé par
+           `popup.js` — il dépend de la collection affichée. -->
+      <p id="private-notice" class="notice notice--private" hidden></p>
+
       <ul id="list" class="list" aria-labelledby="collection-title"></ul>
       <!-- Masqué au départ : laisser ce message visible pendant le chargement
            afficherait « Aucun lien » à quelqu'un qui en a. -->
@@ -68,24 +137,25 @@
          jamais les boutons sur lesquels l'utilisateur s'apprête à cliquer. -->
     <div id="toast" class="toast" role="status" aria-live="polite" aria-atomic="true"></div>
 
-    <!-- Rempli, mais à l'encre et non à l'accent : deux boutons pleins de
-         couleurs différentes mettraient deux accents à l'écran. L'orange ne
-         désigne donc qu'une seule chose — ajouter la page courante. -->
-    <button id="open-app" class="btn btn--neutral" type="button" disabled
-            data-i18n="Voir les QR codes">
-      Voir les QR codes
-    </button>
-
     <div class="app-footer__row">
       <button id="export-csv" class="btn btn--ghost" type="button" disabled>CSV</button>
       <button id="export-md" class="btn btn--ghost" type="button" disabled>Markdown</button>
       <button id="clear" class="btn btn--ghost btn--danger" type="button" disabled
-              data-i18n="Tout effacer">
-        Tout effacer
+              data-i18n="Vider la collection">
+        Vider la collection
       </button>
     </div>
+
+    <!-- La page d'information, tout en bas. Son adresse est posée par
+         `popup.js` : elle suit la langue de l'interface, la page française
+         vivant à la racine et l'anglaise sous /en/. Un `href` écrit ici en dur
+         enverrait un francophone sur la page anglaise.
+         Le texte reste à l'encre secondaire : l'accent est réservé aux actions,
+         et ce lien n'en est pas une. -->
+    <a id="site-link" class="site-link" target="_blank" rel="noopener noreferrer"
+       data-i18n="Page d'information">Page d'information</a>
   </footer>
 
-  <script type="module" src="popup.js?v=8f81eabfb416"></script>
+  <script type="module" src="popup.js?v=a88d45c0714f"></script>
 </body>
 </html>

@@ -11,20 +11,42 @@
  */
 
 import {
-  createLink, hostOf, hasShortUrl, safeHref, resolveTarget, resolveTargets,
-  sortLinks, sortByManualOrder, applyVisibleOrder, SORT_MODES,
+  createLink, findDuplicate, hostOf, hasShortUrl, mergeDuplicate, safeHref,
+  resolveTarget, resolveTargets, sortLinks, sortByManualOrder, applyVisibleOrder, SORT_MODES,
 } from './core/link.js';
-import { resolveDefaultStore } from './core/store.js';
-import { ELEMENT_IDS } from './element-ids.js';
 import {
-  createSettingsStore, DEFAULT_SETTINGS, COLLECTION_NAME_MAX, COLLECTION_NOTE_MAX,
+  resolveDefaultStore, withCollection, createCompositeStore, createChromeStorageStore,
+} from './core/store.js';
+import {
+  COLLECTION_NAME_MAX,
+  COLLECTION_NOTE_MAX,
+  DEFAULT_COLLECTION_ID,
+  DEFAULT_COLLECTION_NAME,
+  DEFAULT_START_INDEX,
+  PRIVATE_COLLECTION_ID,
+  cleanStartIndex,
+  PRIVATE_LINKS_KEY,
+  collectionDisplayName,
+  createCollectionStore,
+  displayedDocuments,
+  freeCollectionName,
+  isPrivateCollection,
+  isPrivateContext,
+} from './core/collections.js';
+import { ELEMENT_IDS } from './element-ids.js';
+
+import {
+  createSettingsStore, DEFAULT_SETTINGS,
   sanitizeSettings,
 } from './core/settings.js';
 import {
   SHORTENERS,
+  TLY_AFFILIATE_URL,
   findShortener,
   createShortener,
+  defaultShortenerId,
   describeShortenReport,
+  hasExtensionRuntime,
   isServiceFailure,
   suggestShortener,
 } from './core/shorten.js';
@@ -55,12 +77,15 @@ import {
   clampGrid,
   presetToGrid,
   round1,
+  autoSheetLayout,
   qrRatioBounds,
   sheetTextMetrics,
+  sheetTextBudget,
   sheetCellLines,
-  sheetCellText,
+  sheetCellBlocks,
   sheetHeaderFits,
   SHEET_HEADER_MM,
+  DEFAULT_SHEET_PRESET,
   SHEET_CELL_MARGIN_MM,
   SHEET_QR_GAP_MM,
   SHEET_FONT_PT,
@@ -113,6 +138,7 @@ import { NiimbotPrinter } from './core/printer/printer.js';
 import {
   initI18n, applyTranslations, setLocale, getLocale, t, tpl,
 } from './core/i18n.js';
+import { informationPageHref } from './core/site.js';
 
 const PX_PER_MM = 96 / 25.4;
 
@@ -123,7 +149,60 @@ const PRINT_PAGE_STYLE_ID = 'print-page-size';
 // État
 // ---------------------------------------------------------------------------
 
-const { store, kind: storeKind } = resolveDefaultStore();
+const { store: baseStore, kind: storeKind } = resolveDefaultStore();
+
+/**
+ * L'API d'extension, ou `null` sur la page web autonome.
+ *
+ * `chrome.runtime.id` n'existe que dans une page d'extension : une page web
+ * ordinaire expose `window.chrome` sur les navigateurs Chromium, mais sans
+ * `runtime`. C'est ce test — le même que celui du service proposé d'emblée —
+ * qui décide si l'application a des collections et une zone de session.
+ */
+const extensionApi = (() => {
+  try {
+    const api = globalThis.browser ?? globalThis.chrome;
+    return typeof api?.runtime?.id === 'string' && api.runtime.id !== '' ? api : null;
+  } catch {
+    return null;
+  }
+})();
+
+/**
+ * Les liens de la collection de navigation privée, en mémoire de session.
+ *
+ * `null` hors extension, et `null` aussi sur un navigateur antérieur à
+ * `storage.session` (Chrome 102, Safari 16.4) : dans les deux cas la collection
+ * privée n'est pas proposée, plutôt que d'écrire des URL privées sur le disque.
+ */
+const privateStore = (() => {
+  const area = extensionApi?.storage?.session;
+  if (!area || typeof area.get !== 'function' || typeof area.set !== 'function') return null;
+  try {
+    return createChromeStorageStore({ area, key: PRIVATE_LINKS_KEY });
+  } catch {
+    return null;
+  }
+})();
+
+/** Les deux zones réunies : les liens ordinaires, et ceux de la session. */
+const allStores = privateStore
+  ? createCompositeStore([
+    { store: baseStore, match: (collectionId) => collectionId !== PRIVATE_COLLECTION_ID },
+    { store: privateStore, match: (collectionId) => collectionId === PRIVATE_COLLECTION_ID },
+  ])
+  : baseStore;
+
+/**
+ * Le magasin de la collection affichée.
+ *
+ * Réaffecté à chaque bascule, et **c'est lui que tout le reste du fichier
+ * utilise** : la liste, les exports, la planche et l'impression suivent donc la
+ * collection choisie sans qu'aucun appel n'ait eu à changer. Un magasin borné
+ * plutôt qu'un filtre appliqué à chaque lecture : c'est ce qui garantit qu'une
+ * liste ne mélange jamais deux collections par oubli.
+ */
+let store = withCollection(allStores, DEFAULT_COLLECTION_ID);
 
 /** @type {import('./core/link.js').LinkRecord[]} */
 let links = [];
@@ -159,6 +238,9 @@ let largeurApercuRendue = 0;
  */
 const servicesEnEchec = new Map();
 
+/** Minuteur qui désarme la confirmation de suppression d'une collection. */
+let deleteConfirmTimer = null;
+
 /** La largeur utile retenue pour ce rendu, ou une mesure de secours. */
 function largeurUtileApercu() {
   return largeurApercuRendue > 0 ? largeurApercuRendue : previewViewportWidth();
@@ -170,7 +252,7 @@ let toastTimer = null;
 /** Objet-URL de l'aperçu d'étiquette, à révoquer avant chaque nouveau rendu. */
 let labelPreviewUrl = null;
 /** Préférences retenues d'une session à l'autre (service, cible du QR Code). */
-const settings = createSettingsStore();
+const settings = createSettingsStore({ defaultShortener: defaultShortenerId() });
 /** `AbortController` du lot de raccourcissement en cours, s'il y en a un. */
 let shortenJob = null;
 /** Options du choix de cible, gardées pour pouvoir les désactiver. */
@@ -249,6 +331,23 @@ let dernieresPagesTableau = 1;
  * @type {{columns: number, rows: number}|null}
  */
 let derniereGrilleDemandeeInitiale = null;
+
+/**
+ * Les six cotes de la planche **avant** que la mise en page automatique ne les
+ * écrase.
+ *
+ * La case « Mise en page automatique » calcule la grille et remplit les champs à
+ * la place de l'utilisateur. Sans cette mémoire, décocher la case laissait les
+ * valeurs calculées en place : la planche ne bougeait pas d'un millimètre, et
+ * l'on croyait à un défaut d'affichage — « rien ne change » — alors que le calcul
+ * était simplement resté. Décocher rend donc ce qui a été mis de côté ; à défaut
+ * — parce que la case était déjà cochée au chargement —, la grille de la
+ * disposition choisie, qui est au moins une grille nommée.
+ *
+ * @type {{columns: string, rows: string, marginXMm: string, marginYMm: string,
+ *   gapXMm: string, gapYMm: string}|null}
+ */
+let grilleManuelle = null;
 
 /**
  * Orientations proposées à l'impression.
@@ -715,6 +814,24 @@ function linkEditor(link) {
     hint.textContent = t('Entrée pour enregistrer, Échap pour annuler. Tags séparés par des virgules.');
     form.appendChild(hint);
 
+    // **Le lien court reste vérifiable ici.** Il ne l'est plus dans la ligne,
+    // où il est devenu le libellé de la case qui choisit ce que le QR Code
+    // encode : deux intentions dans le même bloc se confondaient. Le vérifier
+    // avant d'imprimer reste possible — c'est même le seul endroit où l'on peut
+    // le faire sans quitter l'application.
+    if (hasShortUrl(link)) {
+      const court = document.createElement('p');
+      court.className = 'hint hint--tight link__editor-short';
+      const service = findShortener(link.shortProvider)?.name ?? link.shortProvider ?? '';
+      court.append(
+        document.createTextNode(t('Lien court :')),
+        document.createTextNode(' '),
+        linkAnchor(link.shortUrl, 'link__editor-short-url'),
+        document.createTextNode(service === '' ? '' : ` (${service})`),
+      );
+      form.appendChild(court);
+    }
+
     // Les deux commandes du formulaire, visibles.
     //
     // Elles ne l'étaient pas : le formulaire ne se fermait qu'avec Entrée ou
@@ -750,10 +867,14 @@ function linkEditor(link) {
           await store.put({ ...link, title: updated.title, note: updated.note, tags: updated.tags });
           await refresh();
           toast(t('Lien mis à jour'));
+          // La liste vient d'être reconstruite : l'éditeur est fermé, et une
+          // remise à jour qui attendait son tour peut passer.
+          resumeDeferredSync();
           return;
         }
       }
       await refresh();
+      resumeDeferredSync();
     };
 
     for (const input of inputs.values()) {
@@ -817,18 +938,52 @@ function renderLink(link) {
 
   body.append(title, url);
 
+  // **Le lien court *est* le contrôle.** Il y avait deux intentions dans le même
+  // bloc : l'adresse courte était un lien — pour aller la vérifier — et, juste
+  // en dessous, une case « Encoder le lien raccourci » qui ne disait pas lequel.
+  // Cliquer sur l'un ou cocher l'autre demandait de savoir lequel des deux on
+  // visait. La case porte maintenant l'adresse comme libellé : on coche ce qu'on
+  // lit, et la ligne n'a plus qu'une action. Vérifier le lien court se fait dans
+  // l'éditeur de la ligne, où il reste cliquable.
+  let cible = null;
   if (hasShortUrl(link)) {
-    const short = document.createElement('div');
-    short.className = 'link__short';
+    cible = document.createElement('label');
+    cible.className = 'link__short';
+    cible.title = t("Encoder ce lien dans le QR Code, à la place de l'adresse d'origine.");
+
+    const case_ = document.createElement('input');
+    case_.type = 'checkbox';
+    case_.className = 'link__short-check';
+    // `undefined` suit le réglage global, et la case doit le montrer tel quel.
+    case_.checked = typeof link.useShort === 'boolean'
+      ? link.useShort
+      : preferences.targetMode === 'short';
+    case_.setAttribute('aria-label', t('Encoder {url} pour « {title} »', {
+      url: link.shortUrl, title: link.title || link.url,
+    }));
+    case_.addEventListener('change', async () => {
+      await store.put({ ...link, useShort: case_.checked });
+      await refresh();
+    });
+
     const mark = document.createElement('span');
     mark.className = 'link__short-mark';
     mark.textContent = '↳';
     mark.setAttribute('aria-hidden', 'true');
+
+    const url = document.createElement('span');
+    url.className = 'link__short-url';
+    url.textContent = link.shortUrl;
+
     const provider = document.createElement('span');
     provider.className = 'link__short-provider';
     provider.textContent = findShortener(link.shortProvider)?.name ?? link.shortProvider ?? '';
-    short.append(mark, linkAnchor(link.shortUrl, 'link__short-url'), provider);
-    body.appendChild(short);
+
+    cible.append(case_, mark, url, provider);
+    // Un clic sur le libellé ne doit pas ouvrir l'éditeur de la ligne : le
+    // contrôle est autonome.
+    cible.addEventListener('click', (event) => event.stopPropagation());
+    body.appendChild(cible);
   }
 
   // La note est visible sans ouvrir l'éditeur : c'est souvent la seule chose
@@ -865,37 +1020,6 @@ function renderLink(link) {
     body.appendChild(tags);
   }
 
-  // La cible du QR Code de **ce lien**, quand elle peut différer du réglage
-  // global : un raccourci existe, et l'on peut vouloir encoder l'un ou l'autre.
-  // Sans raccourci, il n'y a rien à choisir — et proposer un choix vide serait
-  // une commande sans effet.
-  let cible = null;
-  if (hasShortUrl(link)) {
-    cible = document.createElement('label');
-    cible.className = 'link__target';
-    const case_ = document.createElement('input');
-    case_.type = 'checkbox';
-    // `undefined` suit le réglage global, et la case doit le montrer tel quel.
-    case_.checked = typeof link.useShort === 'boolean'
-      ? link.useShort
-      : preferences.targetMode === 'short';
-    const libelle = t('Encoder le lien raccourci');
-    case_.setAttribute('aria-label', t('{label} pour {title}', {
-      label: libelle, title: link.title || link.url,
-    }));
-    case_.addEventListener('change', async () => {
-      await store.put({ ...link, useShort: case_.checked });
-      await refresh();
-    });
-    const texte = document.createElement('span');
-    texte.className = 'link__target-label';
-    texte.textContent = libelle;
-    cible.append(case_, texte);
-    // Un clic sur le libellé ne doit pas ouvrir l'éditeur de la ligne : le
-    // contrôle est autonome.
-    cible.addEventListener('click', (event) => event.stopPropagation());
-  }
-
   const remove = button('×', 'link__remove', async () => {
     await store.remove(link.id);
     selected.delete(link.id);
@@ -913,7 +1037,6 @@ function renderLink(link) {
   // triée : le déplacement serait annulé au rendu suivant, et l'utilisateur
   // croirait à une panne. Le libellé du tri le dit, plutôt que de laisser des
   // boutons inertes.
-  if (cible) body.appendChild(cible);
 
   // Le rangement n'existe qu'en **mode** réorganisation, et il se pose à gauche
   // de la ligne. Deux flèches permanentes sur chaque ligne encombraient la liste
@@ -1107,6 +1230,11 @@ function updateSelectionHint() {
   el.selectAllBox.indeterminate = !all && selected.size > 0;
   el.selectAllBox.disabled = links.length === 0;
 
+  // Réglé **avant** les sorties anticipées ci-dessous : « tout cocher » est le
+  // geste le plus courant, et il sortait par la branche `all` sans jamais
+  // atteindre le réglage — la commande de déplacement ne venait donc pas.
+  updateMoveControl();
+
   if (links.length === 0) {
     el.selectionHint.textContent = '';
     return;
@@ -1119,6 +1247,147 @@ function updateSelectionHint() {
     ? t("Aucun lien coché : l'impression portera sur toute la collection ({count}).", { count: links.length })
     : `${tpl(selected.size, '{count} lien coché', '{count} liens cochés')} `
       + t('sur {count}.', { count: links.length });
+}
+
+/**
+ * Les collections vers lesquelles la sélection peut partir.
+ *
+ * La collection affichée est exclue : « déplacer » vers l'endroit où l'on est
+ * ne déplacerait rien. La collection privée n'y figure pas non plus hors de son
+ * contexte, puisqu'elle n'est déjà pas dans la liste des collections visibles.
+ *
+ * @returns {Array<object>}
+ */
+function moveTargets() {
+  return visibleCollectionsList.filter((collection) => collection.id !== activeCollectionId);
+}
+
+/**
+ * Affiche, ou retire, la commande de déplacement.
+ *
+ * Elle n'apparaît qu'avec une sélection **et** une destination possible : on ne
+ * déplace que ce qu'on a coché, et une commande qui n'ouvrirait qu'un panneau
+ * vide serait un piège. Elle disparaît dès que la dernière case se décoche —
+ * c'est le même état qui la fait vivre et mourir, donc rien à synchroniser.
+ */
+function updateMoveControl() {
+  const possible = selected.size > 0 && moveTargets().length > 0 && links.length > 0;
+  el.moveGroup.hidden = !possible;
+  if (!possible) closeMoveMenu();
+}
+
+/**
+ * Ouvre la liste des collections d'arrivée, sous son bouton.
+ *
+ * Le panneau est reconstruit à chaque ouverture : la liste des collections peut
+ * avoir changé — on vient peut-être d'en créer une — et un panneau gardé en
+ * mémoire finirait par proposer une collection supprimée.
+ */
+function openMoveMenu() {
+  const cibles = moveTargets();
+  if (cibles.length === 0) return;
+
+  el.moveMenu.textContent = '';
+  for (const collection of cibles) {
+    const choix = document.createElement('button');
+    choix.type = 'button';
+    choix.className = 'btn btn--ghost btn--small move__choice';
+    choix.textContent = collectionDisplayName(collection);
+    choix.addEventListener('click', () => moveSelection(collection.id));
+    el.moveMenu.appendChild(choix);
+  }
+
+  el.moveMenu.hidden = false;
+  el.moveTo.setAttribute('aria-expanded', 'true');
+  // Le focus entre dans le panneau : au clavier, le choix suit immédiatement le
+  // bouton qui l'a ouvert, sans traverser le reste de la page.
+  el.moveMenu.firstElementChild?.focus();
+}
+
+/** Referme le panneau, et rend le focus au bouton qui l'a ouvert. */
+function closeMoveMenu() {
+  if (el.moveMenu.hidden) return;
+  el.moveMenu.hidden = true;
+  el.moveTo.setAttribute('aria-expanded', 'false');
+  el.moveTo.focus();
+}
+
+/**
+ * Déplace les liens cochés vers une autre collection.
+ *
+ * Un déplacement n'est **pas** une copie : l'enregistrement garde son
+ * identifiant, sa date de collecte, ses tags, sa note et son raccourci, et
+ * change seulement de collection. Une seule écriture par lien, donc, et rien à
+ * recréer — l'identifiant le retrouve là où il était, avec une autre adresse de
+ * rangement.
+ *
+ * Deux cas méritent d'être dits :
+ *
+ * - **Le rang ne suit pas.** Un rang appartient au rangement de la collection
+ *   qu'on quitte ; l'emporter ferait s'intercaler un lien à une place que
+ *   personne n'a choisie dans la collection d'arrivée. Le lien y arrive sans
+ *   rang, et suit donc la date, comme tout lien jamais rangé.
+ * - **Une adresse déjà présente fusionne.** Dans une collection, un doublon
+ *   reste un doublon : le titre en place est corrigé si celui qu'on apporte est
+ *   différent, et la copie disparaît. Sans cela, la même adresse vivrait deux
+ *   fois dans la collection d'arrivée, ce que l'enregistrement interdit
+ *   partout ailleurs.
+ *
+ * @param {string} targetId
+ * @returns {Promise<void>}
+ */
+async function moveSelection(targetId) {
+  const destination = visibleCollectionsList.find((collection) => collection.id === targetId);
+  const aDeplacer = links.filter((link) => selected.has(link.id));
+  if (!destination || aDeplacer.length === 0) return;
+
+  const cible = withCollection(allStores, targetId);
+  const surPlace = await cible.list();
+  let deplaces = 0;
+  let fusionnes = 0;
+
+  for (const link of aDeplacer) {
+    const existant = findDuplicate(surPlace, link.url);
+    if (existant) {
+      const { link: fusionne, updated } = mergeDuplicate(existant, link);
+      if (updated) await cible.put(fusionne);
+      await store.remove(link.id);
+      fusionnes += 1;
+      continue;
+    }
+
+    const { order, ...sansRang } = link;
+    await cible.put(sansRang);
+    surPlace.push({ ...sansRang, collectionId: targetId });
+    deplaces += 1;
+  }
+
+  // Les liens ont quitté la collection : `refresh` les retire de la sélection,
+  // ce qui fait disparaître la commande d'elle-même — et avec elle le bouton et
+  // le panneau qui avaient le focus. On le repose sur le sélecteur de
+  // collection : c'est la commande voisine, toujours visible, et celle qui dit
+  // où l'on se trouve après un déplacement.
+  await refresh();
+  applyCollectionName();
+  el.collectionSelect.focus();
+
+  const morceaux = [];
+  if (deplaces > 0) {
+    morceaux.push(tpl(
+      deplaces,
+      '{count} lien déplacé vers « {name} »',
+      '{count} liens déplacés vers « {name} »',
+      { name: collectionDisplayName(destination) },
+    ));
+  }
+  if (fusionnes > 0) {
+    morceaux.push(tpl(
+      fusionnes,
+      '{count} adresse déjà présente : fusionnée',
+      '{count} adresses déjà présentes : fusionnées',
+    ));
+  }
+  toast(morceaux.join(', '));
 }
 
 /**
@@ -1164,16 +1433,23 @@ function exportImagesLabel(count) {
 
 /** L'ensemble des liens actuellement sélectionnés, dans l'ordre d'affichage. */
 /**
- * Le numéro du premier lien de la collection.
+ * Le numéro du premier lien de la **collection affichée**.
  *
  * Il est **réglé**, et non déduit : on numérote une série d'objets, et une
  * série continue après qu'on a vidé la collection du lot précédent. Le déduire
  * des liens présents remettrait la numérotation à 1 au moment précis où l'on
  * veut la continuer.
  *
+ * Il appartient à la collection, et non à l'application : reprendre une série
+ * ici n'a rien à voir avec ce qui se numérote ailleurs. C'est le repli sur les
+ * réglages qui vaut pour la page web autonome, dont l'unique collection est
+ * celle des réglages, et pour une collection écrite avant que ce champ existe.
+ *
  * @returns {number}
  */
 function premierNumero() {
+  const collection = activeCollection();
+  if (collection && Number.isFinite(collection.startIndex)) return collection.startIndex;
   return preferences.startIndex;
 }
 
@@ -1210,6 +1486,479 @@ function collectionNote() {
 /** Reporte le nom de collection sur le titre de la page. */
 function applyCollectionName() {
   document.title = `${collectionName()} — URLQRCodePrinter`;
+}
+
+// ---------------------------------------------------------------------------
+// Collections
+// ---------------------------------------------------------------------------
+
+/** La collection affichée, telle que la connaît la source courante. */
+let activeCollectionId = DEFAULT_COLLECTION_ID;
+/** @type {Array<{id: string, name: string, note: string, private?: boolean}>} */
+let visibleCollectionsList = [];
+
+/**
+ * La source des collections : le stockage de l'extension, ou un adaptateur.
+ *
+ * Dans l'extension, les collections vivent dans `chrome.storage.local` — le
+ * même stockage que les liens, donc le même que celui de la fenêtre et du
+ * service worker. Sur la page web autonome, il n'y a **qu'une** collection :
+ * celle du produit d'avant, dont le nom et la note vivent dans les réglages.
+ * L'adaptateur expose la même interface, si bien que rien d'autre dans ce
+ * fichier n'a besoin de savoir dans quel contexte il tourne — la page autonome
+ * se contente de masquer le sélecteur.
+ *
+ * @returns {object}
+ */
+function createCollectionSource() {
+  if (extensionApi?.storage?.local) {
+    return createCollectionStore({ area: extensionApi.storage.local });
+  }
+
+  /** La collection unique de la page autonome, relue des réglages. */
+  const unique = () => {
+    const reglages = settings.load();
+    return {
+      id: DEFAULT_COLLECTION_ID,
+      name: reglages.collectionName === DEFAULT_SETTINGS.collectionName
+        ? ''
+        : reglages.collectionName,
+      note: reglages.collectionNote ?? '',
+      startIndex: reglages.startIndex,
+      createdAt: 0,
+    };
+  };
+
+  return {
+    available: false,
+    async list() { return [unique()]; },
+    async visible() { return [unique()]; },
+    async ensureDefault() { return false; },
+    async getActive() { return DEFAULT_COLLECTION_ID; },
+    async setActive() { return DEFAULT_COLLECTION_ID; },
+    async needsMigration() { return false; },
+    async markMigrated() { return false; },
+    async create() {
+      throw new TypeError(t('Les collections ne sont disponibles que dans l\'extension'));
+    },
+    async remove() {
+      throw new TypeError(t('Les collections ne sont disponibles que dans l\'extension'));
+    },
+    async rename(id, name) {
+      // Sur la page autonome, renommer écrit le réglage d'avant : c'est lui qui
+      // nomme les exports, et rien d'autre ne l'utilise.
+      settings.save({ collectionName: typeof name === 'string' ? name.trim() : '' });
+      return unique();
+    },
+    async setNote(id, note) {
+      settings.save({ collectionNote: typeof note === 'string' ? note.trim() : '' });
+      return unique();
+    },
+    async setStartIndex(id, value) {
+      // Sur la page autonome, la numérotation est celle des réglages : c'est
+      // elle qui est relue au chargement suivant.
+      const enregistre = settings.save({ startIndex: value });
+      preferences = enregistre;
+      return unique();
+    },
+  };
+}
+
+const collections = createCollectionSource();
+
+/**
+ * Le contexte est-il privé ?
+ *
+ * Dans l'application, seule l'API d'extension répond : il n'y a pas d'onglet à
+ * interroger comme dans la fenêtre. Elle n'existe que depuis Safari 18, si bien
+ * que sur les versions antérieures l'application ne propose pas la collection
+ * privée — une limite, pas un contournement.
+ */
+function appPrivateContext() {
+  return isPrivateContext({
+    inIncognitoContext: extensionApi?.extension?.inIncognitoContext,
+  });
+}
+
+/** Le magasin de la collection affichée, recalculé à chaque bascule. */
+function bindStore() {
+  store = withCollection(allStores, activeCollectionId);
+}
+
+/** La collection affichée, ou `undefined` tant que rien n'est chargé. */
+function activeCollection() {
+  return visibleCollectionsList.find((collection) => collection.id === activeCollectionId);
+}
+
+/**
+ * Le nombre de collections ordinaires.
+ *
+ * La collection de navigation privée n'en fait pas partie : elle est
+ * synthétisée, jamais écrite, et ne compte donc pas parmi celles qui peuvent
+ * disparaître. C'est ce nombre qui décide si l'on peut supprimer — pas
+ * l'identité de la collection affichée.
+ *
+ * @returns {number}
+ */
+function ordinaryCollectionCount() {
+  return visibleCollectionsList.filter((collection) => !isPrivateCollection(collection)).length;
+}
+
+/**
+ * Le nom de la collection affichée, tel qu'il s'affiche dans la liste.
+ * @returns {string}
+ */
+function activeCollectionLabel() {
+  const collection = activeCollection();
+  return collection ? collectionDisplayName(collection) : t(DEFAULT_COLLECTION_NAME);
+}
+
+/**
+ * Peint le sélecteur de collection, et l'aide qui l'accompagne.
+ *
+ * La ligne entière est masquée quand l'environnement n'a pas de collections :
+ * un sélecteur à une seule option, sur une page web autonome, serait un réglage
+ * qui ne règle rien.
+ */
+function fillCollections() {
+  const disponible = Boolean(collections.available);
+  el.collectionPicker.hidden = !disponible;
+  el.collectionHint.hidden = !disponible;
+  el.collectionSelect.textContent = '';
+
+  for (const collection of visibleCollectionsList) {
+    const option = document.createElement('option');
+    option.value = collection.id;
+    option.textContent = collectionDisplayName(collection);
+    el.collectionSelect.appendChild(option);
+  }
+  el.collectionSelect.value = activeCollectionId;
+
+  // Les deux commandes restent visibles même quand elles sont refusées : leur
+  // `disabled` dit pourquoi, là où les masquer laisserait croire à une fonction
+  // absente.
+  //
+  // **Toutes les collections se suppriment, sauf la dernière** — y compris
+  // celle par défaut, qui n'a rien de particulier : elle est celle de qui n'en
+  // crée jamais, et la garder quand une autre existe obligeait à créer une
+  // collection pour pouvoir se débarrasser de la première. Ce qui ne peut pas
+  // arriver, c'est qu'il n'en reste aucune.
+  const courante = activeCollection();
+  const supprimable = disponible && !isPrivateCollection(courante)
+    && ordinaryCollectionCount() > 1;
+  el.collectionDelete.disabled = !supprimable;
+  el.collectionDelete.textContent = t('Supprimer');
+  el.collectionDelete.dataset.confirm = '';
+
+  updateCollectionHint();
+}
+
+/**
+ * L'aide sous le sélecteur : ce que la collection affichée implique.
+ *
+ * Deux choses seulement méritent d'être dites ici — ce que devient une
+ * collection de navigation privée, et ce que signifie un nom vide. Le reste se
+ * voit à l'écran : ce qu'une suppression emporte, la confirmation le dit déjà.
+ *
+ * Le nom vide est le cas le moins devinable : le champ est vide, la collection
+ * s'appelle pourtant « Mes liens » dans la liste, et c'est ce nom-là qui titre
+ * les exports. Le dire évite de croire à une perte.
+ */
+function updateCollectionHint() {
+  const collection = activeCollection();
+  let texte = '';
+  if (isPrivateCollection(collection)) {
+    texte = t("Navigation privée : ces liens ne sont conservés que jusqu'à la fermeture du navigateur.");
+  } else if (collection && collection.name.trim() === '') {
+    texte = t('Nom vide : cette collection s\'affiche et s\'exporte sous le nom « {name} ».', {
+      name: t(DEFAULT_COLLECTION_NAME),
+    });
+  }
+
+  el.collectionHint.textContent = texte;
+  el.collectionHint.hidden = texte === '';
+}
+
+/**
+ * Bascule d'une collection à l'autre, et redessine tout ce qui en dépend.
+ *
+ * La collection courante est mémorisée : rouvrir l'application retrouve celle
+ * qu'on regardait, et le nom des exports suit.
+ *
+ * @param {string} id
+ * @returns {Promise<void>}
+ */
+async function switchCollection(id) {
+  if (!id || id === activeCollectionId) return;
+  // Le choix d'import portait sur la collection affichée — ses libellés la
+  // nomment. Changer de collection pendant qu'il est ouvert rendrait ces
+  // libellés faux, et « Fusionner » écrirait ailleurs que ce qui est annoncé :
+  // la question est donc retirée, et l'import reste à refaire.
+  closeImportMenu();
+  activeCollectionId = id;
+  await collections.setActive(id, appPrivateContext());
+  bindStore();
+  await loadActiveCollectionFields();
+  await refresh();
+  applyCollectionName();
+  fillCollections();
+}
+
+/**
+ * Reporte sur les champs le nom et la note de la collection affichée.
+ *
+ * Le nom est écrit **tel qu'il est enregistré**, vide compris : un champ vidé
+ * est ce qui vient d'être fait, et le réafficher plein ferait croire que rien
+ * n'a été écrit. Le libellé intégré — « Mes liens » — reste en filigrane du
+ * champ, et c'est lui qui s'affiche dans la liste et titre les exports.
+ */
+async function loadActiveCollectionFields() {
+  const collection = activeCollection();
+  el.collectionName.value = collection ? collection.name : '';
+  el.collectionNote.value = collection ? collection.note : '';
+  // Le premier numéro suit la même règle que le nom : c'est celui de la
+  // collection affichée, et changer de collection change la numérotation.
+  el.collectionStart.value = String(premierNumero());
+}
+
+/**
+ * Crée une collection, et l'affiche.
+ *
+ * Le nom est proposé plutôt que demandé : « Nouvelle collection », puis
+ * « Nouvelle collection 2 », etc. Le champ du nom est juste en dessous, et
+ * prend le focus juste après — on nomme ce qu'on vient de créer, sans passer
+ * par une boîte de dialogue.
+ *
+ * @returns {Promise<void>}
+ */
+async function createAppCollection() {
+  if (!collections.available) return;
+
+  const nom = freeCollectionName(t('Nouvelle collection'), visibleCollectionsList);
+
+  try {
+    const collection = await collections.create(nom);
+    // Même règle que la bascule : un choix d'import ouvert nommait la collection
+    // précédente, et la créer en change.
+    closeImportMenu();
+    visibleCollectionsList = await collections.visible({ isPrivate: appPrivateContext() });
+    activeCollectionId = collection.id;
+    await collections.setActive(collection.id, appPrivateContext());
+    bindStore();
+    await loadActiveCollectionFields();
+    await refresh();
+    fillCollections();
+    el.collectionName.focus();
+    el.collectionName.select();
+  } catch (error) {
+    toast(error?.message ?? t('Création impossible'), 'error');
+  }
+}
+
+/**
+ * Supprime la collection affichée, en deux temps.
+ *
+ * Un clic demande confirmation et **dit ce qui sera perdu** ; le second
+ * supprime. Une suppression de collection emporte ses liens : c'est la seule
+ * action de l'application qui détruit en masse, et elle ne doit pas tenir à un
+ * clic mal placé.
+ *
+ * @returns {Promise<void>}
+ */
+async function deleteAppCollection() {
+  const collection = activeCollection();
+  if (!collections.available || !collection) return;
+  // La même règle que le bouton : la collection privée ne se supprime pas, et
+  // la dernière collection non plus. Le cœur la refuse de toute façon — ce
+  // garde-fou évite d'armer une confirmation pour rien.
+  if (isPrivateCollection(collection) || ordinaryCollectionCount() <= 1) return;
+
+  if (el.collectionDelete.dataset.confirm !== '1') {
+    el.collectionDelete.dataset.confirm = '1';
+    el.collectionDelete.textContent = tpl(
+      links.length,
+      'Confirmer : {count} lien sera perdu',
+      'Confirmer : {count} liens seront perdus',
+    );
+    return;
+  }
+
+  // Les liens d'abord, la collection ensuite : si l'écriture du document
+  // échoue, il reste une collection vide plutôt que des liens orphelins que
+  // plus rien n'affiche.
+  await store.clear();
+  try {
+    await collections.remove(collection.id);
+  } catch (error) {
+    toast(error?.message ?? t('Suppression impossible'), 'error');
+    return;
+  }
+
+  // Le choix d'import nommait la collection qui vient de disparaître : il n'a
+  // plus de destinataire possible.
+  closeImportMenu();
+  // Le stockage désigne désormais une autre collection — celle qui vient d'être
+  // supprimée ne peut pas rester courante — et on l'y réinscrit avant de la
+  // relire, pour que la fenêtre et l'application s'accordent sur la même.
+  activeCollectionId = await collections.getActive(appPrivateContext());
+  await collections.setActive(activeCollectionId, appPrivateContext());
+  await reloadCollections();
+  toast(t('Collection supprimée'));
+}
+
+/**
+ * Reprend, une seule fois, le nom et la note des réglages d'avant.
+ *
+ * Avant les collections, le nom et la note vivaient dans les préférences. Les
+ * laisser derrière ferait perdre un titre d'export que l'utilisateur avait
+ * choisi ; les recopier à chaque démarrage écraserait, à l'inverse, ce qu'il
+ * aurait saisi depuis. D'où une reprise unique, marquée dans le document.
+ *
+ * @returns {Promise<void>}
+ */
+async function migrateLegacyCollection() {
+  if (!collections.available) return;
+  if (!(await collections.needsMigration())) return;
+
+  const anciens = settings.load();
+  const nom = anciens.collectionName === DEFAULT_SETTINGS.collectionName
+    ? ''
+    : anciens.collectionName;
+
+  try {
+    if (nom !== '') await collections.rename(DEFAULT_COLLECTION_ID, nom);
+    if ((anciens.collectionNote ?? '') !== '') {
+      await collections.setNote(DEFAULT_COLLECTION_ID, anciens.collectionNote);
+    }
+    // Le premier numéro était global avant d'appartenir à une collection : le
+    // laisser derrière remettrait la numérotation d'une série en cours à 1.
+    if (anciens.startIndex !== DEFAULT_START_INDEX) {
+      await collections.setStartIndex(DEFAULT_COLLECTION_ID, anciens.startIndex);
+    }
+  } catch {
+    // Un nom déjà pris, un stockage qui refuse : la reprise est un confort, pas
+    // une étape dont dépend le démarrage.
+  }
+  await collections.markMigrated();
+}
+
+/**
+ * Prépare les collections au démarrage : source, reprise, sélecteur.
+ * @returns {Promise<void>}
+ */
+async function setupCollections() {
+  await collections.ensureDefault();
+  await migrateLegacyCollection();
+
+  const prive = appPrivateContext() && privateStore !== null;
+  visibleCollectionsList = await collections.visible({ isPrivate: prive });
+  activeCollectionId = await collections.getActive(prive);
+  bindStore();
+
+  await loadActiveCollectionFields();
+  fillCollections();
+}
+
+/**
+ * Relit les collections, la collection courante, et ce qui s'affiche.
+ *
+ * Trois chemins en ont besoin, pour la même raison : quelque chose a changé
+ * **hors** de la vue — un import qui vient de créer une collection, une
+ * collection supprimée, ou une écriture venue d'une autre page. Le nom, le
+ * sélecteur et la liste viennent tous des mêmes documents ; les relire
+ * séparément finirait par en laisser un en arrière.
+ *
+ * La collection courante est relue du stockage plutôt que gardée de la mémoire :
+ * c'est elle qui décide de ce qui est affiché, et entre deux pages qui partagent
+ * le même stockage, c'est lui qui fait foi.
+ *
+ * @returns {Promise<void>}
+ */
+async function reloadCollections() {
+  const prive = appPrivateContext();
+  visibleCollectionsList = await collections.visible({ isPrivate: prive });
+  activeCollectionId = await collections.getActive(prive);
+  bindStore();
+  await loadActiveCollectionFields();
+  await refresh();
+  fillCollections();
+  applyCollectionName();
+}
+
+/**
+ * Un éditeur de lien est-il ouvert dans la liste ?
+ *
+ * `renderList` reconstruit la liste entière : remettre la page d'aplomb pendant
+ * une saisie emporterait le titre en cours de frappe, sans un mot.
+ *
+ * @returns {boolean}
+ */
+function linkEditorOpen() {
+  return Boolean(el.list.querySelector?.('.link__editor-form'));
+}
+
+/** Une remise à jour a été reportée par un éditeur ouvert. */
+let syncPending = false;
+/** Le report d'une remise à jour, le temps qu'un geste finisse d'écrire. */
+let syncTimer = null;
+
+/**
+ * Délai avant de relire le stockage, en millisecondes.
+ *
+ * Un import écrit plusieurs documents d'affilée, et chaque écriture produit son
+ * événement : sans ce délai, la page se relirait autant de fois. Il reste court,
+ * puisque ce qui est en jeu est la fraîcheur de ce qui est affiché.
+ */
+const SYNC_DELAY_MS = 150;
+
+/**
+ * Relit le stockage, et ne redessine que s'il a réellement changé.
+ *
+ * La comparaison n'est pas une optimisation : c'est ce qui rend l'écoute du
+ * stockage inoffensive. Les écritures de cette page déclenchent le même
+ * événement que celles des autres, et une remise à jour qui ne changerait rien
+ * reconstruirait la liste pour rien.
+ *
+ * @returns {Promise<void>}
+ */
+async function syncFromStorage() {
+  if (linkEditorOpen()) {
+    syncPending = true;
+    return;
+  }
+
+  const prive = appPrivateContext();
+  const liste = await collections.visible({ isPrivate: prive });
+  const id = await collections.getActive(prive);
+  const liens = sortLinks(await withCollection(allStores, id).list(), preferences.sortMode);
+
+  const identique = id === activeCollectionId
+    && JSON.stringify(liste) === JSON.stringify(visibleCollectionsList)
+    && JSON.stringify(liens) === JSON.stringify(links);
+  if (identique) return;
+
+  await reloadCollections();
+}
+
+/** Programme une relecture, en regroupant les écritures d'un même geste. */
+function scheduleSync() {
+  clearTimeout(syncTimer);
+  syncTimer = setTimeout(() => {
+    syncTimer = null;
+    syncFromStorage().catch(() => {});
+  }, SYNC_DELAY_MS);
+}
+
+/**
+ * Solde la remise à jour qu'un éditeur ouvert avait fait attendre.
+ *
+ * Appelée à la fermeture de l'éditeur, une fois la liste reconstruite : c'est le
+ * seul moment où redessiner ne coûte rien à personne.
+ */
+function resumeDeferredSync() {
+  if (!syncPending) return;
+  syncPending = false;
+  scheduleSync();
 }
 
 /**
@@ -1283,7 +2032,28 @@ function exportAs(format) {
 }
 
 /**
- * Importe une archive JSON.
+ * L'import qui attend un choix de rangement.
+ *
+ * Le fichier est lu **tout de suite** — c'est ce qui permet d'annoncer ce qu'il
+ * contient — mais rien n'est écrit avant que l'utilisateur ait dit où le mettre.
+ * Un import qui écrirait d'abord demanderait ensuite de défaire ce qu'il vient
+ * de faire : c'est exactement ce qu'on cherche à éviter avec un remplacement.
+ *
+ * @type {{ file: string, candidates: object[], rejected: number,
+ *   collection: { name: string, note: string }, newName: string }|null}
+ */
+let importEnAttente = null;
+
+/**
+ * Lit un fichier importé, puis demande où le ranger.
+ *
+ * L'import ne devine plus : il **propose**. Trois issues, et aucune n'est
+ * raisonnable par défaut — ajouter à la collection affichée quand on voulait
+ * repartir de l'archive remplit la mauvaise, et remplacer quand on voulait
+ * ajouter détruit ce qu'on avait. Le fichier est donc lu d'abord, parce que le
+ * choix se fait en connaissance de cause : le panneau dit combien de liens il
+ * porte, et sous quel nom de collection.
+ *
  * @param {File} file
  */
 async function importArchive(file) {
@@ -1306,22 +2076,175 @@ async function importArchive(file) {
       return;
     }
 
-    let added = 0;
-    let duplicates = 0;
-    for (const candidate of candidates) {
-      const { duplicate } = await store.add(candidate, { allowDuplicate: false });
-      if (duplicate) duplicates++;
-      else added++;
-    }
-
-    await refresh();
-    toast(importReport({ added, duplicates, rejected }));
+    openImportMenu({
+      file: file.name,
+      candidates,
+      rejected,
+      collection: parsed.collection ?? { name: '', note: '' },
+    });
   } catch (error) {
     toast(t('Import impossible : {message}', { message: error.message }), 'error');
   } finally {
     el.import.textContent = label;
     el.import.disabled = false;
   }
+}
+
+/**
+ * Ouvre le choix du rangement, et nomme les collections concernées.
+ *
+ * Les libellés portent les noms : « Fusionner avec “Veille” » dit exactement ce
+ * qui va se passer, là où « Ajouter » laisse chercher à quoi. La collection
+ * nouvelle reçoit le nom du fichier quand il en porte un — c'est le cas de toute
+ * archive exportée d'ici — et un nom libre est cherché pour ne pas se heurter à
+ * une collection qui le porte déjà.
+ *
+ * @param {{ file: string, candidates: object[], rejected: number,
+ *   collection: { name: string, note: string } }} pending
+ */
+function openImportMenu(pending) {
+  const cible = activeCollectionLabel();
+  const privee = isPrivateCollection(activeCollection());
+
+  importEnAttente = {
+    ...pending,
+    // La nouvelle collection est nommée **maintenant** : le panneau peut donc
+    // l'annoncer, et le nom ne dépend pas de l'instant du clic.
+    newName: collections.available
+      ? freeCollectionName(pending.collection.name || t('Nouvelle collection'), visibleCollectionsList)
+      : '',
+  };
+
+  el.importMenuTitle.textContent = tpl(
+    pending.candidates.length,
+    '{count} lien lu dans {file}',
+    '{count} liens lus dans {file}',
+    { file: pending.file },
+  );
+
+  // Ce que le fichier dit de sa collection, et ce que « Remplacer » en ferait.
+  // En navigation privée, le nom et la note ne sont pas modifiables : le dire
+  // évite de croire que « Remplacer » les emportera.
+  el.importMenuHint.textContent = privee
+    ? t('Navigation privée : seuls les liens changent ; son nom et sa note ne sont pas modifiables.')
+    : importCollectionHint(pending.collection);
+
+  el.importMerge.textContent = t('Fusionner avec « {name} »', { name: cible });
+  el.importMerge.title = t('Ajoute les liens lus à la collection affichée ; son nom et sa note ne changent pas.');
+
+  el.importReplace.textContent = t('Remplacer « {name} »', { name: cible });
+  el.importReplace.title = t('Vide la collection affichée, puis y met les liens du fichier : son nom et sa note deviennent ceux du fichier.');
+
+  // Une collection de plus n'a de sens que là où il y en a plusieurs : sur la
+  // page web autonome, la commande reste masquée plutôt que d'échouer au clic.
+  el.importAdd.hidden = !collections.available;
+  if (collections.available) {
+    el.importAdd.textContent = t('Nouvelle collection « {name} »', { name: importEnAttente.newName });
+    el.importAdd.title = t("Crée une collection à part et y range les liens lus ; la collection affichée n'est pas touchée.");
+  }
+
+  el.importMenu.hidden = false;
+  el.importMerge.focus();
+}
+
+/**
+ * Ce que le fichier porte comme nom et comme note de collection.
+ *
+ * Le cas sans nom mérite d'être dit : « Remplacer » écrase le nom et la note par
+ * ceux du fichier, et un fichier qui n'en porte pas les **vide**. Le taire
+ * laisserait découvrir la chose une fois la collection renommée.
+ *
+ * @param {{ name: string, note: string }} collection
+ * @returns {string}
+ */
+function importCollectionHint(collection) {
+  if (collection.name === '') {
+    return t("Le fichier ne porte ni nom ni note de collection : « Remplacer » viderait aussi le nom et la note de la collection affichée.");
+  }
+  if (collection.note !== '') {
+    return t('Le fichier porte le nom de collection « {name} » et sa note.', { name: collection.name });
+  }
+  return t('Le fichier porte le nom de collection « {name} ».', { name: collection.name });
+}
+
+/** Referme le choix du rangement, sans rien importer. */
+function closeImportMenu() {
+  el.importMenu.hidden = true;
+  importEnAttente = null;
+}
+
+/**
+ * Range l'import en attente selon l'issue choisie.
+ *
+ * Trois issues, trois effets, et un seul point commun : les liens du fichier
+ * entrent dans **une** collection, sans doublon.
+ *
+ * - `merge` — ils rejoignent la collection affichée, qui garde son nom et sa
+ *   note. C'est l'import d'avant, et le seul que connaissait le produit.
+ * - `replace` — la collection affichée est vidée d'abord, puis renommée et
+ *   notée d'après le fichier. C'est le geste « je reprends cette archive comme
+ *   point de départ », et il **détruit** : c'est pour cela qu'il est nommé, et
+ *   non coché d'avance.
+ * - `add` — une collection est créée pour l'occasion, avec le nom et la note du
+ *   fichier. La collection affichée n'est pas touchée.
+ *
+ * @param {'merge'|'replace'|'add'} mode
+ * @returns {Promise<void>}
+ */
+async function applyImport(mode) {
+  const pending = importEnAttente;
+  closeImportMenu();
+  if (!pending) return;
+
+  // Le magasin de la collection qui reçoit : celui de la collection affichée,
+  // ou celui de la collection qui vient d'être créée.
+  let destination = store;
+
+  if (mode === 'add') {
+    try {
+      const creee = await collections.create(pending.newName);
+      if (pending.collection.note !== '') {
+        await collections.setNote(creee.id, pending.collection.note);
+      }
+      activeCollectionId = creee.id;
+      await collections.setActive(creee.id, appPrivateContext());
+      bindStore();
+      destination = store;
+    } catch (error) {
+      toast(error?.message ?? t('Création impossible'), 'error');
+      return;
+    }
+  } else if (mode === 'replace') {
+    // Les liens d'abord : si l'écriture suivante échoue, la collection est vide
+    // plutôt que mélangée à ce qu'elle portait.
+    await destination.clear();
+
+    // Le nom et la note suivent le fichier — ceux qu'il porte, et le vide quand
+    // il n'en porte pas. La collection de navigation privée est la seule
+    // exception : elle est synthétisée, jamais écrite, et n'a donc rien à
+    // renommer. Le panneau l'a dit avant le clic.
+    if (!isPrivateCollection(activeCollection())) {
+      try {
+        await collections.rename(activeCollectionId, pending.collection.name);
+        await collections.setNote(activeCollectionId, pending.collection.note);
+      } catch (error) {
+        toast(error?.message ?? t('Renommage impossible'), 'error');
+      }
+    }
+  }
+
+  let added = 0;
+  let duplicates = 0;
+  for (const candidate of pending.candidates) {
+    const { duplicate } = await destination.add(candidate, { allowDuplicate: false });
+    if (duplicate) duplicates += 1;
+    else added += 1;
+  }
+
+  // La liste des collections a pu changer — une collection créée, un nom
+  // remplacé — et le nom affiché vient d'elle : on la relit avant de redessiner.
+  await reloadCollections();
+  toast(importReport({ added, duplicates, rejected: pending.rejected }));
 }
 
 /**
@@ -1349,12 +2272,73 @@ function importReport({ added, duplicates, rejected }) {
  *
  * Le libellé de chaque option dit ce que le service change pour un usage
  * ordinaire — quelqu'un qui veut seulement un lien plus court n'a pas à
- * arbitrer entre quatre marques. TinyURL est proposé d'emblée et marqué
- * « recommandé » ; la note technique reste en infobulle.
+ * arbitrer entre cinq marques. T.LY est présenté d'emblée et marqué
+ * « (défaut) » ; la note technique reste en infobulle.
  *
  * L'URL complète est transmise au service choisi : c'est une décision qui
  * appartient à l'utilisateur, donc rien n'est coché ni déclenché d'avance.
  */
+/**
+ * L'aide affichée sous le sélecteur de service.
+ *
+ * Elle dit deux choses que le libellé ne peut pas porter : que **rien n'est
+ * raccourci** tant qu'on ne le demande pas, et ce que le service retenu change.
+ * Le lien de parrainage, lui, n'apparaît que si une adresse d'affiliation est
+ * enregistrée dans le cœur — sinon il n'y a rien à proposer, et un lien mort
+ * serait pire qu'une absence.
+ */
+function updateShortenerHint() {
+  const shortener = currentShortener();
+
+  // **Une phrase, puis une autre** — et non un empilement de mentions. L'aide
+  // annonçait le service retenu, sa note et la liste des autres, séparés par des
+  // deux-points : à lire, cela ressemblait à une fiche technique. Elle se lit
+  // maintenant comme une phrase suivie d'une phrase : ce qu'il faut faire, ce
+  // qui ne se fait pas tout seul, ce que le service proposé apporte, et le droit
+  // d'en choisir un autre.
+  //
+  // Chaque phrase reste **un seul littéral**, traduit d'un bloc : découpée en
+  // morceaux, l'anglais ne l'ordonnerait pas de la même façon.
+  // **Un seul littéral, sur une seule ligne.** Le relevé des clés lit le source
+  // sans l'exécuter : deux morceaux concaténés, et il ne voit que le premier —
+  // la traduction manque alors pour une phrase qui s'affiche en entier.
+  // eslint-disable-next-line max-len
+  const ouverture = t('Si vous voulez un lien plus court, choisissez un service puis cliquez sur Raccourcir. Rien ne change tant que vous ne le faites pas.');
+  // La troisième phrase parle du service **retenu** : dire « T.LY est proposé
+  // par défaut » devant un autre service serait exact, et à côté de la question.
+  const service = shortener.id === 'tly'
+    ? t('T.LY est proposé par défaut : le lien est plus court et reste anonyme.')
+    : t('{name} est le service que vous avez choisi : {note}', {
+      name: shortener.name,
+      note: t(shortener.note),
+    });
+  const alternative = t('Vous pouvez aussi choisir un autre service de raccourcissement.');
+
+  el.shortenerHint.textContent = `${ouverture} ${service} ${alternative}`;
+
+  // Le lien de parrainage n'apparaît que si une adresse d'affiliation est
+  // enregistrée dans le cœur : tant qu'elle est vide, il n'y a rien à proposer,
+  // et un lien mort serait pire qu'une absence.
+  //
+  // Le libellé dit « parrainage » : suivre ce lien crédite le projet, et le
+  // taire serait une petite tromperie au moment précis où l'utilisateur croit
+  // ouvrir une page ordinaire. Le `title` reprend la même information pour la
+  // souris, et l'annonce du nouvel onglet pour le lecteur d'écran.
+  if (shortener.id === 'tly' && TLY_AFFILIATE_URL !== '') {
+    const lien = document.createElement('a');
+    lien.href = TLY_AFFILIATE_URL;
+    lien.target = '_blank';
+    lien.rel = 'noopener noreferrer';
+    lien.textContent = t('Créer un compte T.LY (parrainage)');
+    lien.title = t('Ouvre la page d\'inscription T.LY : le projet est crédité du parrainage.');
+    const annonce = document.createElement('span');
+    annonce.className = 'sr-only';
+    annonce.textContent = t(' (ouvre un nouvel onglet)');
+    lien.appendChild(annonce);
+    el.shortenerHint.append(' ', lien);
+  }
+}
+
 function fillShorteners() {
   el.shortener.textContent = '';
   for (const shortener of SHORTENERS) {
@@ -1697,7 +2681,7 @@ function clampInt(value, min, max, fallback) {
  * @returns {object & { problem?: string }}
  */
 function sheetConfig() {
-  const preset = SHEET_PRESETS[el.preset.value] ?? SHEET_PRESETS['a4-3x8'];
+  const preset = SHEET_PRESETS[el.preset.value] ?? SHEET_PRESETS[DEFAULT_SHEET_PRESET];
   const page = PAGE_SIZES[preset.page];
 
   const config = {
@@ -1771,7 +2755,7 @@ function sheetConfig() {
 function recadrerGrille() {
   if (!el.sheetGridHint) return;
 
-  const preset = SHEET_PRESETS[el.preset.value] ?? SHEET_PRESETS['a4-3x8'];
+  const preset = SHEET_PRESETS[el.preset.value] ?? SHEET_PRESETS[DEFAULT_SHEET_PRESET];
   const page = PAGE_SIZES[preset.page];
   const commun = demandeSansGrille(preset, page);
 
@@ -1895,7 +2879,7 @@ function demandeSansGrille(preset, page) {
  * aux cotes publiées, et une seconde formule ici finirait par en diverger.
  */
 function prefillGridFields() {
-  const preset = SHEET_PRESETS[el.preset.value] ?? SHEET_PRESETS['a4-3x8'];
+  const preset = SHEET_PRESETS[el.preset.value] ?? SHEET_PRESETS[DEFAULT_SHEET_PRESET];
   const grid = presetToGrid(preset, PAGE_SIZES[preset.page]);
 
   el.sheetColumns.value = String(grid.columns);
@@ -2042,25 +3026,174 @@ function feuillesAppliquees() {
   return morceaux.join('\n');
 }
 
+/**
+ * Applique la mise en page automatique, si elle est demandée.
+ *
+ * Le contenu impose ce qu'une étiquette doit offrir : le QR Code le plus dense de
+ * la sélection, et le nombre de lignes que son texte réclame à cette largeur.
+ * `autoSheetLayout` en déduit la grille, et des étiquettes qui occupent le reste
+ * de la page.
+ *
+ * **La contrainte est une fonction, pas une taille.** Elle était exprimée en deux
+ * passes : la première mesurait le besoin à la largeur de la disposition, la
+ * seconde à la largeur que la première avait retenue — et la grille finalement
+ * choisie en avait une troisième, plus étroite, où le texte réclamait plus de
+ * lignes. Mesuré le 29 septembre 2026, sur l'A4 3 × 4 mise par défaut : 49 liens
+ * → `10 × 5 = 50` étiquettes de 18,2 × 55 mm, **45 coupées**, sous une grille
+ * annoncée « calculée pour ce contenu ». `tient` reçoit donc les cotes de chaque
+ * grille candidate, et lit le budget avec **la formule du rendu** — le QR Code à
+ * la proportion du curseur, pas à son minimum lisible.
+ *
+ * Quand aucune grille ne porte tout le contenu à une largeur qui porte son texte,
+ * le calcul ne tasse plus : il retient la plus dense qui reste lisible, et la
+ * planche pagine. Les 49 liens du relevé sortent alors sur deux pages, entiers.
+ *
+ * @param {{
+ *   modules: number,
+ *   mesure: Function,
+ *   blocsParLien: Array<Array<{text: string}>>,
+ *   lignesHorsTexte?: number,
+ * }} state
+ * @returns {object|null} Le plan appliqué, ou `null` si le mode est inactif.
+ */
+function appliquerMiseEnPageAutomatique(state) {
+  if (!el.sheetAuto?.checked) return null;
+  const preset = SHEET_PRESETS[el.preset.value] ?? SHEET_PRESETS[DEFAULT_SHEET_PRESET];
+  // Une planche du commerce a les cotes de son fabricant : les recalculer
+  // donnerait une grille qui ne tombe plus sur les découpes.
+  if (preset.group !== 'generic') return null;
+
+  const page = PAGE_SIZES[preset.page];
+  const paysage = el.tableOrientation.value === 'landscape';
+  const base = {
+    pageWidthMm: paysage ? page.heightMm : page.widthMm,
+    pageHeightMm: paysage ? page.widthMm : page.heightMm,
+    marginXMm: Number(el.sheetMarginX.value) || 0,
+    // **La marge du haut porte l'en-tête.** Le plan automatique recalcule les
+    // marges ; s'il ignorait l'en-tête, il replacerait une marge de 8,5 mm et le
+    // refus reviendrait à chaque rendu — la case cochée, et rien à l'écran.
+    marginYMm: Math.max(
+      Number(el.sheetMarginY.value) || 0,
+      el.sheetHeader?.checked ? SHEET_HEADER_MM : 0,
+    ),
+    gapXMm: Number(el.sheetGapX.value) || 0,
+    gapYMm: Number(el.sheetGapY.value) || 0,
+  };
+
+  const metrics = sheetTextMetrics({ fontSizePt: sheetFontPt() });
+  const lignesHorsTexte = Math.max(0, Math.trunc(state.lignesHorsTexte ?? 0));
+  // Le plancher du curseur : sous cette proportion, un module imprimé n'est plus
+  // résolu. Le rendu y ramène la valeur du curseur, et le calcul doit lire la
+  // même chose que lui.
+  const ratioCurseur = Number(el.sheetQr?.value) / 100;
+
+  // Le besoin d'une étiquette : **la somme de ses blocs**, titre et URL
+  // compris — ils ne partagent plus de ligne —, et le maximum sur la sélection.
+  const lignesPour = (largeurMm) => {
+    const dedans = Math.max(1, largeurMm - SHEET_CELL_MARGIN_MM * 2);
+    const largeurPx = (dedans * 96) / 25.4;
+    return state.blocsParLien.reduce((plus, blocs) => {
+      const total = blocs.reduce((somme, bloc) => somme + sheetCellLines(bloc.text, {
+        measure: state.mesure,
+        innerWidthPx: largeurPx,
+        maxLines: 99,
+      }).length, 0);
+      return Math.max(plus, total);
+    }, 1);
+  };
+
+  // Le plancher dur, celui du QR Code seul : un module sous `MIN_MODULE_MM_PAPER`
+  // ne se lit plus, quelle que soit la place du texte. Une ligne de texte y est
+  // ajoutée, parce que le rendu en écrit toujours une.
+  const cote = state.modules * MIN_MODULE_MM_PAPER;
+  const plancher = {
+    widthMm: cote + SHEET_CELL_MARGIN_MM * 2,
+    heightMm: cote + SHEET_CELL_MARGIN_MM * 2 + SHEET_QR_GAP_MM + metrics.lineHeightMm,
+  };
+
+  /**
+   * Une étiquette de ces cotes-là porte-t-elle son texte ?
+   *
+   * C'est **la** question, et elle ne se répond qu'ici : le nombre de lignes que
+   * le texte réclame dépend de la largeur, et la place que le QR Code laisse
+   * dépend de la hauteur. Les deux se lisent avec la formule du rendu
+   * (`sheetTextBudget`) — sans quoi la grille annoncée ne serait pas celle qui
+   * s'imprime.
+   */
+  const tient = (largeurMm, hauteurMm) => {
+    const plancherQr = qrRatioBounds({
+      labelWidthMm: largeurMm,
+      labelHeightMm: hauteurMm,
+      qrModules: state.modules,
+      textLines: 0,
+      marginMm: SHEET_CELL_MARGIN_MM,
+      gapMm: SHEET_QR_GAP_MM,
+      minModuleMm: MIN_MODULE_MM_PAPER,
+      fontSizePt: sheetFontPt(),
+    }).min;
+    const budget = sheetTextBudget({
+      labelWidthMm: largeurMm,
+      labelHeightMm: hauteurMm,
+      // Le rendu ramène la valeur du curseur à ce que la lisibilité exige : le
+      // calcul ne peut pas compter sur un QR Code plus petit que cela.
+      qrRatio: Number.isFinite(ratioCurseur) ? Math.max(ratioCurseur, plancherQr) : plancherQr,
+      fontSizePt: sheetFontPt(),
+      lignesHorsTexte,
+      marginMm: SHEET_CELL_MARGIN_MM,
+      gapMm: SHEET_QR_GAP_MM,
+    });
+    return budget.textLines >= lignesPour(largeurMm);
+  };
+
+  const plan = autoSheetLayout({
+    // **Le nombre d'étiquettes à placer.** Sans lui, la mise en page automatique
+    // cherchait la grille la plus dense et proposait 11 × 7 = 77 étiquettes pour
+    // cinq liens : des timbres, et une page à moitié vide. C'est le contenu qui
+    // décide de la taille de la grille.
+    count: state.blocsParLien.length,
+    ...base,
+    minLabelWidthMm: plancher.widthMm,
+    minLabelHeightMm: plancher.heightMm,
+    tient,
+  });
+
+  // Les champs sont **calculés** : on les écrit sans émettre d'événement, pour
+  // ne pas relancer un rendu depuis le rendu.
+  const poser = (champ, valeur) => {
+    if (champ && champ.value !== String(valeur)) champ.value = String(valeur);
+  };
+  poser(el.sheetColumns, plan.columns);
+  poser(el.sheetRows, plan.rows);
+  poser(el.sheetMarginX, plan.marginXMm);
+  poser(el.sheetMarginY, plan.marginYMm);
+  poser(el.sheetGapX, plan.gapXMm);
+  poser(el.sheetGapY, plan.gapYMm);
+  derniereGrilleDemandee = { columns: plan.columns, rows: plan.rows };
+
+  return plan;
+}
+
 function buildSheetPages(items) {
-  const { config, layout, pages } = planchePlacement(items);
   const metrics = sheetTextMetrics({ fontSizePt: sheetFontPt() });
 
-  // Chaque URL est encodée une seule fois : sa taille de matrice sert au calcul
-  // des bornes, puis la même matrice est rendue dans la cellule.
-  const encoded = pages.map((page) => page.items.map(({ item, cell }) => ({
-    item,
-    cell,
-    matrix: encodeQr(item.url, { ecc: 'M', border: 1 }),
-  })));
+  // **Les matrices d'abord.** La mise en page automatique a besoin de la plus
+  // dense — c'est elle qui impose la taille d'étiquette minimale — et elle
+  // commande la disposition. Chaque URL est encodée une seule fois, et les pages
+  // se partagent ces matrices.
+  const matrices = new Map();
+  for (const item of items) {
+    matrices.set(item.id, encodeQr(item.url, { ecc: 'M', border: 1 }));
+  }
 
   // Le curseur doit être valable pour toute la planche : on prend donc la
   // matrice la plus grande, c'est-à-dire l'URL la plus dense à imprimer. On
   // retient aussi laquelle, pour pouvoir la nommer si rien ne convient.
-  const densest = encoded
-    .flat()
+  const densest = items
     .reduce(
-      (worst, entry) => (entry.matrix.size > worst.matrix.size ? entry : worst),
+      (worst, item) => {
+        const matrix = matrices.get(item.id);
+        return matrix.size > worst.matrix.size ? { matrix, item } : worst;
+      },
       { matrix: { size: 21 }, item: null },
     );
   const modules = densest.matrix.size;
@@ -2069,7 +3202,8 @@ function buildSheetPages(items) {
   // lisible ; au-dessus, le QR Code chasse le texte hors de l'étiquette.
   // La date occupe une ligne à part entière : elle doit être comptée dans la
   // place que le QR Code doit laisser, sinon le curseur autoriserait un réglage qui
-  // la rogne.
+  // la rogne. **Lues avant la mise en page automatique**, qui a besoin de ce
+  // compte pour savoir ce qu'une étiquette peut porter.
   const wantsDate = dateMode() !== 'none';
   // Lues **avant** d'être utilisées : `const` lue plus haut lève une
   // `ReferenceError`, et `buildSheetPages` s'arrêtait là — la planche restait
@@ -2081,6 +3215,28 @@ function buildSheetPages(items) {
   const indexLignes = veutIndex ? 1 : 0;
   const dateLignes = wantsDate ? 1 : 0;
   const lignesHorsTexte = indexLignes + dateLignes;
+
+  // La mise en page automatique, si elle est demandée : elle réécrit les six
+  // champs **avant** que la disposition ne soit calculée. Elle a besoin du nombre
+  // de lignes hors texte : la place qu'une étiquette laisse à son titre en dépend.
+  const choixAuto = { title: el.sheetTitle.checked, url: el.sheetUrl.checked };
+  syncAutoFields();
+  const planAuto = appliquerMiseEnPageAutomatique({
+    modules,
+    mesure: cachedTextMeasure(metrics.fontSizePx),
+    blocsParLien: items.map((item) => sheetCellBlocks(item, choixAuto)),
+    lignesHorsTexte,
+  });
+
+  // **Après** la mise en page automatique, et non avant : c'est elle qui écrit les
+  // six cotes, et la disposition se lit ensuite dans les champs.
+  const { config, layout, pages } = planchePlacement(items);
+
+  const encoded = pages.map((page) => page.items.map(({ item, cell }) => ({
+    item,
+    cell,
+    matrix: matrices.get(item.id),
+  })));
 
   /**
    * Bornes du QR Code pour un nombre de lignes de texte donné.
@@ -2112,7 +3268,7 @@ function buildSheetPages(items) {
    * correspondait pas au texte réellement écrit.
    */
   const choixTexte = { title: el.sheetTitle.checked, url: el.sheetUrl.checked };
-  const texteSousLeQr = (item) => sheetCellText(item, choixTexte);
+  const blocsSousLeQr = (item) => sheetCellBlocks(item, choixTexte);
 
   // Combien de lignes le texte le plus long réclame-t-il à cette taille ?
   const mesurePlanche = cachedTextMeasure(metrics.fontSizePx);
@@ -2123,12 +3279,17 @@ function buildSheetPages(items) {
   // pour du vide. C'est précisément ce que l'utilisateur vient chercher en
   // décochant les deux cases.
   const lignesNecessaires = encoded.flat().reduce((plus, entree) => {
-    const texte = texteSousLeQr(entree.item);
-    return Math.max(plus, sheetCellLines(texte, {
-      measure: mesurePlanche,
-      innerWidthPx: largeurInterieurePx,
-      maxLines: 99,
-    }).length);
+    // **Une somme, et non le repli d'une chaîne unique** : le titre et l'URL
+    // sont deux blocs, chacun replié pour lui-même. Les compter ensemble était
+    // juste tant qu'ils partageaient des lignes ; depuis qu'ils n'en partagent
+    // plus, l'addition est le seul compte qui corresponde au dessin.
+    const besoin = blocsSousLeQr(entree.item).reduce((total, bloc) => total
+      + sheetCellLines(bloc.text, {
+        measure: mesurePlanche,
+        innerWidthPx: largeurInterieurePx,
+        maxLines: 99,
+      }).length, 0);
+    return Math.max(plus, besoin);
   }, 0);
 
   // Ce que le format peut réellement offrir : c'est `textLinesAtMin` qui le dit,
@@ -2148,18 +3309,26 @@ function buildSheetPages(items) {
   // Marge intérieure, écart et hauteur de ligne sont posés en ligne pour que le
   // rendu obéisse exactement au calcul — ici comme à l'impression.
   const innerWidthMm = layout.labelWidthMm - SHEET_CELL_MARGIN_MM * 2;
-  const textSpaceMm = layout.labelHeightMm - SHEET_CELL_MARGIN_MM * 2
-    - side - SHEET_QR_GAP_MM;
-  // La tolérance n'est pas cosmétique : la borne du QR Code est arrondie au millième
-  // par `qrRatioBounds`, et cet arrondi se propage jusqu'ici. Sans elle, une
-  // place calculée pour deux lignes n'en donnait qu'une — 12,978 mm pour
-  // 6,493 mm d'interligne vaut 1,9989, que `floor` ramenait à 1. Le texte était
-  // alors tronqué pour un millième de millimètre.
-  const maxLines = Math.max(1, Math.floor(textSpaceMm / metrics.lineHeightMm + 1e-3));
+  // **La même formule que la mise en page automatique**, et non une seconde qui
+  // lui ressemble : c'est elle qui décide que la grille annoncée est celle qui
+  // s'imprime. Les deux ont divergé une fois, et 45 étiquettes du relevé sont
+  // sorties coupées sous une grille pourtant dite « calculée pour ce contenu ».
+  const budget = sheetTextBudget({
+    labelWidthMm: layout.labelWidthMm,
+    labelHeightMm: layout.labelHeightMm,
+    qrRatio: ratio,
+    fontSizePt: sheetFontPt(),
+    lignesHorsTexte,
+    marginMm: SHEET_CELL_MARGIN_MM,
+    gapMm: SHEET_QR_GAP_MM,
+  });
+  const maxLines = Math.max(1, budget.maxLines);
   const measure = cachedTextMeasure(metrics.fontSizePx);
   const innerWidthPx = (innerWidthMm * 96) / 25.4;
   /** Liens dont la date n'a pas pu être imprimée, faute de largeur. */
   const omittedDates = new Set();
+  /** Liens dont le texte a été coupé : il ne tenait pas entier. */
+  const cutTexts = new Set();
 
   // Une planche Letter ne doit pas partir sur du A4 : la taille du papier est
   // posée ici, une fois pour toutes les sorties (aperçu, impression, Ctrl+P).
@@ -2173,11 +3342,24 @@ function buildSheetPages(items) {
 
   // L'en-tête de page vit dans la marge du haut : on vérifie qu'il y tient
   // avant de le dessiner. Le message est posé sous la case qui le demande, et
-  // non à l'autre bout du panneau, comme pour la grille.
+  // **à l'alerte** : il annonçait un refus à l'encre des aides, si bien qu'on
+  // cochait la case sans rien voir changer — le temps de croire à un défaut
+  // d'affichage. La marge à atteindre est nommée, et non laissée à deviner.
   const veutEnTete = el.sheetHeader.checked;
   const placeEnTete = sheetHeaderFits({ marginYMm: layout.marginYMm });
   if (el.sheetHeaderHint) {
-    el.sheetHeaderHint.textContent = veutEnTete && !placeEnTete.fits ? placeEnTete.reason : '';
+    const refuse = veutEnTete && !placeEnTete.fits;
+    el.sheetHeaderHint.textContent = refuse
+      ? t('{reason} Portez la marge haute à {mm} mm, ou décochez l\'en-tête.', {
+        reason: placeEnTete.reason,
+        mm: SHEET_HEADER_MM,
+      })
+      : '';
+    // La couleur passe par le style, comme pour les autres refus de la planche
+    // (`#sheet-info`, `#sheet-qr-info`) : une classe de plus pour une seule
+    // teinte ferait une seconde façon de dire la même chose.
+    el.sheetHeaderHint.style.color = refuse ? 'var(--danger)' : '';
+    el.sheetHeaderHint.hidden = !refuse;
   }
 
   const warnings = [...layout.warnings];
@@ -2192,6 +3374,48 @@ function buildSheetPages(items) {
   if (config.problem) warnings.unshift(config.problem);
 
   updateQrInfo({ bounds, side, modules, ratio, maxLines, metrics, densest });
+
+  // Ce que la mise en page automatique a décidé, dit en clair : c'est une
+  // proposition, pas une surprise — l'utilisateur doit pouvoir lire la grille
+  // qu'elle a choisie, et savoir que les six champs viennent d'elle.
+  if (el.sheetAutoHint) {
+    const preset = SHEET_PRESETS[el.preset.value] ?? SHEET_PRESETS[DEFAULT_SHEET_PRESET];
+    if (!el.sheetAuto.checked) {
+      el.sheetAutoHint.textContent = preset.group === 'generic'
+        ? ''
+        : t('Une planche du commerce garde les cotes de son fabricant : la mise en page automatique ne s\'y applique pas.');
+    } else if (planAuto) {
+      const phrase = t(
+        'Mise en page automatique : {columns} × {rows} = {perPage} étiquettes de {width} × {height} mm par page, calculées pour ce contenu.',
+        {
+          columns: planAuto.columns,
+          rows: planAuto.rows,
+          perPage: planAuto.perPage,
+          width: decimal(planAuto.labelWidthMm),
+          height: decimal(planAuto.labelHeightMm),
+        },
+      );
+      // Quand le contenu ne tient pas sur une page, le calcul ne tasse plus les
+      // étiquettes : il retient la plus dense qui porte **son texte**, et la
+      // planche pagine. Le dire évite que l'utilisateur cherche pourquoi sa
+      // planche sort sur plusieurs feuilles.
+      //
+      // Le nombre d'étiquettes est celui de **la sélection imprimée**, passée en
+      // argument : `state` n'existe pas ici, et l'écrire a bel et bien fait lever
+      // le rendu — relevé du 30 septembre 2026, racine d'impression vide, deux
+      // constats en échec. Une phrase ne doit pas pouvoir emporter la planche.
+      el.sheetAutoHint.textContent = planAuto.coversCount
+        ? phrase
+        : `${phrase} ${t('Les {count} étiquettes ne tiennent pas sur une page : la planche en demande {pages}.', {
+          count: items.length,
+          pages: planAuto.pages,
+        })}`;
+    } else {
+      el.sheetAutoHint.textContent = t(
+        'Mise en page automatique : non appliquée — les cotes du fabricant sont conservées.',
+      );
+    }
+  }
 
   // « Ranger plutôt que trancher » : le bouton n'apparaît que si quelque chose
   // ne tient pas — QR Code compris — et qu'un arrangement existe. Proposer
@@ -2245,7 +3469,73 @@ function buildSheetPages(items) {
       pageEl.appendChild(entete);
     }
 
-    for (const { item, cell, matrix } of encoded[page.page]) {
+    // **Ce que chaque étiquette de la page portera, avant d'en dessiner une.**
+    // Le dessin a besoin de connaître la plus longue : c'est ce qui permet de
+    // réserver à chaque bloc la même hauteur, donc d'aligner la grille.
+    const contenus = encoded[page.page].map(({ item, cell, matrix }) => {
+      // Les lignes sont découpées et bornées ici : le texte occupe donc
+      // exactement la hauteur réservée, au lieu de déborder en silence.
+      // Une date se coupe mal : sur une ligne trop étroite, on ne l'imprime pas
+      // plutôt que d'en perdre le millésime.
+      const wanted = formatCaptureDate(item.createdAt, dateMode());
+      const dateText = wanted !== '' && measure(wanted) <= innerWidthPx ? wanted : '';
+      const dropped = wanted !== '' && dateText === '';
+
+      // Le numéro et la date prennent leur ligne : le texte principal se
+      // contente de ce qui reste.
+      const lignesTexteMax = Math.max(1, maxLines - lignesHorsTexte);
+      const lines = [];
+      let reste = lignesTexteMax;
+      let coupe = false;
+
+      // **Le titre d'abord, l'URL ensuite**, chacun replié pour lui-même et
+      // chacun son tour dans le budget : le titre ne peut plus être coupé par une
+      // adresse qui commencerait sur sa dernière ligne.
+      for (const bloc of blocsSousLeQr(item)) {
+        if (reste <= 0) {
+          // Plus une ligne pour ce bloc : il ne sera pas écrit du tout.
+          coupe = true;
+          break;
+        }
+        const dessinees = sheetCellLines(bloc.text, { measure, innerWidthPx, maxLines: reste });
+        // **Le texte a-t-il été coupé ?** On ne le devine pas aux points de
+        // suspension — un titre peut légitimement finir par « … » — mais au
+        // nombre de lignes que le bloc réclame : au-delà du budget, la coupe est
+        // certaine. Le calcul complet n'a lieu que dans ce cas.
+        if (dessinees.length >= reste
+          && sheetCellLines(bloc.text, { measure, innerWidthPx, maxLines: 99 }).length
+            > dessinees.length) {
+          coupe = true;
+        }
+        for (const ligne of dessinees) lines.push({ texte: ligne, kind: bloc.kind });
+        reste -= dessinees.length;
+      }
+      if (coupe) cutTexts.add(item.id);
+      // Le numéro occupe sa ligne, comme la date : il sert à retrouver le lien
+      // dans la collection, donc à l'écran comme sur le papier.
+      const rang = veutIndex ? linkRanks.get(item.id) : null;
+      // `rang != null`, et non `rang` : une collection peut commencer à zéro
+      // (`START_INDEX_MIN`), et l'étiquette aurait alors perdu son numéro — une
+      // ligne de moins que ses voisines, donc un titre décalé d'un cran.
+      if (rang != null) lines.unshift({ texte: String(rang), kind: 'index' });
+      if (dateText) lines.push({ texte: dateText, kind: 'date' });
+      if (dropped) omittedDates.add(item.id);
+
+      return { item, cell, matrix, lines };
+    });
+
+    // **Les hauteurs communes de la page.** La plus longue étiquette donne sa
+    // mesure aux autres : un titre d'une ligne et un titre de trois lignes côte à
+    // côte décalaient l'URL de deux interlignes, et le QR Code — centré
+    // verticalement dans sa case — ne se posait pas à la même hauteur d'une
+    // étiquette à l'autre. C'est ce désordre qui se voyait sur la planche.
+    const lignesDuBloc = (kind) => contenus.reduce(
+      (plus, contenu) => Math.max(plus, contenu.lines.filter((l) => l.kind === kind).length),
+      0,
+    );
+    const reserve = { title: lignesDuBloc('title'), url: lignesDuBloc('url') };
+
+    for (const { item, cell, matrix, lines } of contenus) {
       const cellEl = document.createElement('div');
       cellEl.className = el.sheetBorder.checked
         ? 'print-cell print-cell--bordered'
@@ -2264,28 +3554,6 @@ function buildSheetPages(items) {
 
       cellEl.appendChild(qrBox);
 
-      // Les lignes sont découpées et bornées ici : le texte occupe donc
-      // exactement la hauteur réservée, au lieu de déborder en silence.
-      // Une date se coupe mal : sur une ligne trop étroite, on ne l'imprime pas
-      // plutôt que d'en perdre le millésime.
-      const wanted = formatCaptureDate(item.createdAt, dateMode());
-      const dateText = wanted !== '' && measure(wanted) <= innerWidthPx ? wanted : '';
-      const dropped = wanted !== '' && dateText === '';
-
-      const lines = sheetCellLines(texteSousLeQr(item), {
-        measure,
-        innerWidthPx,
-        // Le numéro et la date prennent leur ligne : le texte principal se
-        // contente de ce qui reste.
-        maxLines: Math.max(1, maxLines - lignesHorsTexte),
-      });
-      // Le numéro occupe sa ligne, comme la date : il sert à retrouver le lien
-      // dans la collection, donc à l'écran comme sur le papier.
-      const rang = veutIndex ? linkRanks.get(item.id) : null;
-      if (rang) lines.unshift(String(rang));
-      if (dateText) lines.push(dateText);
-      if (dropped) omittedDates.add(item.id);
-
       if (lines.length > 0) {
         const text = document.createElement('div');
         text.className = 'print-cell__text';
@@ -2293,12 +3561,42 @@ function buildSheetPages(items) {
         // qui garantit que la hauteur réelle est celle qui a été réservée.
         text.style.fontSize = `${metrics.fontSizePt}pt`;
         text.style.lineHeight = `${metrics.lineHeightMm}mm`;
+
+        const compte = (kind) => lines.filter((l) => l.kind === kind).length;
+        // La place qui manque à ce bloc pour tenir la hauteur commune. Un bloc
+        // absent — coupé faute de budget — réserve la sienne en entier : son
+        // voisin du dessous reste ainsi à sa place, même décalé d'une page à
+        // l'autre.
+        const ajouterReserve = (kind) => {
+          const hauteur = Math.max(0, (reserve[kind] ?? 0) - compte(kind)) * metrics.lineHeightMm;
+          if (hauteur <= 0 || hauteur < 0.01) return;
+          const vide = document.createElement('span');
+          vide.className = 'print-cell__spacer';
+          vide.style.height = `${round1(hauteur)}mm`;
+          // Un blanc de mise en page n'est pas du contenu : rien à annoncer.
+          vide.setAttribute('aria-hidden', 'true');
+          text.appendChild(vide);
+        };
+
+        let blocPrecedent = null;
         for (const line of lines) {
+          // La réserve se pose **à la fin** du bloc qu'elle complète, et non
+          // au début du suivant : c'est ce qui met les blocs suivants à la même
+          // hauteur d'une étiquette à l'autre.
+          if (blocPrecedent !== null && line.kind !== blocPrecedent) ajouterReserve(blocPrecedent);
+          blocPrecedent = line.kind;
+
           const span = document.createElement('span');
-          span.textContent = line;
-          if (dateText && line === dateText) span.className = 'print-cell__date';
+          span.textContent = line.texte;
+          // Chaque bloc a sa classe : l'URL se détache du titre par un léger
+          // écart, comme la date. Sans cela, deux blocs se suivraient sans qu'on
+          // voie où l'un finit et où l'autre commence.
+          if (line.kind === 'url') span.className = 'print-cell__url';
+          else if (line.kind === 'date') span.className = 'print-cell__date';
           text.appendChild(span);
         }
+        ajouterReserve(blocPrecedent);
+
         cellEl.appendChild(text);
       }
 
@@ -2316,6 +3614,23 @@ function buildSheetPages(items) {
     ));
   }
 
+  // **Un texte coupé se dit, il ne se tait pas.** La planche le tronquait avec
+  // des points de suspension sans un mot, comme l'onglet Niimbot avant que ce
+  // message y existe : une adresse ou un titre amputé sortait de l'imprimante
+  // comme s'il tenait entier. Le remède est nommé, comme pour la largeur du code
+  // — et c'est le même que là-bas.
+  if (cutTexts.size > 0) {
+    // **Un seul littéral par message**, sans concaténation : le relevé des clés
+    // de traduction lit les littéraux passés à `t()` et à `tpl()`, et une phrase
+    // assemblée en morceaux lui échapperait — la traduction anglaise manquerait
+    // sans que rien ne le signale.
+    warnings.push(tpl(
+      cutTexts.size,
+      'Texte coupé sur {count} étiquette : il ne tient pas entier à cette taille. Raccourcissez l\'adresse, réduisez le QR Code, décochez le titre ou l\'URL, ou prenez une étiquette plus grande.',
+      'Texte coupé sur {count} étiquettes : ils ne tiennent pas entiers à cette taille. Raccourcissez les adresses, réduisez le QR Code, décochez le titre ou l\'URL, ou prenez une étiquette plus grande.',
+    ));
+  }
+
   el.sheetInfo.textContent = layout.perPage > 0
     ? t('{columns} × {rows} = {perPage} de {size} mm, {pages}', {
       columns: layout.columns,
@@ -2325,6 +3640,10 @@ function buildSheetPages(items) {
       pages: tpl(layout.pages, '{count} page', '{count} pages'),
     }) + (warnings.length ? ` — ${warnings.join(' ')}` : '')
     : layout.warnings.join(' ');
+  // Un texte coupé n'est pas un détail de mise en page : la ligne passe à
+  // l'alerte, comme le refus de la largeur du QR Code. Sans cette marque, le
+  // message se lit au même rang qu'un espacement perdu à droite de la grille.
+  el.sheetInfo.style.color = cutTexts.size > 0 ? 'var(--danger)' : '';
 
   return built;
 }
@@ -2338,6 +3657,27 @@ function buildSheetPages(items) {
  *
  * @param {{ min: number, max: number }} bounds
  */
+/**
+ * Les six champs de géométrie suivent-ils la mise en page automatique ?
+ *
+ * Ils sont alors **calculés**, donc inactifs : les laisser modifiables ferait
+ * croire qu'un réglage manuel survit, alors que le rendu suivant le réécrirait.
+ * Les désactiver dit la vérité, et décocher rend la main.
+ */
+function syncAutoFields() {
+  const preset = SHEET_PRESETS[el.preset.value] ?? SHEET_PRESETS[DEFAULT_SHEET_PRESET];
+  const actif = Boolean(el.sheetAuto?.checked) && preset.group === 'generic';
+  if (el.sheetAuto) el.sheetAuto.disabled = preset.group !== 'generic';
+  for (const champ of [
+    el.sheetColumns, el.sheetRows,
+    el.sheetMarginX, el.sheetMarginY,
+    el.sheetGapX, el.sheetGapY,
+  ]) {
+    if (champ) champ.disabled = actif;
+  }
+  return actif;
+}
+
 function applyQrSliderBounds(bounds) {
   const min = Math.round(bounds.min * 100);
   const max = Math.max(min, Math.round(bounds.max * 100));
@@ -2397,7 +3737,7 @@ function tailleNecessaire(modules, lignes) {
  * }|null}
  */
 function planAjustement(modules, lignes) {
-  const preset = SHEET_PRESETS[el.preset.value] ?? SHEET_PRESETS['a4-3x8'];
+  const preset = SHEET_PRESETS[el.preset.value] ?? SHEET_PRESETS[DEFAULT_SHEET_PRESET];
   const page = PAGE_SIZES[preset.page];
   const demande = derniereGrilleDemandee
     ?? { columns: preset.declaredColumns, rows: preset.declaredRows };
@@ -2582,14 +3922,18 @@ function buildTablePages(items, options = {}) {
   const config = tablePageConfig();
   const columns = tableColumns();
   const size = Number(el.tableQr.value);
+  // Calculée **une fois**, puis donnée à toutes les pages : c'est ce qui fait
+  // qu'elles s'alignent. La mesure des hauteurs se fait sur la même grille, sans
+  // quoi la répartition serait calculée sur des lignes d'une autre largeur.
+  const largeurs = tableColumnWidths(columns, size);
   const rows = items.map((link) => buildTableRow(link, columns, size));
 
-  const mesure = measureTableRows(rows, columns, config);
+  const mesure = measureTableRows(rows, columns, config, largeurs);
   const tranches = paginateByHeight(mesure.hauteurs, mesure.hauteurUtile);
   dernieresPagesTableau = tranches.length;
 
   return tranches.map(({ start, end }) => buildTablePage(
-    buildTable(columns, rows.slice(start, end)),
+    buildTable(columns, rows.slice(start, end), largeurs),
     options,
   ));
 }
@@ -2602,12 +3946,12 @@ function buildTablePages(items, options = {}) {
  * @param {{ marginYMm: number }} config
  * @returns {{ hauteurs: number[], hauteurUtile: number }}
  */
-function measureTableRows(rows, columns, config) {
+function measureTableRows(rows, columns, config, largeurs = null) {
   const hote = document.createElement('div');
   hote.setAttribute('aria-hidden', 'true');
   hote.style.cssText = 'position:absolute;left:-10000px;top:0;visibility:hidden;';
 
-  const page = buildTablePage(buildTable(columns, rows));
+  const page = buildTablePage(buildTable(columns, rows, largeurs));
   hote.appendChild(page);
   document.body.appendChild(hote);
 
@@ -2636,10 +3980,27 @@ function measureTableRows(rows, columns, config) {
  * @param {HTMLElement[]} rows Lignes déjà construites.
  * @returns {HTMLElement}
  */
-function buildTable(columns, rows) {
+function buildTable(columns, rows, largeurs = null) {
   const table = document.createElement('table');
   table.className = 'print-table';
   if (!el.tableGrid.checked) table.classList.add('print-table--bare');
+
+  // **Une grille unique pour tout le document.** Le tableau est découpé en
+  // plusieurs `<table>` — un par page — et sans largeurs imposées, `table-layout`
+  // laisse chacun se dimensionner sur son propre contenu : les colonnes ne
+  // s'alignent plus d'une page à l'autre, et sur une page aux titres courts la
+  // colonne « Titre » se réduit à presque rien — au point de disparaître à l'œil.
+  // Mesuré dans Chrome : la colonne des titres commençait à 465 px sur la
+  // première page, 430 px sur la deuxième, 436 px sur la troisième.
+  if (largeurs) {
+    const groupe = document.createElement('colgroup');
+    for (const largeur of largeurs) {
+      const col = document.createElement('col');
+      if (largeur !== '') col.style.width = largeur;
+      groupe.appendChild(col);
+    }
+    table.appendChild(groupe);
+  }
 
   table.appendChild(buildTableHead(columns));
 
@@ -2648,6 +4009,68 @@ function buildTable(columns, rows) {
   table.appendChild(body);
 
   return table;
+}
+
+/**
+ * Les largeurs des colonnes, dans l'ordre où elles sont construites.
+ *
+ * Elles sont exprimées en millimètres et calculées depuis la largeur utile de
+ * la page : la grille est ainsi la même sur le papier et dans l'aperçu, en
+ * portrait comme en paysage, et une colonne ne peut plus sortir de la feuille.
+ *
+ * Le QR Code garde sa largeur propre — il ne se comprime pas — et un peu de
+ * marge pour le rembourrage des cellules. Les colonnes de texte se partagent le
+ * reste **au prorata de ce qu'elles portent** : une adresse est plus longue
+ * qu'un titre, un titre plus long qu'une date.
+ *
+ * @param {object} columns
+ * @param {number} size Côté du QR Code, en pixels.
+ * @returns {string[]} Une largeur CSS par colonne, dans l'ordre de `columns`.
+ */
+function tableColumnWidths(columns, size) {
+  const config = tablePageConfig();
+  const utile = Math.max(40, config.widthMm - 2 * config.marginXMm);
+
+  // Le QR Code : sa taille, plus le rembourrage des deux cellules voisines.
+  const qrMm = Math.min(
+    utile * 0.3,
+    (size / (96 / 25.4)) + 2 * TABLE_CELL_PADDING_MM,
+  );
+
+  const parts = [];
+  if (columns.index) parts.push({ key: 'index', poids: 0.7, mini: 8 });
+  if (columns.qr) parts.push({ key: 'qr', fixe: qrMm });
+  if (columns.url) parts.push({ key: 'url', poids: 2.6, mini: 20 });
+  if (columns.title) parts.push({ key: 'title', poids: 2.4, mini: 20 });
+  if (columns.date) parts.push({ key: 'date', poids: 1.1, mini: 14 });
+  if (columns.tags) parts.push({ key: 'tags', poids: 1.2, mini: 14 });
+  if (columns.note) parts.push({ key: 'note', poids: 1.6, mini: 14 });
+
+  const fixes = parts.reduce((total, colonne) => total + (colonne.fixe ?? 0), 0);
+  const textes = parts.filter((colonne) => colonne.fixe === undefined);
+  const reste = Math.max(0, utile - fixes);
+  const poids = textes.reduce((total, colonne) => total + colonne.poids, 0);
+
+  // Le minimum l'emporte sur le prorata : une colonne trop étroite pour son
+  // contenu ferait des lignes plus hautes que nécessaire, et le rembourrage
+  // d'une cellule ne se comprime pas.
+  const vouluesTextes = textes.map((colonne) => {
+    const prorata = poids > 0 ? (reste * colonne.poids) / poids : reste / textes.length;
+    return Math.max(colonne.mini, prorata);
+  });
+
+  // Si les minima dépassent la place restante, ce sont **les colonnes de texte**
+  // qui se rétrécissent, et jamais celle du QR Code : une matrice plus large que
+  // sa colonne déborderait sur la voisine, alors qu'une adresse ou un titre se
+  // replient. C'est le cas d'un QR Code réglé très large sur une page étroite.
+  const sommeTextes = vouluesTextes.reduce((somme, valeur) => somme + valeur, 0);
+  const echelle = sommeTextes > reste && sommeTextes > 0 ? reste / sommeTextes : 1;
+
+  // Les largeurs sont rendues **dans l'ordre des colonnes**, fixes comprises.
+  return parts.map((colonne) => {
+    if (colonne.fixe !== undefined) return `${colonne.fixe.toFixed(2)}mm`;
+    return `${(vouluesTextes.shift() * echelle).toFixed(2)}mm`;
+  });
 }
 
 /**
@@ -2742,6 +4165,16 @@ function buildTableRow(link, columns, size) {
 
   return row;
 }
+
+/**
+ * Rembourrage d'une cellule du tableau imprimé, en millimètres.
+ *
+ * Il vit ici **et** dans la feuille de style : la largeur de la colonne qui
+ * porte le QR Code se calcule depuis lui, et deux valeurs qui divergeraient
+ * feraient une colonne trop étroite d'un demi-millimètre par côté — invisible à
+ * l'œil, visible sur la largeur du code.
+ */
+const TABLE_CELL_PADDING_MM = 1.5;
 
 /** Les colonnes retenues pour le tableau imprimé. */
 function tableColumns() {
@@ -3063,7 +4496,7 @@ function conseilPourPanneau(link, profile, geometry) {
   if (hasShortUrl(link)) {
     const essai = composeLabel({ ...link, useShort: true }, profile);
     if (essai.verdict.ok) {
-      return t('Ce lien a un raccourci : encodez-le à sa place, avec « Encoder le lien raccourci ».');
+      return t("Ce lien a un raccourci : cochez son adresse courte dans la liste, et le QR Code l'encodera à la place.");
     }
   }
   // Le QR Code est plus large que l'étiquette : le texte n'y est pour rien.
@@ -3862,6 +5295,19 @@ async function exportLabelImages() {
 // Impression papier
 // ---------------------------------------------------------------------------
 
+/**
+ * Le mode qui a rempli la racine d'impression, ou `null`.
+ *
+ * La racine n'est remplie qu'à la demande — au clic sur « Imprimer », ou par
+ * `beforeprint`. Sans cette mémoire, un Ctrl+P après un changement d'onglet
+ * imprimait les pages de **l'autre** mode : constaté dans le relevé du
+ * 29 septembre 2026, où le PDF du tableau a été mesuré à cinq pages — celles de
+ * la planche, restées dans la racine — au lieu des trois annoncées.
+ *
+ * @type {string|null}
+ */
+let modeRacineImpression = null;
+
 /** Prépare la racine d'impression puis ouvre la boîte de dialogue système. */
 function printSelection() {
   const items = printableLinks();
@@ -3883,11 +5329,13 @@ function printSelection() {
   } else {
     for (const page of buildSheetPages(items)) el.printRoot.appendChild(page);
   }
+  modeRacineImpression = mode;
 
   // La boîte de dialogue est bloquante : on nettoie au retour pour ne pas
   // laisser une arborescence lourde dans le document.
   const cleanup = () => {
     el.printRoot.textContent = '';
+    modeRacineImpression = null;
     window.removeEventListener('afterprint', cleanup);
   };
   window.addEventListener('afterprint', cleanup);
@@ -4151,7 +5599,7 @@ function fillPresets() {
     }
     el.preset.appendChild(optgroup);
   }
-  el.preset.value = 'a4-3x8';
+  el.preset.value = DEFAULT_SHEET_PRESET;
 
   // Les six champs partent des cotes de la première disposition ; en changer
   // les réécrit.
@@ -4582,6 +6030,20 @@ el.sortMode.addEventListener('change', async () => {
 // Le rangement s'ouvre, se referme, et se quitte au clavier. Échap est le
 // pendant de ce qui se fait à la souris : sans lui, on ne sortirait du mode
 // qu'en visant le bouton.
+el.moveTo.addEventListener('click', () => {
+  if (el.moveMenu.hidden) openMoveMenu();
+  else closeMoveMenu();
+});
+
+// `Échap` referme le panneau et rend le focus à son bouton : le geste attendu
+// d'un panneau qu'on a ouvert, et le seul moyen d'en sortir sans choisir.
+el.moveGroup.addEventListener('keydown', (event) => {
+  if (event.key === 'Escape') {
+    event.preventDefault();
+    closeMoveMenu();
+  }
+});
+
 el.reorder.addEventListener('click', () => {
   setReorderMode(!reorderMode);
   el.reorder.focus();
@@ -4596,17 +6058,27 @@ el.list.addEventListener('keydown', (event) => {
 // Le premier numéro : appliqué à la frappe quand il est exploitable, et remis
 // en forme au changement. Un champ vidé ou hors bornes n'est pas une valeur —
 // la collection garde alors le dernier numéro valide, plutôt que de sauter à 1
-// au milieu d'une saisie.
+// au milieu d'une saisie. Le bornage lui-même est celui du cœur : le refaire
+// ici ferait deux règles à tenir d'accord.
 function appliquerPremierNumero(redessiner) {
-  const brut = Number(el.collectionStart.value);
+  const saisi = el.collectionStart.value.trim();
+  // Un champ vidé n'est pas une valeur : la collection garde la dernière
+  // valide pendant qu'on retape, au lieu de passer par zéro.
+  if (saisi === '') return false;
+  const brut = Number(saisi);
   if (!Number.isFinite(brut)) return false;
-  const voulu = sanitizeSettings({ startIndex: brut }).startIndex;
-  if (voulu === preferences.startIndex) return false;
-  preferences = settings.save({ startIndex: voulu });
+
+  const voulu = cleanStartIndex(brut);
+  if (voulu === premierNumero()) return false;
+
+  // Le numéro est une **vue**, comme le tri : il ne touche ni la collection ni
+  // l'ordre enregistré. On redessine donc la liste et l'aperçu sans relire le
+  // magasin — mais il faut bien écrire le réglage, pour qu'il survive à la
+  // bascule et au rechargement.
+  const collection = activeCollection();
+  if (collection) collection.startIndex = voulu;
+  sauverNumeroDiffere();
   if (redessiner) {
-    // Le numéro est une **vue**, comme le tri : il ne touche ni la collection ni
-    // l'ordre enregistré. On redessine donc la liste et l'aperçu sans relire le
-    // magasin.
     linkRanks = new Map(links.map((link, index) => [link.id, index + premierNumero()]));
     renderList();
     renderPreview();
@@ -4614,23 +6086,100 @@ function appliquerPremierNumero(redessiner) {
   return true;
 }
 
+/** Écrit le premier numéro de la collection affichée. */
+async function saveStartIndex() {
+  const collection = activeCollection();
+  if (!collection) return;
+  const ecrit = await collections.setStartIndex(activeCollectionId, collection.startIndex);
+  if (ecrit) Object.assign(collection, ecrit);
+}
+
 el.collectionStart.addEventListener('input', () => {
   appliquerPremierNumero(Boolean(el.collectionStart.value.trim()));
 });
 
-// Au changement — sortie du champ, flèches du compteur — on réécrit la valeur
-// retenue : le champ ne doit pas afficher un nombre que la collection n'utilise
-// pas.
+// Au changement — sortie du champ, flèches du compteur — on écrit sans attendre
+// et on remet le champ en forme : il ne doit pas afficher un nombre que la
+// collection n'utilise pas.
 el.collectionStart.addEventListener('change', () => {
   appliquerPremierNumero(true);
-  el.collectionStart.value = String(preferences.startIndex);
+  saveStartIndex().catch(() => {});
+  el.collectionStart.value = String(premierNumero());
 });
+
+/**
+ * Diffère une écriture, puis n'en garde qu'une.
+ *
+ * Le nom et la note s'enregistrent à la frappe — perdre une correction serait
+ * agaçant — mais chaque frappe réécrit le document des collections **entier**.
+ * Sans ce délai, deux écritures lancées coup sur coup pourraient se terminer
+ * dans le désordre, et la première gagnerait : c'est la dernière frappe qu'on
+ * veut voir enregistrée, pas la plus lente.
+ *
+ * @param {() => Promise<void>} action
+ * @param {number} [ms]
+ * @returns {() => void}
+ */
+function debounced(action, ms = 400) {
+  let timer = null;
+  return () => {
+    clearTimeout(timer);
+    timer = setTimeout(() => {
+      timer = null;
+      action().catch(() => {});
+    }, ms);
+  };
+}
+
+/**
+ * Écrit le nom de la collection affichée, et suit l'affichage.
+ *
+ * **Un champ vidé est un nom vide**, et non une écriture à ignorer : c'était le
+ * défaut — vider le champ laissait le nom précédent en place, et rien ne le
+ * disait. Le nom vide est enregistré comme tel ; la liste et les exports
+ * retombent alors sur le libellé intégré, et l'aide sous le sélecteur l'annonce.
+ */
+async function saveCollectionName() {
+  const saisi = el.collectionName.value.trim();
+  if (!collections.available) return;
+  if (saisi === (activeCollection()?.name ?? '')) return;
+  try {
+    await collections.rename(activeCollectionId, saisi);
+    visibleCollectionsList = await collections.visible({ isPrivate: appPrivateContext() });
+    fillCollections();
+    applyCollectionName();
+  } catch (error) {
+    // Un nom déjà pris est refusé : on le dit, et le champ revient au nom
+    // réellement enregistré — sinon l'écran afficherait un nom qui n'existe pas.
+    toast(error?.message ?? t('Renommage impossible'), 'error');
+    el.collectionName.value = activeCollection()?.name ?? '';
+  }
+}
+
+/** Écrit la note de la collection affichée. */
+async function saveCollectionNote() {
+  const note = collectionNote();
+  if (note === (activeCollection()?.note ?? '')) return;
+  await collections.setNote(activeCollectionId, note);
+  visibleCollectionsList = await collections.visible({ isPrivate: appPrivateContext() });
+}
+
+const sauverNomDiffere = debounced(saveCollectionName);
+const sauverNoteDifferee = debounced(saveCollectionNote);
+const sauverNumeroDiffere = debounced(saveStartIndex);
 
 el.collectionName.addEventListener('input', () => {
   applyCollectionName();
-  // Enregistré à la volée : le nom se retape rarement, mais le perdre serait
-  // agaçant, et ce champ n'appartient à aucun formulaire.
-  settings.save({ collectionName: collectionName() });
+  // Sur la page autonome, le nom est un réglage : `rename` l'y écrit. Dans
+  // l'extension, il appartient à la collection affichée.
+  if (collections.available) sauverNomDiffere();
+  else settings.save({ collectionName: collectionName() });
+});
+
+// À la sortie du champ, on écrit sans attendre : le délai est un confort de
+// frappe, pas une raison de perdre la dernière correction.
+el.collectionName.addEventListener('change', () => {
+  if (collections.available) saveCollectionName().catch(() => {});
 });
 
 // La note suit la même règle, à la frappe : c'est un paragraphe, pas une
@@ -4638,11 +6187,36 @@ el.collectionName.addEventListener('input', () => {
 // bornée à la longueur admise — et redessine l'aperçu, puisque les en-têtes
 // imprimés la portent.
 el.collectionNote.addEventListener('input', () => {
-  settings.save({ collectionNote: collectionNote() });
+  if (collections.available) sauverNoteDifferee();
+  else settings.save({ collectionNote: collectionNote() });
   // La note décide de l'état de la case qui l'imprime : elle doit suivre à la
   // frappe, et pas seulement au prochain rendu de la liste.
   updateHeaderNoteOptions();
   renderPreview();
+});
+
+el.collectionNote.addEventListener('change', () => {
+  if (collections.available) saveCollectionNote().catch(() => {});
+});
+
+el.collectionSelect.addEventListener('change', () => {
+  switchCollection(el.collectionSelect.value);
+});
+
+el.collectionAdd.addEventListener('click', createAppCollection);
+
+el.collectionDelete.addEventListener('click', () => {
+  // La confirmation se referme toute seule : un bouton resté armé détruirait la
+  // collection au moindre clic ultérieur, et rien ne le signalerait.
+  deleteAppCollection().then(() => {
+    clearTimeout(deleteConfirmTimer);
+    if (el.collectionDelete.dataset.confirm === '1') {
+      deleteConfirmTimer = setTimeout(() => {
+        el.collectionDelete.dataset.confirm = '';
+        el.collectionDelete.textContent = t('Supprimer');
+      }, 5000);
+    }
+  });
 });
 
 el.selectAllBox.addEventListener('change', () => {
@@ -4920,6 +6494,13 @@ el.importFile.addEventListener('change', async () => {
   el.importFile.value = '';
 });
 
+// Le rangement se choisit après la lecture, et rien n'est écrit avant : annuler
+// le panneau ne laisse donc aucune trace, pas même un lien ajouté.
+el.importMerge.addEventListener('click', () => applyImport('merge').catch(() => {}));
+el.importReplace.addEventListener('click', () => applyImport('replace').catch(() => {}));
+el.importAdd.addEventListener('click', () => applyImport('add').catch(() => {}));
+el.importCancel.addEventListener('click', closeImportMenu);
+
 el.clear.addEventListener('click', async () => {
   await store.clear();
   selected = new Set();
@@ -4932,6 +6513,7 @@ for (const tab of document.querySelectorAll('.tab')) {
 }
 
 el.shortener.addEventListener('change', () => {
+  updateShortenerHint();
   settings.save({ shortener: el.shortener.value });
   updateShortenStatus();
 });
@@ -4986,6 +6568,68 @@ el.presetPrev.addEventListener('click', () => parcourirDispositions(-1));
 el.presetNext.addEventListener('click', () => parcourirDispositions(1));
 el.sheetFit.addEventListener('click', ajusterEspacement);
 
+/**
+ * Les six cotes de la planche telles que les champs les portent.
+ *
+ * @returns {{columns: string, rows: string, marginXMm: string, marginYMm: string,
+ *   gapXMm: string, gapYMm: string}}
+ */
+function lireGrille() {
+  return {
+    columns: el.sheetColumns.value,
+    rows: el.sheetRows.value,
+    marginXMm: el.sheetMarginX.value,
+    marginYMm: el.sheetMarginY.value,
+    gapXMm: el.sheetGapX.value,
+    gapYMm: el.sheetGapY.value,
+  };
+}
+
+/**
+ * Réécrit les six cotes dans les champs, sans émettre d'événement.
+ *
+ * Le rendu suit l'appel — `renderPreview` est appelé une fois, par l'appelant :
+ * émettre un `input` par champ relancerait six rendus pour un seul geste.
+ *
+ * @param {{columns: string, rows: string, marginXMm: string, marginYMm: string,
+ *   gapXMm: string, gapYMm: string}} grille
+ * @returns {void}
+ */
+function ecrireGrille(grille) {
+  el.sheetColumns.value = grille.columns;
+  el.sheetRows.value = grille.rows;
+  el.sheetMarginX.value = grille.marginXMm;
+  el.sheetMarginY.value = grille.marginYMm;
+  el.sheetGapX.value = grille.gapXMm;
+  el.sheetGapY.value = grille.gapYMm;
+}
+
+// La mise en page automatique : un choix, et le rendu suit — c'est
+// `buildSheetPages` qui l'applique à chaque passage.
+//
+// **Décocher doit se voir.** Le calcul réécrit les six champs ; sans remise en
+// état, les décocher laissait la planche identique au millimètre près, et l'on
+// croyait à un défaut d'affichage. On met donc de côté ce que l'utilisateur
+// avait réglé **avant** le premier calcul, et on le lui rend au décochage ; s'il
+// n'y a rien à rendre — la case était déjà cochée au chargement —, on repart de
+// la grille de la disposition choisie, qui est au moins une grille nommée.
+el.sheetAuto?.addEventListener('change', () => {
+  if (el.sheetAuto.checked) {
+    if (grilleManuelle === null) grilleManuelle = lireGrille();
+    // Le repère de grille n'a plus de sens : la grille n'est plus demandée, elle
+    // est calculée.
+    if (el.sheetGridHint) el.sheetGridHint.textContent = '';
+  } else {
+    if (grilleManuelle !== null) {
+      ecrireGrille(grilleManuelle);
+      grilleManuelle = null;
+    } else {
+      prefillGridFields();
+    }
+  }
+  renderPreview();
+});
+
 el.preset.addEventListener('change', () => {
   prefillGridFields();
   // Un changement de planche efface le message : la grille vient d'être
@@ -5010,10 +6654,29 @@ for (const field of [
 }
 for (const box of [
   el.sheetTitle, el.sheetUrl, el.sheetBorder,
-  el.sheetHeader, el.sheetHeaderDate, el.sheetHeaderNote,
+  el.sheetHeaderDate, el.sheetHeaderNote,
 ]) {
   box.addEventListener('change', renderPreview);
 }
+
+// L'en-tête de page : cocher la case **fait la place**, au lieu d'annoncer un
+// refus. Il vit dans la marge du haut, qui doit mesurer 9 mm pour le porter ; la
+// disposition par défaut lui en donne 8,53 — donc, en l'état, cocher la case ne
+// montrait jamais rien, et passait pour un défaut d'affichage. On porte donc la
+// marge à ce qu'il faut, et c'est le rendu qui suit : la grille se replace, et
+// si elle ne tient plus, l'avertissement de la planche le dit.
+el.sheetHeader?.addEventListener('change', () => {
+  if (el.sheetHeader.checked) {
+    const marge = Number(el.sheetMarginY.value);
+    if (!Number.isFinite(marge) || marge < SHEET_HEADER_MM) {
+      el.sheetMarginY.value = String(SHEET_HEADER_MM);
+      // Le champ est recadré comme s'il venait d'être saisi : c'est la même
+      // écriture, donc le même chemin — et l'aperçu en tient compte.
+      recadrerGrille();
+    }
+  }
+  renderPreview();
+});
 el.sheetQr.addEventListener('input', renderPreview);
 el.sheetFont.addEventListener('input', renderPreview);
 el.sheetOffsetX.addEventListener('input', renderPreview);
@@ -5156,18 +6819,60 @@ window.addEventListener('resize', () => {
 
 window.addEventListener('beforeprint', () => {
   // Le rendu papier est préparé au clic ; un Ctrl+P direct n'aurait rien à
-  // imprimer. On reconstruit donc à la volée si la racine est vide.
-  if (el.printRoot.childElementCount === 0 && mode !== 'single') {
-    const items = printableLinks();
-    if (mode === 'table') {
-      const config = tablePageConfig();
-      applyPrintPageSize(config.widthMm, config.heightMm);
-      for (const page of buildTablePages(items)) el.printRoot.appendChild(page);
-    } else {
-      for (const page of buildSheetPages(items)) el.printRoot.appendChild(page);
-    }
+  // imprimer. On reconstruit donc à la volée si la racine est vide — **ou si
+  // elle porte les pages d'un autre mode** : imprimer la planche après être passé
+  // au tableau sortait les pages du tableau, sans un mot. C'est ce que le relevé
+  // a mesuré : trois pages de tableau annoncées, cinq pages sorties, parce que la
+  // racine portait encore la planche.
+  if (mode === 'single') return;
+  if (el.printRoot.childElementCount > 0 && modeRacineImpression === mode) return;
+
+  const items = printableLinks();
+  el.printRoot.textContent = '';
+  if (mode === 'table') {
+    const config = tablePageConfig();
+    applyPrintPageSize(config.widthMm, config.heightMm);
+    for (const page of buildTablePages(items)) el.printRoot.appendChild(page);
+  } else {
+    for (const page of buildSheetPages(items)) el.printRoot.appendChild(page);
   }
+  modeRacineImpression = mode;
 });
+
+/**
+ * Pose l'adresse de la page d'information, sous l'application.
+ *
+ * C'est le même lien que celui de la fenêtre de l'extension, et il tient au
+ * même calcul, partagé dans `core/site.js` : la page française est à la racine
+ * du site, l'anglaise sous `/en/`, et l'application servie par le site renvoie à
+ * sa voisine plutôt qu'à l'adresse publiée. Un `href` écrit en dur dans le HTML
+ * enverrait donc la moitié des visiteurs au mauvais endroit — d'où ce câblage.
+ *
+ * Le changement de langue recharge la page : l'adresse n'a pas à être recalculée
+ * à chaud.
+ */
+function wireSiteLink() {
+  const link = el.siteLink;
+  if (!link) return;
+
+  // L'année de la signature est **celle du jour**, et non celle de la
+  // construction : le pied de page d'une application de 2026 ne doit pas
+  // annoncer 2024 parce qu'un fichier n'a pas été retouché depuis.
+  if (el.footerYear) el.footerYear.textContent = String(new Date().getFullYear());
+
+  // `window.location` et non `location` : la page de l'extension et la page du
+  // site n'ont pas le même voisinage, et c'est la page courante qui décide.
+  link.href = informationPageHref(getLocale(), window.location);
+
+  // Le changement de contexte est annoncé : sans cela, un utilisateur de lecteur
+  // d'écran ne sait pas qu'un onglet va s'ouvrir.
+  if (!link.querySelector('.sr-only')) {
+    const hint = document.createElement('span');
+    hint.className = 'sr-only';
+    hint.textContent = t(' (ouvre un nouvel onglet)');
+    link.appendChild(hint);
+  }
+}
 
 /**
  * Branche le sélecteur de langue de la barre supérieure.
@@ -5193,6 +6898,7 @@ function wireLocaleSwitcher() {
 await initI18n();
 applyTranslations(document);
 wireLocaleSwitcher();
+wireSiteLink();
 
 fillPresets();
 fillLabelForm();
@@ -5216,13 +6922,12 @@ fillLabelChoices();
 let preferences = settings.load();
 el.shortener.value = preferences.shortener;
 el.qrTarget.value = preferences.targetMode;
-// Le nom par défaut suit la langue ; un nom saisi par l'utilisateur, non.
-el.collectionName.value = preferences.collectionName === DEFAULT_SETTINGS.collectionName
-  ? t(DEFAULT_SETTINGS.collectionName)
-  : preferences.collectionName;
-// Une note vide reste vide : elle n'a pas de valeur par défaut à traduire.
-el.collectionNote.value = preferences.collectionNote;
-el.collectionStart.value = String(preferences.startIndex);
+// Les collections viennent avant le premier rendu : la liste, les exports et
+// l'impression portent sur la collection affichée, et le nom qui les titre vient
+// d'elle. Sur la page web autonome, la source n'offre qu'une collection — celle
+// des réglages — et la ligne du sélecteur reste masquée.
+await setupCollections();
+updateShortenerHint();
 applyCollectionName();
 fillSortModes();
 updateDateHint();
@@ -5240,3 +6945,19 @@ if (storeKind === 'memory') {
 }
 
 await refresh();
+
+// La page suit le stockage, et non seulement ses propres gestes.
+//
+// Trois écrivains partagent ces documents : la fenêtre de la barre d'outils, le
+// menu contextuel, et cette page — ouverte deux fois, dans deux onglets. Aucun
+// ne prévient les autres. Vider la collection depuis la fenêtre laissait donc
+// l'application afficher ses trois liens, et son bouton « Vider » actif, alors
+// que la collection était vide : il fallait recharger l'onglet pour le voir.
+//
+// Les documents écoutés sont ceux qui décident de ce qui est affiché : les
+// réglages et la langue n'en font pas partie — ils se relisent au démarrage, et
+// y réagir ici redessinerait pour rien.
+extensionApi?.storage?.onChanged?.addListener((changes, area) => {
+  if (!displayedDocuments(area).some((cle) => cle in changes)) return;
+  scheduleSync();
+});

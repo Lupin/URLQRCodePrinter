@@ -14,8 +14,10 @@
  *   - `PrivacyInfo.xcprivacy` dans les deux bundles. Apple exige un manifeste de
  *     confidentialité depuis mai 2024 ; son absence est un motif de rejet.
  *   - `MARKETING_VERSION` aligné sur la version déclarée du projet. Le gabarit
- *     d'Apple part sur 1.0, alors que le manifeste de l'extension annonce
- *     0.1.0 : deux versions divergentes pour un même livrable.
+ *     d'Apple part sur 1.0, alors que le manifeste de l'extension annonce sa
+ *     propre version : deux versions divergentes pour un même livrable. Le
+ *     numéro n'est pas cité ici — il change à chaque publication, et un
+ *     commentaire qui le fige devient faux sans que rien ne le signale.
  *
  * Ce qu'il ne fait **pas**, volontairement : il ne touche ni aux entitlements
  * (déjà produits par `ENABLE_APP_SANDBOX` et

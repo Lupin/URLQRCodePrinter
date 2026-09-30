@@ -45,12 +45,12 @@ l'envoi.
 - **Accès réseau** : `com.apple.security.network.client` est présent sur l'app.
   L'extension, elle, porte le sandbox **sans** l'accès réseau — ce qui est
   cohérent, son `SafariWebExtensionHandler` ne fait aucun appel réseau. Les
-  requêtes vers les raccourcisseurs (`tinyurl`, `is.gd`, `v.gd`, `spoo.me`) sont
+  requêtes vers les raccourcisseurs (`t.ly`, `tinyurl`, `is.gd`, `v.gd`, `spoo.me`) sont
   émises depuis `app.html`, donc par le processus de Safari, pas par l'appex.
 - **Manifestes de confidentialité** : présents dans les deux bundles, vérifiés
   présents après compilation dans `URLQRCodePrinter.app` et dans
   `URLQRCodePrinter Extension.appex`.
-- **Version** : `MARKETING_VERSION = 0.1.0` sur les quatre cibles, alignée sur
+- **Version** : `MARKETING_VERSION = 0.1.1` sur les cibles, alignée sur
   `package.json` et sur la version du manifeste de l'extension.
 - **Icônes** : macOS de 16 à 512 en `@1x`/`@2x`, plus l'universel 1024 pour iOS,
   avec les variantes *dark* et *tinted* (iOS 18+). Complet.

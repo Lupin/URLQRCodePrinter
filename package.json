@@ -1,6 +1,6 @@
 {
   "name": "url-qr-code-printer",
-  "version": "0.1.0",
+  "version": "0.2.1",
   "type": "module",
   "description": "Collect URLs from the browser, keep them in a local database, and print them as QR labels — sheet, CSV/Markdown export, or direct Niimbot D110 / M2 printing.",
   "keywords": [
@@ -28,12 +28,15 @@
     "icons": "node scripts/make-icons.mjs",
     "package:safari": "node scripts/package-safari.mjs",
     "package:chrome": "node scripts/package-chrome.mjs",
+    "soumission": "node scripts/preparer-soumission.mjs",
     "sync:safari": "node scripts/sync-safari-resources.mjs",
     "install:safari": "node scripts/install-safari.mjs",
     "open:extension": "node scripts/open-extension.mjs",
     "open:safari": "node scripts/open-extension.mjs --safari",
+    "verify:badge": "node scripts/verify-app-badge.mjs",
     "verify:brave": "node scripts/verify-brave.mjs",
     "verify:chrome": "node scripts/verify-chrome.mjs",
+    "verify:menu": "node scripts/verify-context-menu.mjs",
     "verify:safari": "node scripts/verify-safari.mjs",
     "serve": "node scripts/serve.mjs",
     "dev": "node scripts/build.mjs && node scripts/serve.mjs"

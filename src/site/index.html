@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>URLQRCodePrinter — des liens qui deviennent des étiquettes QR Code</title>
-  <meta name="description" content="Collectez des adresses depuis le navigateur et imprimez-les en QR Codes. Aucun compte, aucun serveur de l'éditeur, aucune mesure d'audience.">
+  <meta name="description" content="Collectez des liens depuis le navigateur et imprimez-les en QR Codes. Aucun compte, aucun serveur de l'éditeur, aucune mesure d'audience.">
   <link rel="icon" href="icon-512.png">
   <link rel="stylesheet" href="style.css">
 </head>
@@ -22,18 +22,19 @@
          alt="Icône d'URLQRCodePrinter : un QR Code stylisé">
     <h1 class="hero__title">URLQRCodePrinter</h1>
     <p class="hero__lead">
-      Collectez des adresses depuis le navigateur. Elles restent sur votre
-      machine, et vous les imprimez en QR Codes. L'extension lit l'adresse et le
-      titre de la page ou du lien que vous visez, et les enregistre.
-      L'application met en page ce que vous imprimez : étiquettes autocollantes,
-      Niimbot en Bluetooth, ou export d'images. Vous n'avez pas de compte à
-      créer, aucun serveur de l'éditeur n'intervient, et rien n'est mesuré.
+      Collectez des liens depuis le navigateur et rangez-les dans des
+      collections, une par thème ou par projet. Ils restent sur votre appareil,
+      sauf si vous demandez vous-même un raccourcissement. L'extension lit
+      l'adresse et le titre de la page visée, ou l'adresse du lien visé, et les
+      enregistre. L'application met en page ce que vous imprimez&nbsp;:
+      planches d'étiquettes autocollantes, étiqueteuse Niimbot en Bluetooth, ou
+      images à imprimer ailleurs. Aucun compte à créer, aucun serveur de
+      l'éditeur, aucune mesure d'audience.
     </p>
 
     <div class="actions">
       <a class="btn btn--primary" href="https://chromewebstore.google.com/detail/urlqrcodeprinter/fmfbpjekpbopeijaobdffbhhnfgjjbmi">Installer l'extension</a>
       <a class="btn" href="app/">Essayer dans le navigateur</a>
-      <a class="btn" href="https://github.com/Lupin/URLQRCodePrinter">Dépôt GitHub</a>
     </div>
   </div>
 </header>
@@ -42,50 +43,82 @@
 
 <section>
   <div class="wrap">
-    <h2>Ce que ça fait</h2>
+    <h2>Fonctionnalités</h2>
     <ul class="features">
       <li class="feature">
-        <h3 class="feature__title">Collecter en un geste</h3>
+        <h3 class="feature__title">Ajout rapide de lien</h3>
         <p class="feature__text">
-          Clic droit sur une page ou sur un lien, ou le bouton de la barre
-          d'outils. Le titre est conservé, pour que l'étiquette reste
+          Clic droit sur une page ou sur un lien, ou bouton de la barre
+          d'outils. Le titre de la page est conservé&nbsp;: l'étiquette reste
           reconnaissable.
         </p>
       </li>
       <li class="feature">
-        <h3 class="feature__title">Composer la planche</h3>
+        <h3 class="feature__title">Gestion de collections</h3>
         <p class="feature__text">
-          Les étiquettes sont mises en page selon le support visé, puis
-          imprimées en PDF. L'aperçu mesure le rendu réel, ce n'est pas une
-          estimation.
+          Créez autant de collections que nécessaire. Un lien ajouté va dans
+          celle qui est affichée. Ensuite, il se déplace d'une collection à
+          l'autre sans être recréé.
+        </p>
+      </li>
+      <li class="feature">
+        <h3 class="feature__title">Indexer chaque collection à part</h3>
+        <p class="feature__text">
+          Chaque collection a son numéro de départ&nbsp;: le premier lien le
+          prend, et les suivants s'enchaînent. Vider la collection ne le remet
+          pas à 1.
+        </p>
+      </li>
+      <li class="feature">
+        <h3 class="feature__title">Mettre en page et imprimer</h3>
+        <p class="feature__text">
+          Quatre sorties&nbsp;: feuille d'étiquettes A4 ou Letter, tableau
+          imprimé, étiqueteuse Niimbot, ou images à imprimer ailleurs. Vous
+          choisissez une disposition proposée, ou vous réglez la grille à la
+          main. L'aperçu montre la disposition à l'échelle de la
+          fenêtre&nbsp;: ce n'est pas une épreuve d'impression.
         </p>
       </li>
       <li class="feature">
         <h3 class="feature__title">Imprimer en direct</h3>
         <p class="feature__text">
-          Sur une imprimante Niimbot D110 ou M2, en Bluetooth, sans passer par
-          un fichier intermédiaire.
+          Sur une étiqueteuse Niimbot D110, M2 ou M3, en Bluetooth, sans passer
+          par un fichier.
         </p>
       </li>
       <li class="feature">
-        <h3 class="feature__title">Raccourcir pour un QR Code plus lisible</h3>
+        <h3 class="feature__title">Raccourcir un lien</h3>
         <p class="feature__text">
-          Un lien plus court donne un QR Code plus petit, donc plus rapide à
-          scanner et plus à l'aise sur une étiquette étroite.
+          Un lien plus court fait un QR Code plus petit. Le raccourcissement
+          passe par un service extérieur&nbsp;: rien ne part tant que vous ne
+          cliquez pas, et l'adresse d'origine reste enregistrée.
+          <a href="https://t.ly/register?via=gael">Créer un compte T.LY
+          (parrainage)</a> crédite le projet si vous passez par ce
+          lien&nbsp;; cela ne change rien à ce qui est envoyé.
         </p>
       </li>
       <li class="feature">
         <h3 class="feature__title">Exporter</h3>
         <p class="feature__text">
-          CSV, Markdown, JSON, ou les images PNG en archive, pour repartir avec
-          vos données à tout moment dans un format lisible.
+          CSV, Markdown, archive JSON, tableur avec les QR Codes, ou images PNG
+          dans une archive ZIP. Vous repartez avec vos données, dans un format
+          lisible.
         </p>
       </li>
       <li class="feature">
-        <h3 class="feature__title">Rien à installer côté serveur</h3>
+        <h3 class="feature__title">Importer une collection</h3>
         <p class="feature__text">
-          L'application web fonctionne seule. L'extension ajoute la collecte
-          depuis le navigateur et la même collection au même endroit.
+          Une archive JSON ou un CSV exporté d'ici se relit. Les liens
+          reviennent, sans doublon. L'import demande ensuite s'il faut s'ajouter
+          à la collection affichée, la remplacer (nom et note compris), ou
+          ranger les liens dans une collection nouvelle.
+        </p>
+      </li>
+      <li class="feature">
+        <h3 class="feature__title">Aucun serveur</h3>
+        <p class="feature__text">
+          L'application web fonctionne seule, sans rien installer. L'extension
+          ajoute la collecte depuis le navigateur.
         </p>
       </li>
     </ul>
@@ -94,21 +127,96 @@
 
 <section>
   <div class="wrap">
-    <h2>Pourquoi cette extension</h2>
+    <h2>Genèse de l'extension</h2>
     <p>
       J'ai créé cette extension pour mon carnet. J'y note mes recherches et mes
       trouvailles sur papier, et j'y recopiais les adresses à la main. Les écrire
-      prenait du temps, et les retrouver aussi. J'ai d'abord imprimé les QR Codes
-      un par un sur une petite Niimbot, puis je me suis dit que tout cela pouvait
-      se faire tout seul.
+      prenait du temps, et les retrouver aussi.
     </p>
     <p>
-      C'est surtout utile pour ce qu'on veut garder sous la main : un article de
-      recherche, la page d'un produit, une vidéo qui nous a marqué. On scanne
-      l'étiquette, et quand on rouvre le carnet, ce qui avait retenu l'attention
-      se retrouve et se partage facilement.
+      J'ai d'abord imprimé les QR Codes un par un sur une Niimbot. Chaque
+      étiquette prenait du temps, et passait par un logiciel tiers sur mon
+      téléphone. La friction a vite dépassé le service rendu. Il fallait
+      accélérer la collecte et rendre l'impression fluide.
+    </p>
+    <p>
+      J'ai voulu des collections pour retrouver les liens par thème et par
+      projet. Elles permettent de se constituer des pages de références, sujet
+      par sujet, pour un carnet de recherche.
+    </p>
+    <p>
+      C'est utile pour ce qu'on veut garder sous la main&nbsp;: un article, la
+      page d'un produit, une vidéo, un morceau ou un disque, une coordonnée sur
+      une carte. On scanne l'étiquette et on retrouve le lien, sans le
+      recopier. On le partage aussi&nbsp;: on donne l'étiquette, et le lien
+      suit. Et surtout, beaucoup de savoir tient sur une feuille&nbsp;: imprimez
+      un tableau de QR Codes, et vous emportez la collection entière.
     </p>
     <p class="signature">- Gaël A.G. -</p>
+  </div>
+</section>
+
+
+<section>
+  <div class="wrap">
+    <h2>Comment s'en servir</h2>
+    <ol class="steps">
+      <li>Installez l'extension, ou ouvrez l'application dans le navigateur.</li>
+      <li>Pour ajouter un lien, deux gestes. Le <strong>bouton de l'extension</strong>, dans la barre du navigateur, ouvre une fenêtre&nbsp;: le titre de la page est déjà rempli, et un clic sur «&nbsp;Ajouter cette page&nbsp;» l'enregistre. Le <strong>clic droit</strong> fonctionne aussi, sur la page, sur un lien précis ou sur un texte sélectionné.</li>
+      <li>Choisissez la collection&nbsp;: celle qui est affichée reçoit ce que vous ajoutez. L'application en crée d'autres, et «&nbsp;Déplacer vers…&nbsp;» range ensuite un lien ailleurs.</li>
+      <li>Ouvrez l'application&nbsp;: vous y retrouvez vos liens, avec la recherche, le tri et les collections.</li>
+      <li>Cochez les liens à imprimer, choisissez la disposition, puis cliquez sur Imprimer. La fenêtre d'impression du navigateur s'ouvre, avec vos imprimantes.</li>
+      <li>Pour une étiqueteuse Niimbot, ouvrez l'onglet «&nbsp;Étiquette Niimbot&nbsp;», connectez-la en Bluetooth, puis imprimez.</li>
+      <li>Pour repartir avec vos données, utilisez les exports&nbsp;: images des étiquettes (archive ZIP), planche ou tableau (archive ZIP), tableur avec les QR Codes, CSV, Markdown, archive JSON. Ils servent aussi à imprimer depuis un autre logiciel.</li>
+      <li>Pour les relire ailleurs, cliquez sur «&nbsp;Importer…&nbsp;» et donnez l'archive JSON ou le CSV exporté d'ici. L'import demande alors s'il faut fusionner avec la collection affichée, la remplacer, ou ranger les liens dans une collection nouvelle&nbsp;; les liens déjà présents ne créent jamais de doublon.</li>
+    </ol>
+    <p class="note">
+      Le raccourcissement des adresses et les exports sont des options.
+    </p>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2>Questions fréquentes</h2>
+    <div class="faq">
+      <details>
+        <summary>Faut-il créer un compte&nbsp;?</summary>
+        <p>Non. Il n'y a ni inscription, ni serveur de l'éditeur, ni mesure d'audience.</p>
+      </details>
+      <details>
+        <summary>Où sont enregistrés mes liens&nbsp;?</summary>
+        <p>Sur votre appareil, dans le stockage du navigateur. Ils ne partent nulle part, sauf si vous demandez vous-même un raccourcissement.</p>
+      </details>
+      <details>
+        <summary>Puis-je l'utiliser sans l'extension&nbsp;?</summary>
+        <p>Oui. L'application ouverte dans le navigateur met en page et imprime. L'extension ajoute la collecte depuis le navigateur&nbsp;: le bouton de la barre d'outils et le clic droit.</p>
+      </details>
+      <details>
+        <summary>Le raccourcissement est-il automatique&nbsp;?</summary>
+        <p>Non. Rien n'est raccourci tant que vous ne cliquez pas sur Raccourcir. L'adresse d'origine est toujours conservée.</p>
+      </details>
+      <details>
+        <summary>Quelles étiqueteuses sont prises en charge&nbsp;?</summary>
+        <p>Les Niimbot D110, M2 et M3, en Bluetooth. Pour les autres, imprimez la planche sur une feuille d'étiquettes A4 ou sur du papier ordinaire, ou exportez les images.</p>
+      </details>
+      <details>
+        <summary>Puis-je imprimer sur une imprimante normale&nbsp;?</summary>
+        <p>Oui. Vous imprimez la planche ou le tableau depuis le navigateur, sur une feuille d'étiquettes autocollantes ou sur du papier. Pour imprimer depuis un autre logiciel, exportez les images.</p>
+      </details>
+      <details>
+        <summary>Comment récupérer mes liens ailleurs&nbsp;?</summary>
+        <p>Par les exports&nbsp;: CSV, Markdown, archive JSON, ou les images PNG dans une archive ZIP.</p>
+      </details>
+      <details>
+        <summary>Comment tout supprimer&nbsp;?</summary>
+        <p>Le bouton «&nbsp;Vider la collection&nbsp;» efface les liens de la collection affichée. Retirer l'extension efface aussi son stockage local.</p>
+      </details>
+      <details>
+        <summary>Est-ce gratuit&nbsp;?</summary>
+        <p>Oui. Le code est ouvert, sous licence MIT.</p>
+      </details>
+    </div>
   </div>
 </section>
 
@@ -118,20 +226,20 @@
     <div class="note">
       <p>
         <strong>Ce qui est lu.</strong> L'adresse et le titre de la page sur
-        laquelle vous agissez, uniquement celle-là et uniquement au moment où
-        vous le demandez.
+        laquelle vous agissez, et rien d'autre. Uniquement au moment où vous le
+        demandez.
       </p>
       <p>
-        <strong>Ce qui n'est pas fait.</strong> Aucun accès à votre historique,
-        aucune lecture en arrière-plan, aucun compte, aucun serveur de l'éditeur,
-        aucune mesure d'audience, aucune publicité, aucune revente de données.
-        Aucun code n'est chargé à distance : tout est embarqué.
+        <strong>Ce qui n'est pas fait.</strong> Aucun accès à votre historique.
+        Aucune lecture en arrière-plan. Aucun compte, aucun serveur de
+        l'éditeur. Aucune mesure d'audience, aucune publicité, aucune revente de
+        données. Aucun code n'est chargé à distance&nbsp;: tout est embarqué.
       </p>
       <p>
         <strong>Le seul envoi réseau.</strong> Si vous demandez le
         raccourcissement d'un lien, cette adresse part vers le service que vous
-        avez choisi : TinyURL, is.gd, v.gd ou spoo.me. Sans cette action, aucune
-        requête n'est émise.
+        avez choisi&nbsp;: T.LY, TinyURL, is.gd, v.gd ou spoo.me. Rien n'est
+        raccourci par défaut. Sans ce clic, aucune requête n'est émise.
       </p>
       <p>
         <a href="https://github.com/Lupin/URLQRCodePrinter/blob/main/PRIVACY.md">Politique de confidentialité complète</a>
@@ -143,32 +251,42 @@
 <section>
   <div class="wrap">
     <h2>Ce qu'il ne fait pas</h2>
-    <p>
-      Autant le dire ici plutôt que de le laisser découvrir à l'usage :
-    </p>
     <ul class="limits">
       <li>
-        <strong>Safari et Firefox ne peuvent pas imprimer en direct.</strong>
-        Aucun des deux n'implémente Web Bluetooth, et Safari impose son moteur à
-        tous les navigateurs sur iPhone et iPad. L'export d'images reste
-        disponible partout.
+        <strong>Safari ne peut pas imprimer en direct.</strong> Safari
+        n'implémente pas Web Bluetooth, et il impose son moteur à tous les
+        navigateurs sur iPhone et iPad. L'export d'images reste disponible
+        partout.
       </li>
       <li>
         <strong>Brave demande une manipulation.</strong> Web Bluetooth y est
-        désactivé par défaut, derrière un drapeau à activer dans
-        <code>brave://flags</code>.
+        désactivé par défaut. Il faut l'activer par le drapeau
+        <code>brave://flags/#brave-web-bluetooth-api</code>, puis relancer Brave.
+      </li>
+      <li>
+        <strong>L'impression Niimbot n'a été essayée que sur une D110.</strong>
+        Les profils M2 et M3 existent, mais l'impression sur ces machines n'a
+        pas été éprouvée sur du matériel réel.
       </li>
       <li>
         <strong>L'application web et l'extension ne partagent pas leurs
-        données.</strong> La première stocke dans le navigateur, la seconde dans
-        le stockage de l'extension. Utilisez l'une ou l'autre ; l'export sert de
-        pont.
+        données.</strong> L'application web stocke dans le navigateur,
+        l'extension dans son propre stockage. Utilisez l'une ou l'autre&nbsp;:
+        l'export sert de pont.
       </li>
       <li>
-        <strong><a href="https://chromewebstore.google.com/detail/urlqrcodeprinter/fmfbpjekpbopeijaobdffbhhnfgjjbmi">L'extension
-        est publiée sur le Chrome Web Store</a>.</strong> Elle vise Chrome, Brave
-        et Edge. La version Safari se compile depuis les sources, et
-        l'application web reste utilisable sans rien installer.
+        <strong>Le raccourcissement dépend d'un service tiers.</strong> T.LY,
+        TinyURL, is.gd, v.gd et spoo.me sont des services extérieurs. S'ils
+        ferment, un lien déjà imprimé cesse de fonctionner. L'adresse d'origine
+        reste dans votre collection et dans vos exports.
+      </li>
+      <li>
+        <strong>Tous les navigateurs ne sont pas couverts.</strong>
+        <a href="https://chromewebstore.google.com/detail/urlqrcodeprinter/fmfbpjekpbopeijaobdffbhhnfgjjbmi">L'extension
+        est publiée sur le Chrome Web Store</a>, pour Chrome, Brave et Edge.
+        Aucune version Firefox n'est publiée. La version Safari se construit
+        depuis les sources et demande quelques réglages à la main, une seule
+        fois. L'application web reste utilisable sans rien installer.
       </li>
     </ul>
   </div>
@@ -176,11 +294,17 @@
 
 </main>
 
-<footer>
+<footer class="site-footer">
   <div class="wrap">
-    <p>
-      Code ouvert, licence MIT.
-      <a href="https://github.com/Lupin/URLQRCodePrinter">github.com/Lupin/URLQRCodePrinter</a>
+    <p class="site-footer__repo">
+      <a href="https://github.com/Lupin/URLQRCodePrinter">Code source sur GitHub</a>
+    </p>
+    <!-- L'année et la version sont posées à la construction du site : écrites à
+         la main, elles auraient annoncé 2026 jusqu'à la prochaine refonte. -->
+    <p class="site-footer__signature">
+      © __APP_YEAR__ G. Abegg-Gauthey
+      <span aria-hidden="true">·</span> MIT
+      <span aria-hidden="true">·</span> version __APP_VERSION__
     </p>
   </div>
 </footer>

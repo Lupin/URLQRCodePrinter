@@ -4,7 +4,7 @@
  * Ces règles ne sont pas des préférences : elles répondent à des critères
  * WCAG 2.2 AA, et plusieurs d'entre elles corrigent des échecs mesurés dans la
  * version précédente (contour de bouton à 1,36:1, cible de suppression de
- * 19 × 19 px, « Tout effacer » à 2,34:1 au survol en thème sombre).
+ * 19 × 19 px, « Vider la collection » à 2,34:1 au survol en thème sombre).
  *
  * Les contrastes sont recalculés à partir des jetons réellement écrits dans
  * `popup.css` — pas recopiés dans le test. Recopier les valeurs laisserait
@@ -27,6 +27,9 @@ const EXT = join(ROOT, 'src', 'extension-src');
 const css = readFileSync(join(EXT, 'popup.css'), 'utf8');
 const html = readFileSync(join(EXT, 'popup.html'), 'utf8');
 const script = readFileSync(join(EXT, 'popup.js'), 'utf8');
+// Les adresses du site vivent dans le cœur partagé, avec celles qu'affiche
+// l'application : une seule définition, donc pas de divergence possible.
+const site = readFileSync(join(ROOT, 'src', 'core', 'site.js'), 'utf8');
 
 /**
  * Le CSS privé de ses commentaires.
@@ -205,17 +208,85 @@ test('le bouton de suppression atteint la cible minimale de 24 px', () => {
 });
 
 test('les boutons gardent une hauteur minimale confortable', () => {
-  const regle = css.match(/\.btn\s*\{([\s\S]*?)\}/)[1];
+  // Ancré en début de ligne : une règle descendante comme
+  // « .capture__actions .btn » décrit une mise en page, pas la cible du
+  // bouton, et la prendre pour la règle de base rendait la mesure muette.
+  const regle = css.match(/^\.btn\s*\{([\s\S]*?)\}/m)[1];
   const hauteur = Number(regle.match(/min-height:\s*(\d+)px/)?.[1]);
   assert.ok(hauteur >= 24, `min-height trop faible : ${hauteur}px`);
 });
 
-test("l'anneau de focus n'est jamais supprimé", () => {
+test("l'en-tête porte le nom de la collection, pas celui du produit", () => {
+  // Le nom du produit occupait la place du seul titre qui informe. L'en-tête
+  // porte donc l'icône, le nom de la collection entre ses deux flèches, et le
+  // sélecteur de langue — rien de plus.
+  const entete = html.match(/<header[\s\S]*?<\/header>/)[0];
+  assert.match(entete, /id="collection-title"/, 'la collection doit être dans l\'en-tête');
+  assert.match(entete, /id="collection-prev"/);
+  assert.match(entete, /id="collection-next"/);
+  assert.doesNotMatch(entete, /URLQRCodePrinter<\/h1>/, 'le nom du produit est écrit en clair');
+  // L'icône le porte pour qui ne la voit pas : sans alternative, la fenêtre
+  // n'aurait plus aucun nom accessible.
+  assert.match(entete, /class="app-header__logo"[^>]*alt="URLQRCodePrinter"/);
+
+  // Les deux flèches sont les seules commandes de collection : créer, renommer
+  // et supprimer se font dans l'application.
+  const commandes = [...html.matchAll(/id="collection-[a-z-]+"/g)].map((m) => m[0]);
+  assert.deepEqual(
+    [...new Set(commandes)].sort(),
+    ['id="collection-next"', 'id="collection-prev"', 'id="collection-title"'],
+  );
+});
+
+test('les flèches de collection atteignent la cible minimale de 24 px', () => {
+  // Même exigence que pour la suppression d'une ligne : ce sont des commandes
+  // de 16 px de dessin, et le pouce comme la souris doivent pouvoir les viser.
+  const regle = css.match(/\.collection__step\s*\{([\s\S]*?)\}/)[1];
+  const largeur = Number(regle.match(/width:\s*(\d+)px/)?.[1]);
+  const hauteur = Number(regle.match(/height:\s*(\d+)px/)?.[1]);
+
+  assert.ok(largeur >= 24, `largeur trop faible : ${largeur}px`);
+  assert.ok(hauteur >= 24, `hauteur trop faible : ${hauteur}px`);
+});
+
+test("l'avis de navigation privée n'ajoute pas une teinte", () => {
+  // L'accent est réservé à l'action principale et au compteur. Un avis
+  // d'information se signale par une bordure à l'encre, comme les autres
+  // encarts de la fenêtre — et non par une troisième couleur à l'écran.
+  const regle = cssCode.match(/\.notice--private\s*\{([\s\S]*?)\}/)[1];
+  assert.match(regle, /border-left-color:\s*var\(--ink\)/);
+  assert.doesNotMatch(regle, /var\(--accent\)/);
+
+  // Et la barre de collection elle-même reste à l'encre.
+  const barre = cssCode.match(/\.collection__step\s*\{([\s\S]*?)\}/)[1];
+  assert.doesNotMatch(barre, /var\(--accent\)/);
+});
+
+test("l'anneau de focus n'est jamais supprimé sans être remplacé", () => {
   // Retirer le contour sans le remplacer cumule trois échecs : 1.4.11, 2.4.7
   // et 2.4.13. On vérifie donc qu'un anneau est bien déclaré, et qu'aucune
   // règle ne le supprime.
   assert.match(css, /outline:\s*2px solid var\(--focus\)/, 'anneau de focus absent');
-  assert.doesNotMatch(cssCode, /outline:\s*(none|0)\b/, 'un anneau a été supprimé');
+
+  // **Une exception, et une seule : le champ de saisie.** Sur demande explicite,
+  // son focus ne se dit plus par un contour mais par un fond teinté — l'anneau
+  // ajoutait un second trait autour d'un champ qui en avait déjà un. L'exception
+  // est vérifiée plutôt que tolérée : là où l'anneau disparaît, le fond doit être
+  // déclaré, sinon la règle repasserait sans repère du tout.
+  const sansAnneau = [...cssCode.matchAll(/([^{}]+)\{([^}]*outline:\s*(?:none|0)\b[^}]*)\}/g)];
+  assert.ok(sansAnneau.length > 0, 'le champ de saisie doit dire son focus autrement');
+  for (const [, selecteur, corps] of sansAnneau) {
+    assert.match(
+      selecteur,
+      /field__input/,
+      `anneau supprimé sans remplacement sur : ${selecteur.trim()}`,
+    );
+    assert.match(
+      corps,
+      /background:\s*var\(--focus-fill\)/,
+      `${selecteur.trim()} supprime l'anneau sans teinter le fond`,
+    );
+  }
 });
 
 test('les éléments de la liste rentrent leur anneau pour ne pas être rognés', () => {
@@ -424,9 +495,13 @@ test('le lien vers la page d\'information suit la langue de l\'interface', () =>
   // La page française vit à la racine du site, l'anglaise sous /en/. Une adresse
   // écrite en dur enverrait la moitié des utilisateurs sur la mauvaise page.
   assert.match(html, /<a id="site-link"/, 'aucun lien vers le site');
-  assert.match(script, /https:\/\/lupin\.github\.io\/URLQRCodePrinter\//);
-  assert.match(script, /https:\/\/lupin\.github\.io\/URLQRCodePrinter\/en\//);
-  assert.match(script, /link\.href = SITE_URLS\[getLocale\(\)\]/);
+  // Les adresses sont définies une fois, dans `core/site.js` : recopiées dans la
+  // fenêtre, elles auraient fini par diverger de celles de l'application, qui
+  // affiche le même lien.
+  assert.match(site, /https:\/\/lupin\.github\.io\/URLQRCodePrinter\//);
+  assert.match(site, /https:\/\/lupin\.github\.io\/URLQRCodePrinter\/en\//);
+  assert.doesNotMatch(script, /lupin\.github\.io/, 'adresses recopiées dans la fenêtre');
+  assert.match(script, /link\.href = informationPageHref\(getLocale\(\)\)/);
   // Posée par le script : c'est la seule façon de tenir compte de la langue.
   assert.doesNotMatch(html, /href="https:\/\/lupin\.github\.io/, 'adresse en dur dans le balisage');
 });

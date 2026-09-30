@@ -50,17 +50,38 @@
     <section class="panel" aria-labelledby="collection-title">
       <h2 id="collection-title" class="panel__title" data-i18n="Ma collection">Ma collection</h2>
 
+      <!-- Le choix de la collection vient avant son nom : on choisit de quoi
+           on parle, puis on le décrit. Les deux commandes tiennent sur la même
+           ligne que la liste, et sont masquées sur la page web autonome, qui
+           n'a qu'une seule collection — celle du produit d'avant. -->
+      <div id="collection-picker" class="collection-picker">
+        <label class="field field--compact field--grow">
+          <span class="field__label" data-i18n="Collection affichée">Collection affichée</span>
+          <select id="collection-select" class="input input--compact"></select>
+        </label>
+        <button id="collection-add" class="btn btn--ghost" type="button" data-i18n="Nouvelle">Nouvelle</button>
+        <button id="collection-delete" class="btn btn--ghost btn--danger" type="button"
+                data-i18n="Supprimer">Supprimer</button>
+      </div>
+      <!-- Ce que la suppression emporte, et ce qu'une collection de navigation
+           privée devient : deux choses qu'on ne devine pas. -->
+      <p id="collection-hint" class="hint hint--tight"></p>
+
       <!-- Le nom et le premier numéro décrivent tous deux la collection
            elle-même, et tiennent donc sur une ligne : le nom prend la place, le
            numéro garde la sienne. Sous eux vient la note, qui est un
            paragraphe. -->
       <div class="fields">
-        <!-- Ce nom devient le titre des exports Markdown et de la planche
-             imprimable : il doit donc être saisissable ici. -->
+      <!-- Ce nom devient le titre des exports Markdown et de la planche
+             imprimable : il doit donc être saisissable ici. Le champ est
+             **vide** quand la collection n'est pas nommée : c'est le cas de la
+             collection par défaut, et de toute collection dont on vient de
+             vider le nom. Le libellé intégré — « Mes liens » — est alors en
+             filigrane, et sert de titre aux exports. -->
         <label class="field field--compact">
           <span class="field__label" data-i18n="Nom de la collection">Nom de la collection</span>
           <input id="collection-name" class="input input--compact" type="text"
-                 maxlength="80" value="Mes liens" placeholder="Mes liens" data-i18n-placeholder="Mes liens"
+                 maxlength="80" placeholder="Mes liens" data-i18n-placeholder="Mes liens"
                  autocomplete="off" spellcheck="false">
         </label>
 
@@ -123,6 +144,20 @@
              Échap en sort. -->
         <button id="reorder" class="btn btn--ghost btn--small" type="button"
                 aria-pressed="false" data-i18n="Réorganiser">Réorganiser</button>
+
+        <!-- Déplacer la sélection vers une autre collection. La commande
+             n'apparaît qu'avec une sélection, à côté du rangement : on ne
+             déplace que ce qu'on a coché, et rien n'encombre la liste au repos.
+             Le choix s'ouvre sous le bouton plutôt que dans un `<select>` :
+             un sélecteur qui agirait au changement déplacerait des liens à la
+             molette ou aux flèches du clavier, sans que personne ne l'ait
+             demandé. -->
+        <div id="move-group" class="move" hidden>
+          <button id="move-to" class="btn btn--ghost btn--small" type="button"
+                  aria-expanded="false" data-i18n="Déplacer vers…">Déplacer vers…</button>
+          <div id="move-menu" class="move__menu" role="group"
+               data-i18n-aria-label="Déplacer vers une collection" hidden></div>
+        </div>
       </div>
 
       <ul id="list" class="links"></ul>
@@ -152,12 +187,30 @@
                   title="Relit l'archive JSON, le dossier d'étiquettes .zip ou un CSV exporté d'ici" data-i18n-title="Relit l'archive JSON, le dossier d'étiquettes .zip ou un CSV exporté d'ici" data-i18n="Importer…">
             Importer…
           </button>
-          <button id="clear" class="btn btn--ghost btn--danger btn--fill" type="button" disabled data-i18n="Tout effacer">Tout effacer</button>
+          <button id="clear" class="btn btn--ghost btn--danger btn--fill" type="button" disabled data-i18n="Vider la collection">Vider la collection</button>
           <input id="import-file" class="sr-only" type="file"
                  accept=".json,.csv,.zip,application/json,text/csv,application/zip">
         </div>
       </div>
-      <p class="hint hint--tight" data-i18n="Importer relit l'Archive, le .zip d'étiquettes ou un CSV ; les liens déjà présents sont ignorés.">Importer relit l'Archive, le .zip d'étiquettes ou un CSV ; les liens déjà présents sont ignorés.</p>
+      <p class="hint hint--tight" data-i18n="Importer relit l'Archive, le .zip d'étiquettes ou un CSV, puis demande s'il faut fusionner, remplacer ou créer une collection ; les liens déjà présents sont ignorés.">Importer relit l'Archive, le .zip d'étiquettes ou un CSV, puis demande s'il faut fusionner, remplacer ou créer une collection ; les liens déjà présents sont ignorés.</p>
+
+      <!-- Le rangement d'un import, demandé au moment où il se fait.
+           Trois issues, aucune devinable : ajouter à ce qui est affiché,
+           remplacer ce qui est affiché — nom et note compris —, ou ranger à
+           part dans une collection nouvelle. Le panneau s'ouvre sous le bouton
+           qui vient d'être utilisé, sans rien recouvrir, et se referme dès
+           qu'un choix est fait ou qu'on annule. Ses libellés sont posés par
+           `app.js`, parce qu'ils nomment les collections concernées. -->
+      <div id="import-menu" class="import-menu" role="group" aria-labelledby="import-menu-title" hidden>
+        <p id="import-menu-title" class="import-menu__title"></p>
+        <p id="import-menu-hint" class="hint hint--tight"></p>
+        <div class="import-menu__choices">
+          <button id="import-merge" class="btn btn--ghost" type="button"></button>
+          <button id="import-replace" class="btn btn--ghost" type="button"></button>
+          <button id="import-add" class="btn btn--ghost" type="button" hidden></button>
+          <button id="import-cancel" class="btn btn--ghost btn--small" type="button" data-i18n="Annuler">Annuler</button>
+        </div>
+      </div>
     </section>
 
     <!-- ---------------------------------------------------------------- -->
@@ -186,8 +239,8 @@
            Le titre porte l'action, le libellé du champ porte le réglage : ils
            étaient confondus, et on lisait le choix d'un tiers comme le nom du
            bouton. Chaque service annonce ce qu'il change pour un usage
-           ordinaire, et TinyURL — le choix proposé d'emblée — se dit
-           « recommandé ». -->
+           ordinaire, et T.LY — le choix proposé d'emblée — se dit
+           « (défaut) ». -->
       <div class="shortener">
         <p class="shortener__title"><span data-i18n="Raccourcir les liens">Raccourcir les liens</span> <em data-i18n="(option)">(option)</em></p>
         <div class="shortener__row">
@@ -199,6 +252,10 @@
           <button id="shorten-clear" class="btn btn--ghost" type="button" hidden data-i18n="Retirer">Retirer</button>
         </div>
       </div>
+      <!-- Ce que le service proposé change, et ce qu'il ne fait pas : rien
+           n'est raccourci sans un clic sur « Raccourcir ». Le texte est posé
+           par `app.js`, parce qu'il dépend du service retenu. -->
+      <p id="shortener-hint" class="hint hint--tight"></p>
       <p id="shorten-status" class="hint hint--tight" aria-live="polite"></p>
 
       <div class="tabs" role="tablist">
@@ -242,6 +299,21 @@
               </div>
             </div>
           </div>
+
+          <!-- **Mise en page automatique.** Au lieu de choisir une grille puis
+               de constater qu'elle ne convient pas — étiquettes trop petites
+               pour le texte, ou bande perdue en bas de page —, on part de ce que
+               le contenu exige et l'on en déduit la page : le plus grand nombre
+               d'étiquettes qui peuvent le porter, et des étiquettes qui occupent
+               la place restante. Les six champs ci-dessous sont alors calculés,
+               et donc inactifs — décochez pour les reprendre à la main.
+               Elle ne s'applique pas à une planche du commerce : ses cotes sont
+               celles du fabricant, et les recalculer n'aurait pas de sens. -->
+          <label class="columns__item field__label">
+            <input id="sheet-auto" type="checkbox">
+            <span data-i18n="Mise en page automatique">Mise en page automatique</span>
+          </label>
+          <p id="sheet-auto-hint" class="hint hint--tight"></p>
 
           <!-- Une seule présentation : la grille, les marges et les écarts. La
                taille des étiquettes en découle, et le choix de planche ci-dessus
@@ -770,6 +842,30 @@
       </div>
     </section>
   </main>
+
+  <!-- La page d'information, tout en bas — le même lien que dans la fenêtre de
+       l'extension. Son adresse est posée par `app.js` : elle suit la langue de
+       l'interface, et passe par le site quand celui-ci est le voisin de la page
+       (application servie sous `/app/`) plutôt que par l'adresse publiée. Un
+       `href` écrit en dur enverrait la moitié des visiteurs au mauvais endroit.
+       Le texte reste à l'encre secondaire : l'accent est réservé aux actions,
+       et ce lien n'en est pas une. -->
+  <footer class="app-footer">
+    <a id="site-link" class="app-footer__link" target="_blank" rel="noopener noreferrer"
+       data-i18n="Page d'information">Page d'information</a>
+    <!-- La signature : nom, licence, version. L'**année** est posée par
+         `app.js` — elle doit être celle du jour, pas celle de la construction —
+         et la **version** vient du paquet : `__APP_VERSION__` est remplacé à la
+         construction par la valeur de `package.json`. Recopiée à la main, elle
+         aurait fini par mentir, et une version fausse est pire qu'absente.
+         Le texte est le même dans les deux langues : un nom, un nom de licence
+         et un numéro n'ont rien à traduire. -->
+    <p class="app-footer__signature">
+      © <span id="footer-year"></span> G. Abegg-Gauthey
+      <span class="app-footer__sep">·</span> MIT
+      <span class="app-footer__sep">·</span> version <span id="footer-version">__APP_VERSION__</span>
+    </p>
+  </footer>
 
   <!-- Racine d'impression : masquée à l'écran, seule visible sur papier. -->
   <div id="print-root" class="print-root" aria-hidden="true"></div>

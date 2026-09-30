@@ -32,7 +32,7 @@ import { existsSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { stampAssetVersions } from './build.mjs';
+import { stampAssetVersions, injectVersionTokens } from './build.mjs';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const SOURCE = join(ROOT, 'src', 'site');
@@ -117,6 +117,7 @@ async function main() {
   // page apparaîtrait à moitié mise en page.
   for (const page of PAGES) {
     if (!existsSync(page.path)) continue;
+    await injectVersionTokens(page.path);
     const stamped = await stampAssetVersions(page.path, OUT, page.assets);
     const label = page.path.slice(OUT.length + 1);
     if (stamped.length > 0) console.log(`  ${label} — ${stamped.join(', ')}`);

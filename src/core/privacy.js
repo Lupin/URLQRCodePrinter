@@ -29,8 +29,13 @@ export const CONSENT_KEY = 'url-qr-code-printer/privacy-consent';
  * À incrémenter dès que la mention dit autre chose. Un consentement enregistré
  * pour une version antérieure ne vaut alors plus rien, et la mention est
  * présentée de nouveau.
+ *
+ * Version 2 : cinq services de raccourcissement au lieu de quatre, T.LY proposé
+ * d'emblée, et une collection de navigation privée dont les liens vivent en
+ * mémoire. Trois ajouts qui changent ce que la mention décrit — donc un accord à
+ * redemander, comme la règle ci-dessus l'exige.
  */
-export const DISCLOSURE_VERSION = 1;
+export const DISCLOSURE_VERSION = 2;
 
 /** Décisions possibles. Le refus est un état de plein droit, pas une absence. */
 export const CONSENT_DECISIONS = Object.freeze(['accepted', 'declined']);

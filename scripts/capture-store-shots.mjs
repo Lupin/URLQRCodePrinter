@@ -1,44 +1,81 @@
 /**
  * Produit les captures d'écran de la fiche Chrome Web Store.
  *
- * Le navigateur est lancé **avec fenêtre**, hors écran, et piloté par CDP —
- * exactement comme `verify-brave.mjs`. Deux raisons, apprises à la dure :
+ * Trois principes, appris à la dure :
  *
- *   - `--headless --screenshot` ne rend pas la main dans cet environnement ;
- *   - le bac à sable interne de Brave y échoue à s'initialiser, d'où
- *     `--no-sandbox`. Le contenu rendu est local et nous appartient.
+ *   - **le navigateur est lancé avec fenêtre**, hors écran, et piloté par CDP.
+ *     `--headless --screenshot` ne rend pas la main dans cet environnement ;
+ *   - **l'extension est chargée par le protocole de débogage**
+ *     (`Extensions.loadUnpacked`). `--load-extension` est ignoré par les Chrome
+ *     récents : le navigateur démarre normalement, sans la moindre erreur, et la
+ *     capture montre une page blanche — un profil parfaitement fonctionnel et
+ *     parfaitement vide ;
+ *   - **les dimensions sont posées** par `Emulation.setDeviceMetricsOverride`, et
+ *     non par la taille de la fenêtre : la capture fait alors exactement
+ *     1280 × 800, la taille préférée du magasin.
  *
- * Le profil vit dans `.store-shots/`, effacé au démarrage : jamais celui de
- * l'utilisateur.
- *
- * Les dimensions sont posées par `Emulation.setDeviceMetricsOverride`, et non
- * par la taille de la fenêtre : la capture fait alors exactement 1280 × 800.
+ * Le contenu vient de `store/screenshots/contenu-exemple.json`, **passé par
+ * l'importateur du produit** : la capture montre donc exactement ce que le
+ * fichier promet, et une modification du fichier se retrouve dans les captures
+ * sans que rien ne soit recopié ici. C'est le même fichier que relit
+ * `test/publication.test.js`, avec le même code — un contenu que l'importateur
+ * refuserait échoue aux tests, pas au moment de la séance photo.
  *
  * L'amorçage du stockage se fait **depuis la page**, pas depuis le service
  * worker : une écriture tentée dans ce dernier restait sans effet alors que la
- * lecture fonctionnait, et la capture montrait une collection vide.
+ * lecture fonctionnait, et la capture montrait une collection vide. L'ordre
+ * importe aussi — les collections d'abord, les liens ensuite —, parce que
+ * l'application lit les deux au démarrage.
  *
- * Ce que ce script **ne peut pas** produire : une capture de la fenêtre de
- * l'extension ouverte **par-dessus une page**. Ouvrir la vraie fenêtre relève de
- * l'interface du navigateur, pas du contenu web ; la reconstituer serait une
- * maquette, alors que la documentation du magasin demande l'expérience réelle.
+ * Ce que ce script **ne peut pas** produire, et qui doit le rester :
+ * la fenêtre de l'extension ouverte **par-dessus une page** (`01`) et le **menu
+ * contextuel** (`05`). Ouvrir la vraie fenêtre relève de l'interface du
+ * navigateur, pas du contenu web ; la reconstituer serait une maquette, alors
+ * que la documentation du magasin demande l'expérience réelle. Voir
+ * `store/screenshots/README.md` pour la marche à suivre manuelle.
  */
 
 import { spawn } from 'node:child_process';
-import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { parseImportFile, toImportableLinks } from '../src/core/import.js';
+import {
+  ACTIVE_COLLECTION_KEY,
+  COLLECTION_LINKS_KEY,
+  COLLECTIONS_KEY,
+  COLLECTIONS_VERSION,
+  DEFAULT_COLLECTION_ID,
+} from '../src/core/collections.js';
+
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const BRAVE = '/Applications/Brave Browser.app/Contents/MacOS/Brave Browser';
+const CHROME = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
 const SANDBOX = join(ROOT, '.store-shots');
 const PROFILE = join(SANDBOX, 'profil');
 const EXTENSION = join(ROOT, 'dist', 'extension');
-const OUT = join(ROOT, 'store', 'screenshots');
+const CAPTURES = join(ROOT, 'store', 'screenshots');
+/**
+ * Où écrire. `CAPTURES_SORTIE` permet d'essayer un cadrage **sans écraser** la
+ * fiche : on écrit dans un dossier à part, on regarde, et on refait la vraie
+ * série quand le cadre est arrêté.
+ */
+const OUT = process.env.CAPTURES_SORTIE
+  ? resolve(ROOT, process.env.CAPTURES_SORTIE)
+  : CAPTURES;
+const EXEMPLE = join(CAPTURES, 'contenu-exemple.json');
 const PORT = 9333;
 
 const WIDTH = 1280;
 const HEIGHT = 800;
+
+/**
+ * Date de référence des liens d'exemple.
+ *
+ * Fixe, et non « maintenant » : deux séries de captures doivent montrer les
+ * mêmes dates dans l'aperçu et les exports.
+ */
+const DATE_BASE = 1758400000000;
 
 /** Attend qu'une condition soit vraie, ou abandonne. */
 async function waitFor(check, { timeout = 30000, interval = 250, label = 'condition' } = {}) {
@@ -84,43 +121,55 @@ function describe(response) {
 }
 
 /**
- * Exemples de liens.
+ * Le contenu d'exemple, tel que l'importateur du produit le comprend.
  *
- * Une liste vide donnerait une capture sans intérêt : la fiche doit montrer
- * l'outil peuplé. Les adresses sont réelles et l'usage est cohérent avec le
- * produit — collecter des liens pour les étiqueter.
+ * @returns {object} La grappe à écrire dans `chrome.storage.local`.
  */
-const SAMPLE_LINKS = [
-  ['ech-1', 'https://fr.wikipedia.org/wiki/Code_QR', 'Code QR — Wikipédia'],
-  ['ech-2', 'https://developer.mozilla.org/fr/docs/Web/API/Web_Bluetooth_API', 'Web Bluetooth API — MDN'],
-  ['ech-3', 'https://github.com/Lupin/URLQRCodePrinter', 'URLQRCodePrinter — dépôt GitHub'],
-  ['ech-4', 'https://www.niimbot.com/', 'Niimbot — imprimantes d etiquettes'],
-].map(([id, url, title], index) => {
-  // Forme **complète**, telle que `createLink` la produit. Des enregistrements
-  // partiels suffisent à faire afficher le compteur, mais pas à faire rendre la
-  // liste : le rendu s'interrompt en route sur un champ absent, et la capture
-  // montre une collection vide sans que rien ne le signale.
-  const at = 1758400000000 + index * 3600000;
-  return {
-    id,
-    url,
-    title,
-    note: '',
-    tags: [],
-    createdAt: at,
-    updatedAt: at,
-    source: 'context-menu',
-    favicon: '',
-    shortUrl: '',
-    shortProvider: '',
-    shortenedAt: 0,
-  };
-});
+function contenuExemple() {
+  const texte = readFileSync(EXEMPLE, 'utf8');
+  const { kind, records, collection } = parseImportFile({
+    name: 'contenu-exemple.json',
+    text: texte,
+  });
+  if (kind !== 'links') {
+    throw new Error(`contenu-exemple.json reconnu comme « ${kind} », et non comme une archive de liens`);
+  }
 
-/** Amorce le stockage, depuis la page — c'est là que l'application écrit. */
-const SEED = `chrome.storage.local.set({ links: ${JSON.stringify(SAMPLE_LINKS)}, locale: 'fr' })
-  .then(() => 'écrit, ${SAMPLE_LINKS.length} liens et la langue fr')
-  .catch((e) => 'ÉCHEC : ' + (e && e.message ? e.message : String(e)))`;
+  const { links, rejected } = toImportableLinks(records, { now: DATE_BASE });
+  if (rejected > 0) throw new Error(`${rejected} lien(s) refusé(s) par l'importateur`);
+
+  // Le rang est explicite : c'est lui qui donne l'ordre affiché, et l'ordre
+  // manuel est celui que l'application montre par défaut.
+  const stockes = links.map((lien, rang) => ({
+    ...lien,
+    collectionId: DEFAULT_COLLECTION_ID,
+    order: rang,
+  }));
+
+  return {
+    [COLLECTION_LINKS_KEY]: stockes,
+    [COLLECTIONS_KEY]: {
+      version: COLLECTIONS_VERSION,
+      migratedAt: DATE_BASE,
+      items: [{
+        id: DEFAULT_COLLECTION_ID,
+        name: collection.name ?? '',
+        note: collection.note ?? '',
+        startIndex: 1,
+        createdAt: DATE_BASE,
+      }],
+    },
+    [ACTIVE_COLLECTION_KEY]: { normal: DEFAULT_COLLECTION_ID, private: '' },
+    locale: 'fr',
+  };
+}
+
+/** Écrit la grappe depuis la page — c'est là que l'application écrit. */
+function seedExpression(grappe) {
+  return `chrome.storage.local.set(${JSON.stringify(grappe)})
+    .then(() => 'écrit, ' + Object.keys(${JSON.stringify(grappe)}).length + ' documents')
+    .catch((e) => 'ÉCHEC : ' + (e && e.message ? e.message : String(e)))`;
+}
 
 /**
  * Enregistre une capture d'une page de l'extension.
@@ -145,7 +194,8 @@ async function capture({ port, id, file, name, before, seed }) {
 
   if (seed) {
     const written = await page.send('Runtime.evaluate', {
-      expression: SEED, awaitPromise: true, returnByValue: true,
+      expression: seedExpression(contenuExemple()),
+      awaitPromise: true, returnByValue: true,
     });
     console.log(`  amorçage : ${describe(written)}`);
     await page.send('Page.reload', {});
@@ -171,6 +221,7 @@ async function capture({ port, id, file, name, before, seed }) {
         hauteur: liste ? Math.round(liste.getBoundingClientRect().height) : -1,
         premier: liste?.firstElementChild?.textContent?.trim().slice(0, 48) ?? null,
         compteur: document.getElementById('count')?.textContent ?? null,
+        titreCollection: document.getElementById('collection-name')?.value ?? null,
       });
     })()`,
     returnByValue: true,
@@ -185,20 +236,74 @@ async function capture({ port, id, file, name, before, seed }) {
   await fetch(`http://127.0.0.1:${port}/json/close/${target.id}`);
 }
 
+/**
+ * Les captures que le script sait produire, dans l'ordre de la fiche.
+ *
+ * Chacune porte sa mise en scène : ce qui est montré n'est pas laissé au hasard
+ * du défilement, et une capture cadrée montre la fonction que la campagne lui
+ * confie.
+ */
+/**
+ * Le défilement du cadrage de l'onglet Niimbot, en pixels.
+ *
+ * L'application est une page de 1600 à 2200 px de haut, et une capture en fait
+ * 800 : chaque image choisit donc sa tranche. Celle-ci montre le réglage de
+ * l'étiquette, les deux commandes d'impression et l'**aperçu à la taille
+ * réelle** — ce que l'onglet produit, et non seulement ses réglages.
+ */
+const DEFILEMENT_NIIMBOT = 620;
+
+const SHOTS = [
+  {
+    file: 'app.html',
+    name: '02-application-fr.png',
+    seed: true,
+    // Le haut de l'application : la collection avec ses tags et sa note, son nom,
+    // et le panneau de mise en forme. C'est ce que voit quelqu'un qui ouvre
+    // l'application — la fenêtre de l'extension, elle, ne montre que la liste.
+    before: `(async () => {
+      document.getElementById('search').value = '';
+      window.scrollTo(0, 0);
+      await new Promise((r) => setTimeout(r, 200));
+      return 'haut de page : ' + window.scrollY;
+    })()`,
+  },
+  {
+    file: 'app.html',
+    name: '03-impression-niimbot-fr.png',
+    seed: true,
+    // L'onglet Niimbot, cadré sur ce qu'il produit plutôt que sur ses réglages :
+    // deux captures du même panneau se répéteraient, et c'est l'étiquette qui se
+    // vend.
+    before: `(async () => {
+      const onglet = [...document.querySelectorAll('button')]
+        .find((b) => b.textContent.includes('Niimbot'));
+      if (onglet) onglet.click();
+      await new Promise((r) => setTimeout(r, 600));
+      window.scrollTo(0, ${DEFILEMENT_NIIMBOT});
+      await new Promise((r) => setTimeout(r, 300));
+      return onglet ? 'onglet Niimbot, défilement ' + window.scrollY : 'onglet Niimbot introuvable';
+    })()`,
+  },
+  {
+    file: 'privacy.html',
+    name: '04-mention-confidentialite-fr.png',
+  },
+];
+
 /** Point d'entrée. */
 async function main() {
   rmSync(SANDBOX, { recursive: true, force: true });
   mkdirSync(PROFILE, { recursive: true });
   mkdirSync(OUT, { recursive: true });
 
-  const browser = spawn(BRAVE, [
+  const browser = spawn(CHROME, [
     '--no-sandbox',
     '--no-first-run',
     '--no-default-browser-check',
     '--disable-crash-reporter',
+    '--disable-dev-shm-usage',
     `--user-data-dir=${PROFILE}`,
-    `--disable-extensions-except=${EXTENSION}`,
-    `--load-extension=${EXTENSION}`,
     `--remote-debugging-port=${PORT}`,
     '--window-size=240,240',
     '--window-position=-3000,-3000',
@@ -206,33 +311,30 @@ async function main() {
   ], { stdio: 'ignore' });
 
   try {
-    // L'identifiant de l'extension se lit dans l'URL de son service worker.
-    const worker = await waitFor(async () => {
-      const list = await fetch(`http://127.0.0.1:${PORT}/json/list`)
+    let version = null;
+    for (let essai = 0; essai < 80 && !version; essai += 1) {
+      version = await fetch(`http://127.0.0.1:${PORT}/json/version`)
         .then((r) => r.json()).catch(() => null);
-      return list?.find((t) => (t.url || '').includes('/background.js')) ?? null;
-    }, { label: 'le service worker de l\'extension' });
+      if (!version) await new Promise((r) => setTimeout(r, 250));
+    }
+    if (!version) throw new Error('Chrome ne répond pas sur le port de débogage');
 
-    const id = new URL(worker.url).hostname;
+    // `send` rend le message entier — `{ id, result }` —, et l'identifiant de
+    // l'extension voyage donc dans `result`, sous le même nom que l'identifiant
+    // de la requête CDP. Les confondre donne un « chrome-extension://1/… », et
+    // chaque page s'ouvre alors sur une erreur de navigation.
+    const control = await connect(version.webSocketDebuggerUrl);
+    const chargement = await control.send('Extensions.loadUnpacked', { path: EXTENSION });
+    const id = chargement?.result?.id;
+    if (!id) {
+      throw new Error(`chargement de l'extension impossible : ${JSON.stringify(chargement)}`);
+    }
     console.log(`Extension ${id}\n`);
 
-    await capture({
-      port: PORT, id, file: 'app.html', name: '02-application-fr.png', seed: true,
-    });
-    await capture({
-      port: PORT, id, file: 'app.html', name: '03-impression-niimbot-fr.png',
-      before: `(async () => {
-        const onglet = [...document.querySelectorAll('button')]
-          .find((b) => b.textContent.includes('Niimbot'));
-        if (onglet) onglet.click();
-        await new Promise((r) => setTimeout(r, 400));
-        window.scrollTo(0, 0);
-        return onglet ? 'onglet Niimbot ouvert' : 'onglet Niimbot introuvable';
-      })()`,
-    });
-    await capture({
-      port: PORT, id, file: 'privacy.html', name: '04-mention-confidentialite-fr.png',
-    });
+    for (const shot of SHOTS) {
+      console.log(`${shot.name}`);
+      await capture({ port: PORT, id, ...shot });
+    }
 
     console.log(`\n✓ captures écrites dans ${OUT.slice(ROOT.length + 1)}`);
   } finally {

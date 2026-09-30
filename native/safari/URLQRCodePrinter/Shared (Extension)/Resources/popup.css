@@ -62,6 +62,8 @@
   --border-line: #e0e0e0;
   --border-strong: #8d8d8d;
   --focus: var(--accent);
+  /* Le focus d'un champ se dit par son fond : voir `.field__input:focus`. */
+  --focus-fill: #f1d3bf;
 
   /* --- Typographie --- */
   --font-ui: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
@@ -98,6 +100,7 @@
 
     --border-line: #393939;
     --border-strong: #6f6f6f;
+    --focus-fill: #4a3a2c;
   }
 }
 
@@ -148,33 +151,23 @@ body {
   background: var(--surface);
 }
 
-.app-header__title {
-  font-size: var(--type-md);
-  font-weight: 650;
+/* L'icône du produit, seule marque de l'en-tête. Elle est décorative au sens
+   visuel — le titre de la fenêtre porte le nom — mais son alternative le
+   répète pour qui ne la voit pas. */
+.app-header__logo {
+  flex: 0 0 auto;
+  width: 24px;
+  height: 24px;
 }
 
-/* Le titre et le sélecteur de langue forment la moitié gauche de l'en-tête ;
-   le compteur occupe la droite. */
+/* L'icône et la collection forment la gauche de l'en-tête ; le compteur occupe
+   la droite. Le sélecteur de langue n'y est plus : la fenêtre suit la langue
+   choisie dans l'application. */
 .app-header__top {
   display: flex;
   align-items: center;
   gap: 8px;
   min-width: 0;
-}
-
-.locale__select {
-  font: inherit;
-  font-size: var(--type-xs);
-  padding: 2px 4px;
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius);
-  background: var(--bg);
-  color: var(--text);
-}
-
-.locale__select:focus-visible {
-  outline: 2px solid var(--focus);
-  outline-offset: 1px;
 }
 
 .count {
@@ -197,6 +190,15 @@ body {
 
 .count__value { font-variant-numeric: tabular-nums; }
 
+/* U+1F517 LINK SYMBOL. Il remplace le mot « liens », et reste décoratif : le
+   libellé lu par les lecteurs d'écran dit déjà de quoi il s'agit. Une taille en
+   `em` le fait suivre celle du compteur, et `--type-xs` l'empêche de dominer le
+   chiffre qu'il accompagne. */
+.count__unit {
+  font-size: var(--type-xs);
+  line-height: 1;
+}
+
 /* --- Corps --- */
 
 .app-main {
@@ -214,6 +216,28 @@ body {
   border-bottom: 1px solid var(--border-line);
 }
 
+/* Collecter puis ouvrir l'application : deux gestes du même enchaînement, sur
+   une ligne. Chacun prend une moitié, et se replie à la ligne si la place
+   manque — la fenêtre impose 380 px, mais la taille de police du navigateur
+   peut les rendre trop larges. */
+.capture__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.capture__actions .btn {
+  flex: 1 1 auto;
+  /* Les deux actions sont pleines largeur **seules** : `.btn--primary` et
+     `.btn--neutral` portent `width: 100%` pour le bouton unique qu'elles
+     étaient. Dans une rangée, cette largeur les ferait passer l'une sous
+     l'autre — chacune réclamant toute la place. On la rend donc au contenu, et
+     l'enroulement de la rangée reprend la main quand la place manque. */
+  width: auto;
+  min-width: 0;
+  white-space: nowrap;
+}
+
 /* Tronqué à l'œil, entier dans le DOM : les lecteurs d'écran lisent la totalité
    du titre, la souris a l'infobulle, et rien n'est perdu. */
 .capture__page {
@@ -224,6 +248,45 @@ body {
   white-space: nowrap;
 }
 
+/* Le champ du titre occupe la largeur de la colonne, comme tout le reste : la
+   fenêtre n'a qu'une colonne. La borne de longueur est portée par l'attribut
+   `maxlength`, posé depuis la constante du module — pas recopiée. */
+.field {
+  display: flex;
+  flex-direction: column;
+}
+
+.field__input {
+  width: 100%;
+  min-height: 32px;
+  padding: 6px 8px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  background: var(--bg);
+  color: var(--text);
+  font-family: inherit;
+  font-size: var(--type-sm);
+}
+
+/* Désactivé par jetons, jamais par opacité : c'est la règle de toute la
+   feuille, et elle vaut aussi pour le champ. */
+.field__input:disabled {
+  border-color: var(--border-line);
+  background: var(--surface-2);
+  color: var(--text-3);
+}
+
+/* **Le focus se dit par le fond**, comme dans l'application : le champ actif se
+   teinte, et rien ne vient doubler sa bordure. `:focus` et non `:focus-visible`
+   — cliquer dans le champ doit le montrer actif, lui aussi.
+   `outline: none` explicite : sinon l'anneau par défaut du navigateur revient au
+   clavier, et le contour avec lui. */
+.field__input:focus,
+.field__input:focus-visible {
+  background: var(--focus-fill);
+  outline: none;
+}
+
 .collection {
   flex: 1;
   min-height: 0;
@@ -232,23 +295,85 @@ body {
   padding: 10px 12px 0;
 }
 
-.section-title {
+/* Barre de collection : deux flèches et le nom, dans l'en-tête.
+ *
+ * Le nom est le titre de la liste (`aria-labelledby`), donc un `<h2>`, et le
+ * seul titre de la fenêtre : il prend la place que le nom du produit occupait,
+ * et c'est le seul qui informe. Il est en casse normale — une collection porte
+ * le nom que son propriétaire lui a donné, le crier en capitales serait lui
+ * prêter une importance qu'il n'a pas.
+ *
+ * La barre prend la place disponible entre l'icône et le sélecteur de langue,
+ * et se coupe par une ellipse plutôt que de pousser ses voisins. */
+.collection__bar {
+  flex: 1;
+  min-width: 0;
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 6px;
-  color: var(--text-3);
-  font-size: var(--type-xs);
-  font-weight: 680;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
+  gap: 4px;
 }
 
-.section-title::after {
-  content: "";
+.collection__name {
   flex: 1;
-  height: 1px;
-  background: var(--border-strong);
+  min-width: 0;
+  margin: 0;
+  padding: 0 2px;
+  color: var(--text);
+  font-size: var(--type-md);
+  font-weight: 680;
+  /* Un nom long se coupe par une ellipse, jamais par un retour à la ligne :
+     la barre garde une hauteur fixe, et les flèches restent à leur place. */
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* Cible de 26 px : au-dessus des 24 px exigés par 2.5.8, comme la cible de
+   suppression des lignes. */
+.collection__step {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 1px solid var(--border-line);
+  border-radius: var(--radius);
+  background: var(--bg);
+  color: var(--text-2);
+  cursor: pointer;
+}
+
+.collection__step:not(:disabled):hover {
+  border-color: var(--ink);
+  background: var(--surface-2);
+  color: var(--text);
+}
+
+/* Désactivé par jetons, jamais par opacité : une seule flèche reste active
+   quand il n'y a qu'une collection, et l'état doit rester lisible. */
+.collection__step:disabled {
+  border-color: var(--border-line);
+  background: var(--surface-2);
+  color: var(--text-3);
+  cursor: default;
+}
+
+.collection__step:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+/* Avis de navigation privée : encart discret, à l'encre et non à l'accent —
+   l'accent reste réservé à l'action principale et au compteur. La bordure
+   gauche épaisse reprend le motif des autres encarts de la fenêtre. */
+.notice--private {
+  margin: 8px 0 0;
+  padding: 8px 10px;
+  border-left-color: var(--ink);
+  color: var(--text-2);
+  font-size: var(--type-sm);
+  line-height: 1.4;
 }
 
 .list {
@@ -369,6 +494,23 @@ body {
   font-size: var(--type-sm);
 }
 
+/* Rappel de la mention de confidentialité, tant qu'elle n'a pas été acceptée.
+   Même famille visuelle que `.alert` — encart à bordure gauche épaisse — mais à
+   l'accent et non au rouge : ce n'est pas une panne, c'est une étape. Le rouge
+   reste réservé à ce qui a échoué. */
+.notice {
+  margin: 10px 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--border-line);
+  border-left: 4px solid var(--accent);
+  background: var(--surface);
+}
+
+.notice__text {
+  margin: 0 0 8px;
+  font-size: var(--type-sm);
+}
+
 /* --- Pied --- */
 
 .app-footer {
@@ -382,6 +524,24 @@ body {
 }
 
 .app-footer__row { display: flex; gap: 6px; }
+
+/* Le lien vers la page d'information ferme la fenêtre, sous les commandes.
+   À l'encre secondaire et souligné : c'est un lien, il doit se voir comme tel,
+   mais l'accent reste réservé aux actions. Il n'est pas un bouton — il n'a ni
+   bordure ni fond — parce qu'il ne modifie rien dans la collection. */
+.site-link {
+  align-self: flex-start;
+  margin-top: 2px;
+  color: var(--text-2);
+  font-size: var(--type-xs);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.site-link:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
 
 /* --- Boutons --- */
 
@@ -411,7 +571,7 @@ body {
   background: var(--accent-hover);
 }
 
-/* Action remplie, mais sans chroma. « Voir les QR codes » garde le poids d'un
+/* Action remplie, mais sans chroma. « Ouvrir l'application » garde le poids d'un
    bouton plein sans ajouter une seconde couleur à l'écran : c'est ce qui
    permet à l'orange de ne désigner qu'une seule chose, l'ajout de la page. */
 .btn--neutral {

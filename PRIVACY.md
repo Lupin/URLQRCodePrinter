@@ -25,17 +25,29 @@ storage for extensions (`chrome.storage.local`, or Safari's equivalent). Your
 preferences (chosen shortening service, layout options) are stored in the same
 place.
 
+Links are organised in **collections**, and the list of those collections —
+their names and notes — is stored in the same place, with the links themselves.
+
 This data stays on your device. It is not synchronised to any account, and it is
 not transmitted to the publisher. Removing the extension removes it.
 
+**Private browsing is the exception, and only in that direction.** From a private
+window, the extension offers a collection that exists nowhere else. Its links
+live in the browser's session storage (`chrome.storage.session`) — in memory, for
+the length of the session — and are never written to disk. They disappear when
+the browser closes. Links saved from a private window into an ordinary collection
+are stored like any other, and the extension says so before you do it.
+
 ### When data leaves your device
 
-Only one feature sends anything over the network: **shortening a link**. When
-you click the shorten button, the link you selected is sent to one of four
-third-party services, whichever you chose:
+Only one feature sends anything over the network: **shortening a link**. It is
+optional: nothing is shortened unless you ask, and the QR Code encodes the
+original address. When you click the shorten button, the link you selected is
+sent to one of five third-party services, whichever you chose:
 
 | Service | Address | Operator |
 |---|---|---|
+| T.LY | `https://t.ly` | T.LY — default choice |
 | TinyURL | `https://tinyurl.com` | TinyURL, LLC — commercial service |
 | is.gd | `https://is.gd` | volunteer-run service |
 | v.gd | `https://v.gd` | volunteer-run service |
@@ -46,6 +58,13 @@ Only the address being shortened is sent. No identifier, no account, no
 information about you or your browser accompanies it. Each service applies its
 own privacy policy to what it receives; the publisher of URLQRCodePrinter has no
 access to that data and no relationship with those services.
+
+**T.LY.** Links created by the extension are anonymous: they are not attached to
+any T.LY account, and the extension reads no statistics. Editing the destination
+and following visits happen on T.LY, in your account if you have one — the
+extension neither creates an account nor consults it. Choosing T.LY may go
+through an affiliate link: that changes nothing about the data sent, only the
+referral id on T.LY's side.
 
 If you never use the shorten feature, URLQRCodePrinter makes **no network
 requests at all**.
@@ -108,18 +127,33 @@ navigateur réserve aux extensions (`chrome.storage.local`, ou l'équivalent
 Safari). Vos préférences (service de raccourcissement, options de mise en page)
 sont conservées au même endroit.
 
+Les liens se rangent en **collections**, et la liste de ces collections — leurs
+noms et leurs notes — est conservée au même endroit, avec les liens eux-mêmes.
+
 Ces données restent sur votre appareil. Elles ne sont synchronisées vers aucun
 compte et ne sont pas transmises à l'éditeur. Désinstaller l'extension les
 supprime.
 
+**La navigation privée est l'exception, et dans ce sens-là seulement.** Depuis une
+fenêtre privée, l'extension propose une collection qui n'existe nulle part
+ailleurs. Ses liens vivent dans le stockage de session du navigateur
+(`chrome.storage.session`) — en mémoire, pour la durée de la session — et ne sont
+jamais écrits sur le disque. Ils disparaissent à la fermeture du navigateur. Les
+liens enregistrés depuis une fenêtre privée dans une collection ordinaire, eux,
+sont conservés comme les autres, et l'extension le dit avant que vous ne le
+fassiez.
+
 ### Quand des données quittent votre appareil
 
 Une seule fonction envoie quoi que ce soit sur le réseau : **le raccourcissement
-d'un lien**. Quand vous cliquez sur le bouton de raccourcissement, le lien
-sélectionné est transmis à l'un des quatre services tiers, selon votre choix :
+d'un lien**. Il est facultatif : rien n'est raccourci tant que vous ne le demandez
+pas, et le QR Code encode l'adresse d'origine. Quand vous cliquez sur le bouton de
+raccourcissement, le lien sélectionné est transmis à l'un des cinq services tiers,
+selon votre choix :
 
 | Service | Adresse | Exploitant |
 |---|---|---|
+| T.LY | `https://t.ly` | T.LY — choix proposé par défaut |
 | TinyURL | `https://tinyurl.com` | TinyURL, LLC — service commercial |
 | is.gd | `https://is.gd` | service bénévole |
 | v.gd | `https://v.gd` | service bénévole |
@@ -131,6 +165,13 @@ identifiant, aucun compte, aucune information sur vous ou votre navigateur ne
 l'accompagne. Chaque service applique sa propre politique de confidentialité à ce
 qu'il reçoit ; l'éditeur d'URLQRCodePrinter n'a accès à aucune de ces données et
 n'entretient aucune relation avec ces services.
+
+**T.LY.** Les liens créés par l'extension sont anonymes : ils ne sont rattachés à
+aucun compte T.LY, et l'extension ne consulte aucune statistique. L'édition de
+destination et le suivi des visites se font chez T.LY, sur votre compte si vous en
+avez un — l'extension ne crée aucun compte et n'y accède pas. Le choix T.LY peut
+passer par un lien affilié : cela ne modifie pas les données envoyées, seulement
+l'identifiant du parrainage auprès de T.LY.
 
 Si vous n'utilisez jamais le raccourcissement, URLQRCodePrinter n'émet
 **absolument aucune requête réseau**.

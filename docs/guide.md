@@ -25,6 +25,11 @@ Links stay on your machine: storage is local (IndexedDB or
 `chrome.storage.local`). The only network traffic is URL shortening, and it
 only happens if you click it.
 
+Both surfaces carry the same link to the project's **information page**: in the
+extension window, at the very bottom under the collection; in the application,
+under the panels. It opens in a new tab and follows the interface language — the
+French page sits at the site root, the English one under `/en/`.
+
 ## Collecting links
 
 | Way | Where |
@@ -64,6 +69,44 @@ The **CSV** does not carry it: it is made only of link rows, and slipping the no
 in would repeat it on every one. That is not an oversight — the note describes the
 whole, and has no row to sit in.
 
+**Automatic layout (option).** Tick it and the application does the arithmetic:
+it starts from what the content **requires** — the smallest label that holds the
+densest QR Code and each link's text —, derives the largest number of labels that
+fit on the page, and shares the remaining space among them. The six geometry
+fields are then computed and inactive; untick the box to take them back by hand.
+The message under the box states the chosen grid: "11 × 7 = 77 labels of 16.4 ×
+38.9 mm per page".
+
+Two consequences change how it feels: no more fumbling between a grid that is too
+tight and one that is too small, and **the text is no longer cut** — every label is
+sized for what it carries. The box does not apply to a commercial sheet (Avery and
+the like): its dimensions are the manufacturer's, and recomputing them would give
+a grid that no longer lands on the die cuts.
+
+**What the QR Code encodes, link by link.** When an address has been shortened,
+its row in the list carries a **checkbox followed by the short address**: tick it
+and that link's QR Code encodes the short link instead of the original address.
+The checkbox's label *is* the address — you tick what you read, and the row has
+only one action left. To go and check the short address before printing, open the
+row editor (the pencil): it stays clickable there.
+
+With no choice on a link, the "The QR Code points to" setting decides, for the
+whole collection.
+
+**When the text does not fit.** On a sheet label, the title and the address are
+written under the QR Code, and the QR Code does not go below the size at which
+its modules stay readable. If the text does not fit in what is left, it is **cut**
+— and the application says so, in red, under the settings: "Text cut on N labels:
+it does not fit whole at this size." Reduce the QR Code, reduce the text
+size, untick the title or the URL, or use a larger label — and if the address is
+long, shorten it: fewer modules means a smaller QR Code at the same readability.
+Nothing is cut in silence.
+
+The QR Code slider goes down to **0.4 mm per module**, the limit at which a
+printer renders the modules distinctly. Below that the code risks being
+unscannable: the application does not offer it, and it is up to the text to give
+way — or to the address to be shortened.
+
 **Numbering from a given value.** The **"Number from"** (« Numéroter à partir
 de ») field sets the number of the collection's **first** link; the rest follow.
 It exists to **continue a series** — you finish a batch of boxes numbered 101 to
@@ -72,8 +115,13 @@ anything.
 
 That number shows to the left of each row, and it is the one that prints: the
 "N°" line under the QR Code on the sheet, the table's "N°" column, the Niimbot
-label's number and the one in the image folder. One setting, therefore — and
-never two numberings contradicting each other on the same object.
+label's number and the one in the image folder. One setting at a time, therefore
+— and never two numberings contradicting each other on the same object.
+
+**It belongs to the displayed collection.** Each collection has its own:
+switching collection switches the numbering, and setting this one leaves the
+others untouched. That is what lets you keep several series side by side — boxes
+here, folders there — without setting the field again on every switch.
 
 It is **set, not derived from the links present**: clearing the collection does
 not reset it to 1, which is exactly what is worth preserving. Sorting, on the
@@ -100,6 +148,13 @@ URLs are normalized on entry: `https://` added if missing, fragment removed,
 campaign parameters (`utm_*`, `fbclid`, `gclid`…) stripped — they make the QR Code
 code longer without adding anything on paper.
 
+**A search-engine redirect address is replaced by its destination.** A
+right-click on a Google, Bing or DuckDuckGo result targets an address of the
+engine (`google.com/url?q=…`), not the page: what gets saved is the page, under
+its real domain and with its title. Without that, the list read "google.com" next
+to a link leading to Wikipedia, the QR Code encoded an address twice as long, and
+the same page added later from the address bar counted as a second link.
+
 **Re-collecting a page you already saved does not duplicate it.** If the title
 has changed — the page was retitled, or you typed a better one in the extension
 window before saving — the **existing title is corrected**: "Link updated"
@@ -112,6 +167,12 @@ is not a correction.
 The toolbar icon announces the outcome without opening anything: **+** the link
 just arrived, **✎** its title was corrected, **=** it was already there and
 nothing changed.
+
+At rest it carries the **number of links in the displayed collection**, and that
+number follows what you do, wherever you do it: clearing the collection from the
+application clears the counter on the icon too, and clearing it from the
+extension window updates the application — the window, the application and the
+service worker all read the same documents.
 
 **Dating the labels.** The "Date below the QR Code" (« Date sous le QR Code »)
 selector prints the link's collection date — `None` by default,
@@ -141,8 +202,33 @@ window.
 | `export.json` | extracted by hand from an archive | the same |
 | `….csv` | **CSV** button, possibly edited in a spreadsheet | URL, title, tags, note, date |
 
-**Importing adds to the current collection; it does not replace it.** To start
-again from an empty collection, click "Clear all" (« Tout effacer ») first.
+**Importing asks where to file what it has just read.** Once the file is read —
+the panel then states how many links it carries, and under which collection name
+— three outcomes are offered, named after the collections involved:
+
+| Outcome | What it does |
+|---|---|
+| **Merge into "…"** | the links join the displayed collection, which keeps **its name and note**; a link already present is ignored |
+| **Replace "…"** | the displayed collection is **emptied first**, then its name and note are replaced by those of the file — and emptied when the file carries none |
+| **New collection "…"** | a collection is created with the file's name, which files its links there; the displayed collection is left untouched |
+
+Nothing is written before the choice, so **Cancel** leaves no trace — not even an
+added link. That step exists because none of the three outcomes is a good
+default: adding to the displayed collection when you meant to start from the
+archive fills the wrong one, and replacing when you meant to add destroys what
+you had.
+
+The outcomes carry the name of the displayed collection, so **switching
+collection** while the panel is open withdraws the question: the import has to be
+done again. Better that than a label naming one collection and a click writing
+into another.
+
+The new collection's name is **suffixed** when it is already taken ("Veille",
+then "Veille 2") rather than refused. The third outcome does not appear on the
+standalone web page, which has only one collection.
+
+In a **private-browsing** collection, "Replace" replaces the links only: its name
+is a label and it has no note. The panel says so before the click.
 
 What happens next:
 
@@ -158,13 +244,96 @@ What happens next:
 - in a CSV, columns are matched **by their name**, not by their position:
   reordering columns in a spreadsheet breaks nothing, and the optional columns
   (Note, "Short URL" (« URL courte »)) are taken when they exist;
-- the **collection name** is not carried over from an archive: it stays the one
-  from the current session.
+- the file's **collection name** is used by the import: it names the new
+  collection, and it replaces yours — together with the note — when you choose
+  "Replace". A CSV carries none: it describes links only.
 
 A file of another type is refused with the list of expected formats, for
 example: "Import failed: “notes.txt” is not a recognized format. Accepted
 formats: the JSON archive from the “Archive” button, the label folder (.zip) or
 its export.json, or a CSV exported from here."
+
+## Several collections
+
+Links are filed in collections. In the extension window, the name of the current
+collection sits between two arrows: they move to the previous or the next one.
+Whatever you save — by the button or by right-click — goes into **the one on
+screen**, with nothing to choose: that is the everyday gesture, and it should not
+cost a decision.
+
+The window only browses: it creates, renames and deletes nothing. That is
+deliberate — those gestures need a name, a note, and the room to read them back,
+which a 380 px column does not offer. Everything therefore happens in the
+application, where the **"Displayed collection"** (« Collection affichée »)
+selector does what the arrows do, and the **"New"** (« Nouvelle ») and
+**"Delete"** (« Supprimer ») buttons go further:
+
+- **New** creates a collection named "New collection", then "New collection 2",
+  and so on. The name field takes focus straight after: you name what you just
+  created.
+- **Delete** asks for confirmation, and states **how many links will be lost** —
+  a collection takes its links with it. The button disarms itself after five
+  seconds. **Every collection can be deleted except the last one**: the default
+  collection is nothing special, and keeping it while another exists would force
+  you to create a collection just to get rid of the first. What cannot happen is
+  that none is left — the window and the application would have nowhere to save.
+- The **name** and the **note** belong to the displayed collection. The name
+  becomes the title of the Markdown export, the sheet and the table; it is
+  reused in file names.
+- The name may be **emptied**. An empty field is an empty name, saved as such,
+  and not a lost correction: the collection is then displayed in the list and
+  titles its exports under the built-in label, **"My links"** (« Mes liens »),
+  and the hint under the selector says so. Empty therefore differs from "never
+  renamed" by what it says on screen, not by what it stores.
+
+The same address may appear in two collections: that is what filing means. Inside
+one collection, though, a duplicate is still a duplicate — right-clicking an
+already-saved page updates its title there rather than adding a second line.
+
+### Moving links from one collection to another
+
+Check one or more links in the list: a **"Move to…"** (« Déplacer vers… ») button
+appears in the bar, next to "Reorder". It is there only while something is
+checked — uncheck the last box and it disappears — and it offers only the
+**other** collections: there is no point moving links where they already are.
+
+The choice opens under the button, one collection per line. `Escape` closes it
+without moving anything.
+
+What a move does, and does not do:
+
+- **it does not copy the link**: the record keeps its identifier, collection
+  date, tags, note and short link, and changes collection only;
+- **the rank does not follow**: a rank belongs to the arrangement of the
+  collection being left. The link arrives unranked, and therefore follows its
+  date, like any link that was never arranged;
+- **an address already present merges**: if the destination collection already
+  holds that address, the title in place is corrected when the one being brought
+  differs, and the copy is dropped. Never the same address twice in one
+  collection;
+- the confirmation message says how many links left, and to which collection.
+
+### The private-browsing collection
+
+In a private window, one more collection appears: **Private browsing**, and it is
+the one open to begin with. It exists nowhere else.
+
+Its links live **in memory**, for the length of the session: they are not written
+to disk, and they disappear when the browser closes. A banner says so while it is
+on screen. That is what private browsing leads you to expect; a private
+collection kept on disk would be a file of private URLs — precisely what is not
+wanted.
+
+Two conditions to see it:
+
+- the browser must allow the extension **in private browsing** (in Chrome: the
+  extensions page, "Allow in Incognito");
+- session storage must exist — Chrome 102 and Safari 16.4, the project's minimum
+  version. On an older browser the private collection is not offered at all,
+  rather than being kept on disk without your knowledge.
+
+If you save a private link into **another** collection, it is kept like any
+other — and the window says so, since that decision is yours.
 
 ## Shortening, optionally
 
@@ -173,11 +342,18 @@ The "Service" (« Service ») field only chooses **who** does the shortening: to
 get a shorter link, the "Shorten" (« Raccourcir ») button is enough, with
 nothing to set.
 
-1. Leave the service on **TinyURL — recommended** (« TinyURL — recommandé »),
-   the choice offered from the start. The others state plainly what they
-   change — *is.gd — no statistics*, *v.gd — warning before redirect*,
-   *spoo.me — click statistics*. None asks for an API key; you can change later,
-   and the next shortening will start again from the service you kept.
+1. The service offered from the start is **T.LY — shorter link** (« T.LY
+   (défaut) — lien plus court »). The others state plainly what they change —
+   *TinyURL — durable links*, *is.gd — no statistics*, *v.gd — warning before
+   redirect*, *spoo.me — click statistics*. None asks for an API key; you can
+   change later, and the next shortening will start again from the service you
+   kept. Links T.LY creates from the extension are anonymous: they are not
+   attached to any T.LY account.
+   Under that sentence, when T.LY is the selected service, a link **"Create a
+   T.LY account (referral)"** opens T.LY's sign-up page. The project is credited
+   if you go through it — hence the word "referral" in the label. Nothing else
+   changes: shortening stays anonymous, and the referral fires only if you follow
+   that link.
 2. Check the links you want — with nothing checked, the button covers the whole
    collection.
 3. Click "Shorten". A second click cancels the batch in progress.
@@ -217,7 +393,10 @@ Four tabs, four uses.
 
 For A4 and Letter self-adhesive sheets. Two families of layouts:
 
-- **generic** — geometrically valid grids, to be adjusted yourself;
+- **generic** — geometrically valid grids, to be adjusted yourself. The first
+  one, offered from the start, is an A4 **3 × 4** (63.5 × 69.1 mm): eight rows
+  left only 33.9 mm of height, where the QR Code and two lines of text fought for
+  room — every setting fixed another, and the label ended up cut;
 - **commercial references** — the dimensions published for those products:
 
 | Reference | Grid | Label | Paper |
@@ -683,7 +862,7 @@ The shortest path to any label printer. Choose:
 - **Label format** (« Format d'étiquette ») — Niimbot D110 / M2 / M3; Brother QL
   DK-11201, DK-11202, DK-11208, DK-11209, DK-11218, DK-11219, DK-22205,
   DK-22210; Dymo LabelWriter 54 × 32 and 54 × 101 mm; Zebra 2 and 4 × 6 inches;
-  generic 50 × 30 and 70 × 40 mm; A4 sheet 3 × 8;
+  generic 50 × 30 and 70 × 40 mm; A4 sheet **3 × 4** — the default format;
 - **Margin** (« Marge »), **text size** (« taille du texte »), **cut marks**
   (« traits de coupe »);
 - **Label content** (« Contenu de l'étiquette ») — checkboxes that add up: the

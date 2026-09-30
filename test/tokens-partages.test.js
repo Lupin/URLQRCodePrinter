@@ -117,6 +117,10 @@ const PARTAGES = [
   'danger',
   'border-line',
   'border-strong',
+  // Le fond du champ au focus : la teinte qui **remplace** l'anneau, des deux
+  // côtés. C'est le seul marqueur de focus d'un champ, et il doit donc être le
+  // même dans la fenêtre et dans l'application.
+  'focus-fill',
 ];
 
 for (const theme of ['clair', 'sombre']) {
@@ -163,6 +167,9 @@ const PAIRES = [
   ['anneau de focus sur une surface', 'focus', 'surface', 3],
   ['contour de composant sur le fond', 'border-strong', 'bg', 3],
   ['contour de composant sur une surface', 'border-strong', 'surface', 3],
+  // Le champ actif est teinté : le texte posé dessus doit rester lisible.
+  ['texte principal sur le fond d\'un champ actif', 'text', 'focus-fill', 4.5],
+  ['texte secondaire sur le fond d\'un champ actif', 'text-2', 'focus-fill', 4.5],
   ['voyant « connecté » sur le fond', 'ok', 'bg', 3],
   ['voyant « en cours » sur le fond', 'accent', 'bg', 3],
 ];
@@ -361,13 +368,13 @@ test("le survol rempli ne touche que le pied de panneau", () => {
   // commentaire qui documente le modificateur le nomme, et un simple
   // `matchAll` sur le texte le comptait comme un porteur.
   // Quatre exports de collection + le dossier du tableau + le dossier de la
-  // planche + « Importer… » + « Tout effacer ». Le modificateur ne doit pas
+  // planche + « Importer… » + « Vider la collection ». Le modificateur ne doit pas
   // s'être répandu sur les onglets ni sur l'éditeur.
   const porteurs = [...APP_HTML.matchAll(/class="[^"]*\bbtn--fill\b[^"]*"/g)].length;
   assert.equal(porteurs, 8, `le modificateur touche ${porteurs} boutons au lieu de 8`);
 });
 
-test("l'avertissement de « Tout effacer » est visible au repos", () => {
+test("l'avertissement de « Vider la collection » est visible au repos", () => {
   // Il était posé sur le survol, qui est désormais occupé par l'aplat d'accent.
   // Le signaler plus tôt est nécessaire : le bouton vide la collection sans
   // confirmation ni retour arrière.

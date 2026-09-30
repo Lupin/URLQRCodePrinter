@@ -9,7 +9,11 @@ import assert from 'node:assert/strict';
 
 import {
   PAGE_SIZES, SHEET_PRESETS, computeSheet, paginate, fitGrid, clampGrid, spacingForGrid,
-  sheetCellText, qrRatioBounds, sheetHeaderFits, SHEET_HEADER_MM,
+  sheetCellBlocks, sheetCellLines, qrRatioBounds, qrSideMm, sheetTextMetrics, sheetTextBudget,
+  autoSheetLayout,
+  sheetHeaderFits, round1,
+  SHEET_HEADER_MM, SHEET_CELL_MARGIN_MM, SHEET_QR_GAP_MM, SHEET_FONT_PT, MIN_MODULE_MM_PAPER,
+  MIN_QR_RATIO,
 } from '../src/core/sheet.js';
 
 /**
@@ -445,38 +449,62 @@ test('clampGrid dit franchement quand il ne reste aucune place', () => {
 const LIEN = { title: 'Un article', url: 'https://exemple.fr/a' };
 
 test('sous le QR Code : le titre seul, et l\'URL prend sa place s\'il manque', () => {
-  assert.equal(sheetCellText(LIEN, { title: true, url: false }), 'Un article');
+  assert.deepEqual(sheetCellBlocks(LIEN, { title: true, url: false }), [{ kind: 'title', text: 'Un article' }]);
   // Sans titre, l'URL reste : une étiquette sans aucun texte ne dirait plus ce
   // qu'elle désigne.
-  assert.equal(sheetCellText({ url: 'https://x.fr' }, { title: true, url: false }), 'https://x.fr');
+  assert.deepEqual(
+    sheetCellBlocks({ url: 'https://x.fr' }, { title: true, url: false }),
+    [{ kind: 'url', text: 'https://x.fr' }],
+  );
 });
 
-test('sous le QR Code : titre et URL se cumulent', () => {
-  assert.equal(sheetCellText(LIEN, { title: true, url: true }), 'Un article https://exemple.fr/a');
-  // Un titre vide ne doit pas laisser une espace en tête.
-  assert.equal(sheetCellText({ url: 'https://x.fr' }, { title: true, url: true }), 'https://x.fr');
+test('sous le QR Code : le titre et l\'URL sont deux blocs, jamais une ligne', () => {
+  // Ils étaient concaténés en une seule chaîne, puis repliés ensemble : l'URL
+  // commençait au bout de la dernière ligne du titre, et c'était le **titre** qui
+  // se faisait couper. Deux blocs, chacun replié pour lui-même.
+  assert.deepEqual(
+    sheetCellBlocks(LIEN, { title: true, url: true }),
+    [
+      { kind: 'title', text: 'Un article' },
+      { kind: 'url', text: 'https://exemple.fr/a' },
+    ],
+  );
+  // Un titre vide ne laisse pas de bloc vide, et l'URL reste seule.
+  assert.deepEqual(
+    sheetCellBlocks({ url: 'https://x.fr' }, { title: true, url: true }),
+    [{ kind: 'url', text: 'https://x.fr' }],
+  );
 });
 
 test('sous le QR Code : l\'URL seule est enfin atteignable', () => {
-  assert.equal(sheetCellText(LIEN, { title: false, url: true }), 'https://exemple.fr/a');
+  assert.deepEqual(
+    sheetCellBlocks(LIEN, { title: false, url: true }),
+    [{ kind: 'url', text: 'https://exemple.fr/a' }],
+  );
 });
 
 test('sous le QR Code : rien du tout est enfin atteignable', () => {
-  assert.equal(sheetCellText(LIEN, { title: false, url: false }), '');
+  assert.deepEqual(sheetCellBlocks(LIEN, { title: false, url: false }), []);
 });
 
 test('sans option, le titre s\'imprime : l\'ancien comportement est le défaut', () => {
   // Un appel qui oublie les options ne doit pas changer ce qui sort sur le
   // papier. C'est la garantie la plus importante de cette fonction.
-  assert.equal(sheetCellText(LIEN), 'Un article');
-  assert.equal(sheetCellText(LIEN, {}), 'Un article');
-  assert.equal(sheetCellText(LIEN, { title: undefined }), 'Un article');
+  const attendu = [{ kind: 'title', text: 'Un article' }];
+  assert.deepEqual(sheetCellBlocks(LIEN), attendu);
+  assert.deepEqual(sheetCellBlocks(LIEN, {}), attendu);
+  assert.deepEqual(sheetCellBlocks(LIEN, { title: undefined }), attendu);
 });
 
 test('sous le QR Code : un titre fait d\'espaces compte comme absent', () => {
-  assert.equal(sheetCellText({ title: '   ', url: 'https://x.fr' }, { title: true }), 'https://x.fr');
-  assert.equal(sheetCellText({ title: '   ', url: 'https://x.fr' }, { title: false, url: true }),
-    'https://x.fr');
+  assert.deepEqual(
+    sheetCellBlocks({ title: '   ', url: 'https://x.fr' }, { title: true }),
+    [{ kind: 'url', text: 'https://x.fr' }],
+  );
+  assert.deepEqual(
+    sheetCellBlocks({ title: '   ', url: 'https://x.fr' }, { title: false, url: true }),
+    [{ kind: 'url', text: 'https://x.fr' }],
+  );
 });
 
 test('aucune ligne de texte laisse toute la hauteur au QR Code', () => {
@@ -562,3 +590,357 @@ test('la marge rendue tient compte du recentrage de la grille', () => {
   const layout = computeSheet({ count: 1, ...BASE });
   assert.ok(layout.marginYMm >= BASE.marginYMm, `${layout.marginYMm} < ${BASE.marginYMm}`);
 });
+
+// ---------------------------------------------------------------------------
+// La place réservée au texte est-elle celle qui sera dessinée ?
+// ---------------------------------------------------------------------------
+
+/**
+ * L'invariant que la planche doit tenir, et que le rendu vérifie cellule par
+ * cellule : **au minimum du curseur, la place laissée au texte est au moins
+ * celle qui lui a été réservée.**
+ *
+ * C'est ce que le défaut rapporté mettait en cause : sur une A4 3 × 8, le QR
+ * Code au minimum et un titre coupé. Le minimum du curseur est le réglage le
+ * plus favorable au texte — le QR Code y est le plus petit que l'impression
+ * autorise. Si le texte n'y tient pas, c'est que le format ne peut pas le
+ * porter, et l'application doit le dire (elle le fait désormais) ; mais si la
+ * place réservée n'est pas rendue, c'est un défaut de calcul, et rien ne le
+ * signalerait.
+ *
+ * Le calcul est celui de `app.js`, reproduit ici : c'est le seul moyen de
+ * l'éprouver sans navigateur — et c'est précisément le genre d'écart d'un
+ * millième qui avait déjà tronqué un texte pour rien.
+ */
+test('au minimum du curseur, la planche rend au texte la place qu\'elle lui a réservée', () => {
+  const fontSizePt = SHEET_FONT_PT;
+  const metrics = sheetTextMetrics({ fontSizePt });
+  const marginMm = SHEET_CELL_MARGIN_MM;
+  const gapMm = SHEET_QR_GAP_MM;
+
+  /** Mesure factice mais **cohérente** : seule la géométrie est en cause ici. */
+  const measure = (texte) => [...texte].length * metrics.fontSizePx * 0.5;
+
+  for (const id of ['a4-3x8', 'a4-2x7', 'a4-4x10', 'a4-3x4-grandes']) {
+    const preset = SHEET_PRESETS[id];
+    if (!preset) continue;
+
+    for (const modules of [21, 33, 45, 57]) {
+      const bornes1 = qrRatioBounds({
+        labelWidthMm: preset.labelWidthMm,
+        labelHeightMm: preset.labelHeightMm,
+        qrModules: modules,
+        textLines: 1,
+        marginMm,
+        gapMm,
+        minModuleMm: MIN_MODULE_MM_PAPER,
+        fontSizePt,
+      });
+      if (!bornes1.fits) continue;
+
+      const offertes = Math.max(1, bornes1.textLinesAtMin);
+      for (let voulues = 1; voulues <= offertes + 2; voulues += 1) {
+        const reservees = Math.min(voulues, offertes);
+        const bornes = qrRatioBounds({
+          labelWidthMm: preset.labelWidthMm,
+          labelHeightMm: preset.labelHeightMm,
+          qrModules: modules,
+          textLines: reservees,
+          marginMm,
+          gapMm,
+          minModuleMm: MIN_MODULE_MM_PAPER,
+          fontSizePt,
+        });
+
+        // Le curseur reste cohérent : un minimum au-dessus du maximum donnerait
+        // un réglage impossible à placer.
+        assert.ok(bornes.min <= bornes.max + 1e-9, `${id} · ${modules} modules : bornes incohérentes`);
+
+        // Et au minimum, la place rendue au texte couvre ce qui a été réservé.
+        const side = qrSideMm(preset.labelWidthMm, preset.labelHeightMm, bornes.min);
+        const espaceTexte = preset.labelHeightMm - marginMm * 2 - side - gapMm;
+        const lignesRendues = Math.max(1, Math.floor(espaceTexte / metrics.lineHeightMm + 1e-3));
+        assert.ok(
+          lignesRendues >= reservees,
+          `${id} · ${modules} modules · ${reservees} ligne(s) réservée(s), `
+            + `${lignesRendues} rendue(s) (place ${round1(espaceTexte)} mm, `
+            + `interligne ${round1(metrics.lineHeightMm)} mm)`,
+        );
+
+        // Ce que la cellule écrit vraiment : le texte entier dès qu'il tient
+        // dans les lignes rendues, et coupé au-delà — jamais autre chose.
+        const texte = 'Titre '.repeat(8).trim();
+        const lignes = sheetCellLines(texte, {
+          measure,
+          innerWidthPx: (preset.labelWidthMm - marginMm * 2) * (96 / 25.4),
+          maxLines: lignesRendues,
+        });
+        const complet = sheetCellLines(texte, {
+          measure,
+          innerWidthPx: (preset.labelWidthMm - marginMm * 2) * (96 / 25.4),
+          maxLines: 99,
+        });
+        assert.equal(
+          lignes.length > lignesRendues,
+          false,
+          'la coupe ne rend jamais plus de lignes que la place',
+        );
+        if (complet.length <= lignesRendues) {
+          assert.deepEqual(lignes, complet, 'un texte qui tient ne doit pas être coupé');
+        }
+      }
+    }
+  }
+});
+
+test('le nombre de lignes annoncé est celui que le curseur laisse atteindre', () => {
+  // Le défaut, mesuré : sur une A4 3 × 8 et 21 modules, `textLinesAtMin` comptait
+  // les lignes laissées par le minimum **lisible** du QR Code (0,4 mm par
+  // module), alors que le curseur s'arrête à 30 % de la hauteur d'étiquette.
+  // L'application promettait donc huit lignes et le rendu n'en donnait que sept :
+  // un titre était coupé alors qu'elle venait d'annoncer qu'il tenait.
+  const preset = SHEET_PRESETS['a4-3x8'];
+  const bornes = qrRatioBounds({
+    labelWidthMm: preset.labelWidthMm,
+    labelHeightMm: preset.labelHeightMm,
+    qrModules: 21,
+    textLines: 1,
+    marginMm: SHEET_CELL_MARGIN_MM,
+    gapMm: SHEET_QR_GAP_MM,
+    minModuleMm: MIN_MODULE_MM_PAPER,
+    fontSizePt: SHEET_FONT_PT,
+  });
+
+  const metrics = sheetTextMetrics({ fontSizePt: SHEET_FONT_PT });
+  const side = qrSideMm(preset.labelWidthMm, preset.labelHeightMm, bornes.min);
+  const espace = preset.labelHeightMm - SHEET_CELL_MARGIN_MM * 2 - side - SHEET_QR_GAP_MM;
+  const rendues = Math.floor(espace / metrics.lineHeightMm + 1e-3);
+
+  assert.ok(
+    bornes.textLinesAtMin <= rendues,
+    `${bornes.textLinesAtMin} ligne(s) annoncée(s), ${rendues} rendue(s) au minimum `
+      + `(${Math.round(bornes.min * 100)} %)`,
+  );
+
+  // Et le minimum annoncé ne descend jamais sous le plancher du curseur.
+  assert.ok(bornes.min >= MIN_QR_RATIO - 1e-9);
+});
+
+test('le curseur du QR Code descend jusqu\'au minimum lisible, et pas plus haut', () => {
+  // Le plancher du curseur était fixé à 30 % du petit côté : une proportion
+  // choisie à l'œil, sans rapport avec ce qui s'imprime. Sur une A4 3 × 8 et une
+  // adresse courte (21 modules), il interdisait de descendre sous 10,2 mm alors
+  // que 8,4 mm suffisaient — le texte perdait une ligne de place pour rien, et un
+  // titre était coupé. C'est le défaut rapporté : « pourquoi ne peut-on pas
+  // réduire le QR Code, alors que c'est lui le coupable ? »
+  const preset = SHEET_PRESETS['a4-3x8'];
+  const metrics = sheetTextMetrics({ fontSizePt: SHEET_FONT_PT });
+  const short = Math.min(preset.labelWidthMm, preset.labelHeightMm);
+
+  for (const modules of [21, 33, 45, 57]) {
+    const bornes = qrRatioBounds({
+      labelWidthMm: preset.labelWidthMm,
+      labelHeightMm: preset.labelHeightMm,
+      qrModules: modules,
+      textLines: 1,
+      marginMm: SHEET_CELL_MARGIN_MM,
+      gapMm: SHEET_QR_GAP_MM,
+      minModuleMm: MIN_MODULE_MM_PAPER,
+      fontSizePt: SHEET_FONT_PT,
+    });
+
+    const lisible = modules * MIN_MODULE_MM_PAPER;
+    const cote = qrSideMm(preset.labelWidthMm, preset.labelHeightMm, bornes.min);
+
+    // Le minimum du curseur **est** le minimum lisible : ni au-dessus (ce qui
+    // vole de la place au texte), ni au-dessous (ce qui donnerait un code que
+    // l'imprimante ne rend pas).
+    assert.ok(
+      Math.abs(cote - lisible) < 0.02,
+      `${modules} modules : minimum du curseur à ${round1(cote)} mm, `
+        + `minimum lisible à ${round1(lisible)} mm`,
+    );
+
+    // Et ce que le curseur laisse atteindre est bien ce qui est annoncé.
+    const espace = preset.labelHeightMm - SHEET_CELL_MARGIN_MM * 2 - cote - SHEET_QR_GAP_MM;
+    assert.equal(
+      bornes.textLinesAtMin,
+      Math.floor(espace / metrics.lineHeightMm + 1e-3),
+      `${modules} modules : lignes annoncées contre lignes laissées`,
+    );
+    assert.ok(bornes.min * short >= MIN_QR_RATIO * short - 1e-9);
+  }
+});
+
+test('le titre et l\'URL ne partagent jamais une ligne', () => {
+  // Le défaut rapporté : « titre + URL sur la même ligne ne cohabitent pas bien,
+  // ça coupe ». Les deux étaient concaténés puis repliés ensemble, si bien que
+  // l'URL commençait au bout de la dernière ligne du titre — et que le **titre**
+  // se faisait couper, alors que c'est la partie lisible par un humain.
+  //
+  // Le dessin suit l'ordre des blocs : le titre d'abord, l'URL ensuite, chacun
+  // replié pour lui-même. Ce test vérifie la règle sous-jacente : les lignes d'un
+  // bloc ne contiennent jamais le texte de l'autre.
+  const mesure = (texte) => [...texte].length * 4;
+  const innerWidthPx = 120;
+
+  const blocs = sheetCellBlocks(
+    { title: 'DOUBLE GLASS Office partition By DVO', url: 'https://www.archiproducts.com/en/products/dvo' },
+    { title: true, url: true },
+  );
+  const dessinees = blocs.flatMap((bloc) => sheetCellLines(bloc.text, {
+    measure: mesure, innerWidthPx, maxLines: 99,
+  }).map((ligne) => ({ ligne, kind: bloc.kind })));
+
+  for (const { ligne, kind } of dessinees) {
+    if (kind === 'title') {
+      assert.doesNotMatch(ligne, /https?:\/\//, `une ligne de titre porte une adresse : « ${ligne} »`);
+    } else {
+      assert.doesNotMatch(ligne, /DOUBLE GLASS/, `une ligne d'URL porte le titre : « ${ligne} »`);
+    }
+  }
+
+  // Et l'URL commence bien après la dernière ligne du titre.
+  const dernierTitre = dessinees.findLastIndex((l) => l.kind === 'title');
+  const premierUrl = dessinees.findIndex((l) => l.kind === 'url');
+  assert.equal(premierUrl, dernierTitre + 1, 'l\'URL ne suit pas immédiatement le titre');
+});
+
+// ---------------------------------------------------------------------------
+// Mise en page automatique
+// ---------------------------------------------------------------------------
+
+test('la mise en page automatique maximse le nombre d\'étiquettes par page', () => {
+  // Le tâtonnement, remplacé par un calcul : on part de ce que le contenu exige
+  // — la taille d'étiquette minimale qui porte le QR Code et son texte — et l'on
+  // en déduit la page entière.
+  const page = PAGE_SIZES.a4;
+  const besoin = { widthMm: 40, heightMm: 30 };
+  const commun = {
+    pageWidthMm: page.widthMm,
+    pageHeightMm: page.heightMm,
+    minLabelWidthMm: besoin.widthMm,
+    minLabelHeightMm: besoin.heightMm,
+    marginXMm: 8,
+    marginYMm: 8,
+    gapXMm: 2,
+    gapYMm: 2,
+  };
+
+  const plan = autoSheetLayout(commun);
+
+  // Ce qu'il propose tient sur la page…
+  const encombrementX = plan.columns * plan.labelWidthMm + (plan.columns - 1) * plan.gapXMm;
+  const encombrementY = plan.rows * plan.labelHeightMm + (plan.rows - 1) * plan.gapYMm;
+  assert.ok(encombrementX <= page.widthMm - plan.marginXMm * 2 + 1e-6, 'la grille déborde en largeur');
+  assert.ok(encombrementY <= page.heightMm - plan.marginYMm * 2 + 1e-6, 'la grille déborde en hauteur');
+
+  // …et chaque étiquette peut porter le contenu.
+  assert.ok(plan.labelWidthMm >= besoin.widthMm - 1e-9);
+  assert.ok(plan.labelHeightMm >= besoin.heightMm - 1e-9);
+
+  // Une colonne ou une rangée de plus ne tiendrait pas : le compte est maximal.
+  const largeurSuivante = (plan.columns + 1) * besoin.widthMm + plan.columns * plan.gapXMm;
+  assert.ok(
+    largeurSuivante > page.widthMm - plan.marginXMm * 2 + 1e-6,
+    `${plan.columns + 1} colonnes tiendraient : le compte n'est pas maximal`,
+  );
+  const hauteurSuivante = (plan.rows + 1) * besoin.heightMm + plan.rows * plan.gapYMm;
+  assert.ok(
+    hauteurSuivante > page.heightMm - plan.marginYMm * 2 + 1e-6,
+    `${plan.rows + 1} rangées tiendraient : le compte n'est pas maximal`,
+  );
+
+  // Et la place restante est **donnée aux étiquettes**, pas laissée en bande
+  // perdue : c'est ce qui distingue une page remplie d'une page trouée.
+  const resteX = page.widthMm - plan.marginXMm * 2 - encombrementX;
+  assert.ok(resteX < plan.labelWidthMm + plan.gapXMm, `bande perdue de ${round1(resteX)} mm à droite`);
+});
+
+test('la mise en page automatique rogne les marges avant de renoncer', () => {
+  // Une étiquette plus large que la zone utile : les marges demandées cèdent
+  // d'abord, parce qu'une marge n'est qu'un confort de découpe.
+  const plan = autoSheetLayout({
+    pageWidthMm: 210,
+    pageHeightMm: 297,
+    minLabelWidthMm: 200,
+    minLabelHeightMm: 250,
+    marginXMm: 20,
+    marginYMm: 20,
+    gapXMm: 0,
+    gapYMm: 0,
+  });
+
+  assert.equal(plan.marginXMm, 0);
+  assert.equal(plan.marginYMm, 0);
+  assert.ok(plan.labelWidthMm >= 200 - 1e-9);
+  assert.ok(plan.perPage >= 1);
+});
+
+test('la mise en page automatique suit la taille du contenu', () => {
+  // Plus le contenu est gros — un QR Code dense, un texte long —, plus les
+  // étiquettes doivent être grandes, et moins il en tient par page. C'est la
+  // propriété qui rend le mode utile : elle est monotone.
+  const page = PAGE_SIZES.a4;
+  const pour = (largeur, hauteur) => autoSheetLayout({
+    pageWidthMm: page.widthMm,
+    pageHeightMm: page.heightMm,
+    minLabelWidthMm: largeur,
+    minLabelHeightMm: hauteur,
+    marginXMm: 8,
+    marginYMm: 8,
+    gapXMm: 2,
+    gapYMm: 2,
+  });
+
+  const petit = pour(25, 20);
+  const moyen = pour(40, 30);
+  const grand = pour(60, 50);
+
+  assert.ok(petit.perPage > moyen.perPage, 'un contenu plus gros doit tenir moins souvent');
+  assert.ok(moyen.perPage > grand.perPage, 'un contenu plus gros doit tenir moins souvent');
+  assert.ok(petit.labelWidthMm >= 25 && grand.labelWidthMm >= 60);
+});
+
+// ---------------------------------------------------------------------------
+
+test('le budget de texte d\'une étiquette est une seule formule, partagée', () => {
+  // Elle vivait en deux exemplaires — l'un dans le rendu, l'autre dans la mise en
+  // page automatique — et les deux ne disaient pas la même chose : le rendu
+  // dessine le QR Code à la proportion du curseur, la mise en page le supposait à
+  // son minimum lisible. Mesuré sur 49 liens en A4 3 × 4 : 8 lignes promises, 7
+  // offertes, **45 étiquettes coupées**. Ce test fixe la formule et ses trois
+  // propriétés.
+  const etiquette = { labelWidthMm: 63.5, labelHeightMm: 69.06, fontSizePt: 14 };
+  const { lineHeightMm } = sheetTextMetrics({ fontSizePt: etiquette.fontSizePt });
+
+  const budget = sheetTextBudget({ ...etiquette, qrRatio: 0.7 });
+  assert.equal(budget.sideMm, qrSideMm(etiquette.labelWidthMm, etiquette.labelHeightMm, 0.7));
+  // La place laissée au texte est exactement la hauteur, moins les marges, le QR
+  // Code et l'écart : rien de plus, rien de moins.
+  assert.ok(Math.abs(
+    budget.textSpaceMm
+      - (etiquette.labelHeightMm - SHEET_CELL_MARGIN_MM * 2 - budget.sideMm - SHEET_QR_GAP_MM),
+  ) < 1e-9);
+  assert.equal(budget.maxLines, Math.floor(budget.textSpaceMm / lineHeightMm + 1e-3));
+  // Les lignes sont bien des lignes : elles tiennent dans la place disponible.
+  assert.ok(
+    budget.sideMm + SHEET_QR_GAP_MM + SHEET_CELL_MARGIN_MM * 2
+      + budget.maxLines * lineHeightMm <= etiquette.labelHeightMm + 1e-9,
+    'les lignes comptées doivent tenir dans l\'étiquette',
+  );
+
+  // Un QR Code plus grand laisse moins de lignes : c'est l'arbitrage du produit,
+  // et la mise en page automatique doit lire le même que le rendu.
+  const petit = sheetTextBudget({ ...etiquette, qrRatio: 0.4 });
+  const grand = sheetTextBudget({ ...etiquette, qrRatio: 0.9 });
+  assert.ok(petit.textLines > grand.textLines);
+
+  // Les lignes hors texte — le numéro, la date — se déduisent du budget, sans
+  // jamais le vider : le rendu écrit toujours une ligne.
+  const avecDate = sheetTextBudget({ ...etiquette, qrRatio: 0.7, linesHorsTexte: 2 });
+  assert.equal(avecDate.textLines, Math.max(1, budget.maxLines - 2));
+  const sature = sheetTextBudget({ labelWidthMm: 20, labelHeightMm: 12, qrRatio: 1, linesHorsTexte: 5 });
+  assert.equal(sature.textLines, 1);
+});
+

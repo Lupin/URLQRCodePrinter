@@ -8,6 +8,7 @@ import assert from 'node:assert/strict';
 
 import {
   normalizeUrl,
+  unwrapRedirectUrl,
   isValidUrl,
   normalizeTags,
   createLink,
@@ -77,6 +78,84 @@ test('normalizeUrl refuse un hôte sans point', () => {
 test('normalizeUrl est idempotent', () => {
   const once = normalizeUrl('HTTPS://WWW.Example.COM/a/?utm_medium=x#frag');
   assert.equal(normalizeUrl(once), once);
+});
+
+test('normalizeUrl remplace une redirection de moteur de recherche par sa destination', () => {
+  // Le cas qui a motivé la règle : un clic droit sur un résultat Google
+  // enregistrait l'enveloppe du moteur — une adresse longue, qui ne dit rien de
+  // ce qu'elle contient, et qui porte le contexte de la recherche.
+  assert.equal(
+    normalizeUrl('https://www.google.com/url?q=https://fr.wikipedia.org/wiki/Code_QR&sa=U&ved=2ahUKEwi'),
+    'https://fr.wikipedia.org/wiki/Code_QR',
+  );
+  // Les domaines nationaux, et le paramètre des anciennes pages de résultats.
+  assert.equal(
+    normalizeUrl('https://google.fr/url?q=https%3A%2F%2Fexemple.fr%2Fa&sa=t'),
+    'https://exemple.fr/a',
+  );
+  assert.equal(normalizeUrl('https://www.google.com/url?url=https://exemple.fr/b'), 'https://exemple.fr/b');
+
+  // Bing range sa charge utile en base64url, DuckDuckGo l'encode simplement.
+  assert.equal(
+    normalizeUrl('https://www.bing.com/ck/a?!&&p=abc&u=a1aHR0cHM6Ly9leGVtcGxlLmZyL3BhZ2U&ntb=1'),
+    'https://exemple.fr/page',
+  );
+  assert.equal(
+    normalizeUrl('https://duckduckgo.com/l/?uddg=https%3A%2F%2Fexemple.fr%2Fpage&rut=xyz'),
+    'https://exemple.fr/page',
+  );
+
+  // La destination est ensuite normalisée comme n'importe quelle adresse : ses
+  // paramètres de campagne partent, son fragment aussi.
+  assert.equal(
+    normalizeUrl('https://www.google.com/url?q=https%3A%2F%2Fexemple.fr%2Fa%3Futm_source%3Dnews%23haut'),
+    'https://exemple.fr/a',
+  );
+
+  // Deux enveloppes successives : la destination réelle est atteinte.
+  assert.equal(
+    normalizeUrl('https://www.google.com/url?q=https://www.google.com/url?q=https://exemple.fr/profond'),
+    'https://exemple.fr/profond',
+  );
+
+  // Le résultat est stable, et l'adresse dépliée n'est pas dépliée deux fois.
+  const depliee = normalizeUrl('https://www.google.com/url?q=https://exemple.fr/a');
+  assert.equal(normalizeUrl(depliee), depliee);
+});
+
+test('une adresse qui n\'est pas une redirection connue reste intacte', () => {
+  // Une page de résultats est une page : elle s'enregistre comme telle.
+  assert.equal(
+    normalizeUrl('https://www.google.com/search?q=wikipedia+qrcode'),
+    'https://www.google.com/search?q=wikipedia+qrcode',
+  );
+  // Un autre hôte qui porterait les mêmes paramètres n'est pas un moteur.
+  assert.equal(
+    normalizeUrl('https://exemple.fr/url?q=https://autre.fr'),
+    'https://exemple.fr/url?q=https://autre.fr',
+  );
+  // Et une destination qui n'est pas un lien web laisse l'enveloppe en place :
+  // mieux vaut une adresse du moteur qu'un `javascript:` dans la collection.
+  for (const dangereuse of [
+    'https://www.google.com/url?q=javascript:alert(1)',
+    'https://www.google.com/url?q=/relatif',
+    'https://www.google.com/url?q=',
+    'https://www.bing.com/ck/a?u=pasdubase64',
+  ]) {
+    assert.equal(normalizeUrl(dangereuse), dangereuse, dangereuse);
+  }
+});
+
+test('unwrapRedirectUrl rend l\'adresse telle quelle quand elle est illisible', () => {
+  // Elle ne sert qu'à **améliorer** ce qu'on enregistre : elle ne lève jamais,
+  // et un appelant qui lui donne n'importe quoi n'obtient pas d'exception.
+  assert.equal(unwrapRedirectUrl('pas une url'), 'pas une url');
+  assert.equal(unwrapRedirectUrl(''), '');
+  assert.equal(unwrapRedirectUrl(undefined), '');
+  assert.equal(
+    unwrapRedirectUrl('https://fr.wikipedia.org/wiki/Code_QR'),
+    'https://fr.wikipedia.org/wiki/Code_QR',
+  );
 });
 
 test('isValidUrl ne lève jamais', () => {

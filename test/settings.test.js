@@ -12,13 +12,15 @@ import assert from 'node:assert/strict';
 import {
   SETTINGS_KEY,
   DEFAULT_SETTINGS,
-  COLLECTION_NAME_MAX,
   sanitizeSettings,
   createSettingsStore,
-  COLLECTION_NOTE_MAX,
-  START_INDEX_MIN,
-  START_INDEX_MAX,
 } from '../src/core/settings.js';
+
+// Les bornes et le vocabulaire d'une collection appartiennent au module des
+// collections : c'est lui qui les fait respecter, et les réglages les reprennent.
+import {
+  COLLECTION_NAME_MAX, COLLECTION_NOTE_MAX, START_INDEX_MAX, START_INDEX_MIN,
+} from '../src/core/collections.js';
 
 /** Stockage factice, avec compteur d'écritures. */
 function fakeStorage(initial = {}) {

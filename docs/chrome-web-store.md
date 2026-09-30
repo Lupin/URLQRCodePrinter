@@ -84,19 +84,21 @@ Nulle part. Les liens collectés, leurs titres, leurs tags, leurs notes et leurs
 
 Le seul envoi réseau
 
-Le raccourcissement d'un lien est la seule fonction qui envoie quoi que ce soit : l'adresse à raccourcir part alors vers le service que vous avez choisi, et rien d'autre ne l'accompagne. Si vous ne l'utilisez pas, l'extension n'émet aucune requête et fonctionne entièrement hors ligne.
+Le raccourcissement d'un lien est la seule fonction qui envoie quoi que ce soit, et il reste facultatif : rien n'est raccourci tant que vous ne le demandez pas. Quand vous le demandez, l'adresse part vers le service que vous avez choisi, et rien d'autre ne l'accompagne. Si vous ne l'utilisez pas, l'extension n'émet aucune requête et fonctionne entièrement hors ligne.
 
 Collecter un lien en un geste
 
 - Clic droit sur un lien, une page, une image ou un texte sélectionné.
 - Bouton de la barre d'outils : enregistre l'onglet courant.
 - Champ d'ajout : saisie manuelle d'une adresse.
-- Importation : relit une archive exportée d'ici, un dossier d'étiquettes ou un fichier CSV, même retravaillé dans un tableur. Les liens déjà présents sont ignorés, jamais dupliqués.
+- Importation : relit une archive exportée d'ici, un dossier d'étiquettes ou un fichier CSV, même retravaillé dans un tableur. Elle demande ensuite s'il faut fusionner avec la collection affichée, la remplacer — nom et note compris — ou ranger les liens dans une collection nouvelle. Les liens déjà présents sont ignorés, jamais dupliqués.
 
-Les adresses sont normalisées à l'entrée : le schéma est complété si besoin, le fragment de navigation est retiré et les paramètres de campagne publicitaire sont supprimés, car ils allongent le QR Code sans rien apporter sur le papier.
+Les adresses sont normalisées à l'entrée : le schéma est complété si besoin, le fragment de navigation est retiré, les paramètres de campagne publicitaire sont supprimés et une adresse de redirection de moteur de recherche est remplacée par sa destination — un résultat de recherche s'enregistre donc sous l'adresse de la page visée. Tout cela allonge le QR Code sans rien apporter sur le papier.
 
 Retrouver et organiser
 
+- Plusieurs collections : la fenêtre bascule de l'une à l'autre, et le clic droit enregistre dans celle qui est affichée.
+- Une collection de navigation privée, proposée seulement dans une fenêtre privée : ses liens vivent en mémoire et disparaissent à la fermeture du navigateur.
 - Recherche instantanée dans toute la collection.
 - Titre, tags et note libres sur chaque lien, par le bouton crayon de la ligne.
 - Les tags s'affichent en pastilles : un clic filtre la collection.
@@ -132,7 +134,7 @@ Exporter vers n'importe quelle imprimante
 
 Raccourcir un lien (optionnel)
 
-Quatre services au choix, sans clé d'API ni compte. L'adresse d'origine n'est jamais remplacée : le lien court est conservé à côté. Moins de caractères, donc moins de modules : le QR Code devient plus lisible et peut être imprimé plus petit. Vous choisissez ce que le QR Code encode, l'adresse d'origine ou le lien court, et ce choix vaut pour toutes les sorties.
+Cinq services au choix, dont T.LY proposé d'emblée, sans clé d'API ni compte depuis l'extension. Le raccourcissement reste facultatif : rien n'est raccourci sans un clic sur « Raccourcir ». L'adresse d'origine n'est jamais remplacée : le lien court est conservé à côté. Moins de caractères, donc moins de modules : le QR Code devient plus lisible et peut être imprimé plus petit. Vous choisissez ce que le QR Code encode, l'adresse d'origine ou le lien court, et ce choix vaut pour toutes les sorties.
 
 Ce que l'extension ne fait pas
 
@@ -166,19 +168,21 @@ Nowhere. Collected links, their titles, tags, notes and dates stay in the browse
 
 The only network request
 
-Shortening a link is the only feature that sends anything: the address to be shortened then goes to the service you chose, and nothing else accompanies it. If you do not use it, the extension makes no request at all and works fully offline.
+Shortening a link is the only feature that sends anything, and it stays optional: nothing is shortened unless you ask for it. When you do, the address goes to the service you chose, and nothing else accompanies it. If you do not use it, the extension makes no request at all and works fully offline.
 
 Collect a link in one gesture
 
 - Right-click a link, a page, an image or selected text.
 - Toolbar button: saves the current tab.
 - Add field: type an address by hand.
-- Import: reads back an archive exported from here, a label folder or a CSV file, even one edited in a spreadsheet. Links already present are skipped, never duplicated.
+- Import: reads back an archive exported from here, a label folder or a CSV file, even one edited in a spreadsheet. It then asks whether to merge into the collection on screen, replace it — name and note included — or file the links in a new collection. Links already present are skipped, never duplicated.
 
-Addresses are normalised on entry: the scheme is completed when missing, the navigation fragment is removed and advertising campaign parameters are stripped, since they lengthen the QR Code without adding anything on paper.
+Addresses are normalised on entry: the scheme is completed when missing, the navigation fragment is removed, advertising campaign parameters are stripped, and a search-engine redirect address is replaced by its destination — a search result is therefore saved under the address of the page it points to. All of that lengthens the QR Code without adding anything on paper.
 
 Find and organise
 
+- Several collections: the window switches from one to the next, and a right-click saves into the one on screen.
+- A private-browsing collection, offered in a private window only: its links live in memory and disappear when the browser closes.
 - Instant search across the whole collection.
 - A free title, tags and a note on every link, through the pencil button on the row.
 - Tags appear as chips: one click filters the collection.
@@ -214,7 +218,7 @@ Export to any printer
 
 Shorten a link (optional)
 
-Four services to choose from, with no API key and no account. The original address is never replaced: the short link is kept alongside it. Fewer characters means fewer modules, so the QR Code is more legible and can be printed smaller. You choose what the QR Code encodes, the original address or the short link, and that choice applies to every output.
+Five services to choose from, with T.LY offered first, and no API key or account needed inside the extension. Shortening stays optional: nothing is shortened without a click on “Shorten”. The original address is never replaced: the short link is kept alongside it. Fewer characters means fewer modules, so the QR Code is more legible and can be printed smaller. You choose what the QR Code encodes, the original address or the short link, and that choice applies to every output.
 
 What the extension does not do
 
@@ -260,8 +264,6 @@ navigation soit décrite *« prominently in the Product's Chrome Web Store page
 Autrement dit, une fiche parfaite ne suffit pas : **l'extension doit elle-même
 dire ce qu'elle lit, et l'utilisateur doit accomplir une action explicite pour
 l'accepter** avant que la collecte ne commence.
-
-### État actuel : rien
 
 ### Implémenté
 
@@ -358,8 +360,8 @@ déclarer » :
 > is processed or stored locally on a user's device and is not transmitted to
 > external servers or third parties.
 
-**Le raccourcissement doit être déclaré.** Envoyer une adresse à TinyURL, is.gd,
-v.gd ou spoo.me est un transfert à un tiers. Il est justifié — c'est la fonction
+**Le raccourcissement doit être déclaré.** Envoyer une adresse à T.LY, TinyURL,
+is.gd, v.gd ou spoo.me est un transfert à un tiers. Il est justifié — c'est la fonction
 demandée par l'utilisateur, et elle est nécessaire au résultat — mais il serait
 faux de cocher « aucune donnée transmise ». La politique *Limited Use* autorise
 ce transfert au titre du point 5.2.1 : *« If necessary to providing or improving
@@ -367,7 +369,12 @@ your single purpose »*.
 
 ---
 
-## 6. Ce qui reste à produire
+## 6. Ce qui est en place, et ce qui reste
+
+L'élément est **publié** : la fiche, les visuels et la mention existent, et ce
+tableau ne décrit donc plus une première soumission. Ce qui reste est plus court
+qu'avant, et de nature différente — il s'agit surtout de ce qui se vérifie à la
+main, et de ce que le portail ne dit pas tout seul.
 
 | Élément | État |
 |---|---|
@@ -377,19 +384,144 @@ your single purpose »*.
 | Justifications de permissions | **Rédigées** ci-dessus |
 | Choix trader / non-trader | **Traité** |
 | Mention et consentement dans l'interface | **Fait** — voir section 3 ; reste à éprouver à la main dans le navigateur |
-| Captures d'écran | **À produire** — déposer dans `store/screenshots/`, voir son README |
-| **Petite image promotionnelle 440×280** | **À produire — obligatoire.** Sans elle, la fiche est reléguée derrière les autres |
+| Captures d'écran | **Fait** — quatre en 1280 × 800 dans `store/screenshots/`. Il manque celle du **menu contextuel**, prévue au plan, sur les cinq emplacements autorisés |
+| Petite image promotionnelle 440 × 280 | **Fait** — `store/promo/promo-440x280.jpg`, à la bonne dimension |
 | Icône de la fiche | Déjà conforme : `src/extension-src/icons/icon-128.png` (128×128, avec alpha, vérifié) |
-| Image « marquee » 1400×560 | Facultative — nécessaire seulement pour être mis en avant |
-| Catégorie et langue | À choisir : la locale par défaut du manifeste est `fr` |
+| Image « marquee » 1400 × 560 | Facultative — nécessaire seulement pour être mis en avant |
+| Catégorie et langue | **À choisir** : la locale par défaut du manifeste est `fr` |
 | Instructions de test pour la revue | À rédiger si l'extension exige une action particulière |
+| Version publiée | Enregistrée dans `store/listing.json` (`item.publishedVersion`). Le dépôt doit la dépasser — voir section 7 |
 
 Les dimensions des visuels sont récapitulées dans [`store/README.md`](../store/README.md),
 avec la source officielle.
 
+Un point que ce tableau ne peut pas porter : **la fiche publiée porte encore
+l'ancienne formulation**, le sigle seul là où le produit écrit « QR Code » depuis
+le commit `5822115`. Son message l'assume : les deux ne se rejoindront qu'à la
+prochaine soumission. C'est à corriger en même temps que le paquet, sinon la
+fiche et la fenêtre se contredisent — exactement ce qu'un examinateur cherche.
+
 ---
 
-## 7. Sources
+## 7. Mettre à jour l'élément publié
+
+Le magasin refuse une mise à jour dont la version n'est pas **strictement
+supérieure** à celle en ligne. C'est le refus le plus coûteux : il arrive après
+l'envoi, et son message ne nomme aucun fichier. D'où l'ordre ci-dessous.
+
+| | |
+|---|---|
+| Élément | `URLQRCodePrinter` — `fmfbpjekpbopeijaobdffbhhnfgjjbmi` |
+| Console | <https://chrome.google.com/webstore/devconsole> |
+| Fiche publique | <https://chromewebstore.google.com/detail/urlqrcodeprinter/fmfbpjekpbopeijaobdffbhhnfgjjbmi> |
+
+### État de la soumission 0.2.1 — 30 septembre 2026
+
+Version de correction : le compteur de l'icône et les deux pages qui vident la
+collection disent désormais la même chose, quelle que soit celle d'où le bouton
+est utilisé. Rien de nouveau n'est lu, stocké ni envoyé, et aucune permission
+n'a été ajoutée.
+
+| Élément | État mesuré |
+|---|---|
+| Version à déposer | **0.2.1** (publiée : 0.1.0) |
+| Archive | `dist/url-qrcode-printer-chrome.zip` — **21 fichiers, 1374 Kio**, manifeste MV3, 4 permissions, **aucun hôte** |
+| Tests du produit | `npm test` → **1042 JavaScript**, tous verts |
+| Vérification du compteur | `npm run verify:badge` → l'icône, l'application et la fenêtre disent la même chose après un vidage |
+| Tests de la fiche | `test/publication.test.js` → **12/12** |
+
+**Ce qui n'a pas été refait ici** : la suite Swift (`npm run test:all` demande
+Xcode, absent de la machine qui a préparé cette version) et le relevé navigateur
+complet (`npm run verify:chrome`, qui a mesuré 167 constats pour 0.2.0). Les
+deux doivent être relancés avant le dépôt.
+
+### État de la soumission 0.2.0 — 30 septembre 2026
+
+Ce qui est **vérifié à cette date**, pour que la soumission ne repose sur rien
+d'ancien :
+
+| Élément | État mesuré |
+|---|---|
+| Version à déposer | **0.2.0** (publiée : 0.1.0 — le magasin exige une version strictement supérieure) |
+| Archive | `dist/url-qrcode-printer-chrome.zip` — **21 fichiers, 1 365 Kio**, manifeste MV3, 4 permissions, **aucun hôte** |
+| Tests du produit | `npm test` → **1036 JavaScript + 104 Swift**, tous verts |
+| Relevé navigateur | `npm run verify:chrome` → **167/167** constats satisfaits |
+| Vérification du clic droit | `npm run verify:menu` → destination enregistrée, affichée, et reconnue comme la même page |
+| Tests de la fiche | `test/publication.test.js` → **8/8** (limites de texte, nom, version, permissions justifiées, aucun hôte, usage des données, aucun code distant, politique) |
+| Captures d'écran | **4** en 1280 × 800 (`store/screenshots/`) — il reste un emplacement libre sur les cinq autorisés, prévu pour le menu contextuel |
+| Petite image promotionnelle | `store/promo/promo-440x280.jpg` — 440 × 280 ✓ |
+| Icône de la fiche | `src/extension-src/icons/icon-128.png` — 128 × 128 ✓ |
+
+**Ce qui reste à faire à la main**, et que rien ici ne remplace : les étapes 4 et
+5 ci-dessous — l'ouverture de la page de mention à l'installation, le refus qui
+n'enregistre rien, l'acceptation qui enregistre, puis le dépôt du paquet dans la
+console. Le relevé atteste que l'extension **se charge par le chemin officiel** et
+que l'interface fonctionne, pas le parcours de consentement au premier lancement ;
+celui-ci est tenu par `test/privacy-consent.test.js` côté code, et se vérifie à la
+main côté navigateur.
+
+### La marche à suivre
+
+1. **Incrémenter la version** dans `src/extension-src/manifest.template.json`,
+   `package.json` et `package-lock.json`. `test/publication.test.js` refuse une
+   version égale à celle publiée, et signale tout porteur resté en arrière.
+2. **Aligner la fiche** : si un texte de `store/listing.json` a changé, reporter
+   le même changement dans ce document. Le test compare les deux mot pour mot.
+3. **Reconstruire et empaqueter** :
+   ```bash
+   npm test && npm run package:chrome
+   ```
+   La sortie doit annoncer la nouvelle version.
+4. **Éprouver à la main** ce qu'aucun test ne couvre : charger `dist/extension`
+   par « Charger l'extension non empaquetée », vérifier que la page de mention
+   s'ouvre à l'installation, refuser, constater qu'aucun lien n'est enregistré,
+   puis accepter et constater l'inverse. Voir la section 3.
+5. **Déposer** `dist/url-qrcode-printer-chrome.zip` dans l'onglet « Package » de
+   l'élément. On **remplace** le paquet, on ne crée pas un second élément.
+
+   Pour avoir tous les textes sous les yeux pendant qu'on remplit la console :
+
+   ```bash
+   npm run soumission
+   ```
+
+   Cette commande engendre `dist/a-coller-mise-a-jour.md` — les textes de la fiche
+   lus dans `store/listing.json`, la note de version lue dans le journal des
+   versions, la version et la taille lues dans l'archive, et la liste des visuels
+   avec leur état.
+   Elle n'invente rien : une source absente y est écrite « absente ». Ne pas
+   l'éditer à la main — elle serait écrasée à la prochaine exécution, et une fiche
+   recopiée ailleurs est exactement ce que le contrôle de publication surveille.
+6. **Recoller les champs de la fiche** qui ont changé : description, résumé,
+   justifications de permissions, champs de confidentialité. `store/listing.json`
+   fait foi.
+7. **Compléter le journal des versions** (`CHANGELOG.md` et `CHANGELOG.fr.md`) :
+   la note « What's new » en est lue, pour la version du paquet — voir ci-dessous.
+8. **Soumettre pour examen.** L'identifiant ne change pas : l'adresse publique
+   et les liens du site restent valides, rien à republier.
+9. **Après acceptation**, reporter la version acceptée dans
+   `item.publishedVersion` de `store/listing.json`. Champ oublié, test indulgent :
+   c'est le seul endroit où le guet devient aveugle.
+
+### La note de version
+
+**Elle vit dans le journal des versions** : [`CHANGELOG.md`](../CHANGELOG.md) pour
+l'anglais, [`CHANGELOG.fr.md`](../CHANGELOG.fr.md) pour le français. C'est le seul
+endroit où elle s'écrit — la recopier ici en ferait un second texte à tenir en
+accord, et c'est précisément ce que ce dépôt refuse.
+
+`npm run soumission` reprend l'entrée de la **version du paquet** et la met à
+plat : le champ du portail est en texte brut, et il ne se décline pas par langue —
+la version anglaise est celle que lit la majorité des visiteurs. La feuille
+affiche donc les deux, et signale une version sans entrée plutôt que de déposer
+une note vide.
+
+Ce que le journal doit porter pour cela, et que `test/changelog.test.js` vérifie :
+un titre `## [version] - AAAA-MM-JJ` par version livrée, les catégories de Keep a
+Changelog (`Added`, `Changed`, `Fixed`…), et une section finale « What does not
+change » — c'est par elle que se termine la note déposée.
+
+## 8. Sources
 
 - [Limited Use](https://developer.chrome.com/docs/webstore/program-policies/limited-use)
 - [Updated Privacy Policy & Secure Handling Requirements (FAQ)](https://developer.chrome.com/docs/webstore/program-policies/user-data-faq)

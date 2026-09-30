@@ -8,7 +8,7 @@
  * Safari, dont les objets `info` diffèrent légèrement.
  */
 
-import { isValidUrl, hostOf } from './link.js';
+import { isValidUrl, hostOf, unwrapRedirectUrl } from './link.js';
 import { t } from './i18n.js';
 
 /** Identifiants des entrées de menu contextuel. Stables : ils sont persistés. */
@@ -136,7 +136,13 @@ export function captureFromClick(info, tab) {
       url: lien,
       // Le texte du lien n'est pas exposé par l'API ; le domaine est la
       // meilleure description disponible sans requête réseau.
-      title: selection !== '' && !looksLikeUrl(selection) ? selection : hostOf(lien),
+      //
+      // Le domaine est celui de la **destination** : un résultat de moteur de
+      // recherche passe par une adresse du moteur, et titrer « google.com » un
+      // lien qui mène à Wikipédia ne dit rien de ce qu'on vient d'enregistrer.
+      title: selection !== '' && !looksLikeUrl(selection)
+        ? selection
+        : hostOf(unwrapRedirectUrl(lien)),
       source: 'context-menu',
       note: selection !== '' && !looksLikeUrl(selection) ? selection : '',
     });

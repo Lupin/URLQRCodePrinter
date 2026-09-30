@@ -67,8 +67,33 @@ export const SHEET_GROUPS = Object.freeze([
  * autocollante reste sensible au passage papier de chaque imprimante : les
  * décalages `offsetXMm` / `offsetYMm` servent à corriger ce qui reste.
  */
+/**
+ * La disposition proposée d'emblée.
+ *
+ * **3 × 4 sur une A4**, et non 3 × 8 : huit rangées ne laissent que 33,9 mm de
+ * haut, où le QR Code et deux lignes de texte se disputent la place — chaque
+ * réglage en corrige un autre, et l'étiquette finit par être coupée. Quatre
+ * rangées donnent 69,1 mm : le QR Code tient à sa taille lisible et le texte
+ * garde ses lignes. Moins d'étiquettes par page, mais des étiquettes qui
+ * s'impriment.
+ */
+export const DEFAULT_SHEET_PRESET = 'a4-3x4';
+
 export const SHEET_PRESETS = Object.freeze({
   // --- Dispositions génériques ---------------------------------------------
+  'a4-3x4': {
+    label: 'A4 — 3 × 4 (63,5 × 69,1 mm)',
+    group: 'generic',
+    page: 'a4',
+    declaredColumns: 3,
+    declaredRows: 4,
+    labelWidthMm: 63.5,
+    labelHeightMm: 69.06,
+    marginXMm: 8.5,
+    marginYMm: 8.5,
+    gapXMm: 1.25,
+    gapYMm: 1.25,
+  },
   'a4-3x8': {
     label: 'A4 — 3 × 8 (63,5 × 33,9 mm)',
     group: 'generic',
@@ -363,15 +388,28 @@ export function sheetHeaderFits(options = {}) {
  *   changer ce qui s'imprime.
  * @returns {string}
  */
-export function sheetCellText(link, options = {}) {
+export function sheetCellBlocks(link, options = {}) {
   const veutTitre = options.title !== false;
   const veutUrl = options.url === true;
   const titre = typeof link?.title === 'string' ? link.title.trim() : '';
   const url = typeof link?.url === 'string' ? link.url : '';
 
-  if (!veutTitre) return veutUrl ? url : '';
-  if (titre === '') return url;
-  return veutUrl ? `${titre} ${url}` : titre;
+  /** @type {Array<{ kind: 'title'|'url'|'index'|'date', text: string }>} */
+  const blocs = [];
+  // **Le titre est un bloc, l'URL en est un autre.** Ils étaient concaténés en
+  // une seule chaîne, puis repliés ensemble : l'URL commençait donc au bout de
+  // la dernière ligne du titre, les deux se partageaient des lignes, et c'était
+  // le **titre** qui se faisait couper — la partie lisible par un humain, alors
+  // que l'adresse, elle, est faite pour être scannée. Deux blocs, chacun replié
+  // pour lui-même, et le budget de lignes donné au titre d'abord.
+  if (veutTitre && titre !== '') blocs.push({ kind: 'title', text: titre });
+  // L'URL s'écrit quand elle est demandée — et **aussi** quand le titre est vide
+  // et qu'il n'y a donc rien d'autre : une étiquette sans aucun texte ne dirait
+  // plus ce qu'elle désigne. C'est le comportement d'origine, conservé.
+  if (url !== '' && (veutUrl || (veutTitre && titre === ''))) {
+    blocs.push({ kind: 'url', text: url });
+  }
+  return blocs;
 }
 
 /**
@@ -607,8 +645,22 @@ function nonNegative(value) {
 // Contenu d'une étiquette de planche
 // ---------------------------------------------------------------------------
 
-/** Proportion minimale du QR Code par rapport au petit côté de l'étiquette. */
-export const MIN_QR_RATIO = 0.3;
+/**
+ * Garde-fou du curseur : le QR Code ne disparaît jamais.
+ *
+ * Ce n'est **pas** le plancher du QR Code. Le vrai plancher est ce que
+ * l'imprimante peut rendre lisible — les modules de l'adresse fois
+ * `MIN_MODULE_MM_PAPER` —, et il se calcule pour chaque lien : `qrRatioBounds`
+ * le pose comme minimum du curseur.
+ *
+ * Il valait 30 % du petit côté de l'étiquette, ce qui n'a rien à voir avec la
+ * lisibilité : sur une A4 3 × 8 et une adresse courte (21 modules, 8,4 mm
+ * lisibles), il interdisait de descendre sous 10,2 mm, et le texte perdait une
+ * ligne de place **pour rien** — un titre était coupé alors que le QR Code
+ * aurait pu céder un millimètre et demi. Une proportion choisie à l'œil ne doit
+ * pas limiter ce qu'on peut imprimer.
+ */
+export const MIN_QR_RATIO = 0.05;
 /** Proportion maximale : au-delà, le QR Code chasse le texte hors de l'étiquette. */
 export const MAX_QR_RATIO = 1;
 /** Écart entre le QR Code et le texte, identique à celui de la feuille de style. */
@@ -740,9 +792,21 @@ export function qrRatioBounds(options) {
   const max = clampRatio(Math.max(0, rawMaxSide));
   const fits = rawMaxSide > 0 && minSideMm <= rawMaxSide + 1e-9;
 
-  // Combien de lignes de texte tiennent encore si le QR Code est au minimum lisible ?
+  // **Le minimum réellement atteignable**, et non le minimum lisible : le
+  // curseur ne descend pas sous `MIN_QR_RATIO`, si bien qu'une étiquette large
+  // et basse peut voir son QR Code plus grand que ses modules ne l'exigent. Le
+  // nombre de lignes annoncé se calcule donc sur le côté que le curseur laisse
+  // vraiment atteindre.
+  //
+  // Ce n'est pas un détail d'arrondi : mesuré sur une A4 3 × 8 et 21 modules,
+  // le calcul d'origine promettait **huit** lignes et le rendu n'en laissait que
+  // **sept** — un titre était coupé alors que l'application venait d'annoncer
+  // qu'il tenait.
+  const minSideEffective = Math.max(minSideMm, min * short);
+
+  // Combien de lignes de texte tiennent encore si le QR Code est au minimum ?
   const textLinesAtMin = lineHeightMm > 0
-    ? Math.max(0, Math.floor((innerHeight - minSideMm - gapMm) / lineHeightMm))
+    ? Math.max(0, Math.floor((innerHeight - minSideEffective - gapMm) / lineHeightMm))
     : 0;
 
   let reason = '';
@@ -821,6 +885,65 @@ export function sheetCellLines(text, options) {
  * @returns {number}
  * @throws {TypeError} si une dimension n'est pas un nombre positif.
  */
+/**
+ * Ce qu'une étiquette de planche offre **réellement** à son texte.
+ *
+ * C'est la formule du budget, et elle n'existait qu'en deux exemplaires : l'un
+ * dans le rendu, l'autre dans la mise en page automatique. Les deux ne disaient
+ * pas la même chose — le rendu dessine le QR Code à la proportion du curseur, la
+ * mise en page le supposait à son minimum lisible — et l'écart se payait en
+ * texte coupé : mesuré sur 49 liens en A4 3 × 4, la mise en page promettait 8
+ * lignes là où le rendu n'en laissait que 7, et **45 étiquettes** sortaient
+ * tronquées, sous une grille annoncée comme « calculée pour ce contenu ».
+ *
+ * Une seule formule, donc, et deux appelants : le rendu y lit le nombre de
+ * lignes qu'il peut écrire, la mise en page y lit celles qu'une étiquette
+ * candidate offrirait.
+ *
+ * @param {{
+ *   labelWidthMm: number,
+ *   labelHeightMm: number,
+ *   qrRatio?: number,
+ *   fontSizePt?: number,
+ *   linesHorsTexte?: number,
+ *   marginMm?: number,
+ *   gapMm?: number,
+ * }} options
+ * @returns {{
+ *   sideMm: number, lineHeightMm: number, textSpaceMm: number,
+ *   maxLines: number, textLines: number,
+ * }}
+ */
+export function sheetTextBudget(options) {
+  const labelWidthMm = positive(options.labelWidthMm, 'labelWidthMm');
+  const labelHeightMm = positive(options.labelHeightMm, 'labelHeightMm');
+  const marginMm = nonNegative(options.marginMm ?? SHEET_CELL_MARGIN_MM);
+  const gapMm = Number.isFinite(options.gapMm) ? options.gapMm : SHEET_QR_GAP_MM;
+  const linesHorsTexte = Math.max(0, Math.trunc(options.linesHorsTexte ?? 0));
+
+  const sideMm = qrSideMm(labelWidthMm, labelHeightMm, options.qrRatio);
+  const { lineHeightMm } = sheetTextMetrics({ fontSizePt: options.fontSizePt });
+  const textSpaceMm = labelHeightMm - marginMm * 2 - sideMm - gapMm;
+  // La tolérance n'est pas cosmétique : la borne du QR Code est arrondie au
+  // millième par `qrRatioBounds`, et cet arrondi se propage jusqu'ici. Sans elle,
+  // une place calculée pour deux lignes n'en donnait qu'une — 12,978 mm pour
+  // 6,493 mm d'interligne vaut 1,9989, que `floor` ramenait à 1.
+  const maxLines = textSpaceMm <= 0 || !Number.isFinite(lineHeightMm)
+    ? 0
+    : Math.floor(textSpaceMm / lineHeightMm + 1e-3);
+
+  return {
+    sideMm,
+    lineHeightMm,
+    textSpaceMm,
+    maxLines,
+    // Le rendu écrit **toujours** une ligne, même quand le QR Code a tout pris :
+    // c'est ce qui fait qu'une étiquette trop petite se voit à sa coupe, et non
+    // à son silence. Le budget dit la même chose que lui.
+    textLines: Math.max(1, maxLines - linesHorsTexte),
+  };
+}
+
 export function qrSideMm(labelWidthMm, labelHeightMm, ratio) {
   const base = Math.min(
     positive(labelWidthMm, 'labelWidthMm'),
@@ -876,6 +999,248 @@ export function qrSideMm(labelWidthMm, labelHeightMm, ratio) {
  *   rows: number,
  * }}
  */
+/**
+ * La disposition qui remplit une page, pour un contenu donné.
+ *
+ * C'est la réponse au tâtonnement : au lieu de choisir une grille puis de
+ * constater qu'elle ne convient pas — étiquettes trop petites pour le texte, ou
+ * place perdue en bas de page —, on part de ce que le contenu **exige** et l'on
+ * en déduit la page entière.
+ *
+ * Le raisonnement tient en trois temps :
+ *
+ * 1. **La grille qui porte le contenu sur une page** : le moins de cases vides
+ *    possible — une case vide est une étiquette qui n'existe pas —, la forme du
+ *    contenu à égalité, puis la plus grande étiquette.
+ * 2. **À défaut, la plus dense qui porte son texte**, et la planche pagine. Le
+ *    défaut mesuré le 29 septembre 2026 : sur une A4 3 × 4, 49 liens donnaient
+ *    `10 × 5 = 50` étiquettes de **18,2 × 55 mm**, dont **45 sortaient coupées**.
+ *    Aucune grille ne portait 49 étiquettes à une largeur qui porte leur texte ;
+ *    le calcul, lui, tassait quand même, et annonçait une grille « calculée pour
+ *    ce contenu » qui ne l'était pas.
+ * 3. **Des étiquettes qui occupent la place restante.** Une fois la grille
+ *    fixée, le reste de la page est réparti entre les étiquettes plutôt que
+ *    laissé en bande perdue à droite et en bas : elles grandissent, et le code
+ *    avec elles.
+ *
+ * La contrainte de contenu s'exprime par `tient`, **évaluée sur les cotes de
+ * chaque grille candidate** : c'est la seule façon de ne pas promettre une
+ * largeur dont on n'a pas mesuré le texte. `minLabelWidthMm` et
+ * `minLabelHeightMm` restent le plancher dur — un QR Code dont les modules
+ * descendent sous la taille lisible ne se lit plus, quelle que soit la place du
+ * texte.
+ *
+ * Les marges demandées sont respectées — mais si une seule étiquette n'y tient
+ * pas, elles sont ramenées à zéro avant de renoncer : rogner une marge est
+ * toujours préférable à ne rien pouvoir imprimer.
+ *
+ * @param {{
+ *   pageWidthMm: number, pageHeightMm: number,
+ *   minLabelWidthMm: number, minLabelHeightMm: number,
+ *   marginXMm?: number, marginYMm?: number,
+ *   gapXMm?: number, gapYMm?: number,
+ *   count?: number,
+ *   tient?: (labelWidthMm: number, labelHeightMm: number) => boolean,
+ * }} options
+ * @returns {{
+ *   columns: number, rows: number,
+ *   labelWidthMm: number, labelHeightMm: number,
+ *   marginXMm: number, marginYMm: number, gapXMm: number, gapYMm: number,
+ *   perPage: number, coversCount: boolean, pages: number,
+ * }}
+ */
+/**
+ * Compare deux scores, critère par critère, dans l'ordre.
+ *
+ * @param {number[]} a
+ * @param {number[]} b
+ * @returns {number}
+ */
+function compareScores(a, b) {
+  for (let i = 0; i < a.length; i += 1) {
+    if (a[i] !== b[i]) return a[i] - b[i];
+  }
+  return 0;
+}
+
+export function autoSheetLayout(options) {
+  const pageWidthMm = positive(options.pageWidthMm, 'pageWidthMm');
+  const pageHeightMm = positive(options.pageHeightMm, 'pageHeightMm');
+  const minWidth = positive(options.minLabelWidthMm, 'minLabelWidthMm');
+  const minHeight = positive(options.minLabelHeightMm, 'minLabelHeightMm');
+  let marginXMm = nonNegative(options.marginXMm ?? 0);
+  let marginYMm = nonNegative(options.marginYMm ?? 0);
+  const gapXMm = nonNegative(options.gapXMm ?? 0);
+  const gapYMm = nonNegative(options.gapYMm ?? 0);
+
+  // Combien d'étiquettes la planche doit porter. C'est ce qui décide de la
+  // **taille** de la grille : sans ce nombre, la mise en page automatique
+  // cherchait la grille la plus dense possible et proposait 11 × 7 = 77
+  // étiquettes pour cinq liens — des timbres, et une page à moitié vide.
+  const count = Number.isFinite(options.count) && options.count > 0
+    ? Math.floor(options.count)
+    : 0;
+
+  const grille = (margeX, margeY) => {
+    const utileX = pageWidthMm - margeX * 2;
+    const utileY = pageHeightMm - margeY * 2;
+    return {
+      columns: Math.max(1, Math.floor((utileX + gapXMm) / (minWidth + gapXMm))),
+      rows: Math.max(1, Math.floor((utileY + gapYMm) / (minHeight + gapYMm))),
+      utileX,
+      utileY,
+    };
+  };
+
+  let { columns, rows, utileX, utileY } = grille(marginXMm, marginYMm);
+
+  // Une étiquette ne tient pas dans la zone utile telle qu'elle est demandée :
+  // on rend les marges avant de renoncer.
+  if (columns < 1 || rows < 1
+    || utileX < minWidth - 1e-9 || utileY < minHeight - 1e-9) {
+    marginXMm = 0;
+    marginYMm = 0;
+    ({ columns, rows, utileX, utileY } = grille(0, 0));
+  }
+
+  /**
+   * Les grilles candidates, jugées **sur leurs propres cotes**.
+   *
+   * C'est là que se joue le défaut du 29 septembre 2026 : le besoin de texte était
+   * mesuré à une largeur — celle de la disposition, puis celle de la première
+   * grille trouvée — et la grille retenue en avait une autre, plus étroite, où le
+   * texte réclamait plus de lignes. La contrainte est donc évaluée ici, pour
+   * chaque candidate, sur la largeur et la hauteur qu'elle aurait réellement.
+   *
+   * Trois idées, dans cet ordre :
+   *
+   * 1. **La grille doit contenir les étiquettes, et pas davantage.** C'est le
+   *    critère premier : une case vide est une étiquette qui n'existe pas, et
+   *    une grille trop dense fait des timbres. « 11 colonnes pour cinq liens »
+   *    était précisément le défaut.
+   * 2. **Une lame n'est pas une étiquette.** À remplissage égal, on écarte les
+   *    grilles dont l'étiquette s'éloigne trop de la forme du **contenu** — le
+   *    rapport de la plus petite étiquette qui porte le QR Code et son texte.
+   *    Cinq liens sur une A4 donnent ainsi 2 × 3 (96 × 92 mm, presque carré)
+   *    plutôt que 5 × 1 (38 × 280 mm) : les deux tiennent le contenu, un seul se
+   *    regarde. Le facteur 2 est un choix : à 3, cinq liens donnaient 1 × 5 —
+   *    une bande de 193 × 55 mm, exacte mais étirée — plutôt que 2 × 3
+   *    (96 × 92 mm), qui laisse une case vide et se regarde mieux. Une case
+   *    vide est du papier, pas une étiquette ratée.
+   * 3. À remplissage et forme acceptables, la plus grande étiquette gagne.
+   *
+   * Sans nombre d'étiquettes — un appelant qui ne le connaît pas —, on garde le
+   * comportement d'origine : remplir la page.
+   */
+  const FORME_TOLEREE = 2;
+  const cible = minWidth / minHeight;
+  const tient = typeof options.tient === 'function' ? options.tient : null;
+
+  /** Les cotes d'une étiquette pour une grille donnée : la place restante est
+   *  partagée, donc les étiquettes occupent la page jusqu'à ses bords. */
+  const cotesDe = (colonnes, lignes) => ({
+    labelWidthMm: (utileX - (colonnes - 1) * gapXMm) / colonnes,
+    labelHeightMm: (utileY - (lignes - 1) * gapYMm) / lignes,
+  });
+
+  /**
+   * Une grille candidate, ou `null` si elle ne peut pas porter le contenu.
+   *
+   * @param {number} colonnes
+   * @param {number} lignes
+   */
+  const candidat = (colonnes, lignes) => {
+    const { labelWidthMm: largeur, labelHeightMm: hauteur } = cotesDe(colonnes, lignes);
+    // Le plancher dur : un module plus petit que `minLabel*Mm` ne se lit plus.
+    if (largeur < minWidth - 1e-9 || hauteur < minHeight - 1e-9) return null;
+    // Puis la contrainte du contenu, sur **ces** cotes-là.
+    if (tient && !tient(largeur, hauteur)) return null;
+    const forme = (largeur / hauteur) / cible;
+    const cases = colonnes * lignes;
+    return {
+      colonnes,
+      lignes,
+      labelWidthMm: largeur,
+      labelHeightMm: hauteur,
+      cases,
+      vide: cases - count,
+      aire: largeur * hauteur,
+      // 0 quand l'étiquette garde la forme du contenu.
+      lame: forme < 1 / FORME_TOLEREE || forme > FORME_TOLEREE ? 1 : 0,
+    };
+  };
+
+  let coversCount = true;
+
+  if (count > 0) {
+    const candidates = [];
+    for (let colonnes = 1; colonnes <= columns; colonnes += 1) {
+      for (let lignes = 1; lignes <= rows; lignes += 1) {
+        const grilleCandidate = candidat(colonnes, lignes);
+        if (grilleCandidate) candidates.push(grilleCandidate);
+      }
+    }
+
+    // 1. Celles qui portent le contenu **sur une page**. La forme du contenu
+    //    passe avant la case perdue : c'est le sens de « on tolère la case qui
+    //    rend la grille équilibrée, jamais deux » — cinq liens font 2 × 3
+    //    (96 × 92 mm, une case vide) plutôt que 1 × 5 (193 × 55 mm, exacte mais
+    //    étirée). Faute de grille bien formée, la plus économe en cases gagne :
+    //    mieux vaut une lame qu'un refus.
+    const tiennentLeCompte = candidates.filter((c) => c.cases >= count);
+    const parEconomie = (a, b) => a.vide - b.vide || b.aire - a.aire;
+    const surUnePage = tiennentLeCompte.filter((c) => c.lame === 0).sort(parEconomie)[0]
+      ?? tiennentLeCompte.sort(parEconomie)[0];
+
+    // 2. Aucune ne le porte. On ne tasse pas pour autant : la plus dense des
+    //    grilles qui portent **leur texte** est retenue, et la planche pagine.
+    //    Une grille annoncée « calculée pour ce contenu » doit l'être ; mieux
+    //    vaut deux pages lisibles qu'une page de 45 étiquettes tronquées.
+    const dense = candidates
+      .sort((a, b) => b.cases - a.cases || b.aire - a.aire)[0];
+
+    const choisie = surUnePage ?? dense;
+    if (choisie) {
+      columns = choisie.colonnes;
+      rows = choisie.lignes;
+      coversCount = choisie.cases >= count;
+    } else if (tient) {
+      // Aucune grille ne porte son texte : la disposition demandée est trop
+      // serrée pour ce contenu. On garde la grille du plancher — l'appelant a de
+      // quoi le dire —, et le compte n'est pas tenu.
+      coversCount = columns * rows >= count;
+    }
+  }
+
+  // Ce qui reste après la grille se répartit entre les étiquettes : la page est
+  // occupée jusqu'à ses bords.
+  const labelWidthMm = Math.max(minWidth, (utileX - (columns - 1) * gapXMm) / columns);
+  const labelHeightMm = Math.max(minHeight, (utileY - (rows - 1) * gapYMm) / rows);
+
+  // Les cotes sont **arrondies vers le bas** : arrondir au plus proche suffisait
+  // à faire dépasser la grille de quelques millièmes de millimètre, et la page
+  // ne contenait plus tout à fait ses étiquettes.
+  const plancher2 = (valeur) => Math.floor(valeur * 100) / 100;
+
+  return {
+    columns,
+    rows,
+    labelWidthMm: plancher2(labelWidthMm),
+    labelHeightMm: plancher2(labelHeightMm),
+    marginXMm: round2(marginXMm),
+    marginYMm: round2(marginYMm),
+    gapXMm: round2(gapXMm),
+    gapYMm: round2(gapYMm),
+    perPage: columns * rows,
+    // Ce que la grille retenue signifie pour le contenu : tient-il sur une page,
+    // ou la planche en demandera-t-elle plusieurs ? Le calcul le sait, et
+    // l'appelant n'a pas à le refaire — le refaire autrement serait le défaut
+    // d'origine, une seconde formule pour la même chose.
+    coversCount,
+    pages: count === 0 ? 0 : Math.ceil(count / (columns * rows)),
+  };
+}
+
 export function fitGrid(options) {
   const pageWidthMm = positive(options.pageWidthMm, 'pageWidthMm');
   const pageHeightMm = positive(options.pageHeightMm, 'pageHeightMm');

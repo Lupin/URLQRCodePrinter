@@ -63,11 +63,15 @@ const SURFACES = [
   ...fichiers('src/extension-src', ['.js', '.html', '.css', '.json']),
   ...fichiers('src/site', ['.html', '.css']),
   join(ROOT, 'store', 'listing.json'),
+  join(ROOT, 'store', 'README.md'),
+  join(ROOT, 'store', 'screenshots', 'README.md'),
   join(ROOT, 'docs', 'chrome-web-store.md'),
   join(ROOT, 'docs', 'guide.md'),
   join(ROOT, 'docs', 'guide.fr.md'),
   join(ROOT, 'README.md'),
   join(ROOT, 'README.fr.md'),
+  join(ROOT, 'CHANGELOG.md'),
+  join(ROOT, 'CHANGELOG.fr.md'),
   join(ROOT, 'CONTRIBUTING.md'),
 ];
 

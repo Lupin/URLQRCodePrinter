@@ -9,6 +9,7 @@ import { readFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { createLink } from '../src/core/link.js';
 import {
   MENU_IDS,
   buildMenuDefinitions,
@@ -92,6 +93,27 @@ test('un clic sur un lien enregistre le lien, pas la page', () => {
   );
   assert.equal(capture.url, 'https://cible.com/a');
   assert.equal(capture.title, 'cible.com');
+});
+
+test('un résultat de recherche est titré par sa destination, pas par le moteur', () => {
+  // Le cas rapporté : clic droit sur un résultat Google, l'adresse du lien est
+  // une enveloppe du moteur. Titrer « google.com » un lien qui mène à Wikipédia
+  // ne dit rien de ce qu'on vient d'enregistrer — et la liste ne contient alors
+  // aucune ligne qui ressemble à ce qu'on a cliqué.
+  const capture = captureFromClick(
+    {
+      menuItemId: MENU_IDS.link,
+      linkUrl: 'https://www.google.com/url?q=https://fr.wikipedia.org/wiki/Code_QR&sa=U&ved=2ahUKEwi',
+      pageUrl: 'https://www.google.com/search?q=wikipedia+qrcode',
+    },
+    { url: 'https://www.google.com/search?q=wikipedia+qrcode', title: 'wikipedia qrcode - Recherche Google' },
+  );
+  assert.equal(capture.title, 'fr.wikipedia.org');
+  // L'adresse est conservée telle que le navigateur la donne : c'est
+  // `createLink` qui la déplie, au même endroit que le reste de la
+  // normalisation, et une seule fois pour tous les chemins d'entrée.
+  assert.match(capture.url, /^https:\/\/www\.google\.com\/url\?q=/);
+  assert.equal(createLink({ url: capture.url }).url, 'https://fr.wikipedia.org/wiki/Code_QR');
 });
 
 test('un clic sur la page enregistre la page et son titre', () => {

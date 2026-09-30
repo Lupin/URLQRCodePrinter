@@ -238,3 +238,64 @@ footer {
 footer p {
   margin: 0 0 0.5rem;
 }
+
+/* --- Comment s'en servir, et questions fréquentes --- */
+
+/* Une liste numérotée plutôt qu'une frise : les étapes ont un ordre, et
+   l'ordre est justement ce qu'on vient chercher ici. */
+.steps {
+  margin: 12px 0 0;
+  padding-left: 20px;
+  max-width: 62ch;
+}
+
+.steps li { margin-bottom: 8px; }
+
+.note {
+  margin: 14px 0 0;
+  max-width: 62ch;
+  color: var(--text-2);
+  font-size: 0.9375rem;
+}
+
+/* Les questions se déplient : la page reste courte pour qui ne cherche rien,
+   et la réponse est à un clic pour qui cherche. */
+.faq {
+  margin-top: 12px;
+  max-width: 62ch;
+}
+
+.faq details {
+  border-top: 1px solid var(--border-line);
+  padding: 10px 0;
+}
+
+.faq details:last-child { border-bottom: 1px solid var(--border-line); }
+
+.faq summary {
+  cursor: pointer;
+  font-weight: 600;
+  /* La cible garde 24 px de haut au clavier comme au doigt. */
+  min-height: 24px;
+  display: flex;
+  align-items: center;
+}
+
+.faq summary:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.faq p { margin: 8px 0 0; color: var(--text-2); }
+
+/* --- Pied de page --- */
+
+.site-footer__repo { margin: 0 0 6px; }
+
+.site-footer__signature {
+  margin: 0;
+  color: var(--text-2);
+  font-size: 0.875rem;
+}
+
+.site-footer__signature span { padding: 0 2px; }

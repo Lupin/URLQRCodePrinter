@@ -15,41 +15,21 @@
  */
 
 import { TARGET_MODES, isSortMode } from './link.js';
+import {
+  COLLECTION_NAME_MAX, COLLECTION_NOTE_MAX, DEFAULT_COLLECTION_NAME,
+  DEFAULT_START_INDEX, START_INDEX_MAX, START_INDEX_MIN,
+} from './collections.js';
 import { DATE_MODES } from './exporters.js';
 import { DEFAULT_SHORTENER, findShortener } from './shorten.js';
 
 /** Clé de stockage, préfixée pour ne pas entrer en collision avec un autre outil. */
 export const SETTINGS_KEY = 'url-qr-code-printer/settings';
 
-/** Longueur maximale du nom de collection : au-delà, il ne tient plus nulle part. */
-export const COLLECTION_NAME_MAX = 80;
-
-/**
- * Longueur maximale de la note de collection.
- *
- * Plus large que le nom, parce que ce n'est pas la même chose : le nom tient
- * dans un nom de fichier et sous un en-tête imprimé, la note est un paragraphe
- * qui explique de quoi la collection parle. Elle reste bornée — elle finit dans
- * un fichier et sur une page, et rien ne justifie d'y verser un roman.
- */
-export const COLLECTION_NOTE_MAX = 600;
-
-/**
- * Bornes du premier numéro de la collection.
- *
- * Le numéro s'imprime sur l'étiquette, sous le QR Code : au-delà de quatre
- * chiffres, la ligne ne tient plus sur une étiquette étroite et se ferait
- * rogner. Zéro est permis — une série peut commencer à zéro — et le défaut
- * reste 1, qui est ce que faisait la numérotation jusqu'ici.
- */
-export const START_INDEX_MIN = 0;
-export const START_INDEX_MAX = 9999;
-
 /** Valeurs par défaut : aucun raccourcissement, le QR Code encode l'URL collectée. */
 export const DEFAULT_SETTINGS = Object.freeze({
   shortener: DEFAULT_SHORTENER,
   targetMode: 'original',
-  collectionName: 'Mes liens',
+  collectionName: DEFAULT_COLLECTION_NAME,
   // Vide par défaut : une collection n'a pas toujours quelque chose à dire, et
   // une note inventée serait pire qu'une absence.
   collectionNote: '',
@@ -58,10 +38,12 @@ export const DEFAULT_SETTINGS = Object.freeze({
   // date, et un tri choisi par le programme serait une décision qu'on n'a pas
   // prise.
   sortMode: 'manual',
-  // Le premier numéro de la collection. 1 : c'est ce que faisait la
-  // numérotation avant que ce réglage existe, et rien ne change pour qui n'y
-  // touche pas.
-  startIndex: 1,
+  // Le premier numéro, **hérité** : chaque collection porte désormais le sien.
+  // Cette valeur est celle de la page web autonome — qui n'a qu'une collection,
+  // celle des réglages — et celle dont la reprise seeds la collection par
+  // défaut d'une installation existante. Les bornes, elles, appartiennent au
+  // module des collections : c'est lui qui les fait respecter.
+  startIndex: DEFAULT_START_INDEX,
 });
 
 /**
@@ -70,16 +52,27 @@ export const DEFAULT_SETTINGS = Object.freeze({
  * Une préférence inconnue ou d'un type inattendu est ignorée plutôt que
  * refusée : un réglage corrompu ne doit pas bloquer l'application.
  *
+ * `options.shortener` remplace le service proposé d'emblée quand rien n'a été
+ * choisi. Ce n'est pas un détail : T.LY, désormais le défaut, ne répond que
+ * depuis une origine d'extension — l'application web autonome doit donc
+ * présélectionner un service qui fonctionne depuis une page ordinaire. Le
+ * cinquième paramètre reste optionnel, et sans lui le comportement d'avant est
+ * conservé à l'identique.
+ *
  * @param {unknown} value
+ * @param {{ shortener?: string }} [options]
  * @returns {{ shortener: string, targetMode: 'original'|'short',
  *   collectionName: string, collectionNote: string, dateMode: string,
  *   sortMode: string, startIndex: number }}
  */
-export function sanitizeSettings(value) {
+export function sanitizeSettings(value, options = {}) {
   const source = value && typeof value === 'object' ? value : {};
+  const defaut = typeof options.shortener === 'string' && findShortener(options.shortener)
+    ? options.shortener
+    : DEFAULT_SETTINGS.shortener;
   const shortener = typeof source.shortener === 'string' && findShortener(source.shortener)
     ? source.shortener
-    : DEFAULT_SETTINGS.shortener;
+    : defaut;
   const targetMode = TARGET_MODES.includes(source.targetMode)
     ? source.targetMode
     : DEFAULT_SETTINGS.targetMode;
@@ -167,9 +160,15 @@ function detectStorage() {
 export function createSettingsStore(options = {}) {
   const detected = options.storage ? { ...options.storage, persistent: true } : detectStorage();
   const storage = detected;
+  // Le service proposé d'emblée, quand l'appelant en connaît un meilleur que le
+  // défaut du catalogue : c'est ainsi que l'application web autonome évite de
+  // présélectionner T.LY, qui ne répond pas depuis une origine ordinaire.
+  const defaults = options.defaultShortener
+    ? sanitizeSettings(null, { shortener: options.defaultShortener })
+    : { ...DEFAULT_SETTINGS };
 
   /** @type {{ shortener: string, targetMode: 'original'|'short', collectionName: string, dateMode: string }} */
-  let current = { ...DEFAULT_SETTINGS };
+  let current = { ...defaults };
   let loaded = false;
 
   function load() {
@@ -178,17 +177,17 @@ export function createSettingsStore(options = {}) {
     try {
       const raw = storage.getItem(SETTINGS_KEY);
       if (typeof raw === 'string' && raw !== '') {
-        current = sanitizeSettings(JSON.parse(raw));
+        current = sanitizeSettings(JSON.parse(raw), { shortener: defaults.shortener });
       }
     } catch {
       // Réglage illisible : on garde les valeurs par défaut.
-      current = { ...DEFAULT_SETTINGS };
+      current = { ...defaults };
     }
     return { ...current };
   }
 
   function save(patch) {
-    current = sanitizeSettings({ ...load(), ...patch });
+    current = sanitizeSettings({ ...load(), ...patch }, { shortener: defaults.shortener });
     try {
       storage.setItem(SETTINGS_KEY, JSON.stringify(current));
     } catch {
@@ -198,7 +197,7 @@ export function createSettingsStore(options = {}) {
   }
 
   function reset() {
-    current = { ...DEFAULT_SETTINGS };
+    current = { ...defaults };
     try {
       storage.setItem(SETTINGS_KEY, JSON.stringify(current));
     } catch {

@@ -61,6 +61,12 @@ const WEB_APP_FILES = ['app.js', 'element-ids.js', 'style.css'];
 /** Nom de la page de l'application dans l'extension. */
 const WEB_APP_PAGE = 'app.html';
 
+/** Jeton remplacé par la version du paquet dans les pages livrées. */
+const VERSION_TOKEN = '__APP_VERSION__';
+
+/** Jeton remplacé par l'année de construction, dans les pages livrées. */
+const YEAR_TOKEN = '__APP_YEAR__';
+
 /** Clés comprises par Safari mais inconnues de Chromium. */
 const SAFARI_ONLY_KEYS = ['browser_specific_settings'];
 
@@ -143,6 +149,45 @@ async function copyWebApp(outDir) {
     if (existsSync(join(source, file))) await cp(join(source, file), join(outDir, file));
   }
   return true;
+}
+
+/**
+ * Version de l'application, lue dans `package.json`.
+ *
+ * Une seule source : le paquet. La recopier dans la page, c'est se donner deux
+ * chiffres à tenir d'accord — et c'est celui de la page qui aurait menti, parce
+ * qu'on ne le voit pas.
+ *
+ * @returns {Promise<string>}
+ */
+async function appVersion() {
+  const paquet = JSON.parse(await readFile(join(ROOT, 'package.json'), 'utf8'));
+  return typeof paquet.version === 'string' ? paquet.version : '0.0.0';
+}
+
+/**
+ * Remplace `__APP_VERSION__` par la version du paquet, dans une page.
+ *
+ * Le jeton est visible dans la source : une page ouverte sans passer par la
+ * construction afficherait « __APP_VERSION__ » plutôt qu'un numéro — ce qui est
+ * préférable à un numéro périmé, mais ne doit pas arriver dans un livrable.
+ * C'est `test/build-assets.test.js` qui le vérifie sur `dist/`.
+ *
+ * @param {string} page
+ * @returns {Promise<void>}
+ */
+export async function injectVersionTokens(page) {
+  const source = await readFile(page, 'utf8');
+  if (!source.includes(VERSION_TOKEN) && !source.includes(YEAR_TOKEN)) return;
+  // L'année est celle de la **construction** : une page statique n'a pas de
+  // script pour la poser, et le site est reconstruit à chaque publication.
+  await writeFile(
+    page,
+    source
+      .split(VERSION_TOKEN).join(await appVersion())
+      .split(YEAR_TOKEN).join(String(new Date().getFullYear())),
+    'utf8',
+  );
 }
 
 /**
@@ -409,6 +454,7 @@ async function buildTarget(name) {
 
   for (const { path, assets, label } of pages) {
     if (!existsSync(path)) continue;
+    await injectVersionTokens(path);
     const stamped = await stampAssetVersions(path, outDir, assets);
     if (stamped.length > 0) console.log(`  ${name} : ${label} — ${stamped.join(', ')}`);
   }
@@ -496,6 +542,24 @@ async function main() {
     } catch (error) {
       console.error(`✗ ${name} : ${error.message}`);
       process.exitCode = 1;
+    }
+  }
+
+  // **Les copies de conflit disparaissent de la sortie.** iCloud en fabrique
+  // dans les dossiers qu'il synchronise — « app 2.js », « _locales 2 » —, et
+  // Chrome refuse alors de charger l'extension :
+  //
+  //   Cannot load extension with file or directory name _locales 2.
+  //   Filenames starting with "_" are reserved for use by the system.
+  //
+  // Le dossier sortait d'une construction propre, et la copie apparaissait
+  // ensuite : on la retire ici plutôt que de laisser le prochain relevé échouer
+  // sur un fichier que personne n'a écrit.
+  for (const result of results) {
+    const parasites = (await readdir(result.outDir)).filter((nom) => / \d+(\.[^.]*)?$/.test(nom));
+    for (const nom of parasites) {
+      await rm(join(result.outDir, nom), { recursive: true, force: true });
+      console.log(`  retiré : ${nom} (copie de conflit du système de fichiers)`);
     }
   }
 

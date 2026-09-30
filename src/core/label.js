@@ -608,11 +608,16 @@ export function computeLabelGeometry(options) {
     // marge basse : l'écart cherché est donc `slack`, et non `slack + padding`.
     spreadGap = padding + slack;
   } else if (effectiveAlign === 'center') {
-    // La place restante se partage en deux : une moitié au-dessus du QR Code, une
-    // sous le texte. Chaque moitié s'ajoute à la marge, qui reste intacte.
-    const centered = Math.floor(slack / 2);
-    qrTop = padding + centered;
-    spreadGap = padding + (slack - centered);
+    // **Le bloc se centre**, il ne s'étire pas. Une moitié de la place libre va
+    // au-dessus du QR Code, l'autre **sous le texte** — c'est ce que ce
+    // commentaire annonçait déjà, mais la seconde moitié s'ajoutait à l'écart
+    // entre le QR Code et le texte, si bien que le code flottait loin de son
+    // texte. Mesuré sur une 14 × 50 mm d'un D110 (1 mm = 8 px) : l'écart valait
+    // **124 px = 15,5 mm** au lieu des 6 px de la disposition « en haut », et le
+    // texte se retrouvait collé au bas de l'étiquette — l'inverse d'un centrage.
+    // Signalé : « l'interlignage entre le QR Code et le texte est trop large,
+    // surtout pour les étiquettes de 14 × 50 ».
+    qrTop = padding + Math.floor(slack / 2);
   } else {
     qrTop = padding;
   }

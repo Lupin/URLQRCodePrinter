@@ -17,13 +17,16 @@ import assert from 'node:assert/strict';
 import {
   SHORTENERS,
   DEFAULT_SHORTENER,
+  TLY_AFFILIATE_URL,
   ShortenError,
   findShortener,
   parseShortResponse,
   shortenUrl,
   createShortener,
   describeShortenReport,
+  hasExtensionRuntime,
   isServiceFailure,
+  defaultShortenerId,
   suggestShortener,
 } from '../src/core/shorten.js';
 
@@ -58,6 +61,7 @@ function hangingFetch() {
   });
 }
 
+const TLY = findShortener('tly');
 const TINY = findShortener('tinyurl');
 const ISGD = findShortener('isgd');
 const SPOOME = findShortener('spoome');
@@ -79,10 +83,15 @@ test('le catalogue expose des services complets et sans clé d\'API', () => {
     assert.match(built.url, /^https:\/\//, `${shortener.id} interroge un endpoint HTTPS`);
     assert.ok(built.init.method === 'GET' || built.init.method === 'POST');
     // Une URL contenant « & » et une espace ne doit pas casser la requête :
-    // la valeur doit revenir intacte après décodage des paramètres.
+    // la valeur doit revenir intacte, quelle que soit la forme du corps.
+    const contenu = built.init.headers?.['Content-Type'] ?? '';
     if (built.init.method === 'GET') {
       const query = new URL(built.url).searchParams;
       assert.equal(query.get('url'), 'https://exemple.fr/a b&c');
+    } else if (contenu.includes('application/json')) {
+      // T.LY attend « long_url » dans un corps JSON : un formulaire, ou une clé
+      // « url », lui fait répondre 422.
+      assert.equal(JSON.parse(built.init.body).long_url, 'https://exemple.fr/a b&c');
     } else {
       assert.equal(
         new URLSearchParams(built.init.body).get('url'),
@@ -181,8 +190,13 @@ test('parseShortResponse refuse un schéma non http', () => {
 // --------------------------------------------------------------------------
 
 test('shortenUrl interroge le service avec l\'URL encodée', async () => {
+  // Le service est nommé : c'est la forme de la requête de TinyURL qui est
+  // éprouvée ici, pas le service proposé d'emblée.
   const impl = stubFetch('https://tinyurl.com/abc');
-  const short = await shortenUrl('https://exemple.fr/a b?x=1&y=2#frag', { fetch: impl });
+  const short = await shortenUrl('https://exemple.fr/a b?x=1&y=2#frag', {
+    provider: 'tinyurl',
+    fetch: impl,
+  });
 
   assert.equal(short, 'https://tinyurl.com/abc');
   assert.equal(impl.calls.length, 1);
@@ -238,7 +252,7 @@ test('shortenUrl transforme une panne réseau en erreur explicite', async () => 
     () => shortenUrl('https://exemple.fr/x', { fetch: impl }),
     (error) => {
       assert.equal(error.code, 'network');
-      assert.match(error.message, /TinyURL/);
+      assert.match(error.message, /T\.LY/);
       return true;
     },
   );
@@ -274,6 +288,133 @@ test('shortenUrl refuse d\'emblée un signal déjà annulé', async () => {
     (error) => error.code === 'aborted',
   );
   assert.equal(impl.calls.length, 0);
+});
+
+// --------------------------------------------------------------------------
+// T.LY
+// --------------------------------------------------------------------------
+
+test("T.LY est le service proposé d'emblée dans une extension", () => {
+  assert.equal(DEFAULT_SHORTENER, 'tly');
+  assert.equal(SHORTENERS[0].id, 'tly', 'le catalogue le présente en premier');
+  assert.equal(TLY.label, 'T.LY (défaut) — lien plus court');
+  assert.equal(TLY.extensionOnly, true);
+  // Le chemin employé est le chemin anonyme : l'infobulle le dit, et ne
+  // réclame aucune clé d'API — c'est ce qui rend le service utilisable sans
+  // compte, et c'est ce que le texte de la mention affirme.
+  assert.match(TLY.note, /anonymes/);
+  assert.doesNotMatch(TLY.note, /clé d'API/);
+});
+
+test('T.LY poste une requête JSON avec « long_url »', async () => {
+  // Le service répond 422 « The long url field is required. » à toute autre
+  // clé : la forme du corps est donc une contrainte, pas un détail.
+  const impl = stubFetch(JSON.stringify({ short_url: 'https://t.ly/Ft6RY' }));
+  const short = await shortenUrl('https://exemple.fr/a b?x=1&y=2#frag', { fetch: impl });
+
+  assert.equal(short, 'https://t.ly/Ft6RY');
+  const [call] = impl.calls;
+  assert.equal(call.url, 'https://api.t.ly/api/v1/link/shorten');
+  assert.equal(call.init.method, 'POST');
+  assert.equal(call.init.headers['Content-Type'], 'application/json');
+  const envoye = JSON.parse(call.init.body);
+  assert.deepEqual(envoye, {
+    long_url: normalizeUrl('https://exemple.fr/a b?x=1&y=2#frag'),
+  });
+  // Rien d'autre n'est transmis : ni jeton, ni parrainage, ni cookie.
+  assert.equal(call.init.credentials, 'omit');
+  assert.equal(Object.keys(envoye).length, 1);
+});
+
+test('parseShortResponse lit la réponse réelle de T.LY', () => {
+  // Corps relevé sur le service le 29 septembre 2026, réduit au strict
+  // nécessaire : c'est lui qui fixe le nom du champ lu.
+  const corps = JSON.stringify({
+    short_url: 'https://t.ly/Ft6RY',
+    provider_success: true,
+    info: {
+      description: null,
+      redirect_url: 'https://exemple.fr/a',
+      title: 'https://exemple.fr/a',
+      url: 'https://exemple.fr/a',
+      can_update: true,
+    },
+    domain: 't.ly',
+    short_id: 'Ft6RY',
+  });
+  assert.equal(parseShortResponse(corps, 200, TLY, 'https://exemple.fr/a'), 'https://t.ly/Ft6RY');
+
+  // L'adresse d'origine figure aussi dans la réponse : c'est bien le lien court
+  // qui est retenu, et un service qui n'a rien raccourci le dit.
+  assert.throws(
+    () => parseShortResponse(corps, 200, TLY, 'https://t.ly/Ft6RY'),
+    (error) => error.code === 'unchanged',
+  );
+});
+
+test('un refus de T.LY reçoit une phrase, pas un code de statut', () => {
+  // Relevé sur le service : une origine web ordinaire reçoit 403, et ce corps.
+  // « T.LY a répondu 403 (Invalid request please contact support@t.ly) » est
+  // exact et inexploitable pour qui veut seulement un lien plus court.
+  const corps = '{"message":"Invalid request please contact support@t.ly"}';
+  assert.throws(
+    () => parseShortResponse(corps, 403, TLY, 'https://exemple.fr/a'),
+    (error) => {
+      assert.ok(error instanceof ShortenError);
+      // Le service a bien refusé : la proposition d'en changer reste ouverte.
+      assert.equal(error.code, 'http');
+      assert.equal(error.provider, 'tly');
+      assert.equal(error.message, TLY.explain[403]);
+      assert.ok(isServiceFailure(error.code));
+      return true;
+    },
+  );
+
+  // Un statut sans explication déclarée garde le message technique.
+  assert.throws(
+    () => parseShortResponse('panne', 500, TLY, 'https://exemple.fr/a'),
+    (error) => /a répondu 500/.test(error.message),
+  );
+});
+
+test("le service proposé d'emblée dépend de l'environnement", () => {
+  // T.LY ne répond qu'aux origines d'extension : sur la page web autonome, le
+  // service proposé d'emblée doit être un service qui répond depuis une origine
+  // ordinaire, sinon le premier raccourcissement échouerait à coup sûr.
+  assert.equal(defaultShortenerId(true), 'tly');
+  assert.equal(defaultShortenerId(false), 'tinyurl');
+  assert.equal(
+    SHORTENERS.find((s) => s.id === defaultShortenerId(false)).extensionOnly,
+    undefined,
+  );
+
+  assert.equal(hasExtensionRuntime({ chrome: { runtime: { id: 'abc' } } }), true);
+  assert.equal(hasExtensionRuntime({ browser: { runtime: { id: 'abc' } } }), true);
+  // Sur une page web ordinaire, `window.chrome` existe mais sans `runtime`.
+  assert.equal(hasExtensionRuntime({ chrome: {} }), false);
+  assert.equal(hasExtensionRuntime({ chrome: { runtime: {} } }), false);
+  assert.equal(hasExtensionRuntime({}), false);
+});
+
+test('le parrainage est une adresse à part, jamais un paramètre des requêtes', () => {
+  // Le lien d'affiliation existe (le projet est inscrit au programme T.LY), et
+  // il ne doit toucher à rien d'autre : ni jeton, ni identifiant de parrainage
+  // dans une requête de raccourcissement. Le parrainage se joue sur un clic
+  // vers la page d'inscription, pas en chemin sur les données de l'utilisateur.
+  assert.match(TLY_AFFILIATE_URL, /^https:\/\/t\.ly\/register\?via=[a-z0-9-]+$/i);
+  const built = TLY.build('https://exemple.fr/a');
+  assert.doesNotMatch(built.init.body, /affili|via=|ref|token/i);
+  assert.doesNotMatch(built.url, /affili|via=|ref|token/i);
+});
+
+test("instancier le catalogue n'appelle aucun service", () => {
+  // L'invariant du module : « aucun service n'est appelé au chargement ».
+  // Présélectionner T.LY ne doit rien changer à cette règle.
+  const impl = stubFetch('https://t.ly/abc');
+  for (const shortener of SHORTENERS) shortener.build('https://exemple.fr/a');
+  createShortener({ provider: DEFAULT_SHORTENER, fetch: impl });
+  findShortener(DEFAULT_SHORTENER);
+  assert.equal(impl.calls.length, 0, 'aucune requête sans raccourcissement demandé');
 });
 
 // --------------------------------------------------------------------------
@@ -446,12 +587,14 @@ test('on propose un autre service, sans jamais changer à la place de l\'utilisa
   // Changer de service en silence enverrait l'adresse à un tiers que
   // l'utilisateur n'a pas choisi : c'est exactement ce que ce produit s'interdit.
   const autre = suggestShortener('tinyurl', []);
-  assert.equal(autre.id, 'isgd');
+  assert.equal(autre.id, DEFAULT_SHORTENER, 'le premier du catalogue, T.LY');
   assert.equal(typeof autre.name, 'string');
 
   // Un service déjà en échec n'est pas proposé.
-  assert.equal(suggestShortener('tinyurl', ['tinyurl', 'isgd']).id, 'vgd');
-  assert.equal(suggestShortener('tinyurl', ['tinyurl', 'isgd', 'vgd']).id, 'spoome');
+  assert.equal(suggestShortener('tly', ['tly']).id, 'tinyurl');
+  assert.equal(suggestShortener('tinyurl', ['tinyurl', 'tly']).id, 'isgd');
+  assert.equal(suggestShortener('tinyurl', ['tinyurl', 'tly', 'isgd']).id, 'vgd');
+  assert.equal(suggestShortener('tinyurl', ['tinyurl', 'tly', 'isgd', 'vgd']).id, 'spoome');
 });
 
 test('quand tous les services ont échoué, on ne propose rien', () => {

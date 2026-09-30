@@ -63,7 +63,52 @@ function stampedReferences(html) {
 for (const { label, page, assets } of PAGES) {
   const dir = dirname(page);
 
-  test(`${label} : l'empreinte des ressources correspond au contenu livré`, () => {
+  test('les pages livrées portent la version du paquet, et non le jeton', () => {
+  // Le pied de page affiche la version de l'application. Elle vient de
+  // `package.json`, injectée à la construction : un numéro recopié dans le
+  // balisage aurait divergé au premier changement de version, et personne ne
+  // l'aurait vu — c'est la page qui ment.
+  const paquet = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8'));
+  const pages = [
+    join(ROOT, 'dist', 'web', 'index.html'),
+    join(ROOT, 'dist', 'extension', 'app.html'),
+    join(ROOT, 'dist', 'extension-safari', 'app.html'),
+  ];
+  for (const page of pages) {
+    if (!existsSync(page)) continue;
+    const html = readFileSync(page, 'utf8');
+    assert.doesNotMatch(html, /__APP_VERSION__/, `jeton non remplacé dans ${page}`);
+    assert.match(
+      html,
+      new RegExp(`id="footer-version">${paquet.version.replace(/\./g, '\\.')}<`),
+      `version absente ou périmée dans ${page}`,
+    );
+  }
+});
+
+test('la construction ne livre aucune copie de conflit du système de fichiers', () => {
+  // iCloud fabrique « app 2.js » ou « _locales 2 » dans les dossiers qu'il
+  // synchronise, et Chrome refuse alors de charger l'extension :
+  //
+  //   Cannot load extension with file or directory name _locales 2.
+  //   Filenames starting with "_" are reserved for use by the system.
+  //
+  // Le défaut n'apparaît pas à la construction mais **après**, pendant la
+  // synchronisation : on le vérifie donc sur la sortie, et `npm run build` les
+  // retire de lui-même. C'est arrivé deux fois dans cette session, et une
+  // vérification Chrome entière a été perdue à chaque fois.
+  const parasites = [];
+  for (const cible of ['extension', 'extension-safari', 'web']) {
+    const racine = join(ROOT, 'dist', cible);
+    if (!existsSync(racine)) continue;
+    for (const nom of readdirSync(racine)) {
+      if (/ \d+(\.[^.]*)?$/.test(nom)) parasites.push(`${cible}/${nom}`);
+    }
+  }
+  assert.deepEqual(parasites, [], `copies de conflit livrées : ${parasites.join(', ')}`);
+});
+
+test(`${label} : l'empreinte des ressources correspond au contenu livré`, () => {
     if (!existsSync(page)) {
       assert.fail(`${page} est absent : lancez « npm run build » avant les tests.`);
     }

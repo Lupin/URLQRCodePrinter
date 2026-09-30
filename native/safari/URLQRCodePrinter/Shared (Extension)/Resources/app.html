@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>URLQRCodePrinter</title>
-  <link rel="stylesheet" href="style.css?v=eb0540cfd7b0">
+  <link rel="stylesheet" href="style.css?v=4893ca4f5f05">
 </head>
 <body>
   <header class="topbar">
@@ -23,7 +23,7 @@
         </svg>
         <h1 class="topbar__title">URLQRCodePrinter</h1>
       </div>
-    <p class="topbar__subtitle" data-i18n="Collectez vos liens, imprimez-les en QR codes.">Collectez vos liens, imprimez-les en QR codes.</p>
+    <p class="topbar__subtitle" data-i18n="Collectez vos liens, imprimez-les en QR Codes.">Collectez vos liens, imprimez-les en QR Codes.</p>
     <label class="locale">
         <span class="sr-only" data-i18n="Langue">Langue</span>
         <select id="locale" class="locale__select" data-i18n-aria-label="Langue" aria-label="Langue">
@@ -50,13 +50,62 @@
     <section class="panel" aria-labelledby="collection-title">
       <h2 id="collection-title" class="panel__title" data-i18n="Ma collection">Ma collection</h2>
 
+      <!-- Le choix de la collection vient avant son nom : on choisit de quoi
+           on parle, puis on le décrit. Les deux commandes tiennent sur la même
+           ligne que la liste, et sont masquées sur la page web autonome, qui
+           n'a qu'une seule collection — celle du produit d'avant. -->
+      <div id="collection-picker" class="collection-picker">
+        <label class="field field--compact field--grow">
+          <span class="field__label" data-i18n="Collection affichée">Collection affichée</span>
+          <select id="collection-select" class="input input--compact"></select>
+        </label>
+        <button id="collection-add" class="btn btn--ghost" type="button" data-i18n="Nouvelle">Nouvelle</button>
+        <button id="collection-delete" class="btn btn--ghost btn--danger" type="button"
+                data-i18n="Supprimer">Supprimer</button>
+      </div>
+      <!-- Ce que la suppression emporte, et ce qu'une collection de navigation
+           privée devient : deux choses qu'on ne devine pas. -->
+      <p id="collection-hint" class="hint hint--tight"></p>
+
+      <!-- Le nom et le premier numéro décrivent tous deux la collection
+           elle-même, et tiennent donc sur une ligne : le nom prend la place, le
+           numéro garde la sienne. Sous eux vient la note, qui est un
+           paragraphe. -->
+      <div class="fields">
       <!-- Ce nom devient le titre des exports Markdown et de la planche
-           imprimable : il doit donc être saisissable ici. -->
+             imprimable : il doit donc être saisissable ici. Le champ est
+             **vide** quand la collection n'est pas nommée : c'est le cas de la
+             collection par défaut, et de toute collection dont on vient de
+             vider le nom. Le libellé intégré — « Mes liens » — est alors en
+             filigrane, et sert de titre aux exports. -->
+        <label class="field field--compact">
+          <span class="field__label" data-i18n="Nom de la collection">Nom de la collection</span>
+          <input id="collection-name" class="input input--compact" type="text"
+                 maxlength="80" placeholder="Mes liens" data-i18n-placeholder="Mes liens"
+                 autocomplete="off" spellcheck="false">
+        </label>
+
+        <!-- Le premier numéro. Il sert à **continuer une série** : on efface les
+             liens d'un lot terminé, on garde la numérotation, et le lot suivant
+             reprend où le précédent s'est arrêté. Le numéro n'est donc pas
+             déduit des liens présents — il survit à leur effacement. -->
+        <label class="field field--compact field--count">
+          <span class="field__label" data-i18n="Numéroter à partir de">Numéroter à partir de</span>
+          <input id="collection-start" class="input input--compact" type="number"
+                 min="0" max="9999" step="1" value="1"
+                 title="Le numéro du premier lien. Il s'affiche dans la liste et s'imprime avec la planche et le tableau ; effacer les liens ne le remet pas à 1."
+                 data-i18n-title="Le numéro du premier lien. Il s'affiche dans la liste et s'imprime avec la planche et le tableau ; effacer les liens ne le remet pas à 1.">
+        </label>
+      </div>
+
+      <!-- La note décrit la **collection**, pas un lien. Elle est donc ici, sous
+           le nom, et non dans l'éditeur d'une ligne — et facultative : une
+           collection n'a pas toujours quelque chose à dire. -->
       <label class="field field--compact">
-        <span class="field__label" data-i18n="Nom de la collection">Nom de la collection</span>
-        <input id="collection-name" class="input input--compact" type="text"
-               maxlength="80" value="Mes liens" placeholder="Mes liens" data-i18n-placeholder="Mes liens"
-               autocomplete="off" spellcheck="false">
+        <span class="field__label" data-i18n="Note de la collection (facultative)">Note de la collection (facultative)</span>
+        <textarea id="collection-note" class="input input--compact" rows="2" maxlength="600"
+                  placeholder="De quoi parle cette collection…" data-i18n-placeholder="De quoi parle cette collection…"
+                  spellcheck="false"></textarea>
       </label>
 
       <form id="add-form" class="add-form">
@@ -70,15 +119,128 @@
       <div class="toolbar">
         <label class="sr-only" for="search" data-i18n="Rechercher">Rechercher</label>
         <input id="search" class="input input--compact" type="search" placeholder="Rechercher…" data-i18n-placeholder="Rechercher…">
+        <!-- Le tri est une **vue** : rien n'est écrit, et revenir à l'ordre
+             manuel retrouve la collection telle qu'elle était. Il est donc à
+             côté de la recherche, qui est l'autre façon de regarder la liste. -->
+        <label class="field field--compact">
+          <span class="field__label" data-i18n="Trier">Trier</span>
+          <select id="sort-mode" class="input input--compact"></select>
+        </label>
+      </div>
+      <p id="sort-hint" class="hint hint--tight"></p>
+
+      <!-- Une seule case commande toute la liste, et montre son état : cochée,
+           vide, ou partielle. Deux boutons « Tout » et « Rien » disaient la même
+           chose en deux objets, et semblaient régler la recherche voisine. -->
+      <div class="list-head">
+        <label class="list-head__box">
+          <input id="select-all-box" type="checkbox">
+          <span class="sr-only" data-i18n="Tout sélectionner">Tout sélectionner</span>
+        </label>
+        <p id="selection-hint" class="hint hint--tight" aria-live="polite"></p>
+        <!-- Le rangement est un **mode**, et non deux flèches posées sur chaque
+             ligne : elles encombraient la liste en permanence, pour une action
+             qu'on fait une fois puis qu'on quitte. Le bouton entre dans le mode,
+             Échap en sort. -->
+        <button id="reorder" class="btn btn--ghost btn--small" type="button"
+                aria-pressed="false" data-i18n="Réorganiser">Réorganiser</button>
+
+        <!-- Déplacer la sélection vers une autre collection. La commande
+             n'apparaît qu'avec une sélection, à côté du rangement : on ne
+             déplace que ce qu'on a coché, et rien n'encombre la liste au repos.
+             Le choix s'ouvre sous le bouton plutôt que dans un `<select>` :
+             un sélecteur qui agirait au changement déplacerait des liens à la
+             molette ou aux flèches du clavier, sans que personne ne l'ait
+             demandé. -->
+        <div id="move-group" class="move" hidden>
+          <button id="move-to" class="btn btn--ghost btn--small" type="button"
+                  aria-expanded="false" data-i18n="Déplacer vers…">Déplacer vers…</button>
+          <div id="move-menu" class="move__menu" role="group"
+               data-i18n-aria-label="Déplacer vers une collection" hidden></div>
+        </div>
       </div>
 
-      <!-- Raccourcissement : facultatif, jamais automatique.
-           Le titre porte l'action, le libellé du champ porte le réglage. Ils
-           étaient confondus : « Raccourcir les liens » coiffait la liste des
-           services, si bien qu'on lisait le choix d'un tiers comme le nom du
-           bouton. Chaque service annonce désormais ce qu'il change pour un
-           usage ordinaire, et TinyURL — le choix proposé d'emblée — se dit
-           « recommandé » : vouloir un lien plus court suffit à choisir. -->
+      <ul id="list" class="links"></ul>
+      <p id="empty" class="empty">
+        <span data-i18n="Aucun lien.">Aucun lien.</span><br>
+        <span data-i18n="Ajoutez-en un ci-dessus, importez une archive, ou utilisez l'extension navigateur pour les collecter au clic droit.">Ajoutez-en un ci-dessus, importez une archive, ou utilisez l'extension navigateur pour les collecter au clic droit.</span>
+      </p>
+
+      <!-- Trois préoccupations distinctes, séparées : exporter, importer,
+           effacer. Elles étaient mêlées sur deux lignes, avec « Tableur + QR Code »
+           en avant — une hiérarchie que rien ne justifiait. -->
+      <div class="panel__footer">
+        <!-- `btn--fill` : au survol, le contour devient un aplat d'accent. Le
+             modificateur est explicite plutôt que déduit du conteneur — un
+             `.actions` englobe aussi le groupe de droite, et une règle fondée
+             sur `:not(.actions--end)` casserait au premier bouton ajouté. -->
+        <div class="actions">
+          <span class="actions__label" data-i18n="Exporter">Exporter</span>
+          <button id="export-xlsx" class="btn btn--ghost btn--fill" type="button" disabled data-i18n="Tableur + QR Code">Tableur + QR Code</button>
+          <button id="export-csv" class="btn btn--ghost btn--fill" type="button" disabled data-i18n="CSV">CSV</button>
+          <button id="export-md" class="btn btn--ghost btn--fill" type="button" disabled data-i18n="Markdown">Markdown</button>
+          <button id="export-json" class="btn btn--ghost btn--fill" type="button" disabled data-i18n="Archive">Archive</button>
+        </div>
+
+        <div class="actions actions--end">
+          <button id="import" class="btn btn--ghost btn--fill" type="button"
+                  title="Relit l'archive JSON, le dossier d'étiquettes .zip ou un CSV exporté d'ici" data-i18n-title="Relit l'archive JSON, le dossier d'étiquettes .zip ou un CSV exporté d'ici" data-i18n="Importer…">
+            Importer…
+          </button>
+          <button id="clear" class="btn btn--ghost btn--danger btn--fill" type="button" disabled data-i18n="Vider la collection">Vider la collection</button>
+          <input id="import-file" class="sr-only" type="file"
+                 accept=".json,.csv,.zip,application/json,text/csv,application/zip">
+        </div>
+      </div>
+      <p class="hint hint--tight" data-i18n="Importer relit l'Archive, le .zip d'étiquettes ou un CSV, puis demande s'il faut fusionner, remplacer ou créer une collection ; les liens déjà présents sont ignorés.">Importer relit l'Archive, le .zip d'étiquettes ou un CSV, puis demande s'il faut fusionner, remplacer ou créer une collection ; les liens déjà présents sont ignorés.</p>
+
+      <!-- Le rangement d'un import, demandé au moment où il se fait.
+           Trois issues, aucune devinable : ajouter à ce qui est affiché,
+           remplacer ce qui est affiché — nom et note compris —, ou ranger à
+           part dans une collection nouvelle. Le panneau s'ouvre sous le bouton
+           qui vient d'être utilisé, sans rien recouvrir, et se referme dès
+           qu'un choix est fait ou qu'on annule. Ses libellés sont posés par
+           `app.js`, parce qu'ils nomment les collections concernées. -->
+      <div id="import-menu" class="import-menu" role="group" aria-labelledby="import-menu-title" hidden>
+        <p id="import-menu-title" class="import-menu__title"></p>
+        <p id="import-menu-hint" class="hint hint--tight"></p>
+        <div class="import-menu__choices">
+          <button id="import-merge" class="btn btn--ghost" type="button"></button>
+          <button id="import-replace" class="btn btn--ghost" type="button"></button>
+          <button id="import-add" class="btn btn--ghost" type="button" hidden></button>
+          <button id="import-cancel" class="btn btn--ghost btn--small" type="button" data-i18n="Annuler">Annuler</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ---------------------------------------------------------------- -->
+    <!-- Colonne de droite : la mise en forme et l'impression              -->
+    <!-- ---------------------------------------------------------------- -->
+    <section class="panel" aria-labelledby="layout-title">
+      <h2 id="layout-title" class="panel__title" data-i18n="Mise en forme">Mise en forme</h2>
+
+      <label class="field field--compact">
+        <span class="field__label" data-i18n="Le QR Code pointe vers">Le QR Code pointe vers</span>
+        <select id="qr-target" class="input input--compact"></select>
+      </label>
+      <p id="target-hint" class="hint hint--tight"></p>
+
+      <!-- La date se coche désormais dans chaque onglet : un réglage global
+           pour quatre mises en forme obligeait à le changer en passant de l'une
+           à l'autre, et la case de l'étiquette semblait sans effet tant qu'on
+           n'y avait pas touché. -->
+
+      <!-- Le raccourcissement vit ici, avec la mise en forme, et non en tête de
+           la collection : c'est une décision de **sortie** — ce que le QR Code
+           encodera — au même titre que la taille ou la cible. Il occupait le
+           haut du panneau de collection, encombrant la hiérarchie pour une
+           fonction facultative.
+
+           Le titre porte l'action, le libellé du champ porte le réglage : ils
+           étaient confondus, et on lisait le choix d'un tiers comme le nom du
+           bouton. Chaque service annonce ce qu'il change pour un usage
+           ordinaire, et T.LY — le choix proposé d'emblée — se dit
+           « (défaut) ». -->
       <div class="shortener">
         <p class="shortener__title"><span data-i18n="Raccourcir les liens">Raccourcir les liens</span> <em data-i18n="(option)">(option)</em></p>
         <div class="shortener__row">
@@ -90,70 +252,11 @@
           <button id="shorten-clear" class="btn btn--ghost" type="button" hidden data-i18n="Retirer">Retirer</button>
         </div>
       </div>
+      <!-- Ce que le service proposé change, et ce qu'il ne fait pas : rien
+           n'est raccourci sans un clic sur « Raccourcir ». Le texte est posé
+           par `app.js`, parce qu'il dépend du service retenu. -->
+      <p id="shortener-hint" class="hint hint--tight"></p>
       <p id="shorten-status" class="hint hint--tight" aria-live="polite"></p>
-
-      <!-- Une seule case commande toute la liste, et montre son état : cochée,
-           vide, ou partielle. Deux boutons « Tout » et « Rien » disaient la même
-           chose en deux objets, et semblaient régler la recherche voisine. -->
-      <div class="list-head">
-        <label class="list-head__box">
-          <input id="select-all-box" type="checkbox">
-          <span class="sr-only" data-i18n="Tout sélectionner">Tout sélectionner</span>
-        </label>
-        <p id="selection-hint" class="hint hint--tight" aria-live="polite"></p>
-      </div>
-
-      <ul id="list" class="links"></ul>
-      <p id="empty" class="empty">
-        <span data-i18n="Aucun lien.">Aucun lien.</span><br>
-        <span data-i18n="Ajoutez-en un ci-dessus, importez une archive, ou utilisez l'extension navigateur pour les collecter au clic droit.">Ajoutez-en un ci-dessus, importez une archive, ou utilisez l'extension navigateur pour les collecter au clic droit.</span>
-      </p>
-
-      <!-- Trois préoccupations distinctes, séparées : exporter, importer,
-           effacer. Elles étaient mêlées sur deux lignes, avec « Tableur + QR »
-           en avant — une hiérarchie que rien ne justifiait. -->
-      <div class="panel__footer">
-        <!-- `btn--fill` : au survol, le contour devient un aplat d'accent. Le
-             modificateur est explicite plutôt que déduit du conteneur — un
-             `.actions` englobe aussi le groupe de droite, et une règle fondée
-             sur `:not(.actions--end)` casserait au premier bouton ajouté. -->
-        <div class="actions">
-          <span class="actions__label" data-i18n="Exporter">Exporter</span>
-          <button id="export-xlsx" class="btn btn--ghost btn--fill" type="button" disabled data-i18n="Tableur + QR">Tableur + QR</button>
-          <button id="export-csv" class="btn btn--ghost btn--fill" type="button" disabled data-i18n="CSV">CSV</button>
-          <button id="export-md" class="btn btn--ghost btn--fill" type="button" disabled data-i18n="Markdown">Markdown</button>
-          <button id="export-json" class="btn btn--ghost btn--fill" type="button" disabled data-i18n="Archive">Archive</button>
-        </div>
-
-        <div class="actions actions--end">
-          <button id="import" class="btn btn--ghost btn--fill" type="button"
-                  title="Relit l'archive JSON, le dossier d'étiquettes .zip ou un CSV exporté d'ici" data-i18n-title="Relit l'archive JSON, le dossier d'étiquettes .zip ou un CSV exporté d'ici" data-i18n="Importer…">
-            Importer…
-          </button>
-          <button id="clear" class="btn btn--ghost btn--danger btn--fill" type="button" disabled data-i18n="Tout effacer">Tout effacer</button>
-          <input id="import-file" class="sr-only" type="file"
-                 accept=".json,.csv,.zip,application/json,text/csv,application/zip">
-        </div>
-      </div>
-      <p class="hint hint--tight" data-i18n="Importer relit l'Archive, le .zip d'étiquettes ou un CSV ; les liens déjà présents sont ignorés.">Importer relit l'Archive, le .zip d'étiquettes ou un CSV ; les liens déjà présents sont ignorés.</p>
-    </section>
-
-    <!-- ---------------------------------------------------------------- -->
-    <!-- Colonne de droite : la mise en forme et l'impression              -->
-    <!-- ---------------------------------------------------------------- -->
-    <section class="panel" aria-labelledby="layout-title">
-      <h2 id="layout-title" class="panel__title" data-i18n="Mise en forme">Mise en forme</h2>
-
-      <label class="field field--compact">
-        <span class="field__label" data-i18n="Le QR code pointe vers">Le QR code pointe vers</span>
-        <select id="qr-target" class="input input--compact"></select>
-      </label>
-      <p id="target-hint" class="hint hint--tight"></p>
-
-      <!-- La date se coche désormais dans chaque onglet : un réglage global
-           pour quatre mises en forme obligeait à le changer en passant de l'une
-           à l'autre, et la case de l'étiquette semblait sans effet tant qu'on
-           n'y avait pas touché. -->
 
       <div class="tabs" role="tablist">
         <button class="tab tab--active" role="tab" data-mode="sheet" aria-selected="true" data-i18n="Planche d'étiquettes">Planche d'étiquettes</button>
@@ -162,103 +265,218 @@
         <button class="tab" role="tab" data-mode="images" aria-selected="false" data-i18n="Étiquette (divers)">Étiquette (divers)</button>
       </div>
 
-      <!-- Planche -->
+      <!-- Planche : deux groupes, la page puis l'étiquette.
+           Les réglages se suivaient à plat, sans hiérarchie : la largeur du QR
+           Code, puis les cases de contenu, puis la grille, puis les marges,
+           puis la bordure, puis l'en-tête. Rien ne distinguait ce qui décrit la
+           **feuille** de ce qui décrit **l'étiquette**. Les deux groupes le
+           disent, et l'ordre suit le calcul : la taille des étiquettes découle
+           de la grille et des marges, donc la page vient d'abord. -->
       <div class="mode" data-mode-panel="sheet">
-        <div class="fields">
-          <label class="field">
-            <span class="field__label" data-i18n="Disposition">Disposition</span>
-            <select id="preset" class="input"></select>
-          </label>
-          <label class="field">
-            <span class="field__label" data-i18n="Largeur du QR">Largeur du QR</span>
-            <!-- Les bornes sont recalculées à chaque rendu : un QR plus petit
-                 ne serait plus lisible une fois imprimé, un QR plus grand
-                 chasserait le texte hors de l'étiquette. -->
-            <input id="sheet-qr" class="input" type="range" min="30" max="100" value="70">
-          </label>
-          <!-- La taille du texte était figée à 7 pt : sur une A4, la place
-               disponible restait inutilisée. -->
-          <label class="field">
-            <span class="field__label" data-i18n="Taille du texte (pt)">Taille du texte (pt)</span>
-            <input id="sheet-font" class="input" type="number" min="4" max="20"
-                   step="0.5" value="7">
-          </label>
-        </div>
-        <p id="sheet-qr-info" class="hint hint--tight"></p>
-        <!-- Une ligne de plus sous le QR : chaque ligne prend la place du code,
-             d'où une option et non un réglage par défaut. -->
-        <fieldset class="columns">
-          <legend class="columns__legend" data-i18n="Sous chaque QR">Sous chaque QR</legend>
-          <!-- L'URL manquait : la planche n'imprimait que le titre, et
-               retombait sur l'URL uniquement quand il n'y en avait pas. Sur
-               une étiquette, l'URL est pourtant ce qu'on scanne en dernier
-               recours quand le QR est abîmé. -->
+        <fieldset class="sheet-group" aria-labelledby="sheet-group-page">
+          <!-- Un titre ordinaire, et non une `<legend>` : dans une boîte
+               flexible, la légende garde son rendu spécial — elle se pose **sur**
+               le cadre, mord sur lui, et laisse un espace irrégulier au-dessus
+               du premier champ. Le groupe garde son nom accessible par
+               `aria-labelledby`. -->
+          <p id="sheet-group-page" class="sheet-group__title" data-i18n="Page">Page</p>
+
+          <div class="fields">
+            <div class="field">
+              <span class="field__label" data-i18n="Disposition">Disposition</span>
+              <!-- Deux flèches pour parcourir la **famille** de la disposition
+                   courante : on essaie les références d'un même fabricant l'une
+                   après l'autre, sans traverser les autres familles ni ouvrir la
+                   liste. Le sélecteur reste, pour qui sait ce qu'il cherche. -->
+              <div class="field__row">
+                <button id="preset-prev" class="btn btn--ghost btn--small btn--arrow" type="button"
+                        aria-label="Disposition précédente" data-i18n-aria-label="Disposition précédente"
+                        title="Disposition précédente" data-i18n-title="Disposition précédente">◀</button>
+                <select id="preset" class="input"></select>
+                <button id="preset-next" class="btn btn--ghost btn--small btn--arrow" type="button"
+                        aria-label="Disposition suivante" data-i18n-aria-label="Disposition suivante"
+                        title="Disposition suivante" data-i18n-title="Disposition suivante">▶</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- **Mise en page automatique.** Au lieu de choisir une grille puis
+               de constater qu'elle ne convient pas — étiquettes trop petites
+               pour le texte, ou bande perdue en bas de page —, on part de ce que
+               le contenu exige et l'on en déduit la page : le plus grand nombre
+               d'étiquettes qui peuvent le porter, et des étiquettes qui occupent
+               la place restante. Les six champs ci-dessous sont alors calculés,
+               et donc inactifs — décochez pour les reprendre à la main.
+               Elle ne s'applique pas à une planche du commerce : ses cotes sont
+               celles du fabricant, et les recalculer n'aurait pas de sens. -->
           <label class="columns__item field__label">
-            <input id="sheet-url" type="checkbox">
-            <span data-i18n="URL">URL</span>
+            <input id="sheet-auto" type="checkbox">
+            <span data-i18n="Mise en page automatique">Mise en page automatique</span>
           </label>
-          <label class="columns__item field__label">
-            <input id="sheet-date" type="checkbox">
-            <span data-i18n="Date de collecte">Date de collecte</span>
-          </label>
-          <label class="columns__item field__label">
-            <input id="sheet-date-time" type="checkbox">
-            <span data-i18n="Avec l'heure">Avec l'heure</span>
-          </label>
-          <label class="columns__item field__label">
-            <input id="sheet-date-index" type="checkbox">
-            <span data-i18n="N° du lien">N° du lien</span>
-          </label>
+          <p id="sheet-auto-hint" class="hint hint--tight"></p>
+
+          <!-- Une seule présentation : la grille, les marges et les écarts. La
+               taille des étiquettes en découle, et le choix de planche ci-dessus
+               ne fait que préremplir ces valeurs. -->
+          <div class="fields">
+            <!-- La borne haute est **posée par le script**, à la plus grande
+                 grille qui tienne sur la feuille choisie. Elle était figée à 12 et
+                 30 : une A4 accepte 26 colonnes à la taille minimale d'étiquette,
+                 et le calcul ne voyait donc jamais ce qui dépassait — la valeur
+                 était écrêtée en silence, le champ gardait le nombre tapé, et
+                 l'aperçu en montrait un troisième. -->
+            <label class="field">
+              <span class="field__label" data-i18n="Colonnes">Colonnes</span>
+              <input id="sheet-columns" class="input" type="number" min="1" step="1" value="3">
+            </label>
+            <label class="field">
+              <span class="field__label" data-i18n="Rangées">Rangées</span>
+              <input id="sheet-rows" class="input" type="number" min="1" step="1" value="8">
+            </label>
+          </div>
+          <!-- Le message est **ici**, sous les deux champs qu'il concerne.
+               Il vivait plus bas, mêlé aux avertissements du rendu : un nombre
+               refusé se signalait donc à l'autre bout du panneau, et l'aperçu
+               montrait entre-temps la disposition précédente. -->
+          <!-- Le message dit ce qui ne tient pas, et le bouton propose de
+               ranger autrement **au lieu de tronquer la grille en silence** :
+               l'écart et la marge se recalculent pour garder les colonnes et les
+               rangées demandées. -->
+          <p class="hint hint--tight">
+            <span id="sheet-grid-hint"></span>
+            <button id="sheet-fit" class="btn btn--ghost btn--small" type="button" hidden
+                    data-i18n="Ajuster l'espacement">Ajuster l'espacement</button>
+          </p>
+
+          <div class="fields">
+            <label class="field">
+              <span class="field__label" data-i18n="Marge gauche et droite (mm)">Marge gauche et droite (mm)</span>
+              <input id="sheet-margin-x" class="input" type="number" min="0" max="40" step="0.25" value="7.25">
+            </label>
+            <label class="field">
+              <span class="field__label" data-i18n="Marge haut et bas (mm)">Marge haut et bas (mm)</span>
+              <input id="sheet-margin-y" class="input" type="number" min="0" max="40" step="0.25" value="12.9">
+            </label>
+          </div>
+          <div class="fields">
+            <!-- « Rangées » et « colonnes » se lisaient comme des lignes de
+                 texte : sur une planche, ce sont les étiquettes qu'ils
+                 espacent. Le nom le dit maintenant, et l'axe est explicite. -->
+            <label class="field">
+              <span class="field__label" data-i18n="Écart entre étiquettes — horizontal (mm)">Écart entre étiquettes — horizontal (mm)</span>
+              <input id="sheet-gap-x" class="input" type="number" min="0" max="10" step="0.25" value="2.5">
+            </label>
+            <label class="field">
+              <span class="field__label" data-i18n="Écart entre étiquettes — vertical (mm)">Écart entre étiquettes — vertical (mm)</span>
+              <input id="sheet-gap-y" class="input" type="number" min="0" max="10" step="0.25" value="0">
+            </label>
+          </div>
+          <div class="fields">
+            <label class="field">
+              <span class="field__label" data-i18n="Décalage horizontal (mm)">Décalage horizontal (mm)</span>
+              <input id="sheet-offset-x" class="input" type="number" min="-10" max="10" step="0.5" value="0">
+            </label>
+            <label class="field">
+              <span class="field__label" data-i18n="Décalage vertical (mm)">Décalage vertical (mm)</span>
+              <input id="sheet-offset-y" class="input" type="number" min="-10" max="10" step="0.5" value="0">
+            </label>
+          </div>
+          <p class="hint hint--tight" data-i18n="Imprimez d'abord sur papier ordinaire, superposez la feuille obtenue à votre planche : si le texte est trop haut ou trop à gauche, corrigez ici.">Imprimez d'abord sur papier ordinaire, superposez la feuille obtenue à votre planche : si le texte est trop haut ou trop à gauche, corrigez ici.</p>
+          <p id="sheet-fit-hint" class="hint hint--tight"></p>
+
+          <!-- L'en-tête de page, comme en mode tableau : le nom de la
+               collection, et la date d'impression si on la demande. Il vit
+               **dans la marge du haut**, sans déplacer les étiquettes — d'où le
+               refus expliqué quand la marge est trop courte. -->
+          <fieldset class="columns">
+            <legend class="columns__legend" data-i18n="En-tête de page">En-tête de page</legend>
+            <label class="columns__item field__label">
+              <input id="sheet-header" type="checkbox">
+              <span data-i18n="Nom de la collection en haut de chaque page">Nom de la collection en haut de chaque page</span>
+            </label>
+            <label class="columns__item field__label">
+              <input id="sheet-header-date" type="checkbox">
+              <span data-i18n="Avec la date d'impression">Avec la date d'impression</span>
+            </label>
+            <!-- Comme sur le tableau : la note s'imprimait sans qu'on puisse la
+                 retirer. Cochée par défaut — c'est ce qui se faisait — mais
+                 décochable, et inerte tant qu'il n'y a pas de note. -->
+            <label class="columns__item field__label">
+              <input id="sheet-header-note" type="checkbox" checked>
+              <span data-i18n="Avec la note de collection">Avec la note de collection</span>
+            </label>
+          </fieldset>
+          <p id="sheet-header-hint" class="hint hint--tight"></p>
         </fieldset>
-        <p id="sheet-date-hint" class="hint hint--tight"></p>
-        <!-- Une seule présentation : la grille, les marges et les écarts. La
-             taille des étiquettes en découle, et le choix de planche ci-dessus
-             ne fait que préremplir ces valeurs. -->
-        <div class="fields">
-          <label class="field">
-            <span class="field__label" data-i18n="Colonnes">Colonnes</span>
-            <input id="sheet-columns" class="input" type="number" min="1" max="12" step="1" value="3">
-          </label>
-          <label class="field">
-            <span class="field__label" data-i18n="Rangées">Rangées</span>
-            <input id="sheet-rows" class="input" type="number" min="1" max="30" step="1" value="8">
-          </label>
-        </div>
-        <div class="fields">
-          <label class="field">
-            <span class="field__label" data-i18n="Marge gauche et droite (mm)">Marge gauche et droite (mm)</span>
-            <input id="sheet-margin-x" class="input" type="number" min="0" max="40" step="0.25" value="7.25">
-          </label>
-          <label class="field">
-            <span class="field__label" data-i18n="Marge haut et bas (mm)">Marge haut et bas (mm)</span>
-            <input id="sheet-margin-y" class="input" type="number" min="0" max="40" step="0.25" value="12.9">
-          </label>
-        </div>
-        <div class="fields">
-          <!-- « Rangées » et « colonnes » se lisaient comme des lignes de
-               texte : sur une planche, ce sont les étiquettes qu'ils
-               espacent. Le nom le dit maintenant, et l'axe est explicite. -->
-          <label class="field">
-            <span class="field__label" data-i18n="Écart entre étiquettes — horizontal (mm)">Écart entre étiquettes — horizontal (mm)</span>
-            <input id="sheet-gap-x" class="input" type="number" min="0" max="10" step="0.25" value="2.5">
-          </label>
-          <label class="field">
-            <span class="field__label" data-i18n="Écart entre étiquettes — vertical (mm)">Écart entre étiquettes — vertical (mm)</span>
-            <input id="sheet-gap-y" class="input" type="number" min="0" max="10" step="0.25" value="0">
-          </label>
-        </div>
-        <p id="sheet-fit-hint" class="hint hint--tight"></p>
-        <div class="fields">
-          <label class="field">
-            <span class="field__label" data-i18n="Décalage horizontal (mm)">Décalage horizontal (mm)</span>
-            <input id="sheet-offset-x" class="input" type="number" min="-10" max="10" step="0.5" value="0">
-          </label>
-          <label class="field">
-            <span class="field__label" data-i18n="Décalage vertical (mm)">Décalage vertical (mm)</span>
-            <input id="sheet-offset-y" class="input" type="number" min="-10" max="10" step="0.5" value="0">
-          </label>
-        </div>
-        <p class="hint hint--tight" data-i18n="Imprimez d'abord sur papier ordinaire, superposez la feuille obtenue à votre planche : si le texte est trop haut ou trop à gauche, corrigez ici.">Imprimez d'abord sur papier ordinaire, superposez la feuille obtenue à votre planche : si le texte est trop haut ou trop à gauche, corrigez ici.</p>
+
+        <fieldset class="sheet-group" aria-labelledby="sheet-group-label">
+          <p id="sheet-group-label" class="sheet-group__title" data-i18n="Étiquette">Étiquette</p>
+
+          <div class="fields">
+            <label class="field">
+              <span class="field__label" data-i18n="Largeur du QR Code">Largeur du QR Code</span>
+              <!-- Les bornes sont recalculées à chaque rendu : un QR Code plus petit
+                   ne serait plus lisible une fois imprimé, un QR Code plus grand
+                   chasserait le texte hors de l'étiquette. -->
+              <input id="sheet-qr" class="input" type="range" min="30" max="100" value="70">
+            </label>
+            <!-- La taille du texte était figée à 7 pt : sur une A4, la place
+                 disponible restait inutilisée. -->
+            <label class="field">
+              <span class="field__label" data-i18n="Taille du texte (pt)">Taille du texte (pt)</span>
+              <input id="sheet-font" class="input" type="number" min="4" max="20"
+                     step="0.5" value="7">
+            </label>
+          </div>
+          <p id="sheet-qr-info" class="hint hint--tight"></p>
+
+          <!-- Une ligne de plus sous le QR Code : chaque ligne prend la place du code,
+               d'où une option et non un réglage par défaut. -->
+          <fieldset class="columns">
+            <legend class="columns__legend" data-i18n="Sous chaque QR Code">Sous chaque QR Code</legend>
+            <!-- Le titre s'imprimait **toujours** quand il existait : aucun moyen
+                 d'obtenir l'URL seule, ni de n'avoir aucune ligne de texte. Il est
+                 donc le premier de la liste, coché par défaut — l'ancien
+                 comportement à l'identique. -->
+            <label class="columns__item field__label">
+              <input id="sheet-title" type="checkbox" checked>
+              <span data-i18n="Titre">Titre</span>
+            </label>
+            <!-- L'URL manquait : la planche n'imprimait que le titre, et
+                 retombait sur l'URL uniquement quand il n'y en avait pas. Sur
+                 une étiquette, l'URL est pourtant ce qu'on scanne en dernier
+                 recours quand le QR Code est abîmé. -->
+            <label class="columns__item field__label">
+              <input id="sheet-url" type="checkbox">
+              <span data-i18n="URL">URL</span>
+            </label>
+            <label class="columns__item field__label">
+              <input id="sheet-date" type="checkbox">
+              <span data-i18n="Date de collecte">Date de collecte</span>
+            </label>
+            <label class="columns__item field__label">
+              <input id="sheet-date-time" type="checkbox">
+              <span data-i18n="Avec l'heure">Avec l'heure</span>
+            </label>
+            <label class="columns__item field__label">
+              <input id="sheet-date-index" type="checkbox">
+              <span data-i18n="N° du lien">N° du lien</span>
+            </label>
+          </fieldset>
+          <p id="sheet-date-hint" class="hint hint--tight"></p>
+
+          <!-- La bordure est une aide à la **découpe**, pas un contenu : elle vit
+               donc à part de ce qui s'imprime sous le QR Code. Elle suit le motif
+               du tableau imprimé, un trait de 0,2 mm. -->
+          <fieldset class="columns">
+            <legend class="columns__legend" data-i18n="Découpe">Découpe</legend>
+            <label class="columns__item field__label">
+              <input id="sheet-border" type="checkbox">
+              <span data-i18n="Tracer une bordure autour de chaque étiquette">Tracer une bordure autour de chaque étiquette</span>
+            </label>
+          </fieldset>
+        </fieldset>
+
         <p id="sheet-info" class="hint"></p>
       </div>
 
@@ -266,7 +484,7 @@
       <div class="mode" data-mode-panel="table" hidden>
         <div class="fields">
           <label class="field">
-            <span class="field__label" data-i18n="Taille du QR">Taille du QR</span>
+            <span class="field__label" data-i18n="Taille du QR Code">Taille du QR Code</span>
             <input id="table-qr" class="input" type="range" min="20" max="80" value="38">
           </label>
           <!-- Le sens de la feuille : un tableau large gagne à être couché. -->
@@ -301,6 +519,14 @@
             <input id="table-title-date" type="checkbox">
             <span data-i18n="Avec la date d'impression">Avec la date d'impression</span>
           </label>
+          <!-- La note s'imprimait dès qu'elle existait, sans qu'on puisse la
+               retirer : un texte qu'on a écrit pour soi se retrouve sur chaque
+               page. Cochée par défaut — c'est ce qui se faisait — mais désormais
+               décochable, et inerte tant qu'il n'y a pas de note à imprimer. -->
+          <label class="columns__item field__label">
+            <input id="table-title-note" type="checkbox" checked>
+            <span data-i18n="Avec la note de collection">Avec la note de collection</span>
+          </label>
         </fieldset>
 
         <!-- Colonnes du tableau imprimé. Les tags et la note ne sont
@@ -314,7 +540,7 @@
           </label>
           <label class="columns__item field__label">
             <input id="table-col-qr" type="checkbox" checked>
-            <span data-i18n="QR">QR</span>
+            <span data-i18n="QR Code">QR Code</span>
           </label>
           <label class="columns__item field__label">
             <input id="table-col-url" type="checkbox" checked>
@@ -352,7 +578,7 @@
         </fieldset>
         <p id="table-hint" class="hint hint--tight"></p>
         <p class="hint" data-i18n="Un tableau dense, adapté à une relecture ou à un archivage papier.">Un tableau dense, adapté à une relecture ou à un archivage papier.</p>
-        <p class="hint hint--tight" data-i18n="L'export du tableau produit un modèle JSON, les QR en PNG et une page HTML. La sélection et les colonnes cochées s'appliquent.">L'export du tableau produit un modèle JSON, les QR en PNG et une page HTML. La sélection et les colonnes cochées s'appliquent.</p>
+        <p class="hint hint--tight" data-i18n="L'export du tableau produit un modèle JSON, les QR Codes en PNG et une page HTML. La sélection et les colonnes cochées s'appliquent.">L'export du tableau produit un modèle JSON, les QR Codes en PNG et une page HTML. La sélection et les colonnes cochées s'appliquent.</p>
       </div>
 
       <!-- Étiquette Niimbot -->
@@ -368,10 +594,6 @@
             <span class="field__label" data-i18n="Densité">Densité</span>
             <input id="density" class="input" type="number" min="1" max="3" value="2">
           </label>
-          <label class="field">
-            <span class="field__label" data-i18n="Copies">Copies</span>
-            <input id="copies" class="input" type="number" min="1" max="20" value="1">
-          </label>
           <!-- Ce n'est pas une orientation du support : l'étiquette garde sa
                taille et son sens. Seule la composition change, pour que le
                texte reste lisible selon la forme du rouleau. -->
@@ -381,11 +603,23 @@
           </label>
         </div>
 
+        <!-- Un seul couple pour ce qu'on imprime et combien de fois.
+             Il y en avait deux : « Lien à imprimer » et « Copies » d'un côté,
+             « Quels liens » et « Exemplaires de chacun » de l'autre, plus deux
+             boutons. Les quatre champs répondaient à deux questions, et rien
+             ne disait lesquels allaient avec quel bouton. -->
         <div class="fields">
           <label class="field">
-            <span class="field__label" data-i18n="Lien à imprimer">Lien à imprimer</span>
+            <span class="field__label" data-i18n="Ce qu'on imprime">Ce qu'on imprime</span>
             <select id="label-link" class="input"></select>
           </label>
+          <label class="field">
+            <span class="field__label" data-i18n="Exemplaires">Exemplaires</span>
+            <input id="copies" class="input" type="number" min="1" max="20" value="1">
+          </label>
+        </div>
+
+        <div class="fields">
           <!-- Le consommable porte ses deux cotes. Demander la longueur à côté
                du format était redondant : un rouleau 12 × 30 mm impose 30 mm,
                on ne devrait pas avoir à le ressaisir — ni le contredire. Seul
@@ -406,10 +640,32 @@
             <input id="label-font-size" class="input" type="number" min="1" max="5"
                    step="0.1" value="1.6">
           </label>
+          <!-- Le titre a la sienne : il était écrit à la taille du texte, en
+               gras, si bien qu'un titre long chassait l'adresse sans qu'on
+               puisse rien y faire. Le champ est à côté de celui du texte,
+               puisque c'est la même question — quelle hauteur pour cette
+               ligne. -->
+          <label class="field">
+            <span class="field__label" data-i18n="Taille du titre (mm)">Taille du titre (mm)</span>
+            <input id="label-title-size" class="input" type="number" min="1" max="5"
+                   step="0.1" value="1.6">
+          </label>
         </div>
+
+        <!-- La taille du QR Code, sur les têtes qui ont de la place. Sur un
+             D110, le QR Code occupe déjà toute la largeur utile : le champ y
+             serait une commande sans effet, et il est masqué. -->
+        <div class="fields">
+          <label class="field" id="label-qr-field" hidden>
+            <span class="field__label" data-i18n="Taille du QR Code (mm)">Taille du QR Code (mm)</span>
+            <input id="label-qr-size" class="input" type="number" min="5" max="60"
+                   step="0.5" value="20">
+          </label>
+        </div>
+        <p id="label-qr-hint" class="hint hint--tight"></p>
         <p id="label-font-hint" class="hint hint--tight"></p>
 
-        <!-- Ce qui est imprimé sous le QR, coché comme les colonnes du tableau.
+        <!-- Ce qui est imprimé sous le QR Code, coché comme les colonnes du tableau.
              Une liste déroulante n'acceptait qu'un choix, alors que titre, URL
              et numéro se cumulent : le numéro sert à retrouver la ligne quand
              l'étiquette est petite. -->
@@ -445,6 +701,14 @@
         </fieldset>
         <p id="label-content-hint" class="hint hint--tight"></p>
 
+        <!-- Réglage d'**aperçu**, et non d'impression : il ne change rien à ce
+             qui sort. Il a donc sa propre ligne, à part des réglages qui, eux,
+             s'impriment — c'est la même règle que pour la planche. -->
+        <label class="field field--inline">
+          <input id="label-real-size" type="checkbox">
+          <span class="field__label" data-i18n="Aperçu à la taille réelle">Aperçu à la taille réelle</span>
+        </label>
+
         <div class="printer">
           <div class="printer__status">
             <span id="printer-dot" class="dot dot--off"></span>
@@ -459,27 +723,21 @@
         <p id="supply-hint" class="hint hint--tight"></p>
         <p id="profile-hint" class="hint hint--tight"></p>
         <p id="ble-support" class="hint" hidden></p>
-        <button id="print-label" class="btn btn--primary btn--wide" type="button" disabled data-i18n="Imprimer cette étiquette">
-          Imprimer cette étiquette
+        <button id="print-label" class="btn btn--primary btn--wide" type="button" disabled data-i18n="Imprimer">
+          Imprimer
+        </button>
+        <!-- Les mêmes étiquettes, sans imprimante : le produit ne doit pas
+             devenir inutilisable faute de matériel. La composition est celle de
+             cet onglet — profil, consommable, orientation, contenu — et non
+             celle de l'onglet « Étiquette (divers) », qui a ses propres
+             réglages. -->
+        <button id="export-niimbot" class="btn btn--ghost btn--wide" type="button" disabled data-i18n="Exporter ces étiquettes (ZIP)">
+          Exporter ces étiquettes (ZIP)
         </button>
 
-        <!-- L'impression en série. Le libellé du bouton dit exactement ce qui
-             va sortir — nombre de liens et nombre d'exemplaires — pour qu'aucun
-             clic ne surprenne. -->
-        <fieldset class="series">
-          <legend class="field__label" data-i18n="Imprimer en série">Imprimer en série</legend>
-          <label class="field">
-            <span class="field__label" data-i18n="Quels liens">Quels liens</span>
-            <select id="print-scope" class="input"></select>
-          </label>
-          <label class="field">
-            <span class="field__label" data-i18n="Exemplaires de chacun">Exemplaires de chacun</span>
-            <input id="print-copies" class="input" type="number" min="1" max="20" value="1">
-          </label>
-        </fieldset>
-        <button id="print-all-labels" class="btn btn--ghost btn--wide" type="button" disabled data-i18n="Imprimer la collection">
-          Imprimer la collection
-        </button>
+        <!-- Un seul bouton. Son libellé dit exactement ce qui va sortir —
+             nombre d'étiquettes et nombre d'exemplaires — pour qu'aucun clic ne
+             surprenne. Pendant une série, il devient l'arrêt. -->
         <p id="print-scope-hint" class="hint hint--tight"></p>
         <p id="print-status" class="hint" aria-live="polite"></p>
       </div>
@@ -491,10 +749,6 @@
           <label class="field">
             <span class="field__label" data-i18n="Format d'étiquette">Format d'étiquette</span>
             <select id="label-format" class="input"></select>
-          </label>
-          <label class="field">
-            <span class="field__label" data-i18n="Texte imprimé">Texte imprimé</span>
-            <select id="label-text" class="input"></select>
           </label>
         </div>
         <div class="fields">
@@ -512,16 +766,39 @@
           </label>
         </div>
 
-        <!-- Le titre et la date de cet onglet se cochent ici. Sans ces cases,
-             il retombait sur celles de la planche : une date cochée pour la
-             planche s'imprimait aussi dans les images, sans qu'on l'ait
-             demandée. La case « Titre » ajoute le titre même quand la liste
-             « Texte imprimé » ne le porte pas. -->
+        <!-- Le même réglage d'**aperçu** que l'onglet Niimbot : il ne change
+             rien à ce qui sort, et l'aperçu agrandissait jusqu'à six fois sans
+             le dire. Les deux cases portent le même état : c'est le même
+             aperçu, vu depuis deux onglets. -->
+        <label class="field field--inline">
+          <input id="export-real-size" type="checkbox">
+          <span class="field__label" data-i18n="Aperçu à la taille réelle">Aperçu à la taille réelle</span>
+        </label>
+
+        <!-- Le contenu de l'étiquette se coche, case par case, exactement comme
+             dans l'onglet Niimbot : mêmes cases, même ordre, même mot.
+             Il y avait ici **trois** réglages pour une seule question — une liste
+             « Texte imprimé » à cinq modes exclusifs, la case « Titre » qui
+             s'ajoutait par-dessus, et ces cases de date. -->
         <fieldset class="columns">
-          <legend class="columns__legend" data-i18n="Sous le QR">Sous le QR</legend>
+          <legend class="columns__legend" data-i18n="Contenu de l'étiquette">Contenu de l'étiquette</legend>
+          <label class="columns__item field__label">
+            <input id="export-index" type="checkbox">
+            <span data-i18n="N° du lien">N° du lien</span>
+          </label>
           <label class="columns__item field__label">
             <input id="export-title" type="checkbox">
             <span data-i18n="Titre">Titre</span>
+          </label>
+          <label class="columns__item field__label">
+            <input id="export-url" type="checkbox" checked>
+            <span data-i18n="URL">URL</span>
+          </label>
+          <!-- Cocher le domaine avec l'URL imprime les deux, comme dans
+               l'onglet Niimbot : aucune case n'en éteint une autre. -->
+          <label class="columns__item field__label">
+            <input id="export-host" type="checkbox">
+            <span data-i18n="Domaine seul">Domaine seul</span>
           </label>
           <label class="columns__item field__label">
             <input id="export-date" type="checkbox">
@@ -547,6 +824,11 @@
         <button id="export-table" class="btn btn--ghost btn--fill" type="button" hidden disabled data-i18n="Exporter le tableau (ZIP)">
           Exporter le tableau (ZIP)
         </button>
+        <!-- Même logique pour la planche : elle a ses propres réglages, donc
+             sa propre sortie, à côté d'« Imprimer ». -->
+        <button id="export-sheet" class="btn btn--ghost btn--fill" type="button" hidden disabled data-i18n="Exporter la planche (ZIP)">
+          Exporter la planche (ZIP)
+        </button>
         <!-- Le libellé dit ce qui sera imprimé : « une sélection vide imprime
              tout » est la règle la moins devinable de l'application. -->
         <button id="print" class="btn btn--primary" type="button" disabled data-i18n="Imprimer">
@@ -561,11 +843,35 @@
     </section>
   </main>
 
+  <!-- La page d'information, tout en bas — le même lien que dans la fenêtre de
+       l'extension. Son adresse est posée par `app.js` : elle suit la langue de
+       l'interface, et passe par le site quand celui-ci est le voisin de la page
+       (application servie sous `/app/`) plutôt que par l'adresse publiée. Un
+       `href` écrit en dur enverrait la moitié des visiteurs au mauvais endroit.
+       Le texte reste à l'encre secondaire : l'accent est réservé aux actions,
+       et ce lien n'en est pas une. -->
+  <footer class="app-footer">
+    <a id="site-link" class="app-footer__link" target="_blank" rel="noopener noreferrer"
+       data-i18n="Page d'information">Page d'information</a>
+    <!-- La signature : nom, licence, version. L'**année** est posée par
+         `app.js` — elle doit être celle du jour, pas celle de la construction —
+         et la **version** vient du paquet : `0.2.1` est remplacé à la
+         construction par la valeur de `package.json`. Recopiée à la main, elle
+         aurait fini par mentir, et une version fausse est pire qu'absente.
+         Le texte est le même dans les deux langues : un nom, un nom de licence
+         et un numéro n'ont rien à traduire. -->
+    <p class="app-footer__signature">
+      © <span id="footer-year"></span> G. Abegg-Gauthey
+      <span class="app-footer__sep">·</span> MIT
+      <span class="app-footer__sep">·</span> version <span id="footer-version">0.2.1</span>
+    </p>
+  </footer>
+
   <!-- Racine d'impression : masquée à l'écran, seule visible sur papier. -->
   <div id="print-root" class="print-root" aria-hidden="true"></div>
 
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
-  <script type="module" src="app.js?v=3291367231d1"></script>
+  <script type="module" src="app.js?v=9e293600c401"></script>
 </body>
 </html>

@@ -24,6 +24,12 @@ Les liens restent sur votre machine : le stockage est local (IndexedDB ou
 `chrome.storage.local`). La seule sortie réseau est le raccourcissement d'URL,
 et il n'a lieu que si vous cliquez dessus.
 
+Les deux surfaces portent le même lien vers la **page d'information** du projet :
+dans la fenêtre de l'extension, tout en bas sous la collection ; dans
+l'application, sous les panneaux. Il s'ouvre dans un nouvel onglet et suit la
+langue de l'interface — la page française est à la racine du site, l'anglaise
+sous `/en/`.
+
 ## Collecter des liens
 
 | Moyen | Où |
@@ -61,6 +67,45 @@ Le **CSV** ne la porte pas : il n'est fait que de lignes de liens, et y glisser 
 note la répéterait sur chacune. Ce n'est pas un oubli — la note décrit l'ensemble,
 elle n'a pas de ligne où se mettre.
 
+**Mise en page automatique (option).** Cochée, elle fait le calcul à votre place :
+l'application part de ce que le contenu **exige** — la taille d'étiquette minimale
+qui porte le QR Code le plus dense et le texte de chaque lien —, en déduit le plus
+grand nombre d'étiquettes qui tiennent sur la page, et répartit la place restante
+entre elles. Les six champs de géométrie sont alors calculés et inactifs ; décochez
+la case pour les reprendre à la main. Le message sous la case annonce la grille
+retenue : « 11 × 7 = 77 étiquettes de 16,4 × 38,9 mm par page ».
+
+Deux conséquences qui changent l'usage : plus besoin de tâtonner entre une grille
+trop serrée et une grille trop petite, et **le texte n'est plus coupé** — chaque
+étiquette est dimensionnée pour ce qu'elle porte. La case ne s'applique pas à une
+planche du commerce (Avery et consorts) : ses cotes sont celles du fabricant, et
+les recalculer donnerait une grille qui ne tomberait plus sur les découpes.
+
+**Ce que le QR Code encode, lien par lien.** Quand une adresse a été raccourcie,
+sa ligne dans la liste porte une **case à cocher suivie de l'adresse courte** :
+cochez-la et le QR Code de ce lien encodera le raccourci, au lieu de l'adresse
+d'origine. Le libellé de la case *est* l'adresse — on coche ce qu'on lit, et la
+ligne n'a plus qu'une action. Pour aller vérifier l'adresse courte avant
+d'imprimer, ouvrez l'éditeur de la ligne (le crayon) : elle y reste cliquable.
+
+Sans choix sur un lien, c'est le réglage « Le QR Code pointe vers » qui décide,
+pour toute la collection.
+
+**Quand le texte ne tient pas.** Sur une étiquette de planche, le titre et
+l'adresse sont écrits sous le QR Code, et le QR Code ne descend pas sous la
+taille où ses modules restent lisibles. Si le texte ne tient pas dans la place
+qui reste, il est **coupé** — et l'application le dit, en rouge, sous les
+réglages : « Texte coupé sur N étiquettes : il ne tient pas entier à cette
+taille. » Réduisez alors le QR Code, réduisez la taille du texte, décochez le
+titre ou l'URL, ou prenez une étiquette plus grande — et si l'adresse est longue,
+raccourcissez-la : moins de modules, c'est un QR Code plus petit à lisibilité
+égale. Rien n'est coupé en silence.
+
+Le curseur du QR Code descend jusqu'à **0,4 mm par module**, la limite à laquelle
+une imprimante rend les modules distinctement. En dessous, le code risque de ne
+plus se scanner : l'application ne le propose pas, et c'est au texte de céder —
+ou à l'adresse d'être raccourcie.
+
 **Numéroter à partir de.** Le champ **« Numéroter à partir de »** règle le numéro
 du **premier** lien de la collection : les suivants s'enchaînent. Il sert à
 **continuer une série** — on termine un lot de cartons numérotés 101 à 120, on
@@ -68,8 +113,13 @@ efface ces liens, et le lot suivant repart à 121 sans rien recompter.
 
 Le numéro est affiché à gauche de chaque ligne, et c'est celui qui s'imprime : la
 ligne « N° » sous le QR Code de la planche, la colonne « N° » du tableau, le
-numéro de l'étiquette Niimbot et celui du dossier d'images. Un seul réglage, donc
-— et jamais deux numérotations qui se contrediraient sur le même objet.
+numéro de l'étiquette Niimbot et celui du dossier d'images. Un seul réglage à la
+fois, donc — et jamais deux numérotations qui se contrediraient sur le même objet.
+
+**Il appartient à la collection affichée.** Chaque collection a la sienne :
+changer de collection change la numérotation, et régler celle-ci ne touche pas
+les autres. C'est ce qui permet de tenir plusieurs séries en parallèle — des
+cartons ici, des dossiers là — sans avoir à re-régler le champ à chaque bascule.
 
 Il est **réglé, et non déduit des liens présents** : effacer la collection ne le
 remet pas à 1, c'est précisément ce qu'on veut préserver. Le tri, lui, reste une
@@ -97,6 +147,14 @@ Les URL sont normalisées à l'entrée : `https://` ajouté si absent, fragment
 retiré, paramètres de campagne (`utm_*`, `fbclid`, `gclid`…) supprimés — ils
 allongent le QR Code sans rien apporter au papier.
 
+**Une adresse de redirection de moteur de recherche est remplacée par sa
+destination.** Un clic droit sur un résultat de Google, de Bing ou de
+DuckDuckGo vise une adresse du moteur (`google.com/url?q=…`) et non la page :
+c'est la page qui est enregistrée, sous son vrai domaine et avec son titre. Sans
+cela, la liste affichait « google.com » en face d'un lien qui mène à Wikipédia,
+le QR Code encodait une adresse deux fois plus longue, et la même page ajoutée
+ensuite depuis la barre d'adresse passait pour un second lien.
+
 **Recollecter une page déjà enregistrée ne la duplique pas.** Si le titre a
 changé — la page a été retitrée, ou vous en avez saisi un meilleur dans la
 fenêtre de l'extension avant d'enregistrer — c'est **le titre existant qui est
@@ -109,6 +167,12 @@ titre choisi, et une absence n'est pas une correction.
 L'icône de la barre d'outils annonce l'issue sans qu'on ait à ouvrir quoi que ce
 soit : **+** le lien vient d'arriver, **✎** son titre a été corrigé, **=** il
 était déjà là et rien n'a changé.
+
+Au repos, elle porte le **nombre de liens de la collection affichée**, et ce
+nombre suit ce que vous faites, d'où que vous le fassiez : vider la collection
+depuis l'application efface aussi le compteur sur l'icône, et vider depuis la
+fenêtre de l'extension met l'application à jour — la fenêtre, l'application et
+le service worker lisent les mêmes documents.
 
 **Dater les étiquettes.** Le sélecteur « Date sous le QR Code » imprime la date
 de collecte du lien — `Aucune` par défaut, `Date de collecte` (`15/09/2026`) ou
@@ -139,8 +203,35 @@ barre d'outils.
 | `export.json` | extrait à la main d'une archive | les mêmes |
 | `….csv` | bouton **CSV**, éventuellement retouché dans un tableur | URL, titre, tags, note, date |
 
-**L'import ajoute à la collection courante ; il ne la remplace pas.** Pour
-repartir d'une collection vide, cliquez « Tout effacer » d'abord.
+**L'import demande où ranger ce qu'il vient de relire.** Une fois le fichier lu —
+le panneau annonce alors combien de liens il porte, et sous quel nom de
+collection — trois issues sont proposées, nommées d'après les collections
+concernées :
+
+| Issue | Ce qu'elle fait |
+|---|---|
+| **Fusionner avec « … »** | les liens rejoignent la collection affichée, qui garde **son nom et sa note** ; un lien déjà présent est ignoré |
+| **Remplacer « … »** | la collection affichée est **vidée d'abord**, puis son nom et sa note sont remplacés par ceux du fichier — et vidés si le fichier n'en porte aucun |
+| **Nouvelle collection « … »** | une collection est créée avec le nom du fichier, qui y range ses liens ; la collection affichée n'est pas touchée |
+
+Rien n'est écrit avant le choix, et **Annuler** ne laisse donc aucune trace — pas
+même un lien ajouté. Cette étape existe parce qu'aucune des trois issues n'est un
+bon défaut : ajouter à la collection affichée quand on voulait repartir de
+l'archive remplit la mauvaise, et remplacer quand on voulait ajouter détruit ce
+qu'on avait.
+
+Les issues portent le nom de la collection affichée : **changer de collection**
+pendant que le panneau est ouvert retire donc la question, et l'import est à
+refaire. Mieux vaut cela qu'un libellé qui nomme une collection et un clic qui
+écrit dans une autre.
+
+Le nom de la nouvelle collection est **suffixé** s'il est déjà pris (« Veille »,
+puis « Veille 2 ») plutôt que refusé. La troisième issue n'apparaît pas sur la
+page web autonome, qui n'a qu'une collection.
+
+Dans une collection de **navigation privée**, « Remplacer » ne remplace que les
+liens : son nom est un libellé, et sa note n'existe pas. Le panneau le dit avant
+le clic.
 
 Ce qui se passe ensuite :
 
@@ -156,13 +247,100 @@ Ce qui se passe ensuite :
 - dans un CSV, les colonnes sont retrouvées **par leur nom**, pas par leur
   position : réordonner les colonnes dans un tableur ne casse rien, et les
   colonnes facultatives (Note, URL courte) sont prises quand elles existent ;
-- le **nom de collection** n'est pas repris d'une archive : il reste celui de la
-  session en cours.
+- le **nom de collection** du fichier sert à l'import : il nomme la collection
+  nouvelle, et il remplace le vôtre — avec la note — quand vous choisissez
+  « Remplacer ». Un CSV n'en porte aucun : il ne décrit que des liens.
 
 Un fichier d'un autre type est refusé avec la liste des formats attendus, par
 exemple : « Import impossible : « notes.txt » n'est pas un format reconnu.
 Formats acceptés : l'archive JSON du bouton « Archive », le dossier d'étiquettes
 (.zip) ou son export.json, ou un CSV exporté d'ici. »
+
+## Plusieurs collections
+
+Les liens se rangent en collections. Dans la fenêtre de l'extension, le nom de la
+collection courante est encadré de deux flèches : elles passent à la précédente ou
+à la suivante. Ce que vous enregistrez — par le bouton ou par le clic droit — va
+dans **celle qui est affichée**, sans rien demander : c'est le geste courant, et il
+ne doit pas coûter un choix.
+
+La fenêtre ne fait que parcourir : elle ne crée, ne renomme et ne supprime rien.
+C'est délibéré — ces gestes demandent un nom, une note, et la place de les relire,
+ce qu'une colonne de 380 px n'offre pas. Tout se fait donc dans l'application, où
+le sélecteur **« Collection affichée »** fait la même chose que les flèches, et où
+les boutons **« Nouvelle »** et **« Supprimer »** vont plus loin :
+
+- **Nouvelle** crée une collection nommée « Nouvelle collection », puis
+  « Nouvelle collection 2 », etc. Le champ du nom prend le focus juste après :
+  on nomme ce qu'on vient de créer.
+- **Supprimer** demande confirmation, et annonce **combien de liens seront
+  perdus** — une collection emporte ses liens. Le bouton se désarme tout seul
+  après cinq secondes. **Toutes les collections se suppriment, sauf la
+  dernière** : la collection par défaut n'a rien de particulier, et la garder
+  quand une autre existe obligerait à créer une collection pour pouvoir se
+  débarrasser de la première. Ce qui ne peut pas arriver, c'est qu'il n'en reste
+  aucune — la fenêtre et l'application n'auraient plus où enregistrer.
+- Le **nom** et la **note** portent sur la collection affichée. Le nom devient le
+  titre des exports Markdown, de la planche et du tableau ; il est repris dans le
+  nom des fichiers.
+- Le nom peut être **vidé**. Un champ vide est un nom vide, enregistré comme tel,
+  et non une correction perdue : la collection s'affiche alors dans la liste et
+  titre ses exports sous le libellé intégré, **« Mes liens »**, et l'aide sous le
+  sélecteur le rappelle. Le vide se distingue donc de « non renommée » par ce
+  qu'il dit à l'écran, pas par ce qu'il stocke.
+
+Une même adresse peut figurer dans deux collections : c'est le sens du rangement.
+En revanche, dans une collection donnée, un doublon reste un doublon — un clic
+droit sur une page déjà enregistrée y met à jour le titre, il n'ajoute pas une
+seconde ligne.
+
+### Déplacer des liens d'une collection à l'autre
+
+Cochez un ou plusieurs liens dans la liste : un bouton **« Déplacer vers… »**
+apparaît dans la barre, à côté de « Réorganiser ». Il n'est là que lorsqu'il y a
+une sélection — décochez la dernière case et il disparaît —, et il ne propose que
+les **autres** collections : on ne déplace pas des liens là où ils sont déjà.
+
+Le choix s'ouvre sous le bouton, une collection par ligne. `Échap` referme sans
+rien déplacer.
+
+Ce que le déplacement fait, et ne fait pas :
+
+- **il ne recopie pas le lien** : l'enregistrement garde son identifiant, sa date
+  de collecte, ses tags, sa note et son raccourci, et change seulement de
+  collection ;
+- **le rang ne suit pas** : un rang appartient au rangement de la collection
+  qu'on quitte. Le lien arrive sans rang, et suit donc la date, comme tout lien
+  jamais rangé ;
+- **une adresse déjà présente fusionne** : si la collection d'arrivée contient
+  déjà cette adresse, le titre en place est corrigé si celui qu'on apporte est
+  différent, et la copie disparaît. Jamais deux fois la même adresse dans une
+  collection ;
+- le message de confirmation dit combien de liens sont partis, et vers quelle
+  collection.
+
+### La collection de navigation privée
+
+Dans une fenêtre privée, une collection de plus apparaît : **Navigation privée**,
+et c'est elle qui est ouverte d'emblée. Elle n'existe nulle part ailleurs.
+
+Ses liens vivent **en mémoire**, pour la durée de la session : ils ne sont pas
+écrits sur le disque, et ils disparaissent à la fermeture du navigateur. Un
+bandeau le rappelle tant qu'elle est affichée. C'est ce que la navigation privée
+laisse attendre ; une collection privée conservée sur le disque serait un fichier
+d'URL privées, exactement ce qu'on ne veut pas.
+
+Deux conditions pour la voir :
+
+- le navigateur doit autoriser l'extension **en navigation privée** (dans Chrome :
+  la page des extensions, « Autoriser en navigation privée ») ;
+- le stockage de session doit exister — Chrome 102 et Safari 16.4, la version
+  minimale du projet. Sur un navigateur plus ancien, la collection privée n'est
+  pas proposée du tout, plutôt que d'être conservée sur le disque à votre insu.
+
+Si vous enregistrez un lien privé dans une **autre** collection, il est conservé
+comme les autres — et la fenêtre le dit, puisque c'est une décision qui vous
+appartient.
 
 ## Raccourcir, en option
 
@@ -170,11 +348,18 @@ Le bloc « Raccourcir les liens » se trouve sous la barre de recherche. Le cham
 « Service » ne sert qu'à choisir **qui** raccourcit : pour obtenir un lien plus
 court, le bouton « Raccourcir » suffit, sans rien régler.
 
-1. Laissez le service sur **TinyURL — recommandé**, le choix proposé d'emblée.
-   Les autres disent en clair ce qu'ils changent — *is.gd — sans statistiques*,
-   *v.gd — avertissement avant redirection*, *spoo.me — statistiques de clics*.
-   Aucun ne demande de clé d'API ; on peut en changer plus tard, le prochain
-   raccourcissement repartira du service retenu.
+1. Le service proposé d'emblée est **T.LY — lien plus court**. Les autres disent
+   en clair ce qu'ils changent — *TinyURL — liens durables*, *is.gd — sans
+   statistiques*, *v.gd — avertissement avant redirection*, *spoo.me —
+   statistiques de clics*. Aucun ne demande de clé d'API ; on peut en changer plus
+   tard, le prochain raccourcissement repartira du service retenu. Les liens créés
+   par T.LY depuis l'extension sont anonymes : ils ne sont rattachés à aucun
+   compte T.LY.
+   Sous cette phrase, quand T.LY est le service retenu, un lien **« Créer un
+   compte T.LY (parrainage) »** ouvre la page d'inscription de T.LY. Le projet est
+   crédité si vous passez par là — d'où le mot « parrainage » dans le libellé.
+   Rien ne change pour autant dans ce qui est envoyé : le raccourcissement reste
+   anonyme, et le parrainage ne se déclenche que si vous suivez ce lien.
 2. Cochez les liens voulus — sans rien cocher, le bouton porte sur toute la
    collection.
 3. Cliquez « Raccourcir ». Un second clic annule le lot en cours.
@@ -213,7 +398,11 @@ Quatre onglets, quatre usages.
 
 Pour les planches autocollantes A4 et Letter. Deux familles de dispositions :
 
-- **génériques** — des grilles géométriquement valides, à régler vous-même ;
+- **génériques** — des grilles géométriquement valides, à régler vous-même. La
+  première, proposée d'emblée, est une **A4 3 × 4** (63,5 × 69,1 mm) : huit
+  rangées ne laissaient que 33,9 mm de haut, où le QR Code et deux lignes de texte
+  se disputaient la place — chaque réglage en corrigeait un autre, et l'étiquette
+  finissait coupée ;
 - **références commerciales** — les cotes publiées pour ces produits :
 
 | Référence | Grille | Étiquette | Papier |
@@ -399,7 +588,7 @@ Code, la taille du texte, ce qui s'imprime sous lui, et la bordure de découpe.
 | **Décalage horizontal / vertical** | déplace toute la grille, sans la modifier |
 
 La phrase sous ces champs annonce le résultat, avec vos chiffres : « Taille des
-étiquettes déduite de ces six valeurs : 63,5 × 33,9 mm, 3 × 8 par feuille. », et
+étiquettes déduite de ces six valeurs : 63,5 × 69,1 mm, 3 × 4 par feuille. », et
 ajoute « Décalage appliqué : 1,5 mm vers la droite et 3,5 mm vers le bas. » si
 vous avez saisi un décalage — c'est ce qui explique une grille qui ne tombe pas
 où vous l'attendiez.
@@ -678,7 +867,7 @@ Le chemin le plus court vers n'importe quelle étiqueteuse. Choisissez :
 - **Format d'étiquette** — Niimbot D110 / M2 / M3 ; Brother QL DK-11201,
   DK-11202, DK-11208, DK-11209, DK-11218, DK-11219, DK-22205, DK-22210 ;
   Dymo LabelWriter 54 × 32 et 54 × 101 mm ; Zebra 2 et 4 × 6 pouces ; génériques
-  50 × 30 et 70 × 40 mm ; planche A4 3 × 8 ;
+  50 × 30 et 70 × 40 mm ; planche A4 **3 × 4** — le format proposé d'emblée ;
 - **Marge**, **taille du texte**, **traits de coupe** ;
 - **Contenu de l'étiquette** — des cases qui se cumulent : le numéro du lien, le
   titre, l'URL, le domaine, la date de collecte, et l'heure avec la date. Le

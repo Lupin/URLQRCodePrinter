@@ -16,6 +16,13 @@
  * | `export.json` seul | les mêmes |
  * | CSV exporté | URL, titre, tags, note, date — la colonne « Domaine » est ignorée |
  *
+ * Le **nom et la note de la collection** sont relevés quand le fichier les
+ * porte : l'archive JSON les met dans `collection`, le manifeste du dossier
+ * d'étiquettes dans `title`. Un CSV n'en porte aucun — ses colonnes décrivent
+ * des liens, pas l'ensemble — et rend donc une collection sans nom. C'est à
+ * l'appelant de décider ce qu'il en fait : les reprendre pour remplacer la
+ * collection affichée, nommer une collection nouvelle, ou les ignorer.
+ *
  * Toutes les fonctions sont pures : aucune lecture disque, aucun DOM. C'est ce
  * qui les rend testables, et c'est aussi ce qui impose à l'appelant de fournir
  * le contenu du fichier.
@@ -24,9 +31,42 @@
 import { readStoredZip } from './zip.js';
 import { createLink } from './link.js';
 import { t } from './i18n.js';
+import { COLLECTION_NAME_MAX, COLLECTION_NOTE_MAX } from './collections.js';
 
 /** Formes d'archive reconnues. */
 export const IMPORT_KINDS = Object.freeze(['links', 'labels', 'csv']);
+
+/** Aucune collection décrite par le fichier : ni nom, ni note. */
+const SANS_COLLECTION = Object.freeze({ name: '', note: '' });
+
+/**
+ * Nom et note de collection portés par un fichier relu.
+ *
+ * Deux emplacements, parce que l'application écrit les deux : l'archive de liens
+ * range les métadonnées dans `collection`, le manifeste des étiquettes les met à
+ * plat dans `title`. Un fichier écrit à la main qui porterait les deux est lu
+ * dans l'ordre ci-dessous — la forme la plus explicite d'abord.
+ *
+ * Les valeurs sont nettoyées et bornées ici, comme elles le seraient à la
+ * saisie : ce qui entre par un fichier ne doit pas pouvoir dépasser ce qu'un
+ * champ accepte.
+ *
+ * @param {any} parsed
+ * @returns {{ name: string, note: string }}
+ */
+function collectionFrom(parsed) {
+  const source = parsed?.collection && typeof parsed.collection === 'object'
+    ? parsed.collection
+    : {};
+  const nom = typeof source.name === 'string'
+    ? source.name
+    : (typeof parsed?.title === 'string' ? parsed.title : '');
+  const note = typeof source.note === 'string' ? source.note : '';
+  return {
+    name: nom.trim().slice(0, COLLECTION_NAME_MAX),
+    note: note.trim().slice(0, COLLECTION_NOTE_MAX),
+  };
+}
 
 /**
  * Erreur d'import, avec un message qui dit ce qui était attendu.
@@ -44,7 +84,7 @@ function unrecognised(detail) {
  * Lit l'archive JSON complète, produite par `toJson`.
  *
  * @param {string} text
- * @returns {{ kind: string, records: object[] }}
+ * @returns {{ kind: string, records: object[], collection: { name: string, note: string } }}
  */
 function fromJson(text) {
   let parsed;
@@ -54,10 +94,12 @@ function fromJson(text) {
     throw unrecognised(t('Fichier illisible : {message}.', { message: error.message }));
   }
 
-  if (Array.isArray(parsed)) return { kind: 'links', records: parsed };
+  if (Array.isArray(parsed)) return { kind: 'links', records: parsed, collection: SANS_COLLECTION };
 
   // Archive de liens : le cas nominal.
-  if (Array.isArray(parsed?.links)) return { kind: 'links', records: parsed.links };
+  if (Array.isArray(parsed?.links)) {
+    return { kind: 'links', records: parsed.links, collection: collectionFrom(parsed) };
+  }
 
   // Manifeste du dossier d'étiquettes : `labels[].url` porte la destination
   // imprimée, et `originalUrl` l'adresse d'origine quand elle a été raccourcie.
@@ -75,6 +117,10 @@ function fromJson(text) {
             shortProvider: shortened ? 'import' : '',
           };
         }),
+      // Le manifeste ne décrit pas une collection, mais les liens qu'il porte
+      // en viennent : son `title` est celui de la collection au moment de
+      // l'export, et c'est ce qui permet de la retrouver par son nom.
+      collection: collectionFrom(parsed),
     };
   }
 
@@ -186,7 +232,7 @@ export function parseExportedDate(value) {
  * facultatives (« Note », « URL courte ») sont prises quand elles sont là.
  *
  * @param {string} text
- * @returns {{ kind: string, records: object[] }}
+ * @returns {{ kind: string, records: object[], collection: { name: string, note: string } }}
  */
 function fromCsv(text) {
   const rows = parseCsvRows(text).filter((row) => row.some((cell) => cell.trim() !== ''));
@@ -241,14 +287,22 @@ function fromCsv(text) {
   }
 
   if (records.length === 0) throw unrecognised('CSV sans URL exploitable.');
-  return { kind: 'csv', records };
+  // Un CSV ne décrit que des liens : ses colonnes ne portent ni nom ni note de
+  // collection, et en inventer un serait pire que de n'en proposer aucun.
+  return { kind: 'csv', records, collection: SANS_COLLECTION };
 }
 
 /**
  * Prépare les enregistrements à partir d'un fichier importé.
  *
+ * `collection` dit ce que le fichier raconte de la collection dont il vient —
+ * son nom, sa note. Vide quand il n'en dit rien, ce qui est le cas de tout CSV :
+ * c'est à l'appelant d'en tenir compte, et non à cette fonction de décider ce
+ * qu'on fait de la collection affichée.
+ *
  * @param {{ text?: string, bytes?: Uint8Array, name?: string }} file
- * @returns {{ kind: string, records: object[], notes: string[] }}
+ * @returns {{ kind: string, records: object[], notes: string[],
+ *   collection: { name: string, note: string } }}
  * @throws {TypeError} si le fichier n'est pas une archive reconnue.
  */
 export function parseImportFile(file) {

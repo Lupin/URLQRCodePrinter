@@ -28,8 +28,9 @@ share.
 | Niimbot protocol (frames, D110 / M2 / M3 profiles) | done, tested |
 | Web Bluetooth transport + D110 / M2 / M3 print session | done, tested, **printed on a real D110** |
 | Brave / Chrome extension (right-click, popup, clickable links) | done, verified in Brave and in Chrome |
+| **Chrome Web Store listing** | **published** — `0.1.0` live; see [the listing notes](docs/chrome-web-store.md) before shipping an update |
 | Standalone web app (list, exports, layouts) | done, verified in Brave |
-| Optional URL shortening (TinyURL, is.gd, v.gd, spoo.me) | done, verified in Brave |
+| Optional URL shortening (T.LY first, then TinyURL, is.gd, v.gd, spoo.me) | done, verified in Brave |
 | Avery A4 and Letter sheets, print calibration | done, geometry checked against published dimensions |
 | Niimbot label preview with no printer connected | done, verified in Brave |
 | Safari extension — multiplatform Xcode project | generated, **compiles for macOS** |
@@ -38,7 +39,7 @@ share.
 | Native Swift core (protocol, session, CoreBluetooth) | done, tested |
 | iOS app that uses that core | to do |
 
-**956 tests, all green** — 852 in JavaScript and 104 in Swift — including:
+**1146 tests, all green** — 1042 in JavaScript and 104 in Swift — including:
 
 - **byte-for-byte** validation of the Niimbot frames against the documented
   records, **in both languages**: two independent implementations that
@@ -56,7 +57,10 @@ share.
   margins and gaps, for A4 as well as for Letter;
 - the **QR Code bounds** per print type: the slider value is computed before
   rendering, and the text wrapping that follows from it is verified line by
-  line.
+  line;
+- the **wording of the two public pages**: the same number of blocks in each
+  language, the French non-breaking spaces, and the printer and shortener names
+  read from the product instead of recopied.
 
 **The app is verified in a real browser**: `npm run verify:brave` launches
 Brave on an isolated profile, collects a link, shortens it, exports the CSV and
@@ -178,6 +182,46 @@ label is derivable, so it is not kept.
 
 Every write is a transaction awaited to completion, so "added" means committed,
 not queued.
+
+### Collections, and the one that is never written
+
+Links are filed in **collections**. A record carries a `collectionId`; a record
+without one belongs to the default collection — which is how links saved before
+collections existed keep working, without rewriting a single one of them. The
+list of collections lives in `url-qr-code-printer/collections`, and each surface
+works through a store bounded to one collection (`withCollection`), so no list
+can mix two of them by oversight.
+
+**Each collection has its own first number.** Numbering continues a series — a
+batch of boxes numbered 101 to 120, cleared, then 121 next time — and that
+gesture belongs to the collection being filed, not to the application: several
+series can therefore run side by side. The field belongs to the displayed
+collection, and setting it changes nothing elsewhere.
+
+**Every collection can be deleted except the last one.** The default collection
+is nothing special in that respect: keeping it while another exists would force
+you to create a collection just to get rid of the first. And it is synthesised
+only when the list is empty — re-injecting it whenever it is missing would make
+it immortal, so deleting it would appear to work and then undo itself on the
+next read.
+
+**An empty name is a name, not a refusal.** Emptying the name field wrote
+nothing: the previous name stayed in the document, the list kept showing it, and
+nothing on screen said the correction had been lost. `rename` now accepts the
+empty name, and the display falls back to the built-in label — "Mes liens",
+translated at display time and never written. An empty name takes no part in the
+duplicate check: two unnamed collections remain two collections. `create` still
+requires one, because the button that creates a collection always proposes one.
+
+The private-browsing collection is the exception, and it is built that way:
+it is never persisted in `chrome.storage.local`. Its links go to
+`chrome.storage.session` under `links/private` — in memory, for the length of
+the session — through a composite store that routes each write by collection.
+There is no code path that writes a private URL to disk. Where `storage.session`
+does not exist (Chrome before 102, Safari before 16.4), the collection is not
+offered at all: better an absent feature than a false promise. And being in a
+private window is not enough to make it appear — the window has to be allowed to
+run the extension.
 
 What local-only costs is not space but loss. Uninstall the extension, or clear
 your browsing data, and the collection is gone. The only backup is the Archive
@@ -492,17 +536,38 @@ compressed entry is reported rather than rendered wrongly.
 
 Three rules, decided so that import never does damage:
 
-1. **it adds, it does not replace** — the current collection is kept;
+1. **it adds**, it does not replace on its own: the current collection is kept,
+   and that was the only mode before the choice below;
 2. **a duplicate is ignored**, not merged: re-importing the same archive twice
    creates nothing, and the message distinguishes "already present" from
    "unreadable" rather than announcing a failure;
 3. **an unreadable row does not fail the rest**: it is counted.
 
+**And it asks where to file**, because none of the outcomes is a good default.
+The file is read first — so the panel can state what it carries — and three
+choices are then offered, named after the collections involved:
+
+- **merge**: the links join the displayed collection, which keeps its name and
+  note;
+- **replace**: the displayed collection is emptied first, then its name and note
+  are taken from the file — `parseImportFile` reads them (`collection.name`,
+  `collection.note` in a links archive, `title` in a label manifest) — and
+  emptied when the file carries none;
+- **new collection**: it is created with the file's name, suffixed when already
+  taken (`freeCollectionName`, in `core/collections.js`), and the links are filed
+  there without touching the displayed collection.
+
+Nothing is written before the choice: cancelling leaves no trace. A CSV describes
+links only — no name, no note — and the panel says so before "Replace" empties
+them.
+
 A test safeguard accompanies this: `test/web.test.js` verifies that **every
 name imported by `app.js` is indeed exported by the target module**. It was
 born from a real error — `parseImportFile` called without having been imported
 — that no startup test could see, since the function body is never executed at
-load time.
+load time. The filing choice itself is executed for real in
+`test/web-import.test.js`: a static check would say that the three commands
+exist, not what they do.
 
 ## Dating a label: an option, never a fragment
 
@@ -574,6 +639,12 @@ yourself, and **commercial references** whose dimensions are reproduced as the
 manufacturers publish them — Avery L7160, L7159, L7162, L7163, Zweckform 3475
 on A4, and 5160 / 5162 / 5163 / 6871 on Letter.
 
+The first generic grid, offered from the start, is an **A4 3 × 4**
+(63.5 × 69.1 mm). The older 3 × 8 leaves 33.9 mm of height, where the QR Code and
+two lines of text fight for room: every setting fixes another, and the label ends
+up cut. Four rows give 69.1 mm, so the QR Code keeps its readable size and the
+text keeps its lines. It is also the format the automatic layout starts from.
+
 Two design points deserve to be known before touching this code.
 
 **Margins locate the corner of the first label**, they are not symmetric. On an
@@ -620,6 +691,38 @@ whole grid, without modifying it. And the paper size is set dynamically
 (`@page`), without which a Letter sheet would go out on A4, hence scaled down
 and offset.
 
+## A search-engine address is not the page it points to
+
+The case is ordinary, and it was reported as such: search "wikipedia qrcode" on
+Google, right-click the Wikipedia result, "Add this link to URLQRCodePrinter".
+The icon counter goes up — the link was indeed added — but the list contains no
+row that looks like what was just clicked.
+
+The reason is that Google does not expose the destination in `info.linkUrl`: the
+click targets an **envelope** of the engine,
+`google.com/url?q=<destination>&sa=U&ved=…`. Saved as is, that address has three
+defects, all visible:
+
+- the list reads "google.com" next to a link leading to Wikipedia: the title is
+  the host, and it is the host of the envelope;
+- the QR Code encodes an address two to three times longer, hence denser, and it
+  no longer fits on a narrow label;
+- the same page, added later from the address bar, does not look like the same
+  link: it enters the collection a second time.
+
+`normalizeUrl` therefore unwraps the known redirects — Google (`q`, `url`), Bing
+(`u`, base64url), DuckDuckGo (`uddg`) — and the destination then goes through the
+ordinary normalization: campaign parameters stripped, fragment stripped. The
+unwrapping is **bounded** (four hops, addresses already seen remembered) and only
+accepts an absolute http(s) destination: a relative value or a `javascript:` leaves
+the envelope in place, rather than letting anything but a web link into the
+collection. The engine table is **deliberately short**: each entry is a
+third-party convention that can change without notice, and an engine that is
+absent keeps its original address.
+
+The title of a right-click capture follows the same rule
+(`unwrapRedirectUrl`): "fr.wikipedia.org", not "google.com".
+
 ## Shortening URLs, and opening the collected links
 
 Two features that answer each other, around the same question: which address
@@ -636,14 +739,19 @@ page, and a `javascript:` has no business there.
 selection, or the whole collection if nothing is checked — to a third-party
 service, and stores the result next to the original URL.
 
-The "Service" field does not ask you to arbitrate between four brands: its
-label says what each service changes for ordinary use, and **TinyURL —
-recommended** is offered from the start. Anyone who just wants a shorter link
-clicks "Shorten" without touching the setting.
+The "Service" field does not ask you to arbitrate between five brands: its
+label says what each service changes for ordinary use, and **T.LY** is offered
+from the start. Anyone who just wants a shorter link clicks "Shorten" without
+touching the setting. The help under the field reads, in plain sentences: choose
+a service, click Shorten, nothing changes until you do; T.LY is offered by
+default and the link stays anonymous; another service is one click away.
+Following the T.LY sign-up link from there credits the project — the label says
+"referral" rather than hiding it — and it changes nothing in what is sent when
+you shorten a link.
 
 | Service | Displayed label | API key | Note |
 |---|---|---|---|
-| TinyURL | TinyURL — recommended | none | default; HTTPS, durable links |
+| T.LY | T.LY (default) — shorter link | none | default; anonymous links, extension origins only |
 | is.gd | is.gd — no statistics | none | volunteer service, regularly unavailable |
 | v.gd | v.gd — warning before redirect | none | same infrastructure as is.gd, with a warning page |
 | spoo.me | spoo.me — click statistics | none | answers over HTTP, brought back to HTTPS |
@@ -651,6 +759,13 @@ clicks "Shorten" without touching the setting.
 None of these services requires an additional host permission: their response
 carries a permissive CORS header. That is deliberate — a tool that reads the
 URLs of all your tabs should not ask for more permissions than necessary.
+
+T.LY is the only one whose anonymous use depends on the **calling origin**: it
+answers a request coming from an extension origin, and refuses one coming from a
+plain web page. The standalone web app therefore preselects TinyURL, and T.LY
+stays selectable there with a message that says why it cannot answer. Links it
+creates are anonymous: they are not attached to any T.LY account, and the
+extension reads no statistics.
 
 Three safeguards, because a printed link commits you over time:
 
@@ -682,6 +797,7 @@ npm run test:all   # both
 
 npm run verify:brave  # full run in Brave, on an isolated profile
 npm run verify:chrome # exercises the window in the real Chrome, with measurements
+npm run verify:menu   # a right-click add, from the service worker to the app
 npm run verify:safari # run of the extension page in the real Safari
 ```
 
@@ -718,6 +834,8 @@ built fails with an explicit message.
 
 ## Reference documents
 
+- [CHANGELOG.md](CHANGELOG.md) — the changelog, and the source of the release note
+  filed on the store ([in French](CHANGELOG.fr.md)).
 - [docs/guide.md](docs/guide.md) — the complete path, from collection to
   printing: shortening, Avery sheets and their calibration, offline Niimbot
   preview, exports without a printer, troubleshooting.
@@ -804,7 +922,7 @@ exists in French and English. Before opening a pull request:
 
 ```bash
 npm install
-npm run test:all   # 852 JavaScript tests + 104 Swift tests
+npm run test:all   # 1042 JavaScript tests + 104 Swift tests
 ```
 
 The repository conventions — a core with no DOM and no implicit network, zero

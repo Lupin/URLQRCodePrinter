@@ -76,8 +76,14 @@ function collectKeys() {
   // Les libellés de la liste déroulante vivent dans le catalogue des services,
   // pas dans un appel `t()` littéral : sans ce relevé, une traduction manquante
   // ne se verrait qu'à l'affichage, en anglais, sous la forme du texte français.
+  // Les phrases de `explain` — le message montré quand un service refuse une
+  // origine, comme T.LY hors extension — relèvent du même angle mort.
   for (const shortener of SHORTENERS) {
     if (shortener.label) keys.add(shortener.label);
+    // La note technique est affichée en infobulle de l'option, et dans l'aide
+    // sous le sélecteur — donc lue par l'utilisateur.
+    if (shortener.note) keys.add(shortener.note);
+    for (const phrase of Object.values(shortener.explain ?? {})) keys.add(phrase);
   }
 
   // **Même angle mort pour toutes les autres listes.** Un libellé déclaré dans un
@@ -288,15 +294,25 @@ test('le manifeste et les deux catalogues de langue sont complets', () => {
   assert.match(manifest.action.default_title, /^__MSG_/);
 });
 
-test('les deux interfaces offrent le sélecteur de langue', () => {
-  for (const relative of HTML_FILES) {
-    const html = readFileSync(join(ROOT, relative), 'utf8');
-    assert.match(html, /id="locale"/, relative + ' : sélecteur absent');
-  }
-  for (const relative of ['src/extension-src/popup.js', 'src/web/app.js']) {
-    const source = readFileSync(join(ROOT, relative), 'utf8');
-    assert.match(source, /setLocale\(/, relative + ' : changement non branché');
-  }
+test("l'application porte le choix de langue, et la fenêtre le suit", () => {
+  // Le réglage vit dans l'application, et **à un seul endroit** : un second
+  // sélecteur dans une fenêtre de 380 px l'encombrait pour un choix qu'on ne
+  // fait qu'une fois. La fenêtre, elle, lit la langue mémorisée — dans
+  // `chrome.storage.local`, que le service worker relit aussi pour ses menus.
+  const application = readFileSync(join(ROOT, 'src/web/index.html'), 'utf8');
+  assert.match(application, /id="locale"/, "l'application doit offrir le sélecteur");
+  assert.match(
+    readFileSync(join(ROOT, 'src/web/app.js'), 'utf8'),
+    /setLocale\(/,
+    'le changement de langue n\'est pas branché dans l\'application',
+  );
+
+  const fenetre = readFileSync(join(ROOT, 'src/extension-src/popup.html'), 'utf8');
+  assert.doesNotMatch(fenetre, /id="locale"/, 'la fenêtre ne doit plus offrir le sélecteur');
+  const scriptFenetre = readFileSync(join(ROOT, 'src/extension-src/popup.js'), 'utf8');
+  assert.doesNotMatch(scriptFenetre, /setLocale\(/, 'la fenêtre règle encore la langue');
+  // Elle la **suit** : la page d'information dépend de la langue affichée.
+  assert.match(scriptFenetre, /getLocale\(\)/);
 });
 
 test('les menus contextuels suivent la langue', async () => {

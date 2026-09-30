@@ -15,7 +15,26 @@
  *
  * Ce module est pur : le réseau est injecté via `options.fetch`, ce qui permet
  * de le tester sans sortir de la machine. Aucun service n'est appelé au
- * chargement de la page — uniquement sur action explicite.
+ * chargement de la page — uniquement sur action explicite. Cette règle vaut
+ * aussi pour T.LY, désormais proposé d'emblée : présélectionner un service ne
+ * raccourcit rien, et le QR Code encode l'URL collectée tant que l'utilisateur
+ * n'a pas cliqué sur le bouton de raccourcissement.
+ *
+ * ## T.LY, et pourquoi il est le seul service à dépendre de l'origine
+ *
+ * T.LY accepte un raccourcissement **sans clé d'API**, mais uniquement quand la
+ * requête vient d'une origine d'extension (`chrome-extension://`,
+ * `safari-web-extension://`, `moz-extension://`) : la même requête depuis une
+ * page web ordinaire reçoit un `403`. Mesuré le 29 septembre 2026, sur les
+ * quatre cas — origine d'extension acceptée, origine web refusée, absence
+ * d'`Origin` refusée, jeton invalide ignoré. La réponse porte
+ * `access-control-allow-origin` sur l'origine appelante, donc aucune permission
+ * d'hôte supplémentaire n'est nécessaire, et le quota annoncé est de 50
+ * requêtes (`x-ratelimit-limit`).
+ *
+ * Deux conséquences, tenues par le code plutôt que par un commentaire :
+ * `defaultShortenerId()` ne propose T.LY que là où il peut répondre, et un
+ * refus y reçoit une phrase lisible plutôt qu'un code de statut.
  */
 
 import { normalizeUrl, isValidUrl, isSameTarget } from './link.js';
@@ -115,14 +134,51 @@ function excerpt(text) {
  * `label` est le texte montré dans la liste déroulante. Il ne dit pas ce que le
  * service *est* (`note`, réservé à l'infobulle et à la documentation) mais ce
  * qu'il **change pour l'utilisateur** : quelqu'un qui veut seulement un lien
- * plus court doit pouvoir choisir sans connaître ces quatre marques. D'où le
- * « recommandé » sur le premier, et un différenciateur concret sur les autres.
+ * plus court doit pouvoir choisir sans connaître ces marques. D'où le
+ * « (défaut) » sur le premier, et un différenciateur concret sur les autres.
+ *
+ * `extensionOnly` signale un service qui ne répond que depuis une origine
+ * d'extension (T.LY). `explain` remplace le message technique du service par
+ * une phrase lisible, pour les statuts où la réponse brute ne dit rien
+ * d'utilisable — un « 403 » n'apprend rien à qui veut seulement un lien court.
  */
 export const SHORTENERS = Object.freeze([
   {
+    id: 'tly',
+    name: 'T.LY',
+    label: 'T.LY (défaut) — lien plus court',
+    site: 'https://t.ly',
+    note: 'Lien plus court, servi par t.ly. Les liens créés ici sont anonymes : ils ne sont rattachés à aucun compte T.LY.',
+    spacingMs: 700,
+    upgradeToHttps: false,
+    extensionOnly: true,
+    explain: {
+      403: 'T.LY n\'accepte un lien anonyme que depuis l\'extension. Choisissez un autre service, ou passez par la fenêtre de l\'extension.',
+    },
+    /**
+     * @param {string} url
+     * @returns {{ url: string, init: RequestInit }}
+     */
+    build(url) {
+      return {
+        url: 'https://api.t.ly/api/v1/link/shorten',
+        init: {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Accept: 'application/json',
+          },
+          // Le service attend `long_url` : `url` répondrait
+          // « The long url field is required. » (422).
+          body: JSON.stringify({ long_url: url }),
+        },
+      };
+    },
+  },
+  {
     id: 'tinyurl',
     name: 'TinyURL',
-    label: 'TinyURL — recommandé',
+    label: 'TinyURL — liens durables',
     site: 'https://tinyurl.com',
     note: 'Sans clé d\'API, HTTPS, liens durables. Service commercial.',
     spacingMs: 500,
@@ -187,8 +243,56 @@ export const SHORTENERS = Object.freeze([
   },
 ]);
 
-/** Service utilisé par défaut : le plus fiable des quatre à ce jour. */
-export const DEFAULT_SHORTENER = 'tinyurl';
+/** Service utilisé par défaut : T.LY, le seul qui raccourcisse sans clé ni compte. */
+export const DEFAULT_SHORTENER = 'tly';
+
+/**
+ * Adresse du programme d'affiliation T.LY.
+ *
+ * Le lien « Créer un compte T.LY » apparaît sous le sélecteur quand elle est
+ * remplie, et lui seul l'utilise : **aucune donnée envoyée au service ne
+ * change**. L'identifiant de parrainage ne part que si l'utilisateur suit ce
+ * lien, et le libellé le dit — « (parrainage) » — plutôt que de le taire. Un
+ * raccourcissement reste anonyme, avec ou sans ce lien.
+ *
+ * Le parrainage n'a donc rien d'un pistage : il ne se déclenche pas à
+ * l'installation, ni au premier raccourcissement, mais sur un clic explicite,
+ * vers une page dont c'est l'objet.
+ */
+export const TLY_AFFILIATE_URL = 'https://t.ly/register?via=gael';
+
+/**
+ * Le code tourne-t-il dans une extension ?
+ *
+ * `chrome.runtime.id` n'existe que dans une page d'extension : une page web
+ * ordinaire expose bien `window.chrome` sur les navigateurs Chromium, mais sans
+ * `runtime`. C'est donc le seul test fiable, et il décide du service proposé
+ * d'emblée — T.LY refuse les origines web ordinaires.
+ *
+ * @param {any} [scope]
+ * @returns {boolean}
+ */
+export function hasExtensionRuntime(scope = globalThis) {
+  const runtime = scope?.chrome?.runtime ?? scope?.browser?.runtime;
+  return typeof runtime?.id === 'string' && runtime.id !== '';
+}
+
+/**
+ * Service proposé d'emblée, selon l'environnement.
+ *
+ * T.LY là où il peut répondre — c'est-à-dire dans l'extension — et le premier
+ * service qui fonctionne depuis n'importe quelle origine ailleurs. Le choix
+ * reste modifiable, et ce n'est qu'une présélection : changer de service
+ * n'écrit rien d'autre que la préférence.
+ *
+ * @param {boolean} [isExtension]
+ * @returns {string}
+ */
+export function defaultShortenerId(isExtension = hasExtensionRuntime()) {
+  if (isExtension) return DEFAULT_SHORTENER;
+  const portable = SHORTENERS.find((shortener) => !shortener.extensionOnly);
+  return portable ? portable.id : DEFAULT_SHORTENER;
+}
 
 /**
  * Retrouve un service par son identifiant.
@@ -263,7 +367,18 @@ export function parseShortResponse(text, status, shortener, originalUrl) {
     new ShortenError(message, code, { provider: shortener.id, status });
 
   if (status < 200 || status >= 300) {
-    throw fail(`${shortener.name} a répondu ${status} (${excerpt(text)})`, 'http');
+    // Un statut hors 2xx donne le message générique du service, sauf quand le
+    // catalogue en déclare un meilleur : « T.LY a répondu 403 (Invalid
+    // request…) » est exact et inutilisable, là où la phrase de `explain` dit
+    // quoi faire. Le code d'erreur, lui, ne change pas — c'est encore le
+    // service qui a refusé, et c'est ce que lit la proposition de le changer.
+    const explication = shortener.explain?.[status];
+    throw fail(
+      explication
+        ? t(explication)
+        : `${shortener.name} a répondu ${status} (${excerpt(text)})`,
+      'http',
+    );
   }
 
   const body = String(text ?? '').trim();

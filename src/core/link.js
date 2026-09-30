@@ -32,6 +32,11 @@ import { t } from './i18n.js';
  *   le lien d'origine reste la source de vérité, un service tiers pouvant fermer.
  * @property {string}   shortProvider Identifiant du service qui a produit `shortUrl`.
  * @property {number}   shortenedAt Date du raccourcissement (epoch ms), 0 si jamais raccourci.
+ * @property {string}   [collectionId] Collection à laquelle le lien appartient.
+ *   Absente sur les liens enregistrés avant que les collections existent : ils
+ *   appartiennent alors à la collection par défaut (voir `collections.js`), et
+ *   on ne les réécrit pas — une migration qui toucherait chaque enregistrement
+ *   pour un champ que personne n'a demandé serait un coût sans contrepartie.
  */
 
 /** Origines reconnues. Toute autre valeur est ramenée à 'manual'. */
@@ -60,9 +65,154 @@ export function newId() {
 }
 
 /**
+ * Règles de dépliage des redirections de moteur de recherche.
+ *
+ * Un moteur enveloppe chaque résultat dans une adresse de son cru : cliquer sur
+ * « Wikipédia » dans une page de résultats donne `google.com/url?q=<destination>`
+ * et non la destination. Enregistrée telle quelle, cette adresse est longue — le
+ * QR Code s'en trouve plus dense, et ne tient plus sur une étiquette étroite —,
+ * elle porte le contexte de la recherche (`sa=U&ved=…`), et elle ne dit rien de
+ * ce qu'elle contient : la liste affiche « google.com ».
+ *
+ * Chaque règle est un hôte, un chemin, et les paramètres qui portent la
+ * destination, du plus explicite au plus ancien. La liste est **courte à
+ * dessein** : chaque entrée est une convention d'un tiers, qui peut changer sans
+ * prévenir, et une règle fausse vaut moins qu'une règle absente. Un moteur absent
+ * de cette table garde son adresse d'origine.
+ */
+const REDIRECTIONS = Object.freeze([
+  {
+    // Google : /url?q=<destination>, et /url?url=<destination> sur les anciennes
+    // pages. Le domaine varie selon le pays (google.fr, google.co.uk).
+    hote: /^(?:www\.)?google\.[a-z]{2,}(?:\.[a-z]{2})?$/i,
+    chemin: '/url',
+    parametres: ['q', 'url'],
+  },
+  {
+    // Bing : /ck/a?…&u=a1<destination en base64url>.
+    hote: /^(?:www\.)?bing\.com$/i,
+    chemin: '/ck/a',
+    parametres: ['u'],
+    base64: true,
+  },
+  {
+    // DuckDuckGo : /l/?uddg=<destination encodée>.
+    hote: /^(?:www\.)?duckduckgo\.com$/i,
+    chemin: '/l',
+    parametres: ['uddg'],
+  },
+]);
+
+/** Nombre de redirections suivies avant de garder ce qu'on a. */
+const REDIRECTIONS_MAX = 4;
+
+/**
+ * Décode la charge d'une redirection Bing : `a1` puis du base64url.
+ *
+ * Rend une chaîne vide quand la charge n'est pas du base64 : mieux vaut garder
+ * l'adresse d'origine que d'inventer une destination.
+ *
+ * @param {string} value
+ * @returns {string}
+ */
+function decodeBase64Url(value) {
+  const charge = value.replace(/^a1/, '').replace(/-/g, '+').replace(/_/g, '/');
+  if (charge === '') return '';
+  try {
+    // `atob` rend du latin-1 : on repasse par les octets, sans quoi une adresse
+    // accentuée reviendrait abîmée.
+    const binaire = atob(charge.padEnd(Math.ceil(charge.length / 4) * 4, '='));
+    const octets = Uint8Array.from(binaire, (caractere) => caractere.charCodeAt(0));
+    return new TextDecoder().decode(octets);
+  } catch {
+    return '';
+  }
+}
+
+/**
+ * La destination portée par une adresse de redirection, ou `null`.
+ *
+ * Seule une destination **http(s) absolue** est acceptée : une valeur relative,
+ * un `javascript:` ou un texte quelconque laissent l'enveloppe en place. Le
+ * contrôle est refait ici, et non supposé : c'est ce qui empêche une adresse
+ * fabriquée de faire entrer autre chose qu'un lien web dans la collection.
+ *
+ * @param {URL} parsed
+ * @returns {URL|null}
+ */
+function destinationPortee(parsed) {
+  // Un chemin se compare sans son slash final : `/l/` et `/l` sont le même.
+  const chemin = parsed.pathname.replace(/\/+$/, '') || '/';
+
+  for (const regle of REDIRECTIONS) {
+    if (!regle.hote.test(parsed.hostname) || chemin !== regle.chemin) continue;
+    for (const nom of regle.parametres) {
+      const brut = parsed.searchParams.get(nom);
+      if (brut === null || brut === '') continue;
+      const valeur = regle.base64 ? decodeBase64Url(brut) : brut;
+      if (valeur === '') continue;
+      try {
+        const cible = new URL(valeur);
+        if (cible.protocol === 'http:' || cible.protocol === 'https:') return cible;
+      } catch {
+        // Pas une adresse absolue : on essaie le paramètre suivant, et à
+        // défaut on gardera l'enveloppe.
+      }
+    }
+  }
+  return null;
+}
+
+/**
+ * Suit les redirections connues, jusqu'à la destination réelle.
+ *
+ * La boucle est **bornée** et garde les adresses déjà vues : un moteur qui
+ * renverrait vers lui-même ne doit pas faire tourner l'application
+ * indéfiniment, et une chaîne de redirections n'a aucune raison d'être plus
+ * longue que quelques sauts.
+ *
+ * @param {URL} parsed
+ * @returns {URL}
+ */
+function sansRedirection(parsed) {
+  const vues = new Set([parsed.href]);
+  let courante = parsed;
+
+  for (let saut = 0; saut < REDIRECTIONS_MAX; saut += 1) {
+    const cible = destinationPortee(courante);
+    if (!cible || vues.has(cible.href)) break;
+    vues.add(cible.href);
+    courante = cible;
+  }
+  return courante;
+}
+
+/**
+ * Déplie une adresse de redirection de moteur de recherche.
+ *
+ * Rendue telle quelle quand ce n'en est pas une, quand la destination n'est pas
+ * un lien web, ou quand l'adresse est illisible : cette fonction ne lève jamais
+ * et ne sert qu'à **améliorer** ce qu'on enregistre.
+ *
+ * @param {unknown} input
+ * @returns {string}
+ */
+export function unwrapRedirectUrl(input) {
+  if (typeof input !== 'string' || input.trim() === '') return typeof input === 'string' ? input : '';
+  try {
+    return sansRedirection(new URL(input.trim())).href;
+  } catch {
+    return input;
+  }
+}
+
+/**
  * Normalise une URL saisie ou capturée.
  *
  * - ajoute `https://` si le schéma est absent ;
+ * - **remplace une adresse de redirection de moteur de recherche par sa
+ *   destination** (`unwrapRedirectUrl`) : c'est la page visée qui est
+ *   enregistrée, et non l'enveloppe du moteur ;
  * - retire les identifiants de session et le fragment, qui n'ont pas leur place
  *   dans un QR Code imprimé (le fragment n'est jamais envoyé au serveur, et un
  *   `#` allonge inutilement la matrice) ;
@@ -96,6 +246,10 @@ export function normalizeUrl(input) {
   if (!parsed.hostname.includes('.') && parsed.hostname !== 'localhost') {
     throw new TypeError(t("Nom d'hôte invalide : {host}", { host: parsed.hostname }));
   }
+
+  // La redirection est dépliée **avant** le nettoyage : c'est la destination
+  // qui porte les paramètres de campagne à retirer, et non l'enveloppe.
+  parsed = sansRedirection(parsed);
 
   parsed.hash = '';
 
@@ -225,6 +379,12 @@ export function createLink(input, options = {}) {
     ...(Number.isFinite(input.order) ? { order: input.order } : {}),
     // Même règle : un booléen explicite est conservé, une absence le reste.
     ...(typeof input.useShort === 'boolean' ? { useShort: input.useShort } : {}),
+    // Et pour la collection : un identifiant explicite est conservé, une
+    // absence le reste. C'est cette absence qui rattache les liens déjà
+    // enregistrés à la collection par défaut, sans rien réécrire.
+    ...(typeof input.collectionId === 'string' && input.collectionId.trim() !== ''
+      ? { collectionId: input.collectionId.trim() }
+      : {}),
     source: SOURCES.includes(options.source) ? options.source
       : SOURCES.includes(input.source) ? input.source
       : 'manual',

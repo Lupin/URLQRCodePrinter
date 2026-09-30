@@ -40,6 +40,11 @@
   --border-line: #e0e0e0;
   --border-strong: #8d8d8d;
   --focus: var(--accent);
+  /* Le focus d'un champ se dit par son **fond**, et non par un anneau : voir la
+     règle `.input:focus`. Une teinte chaude, assez marquée pour se voir sur le
+     gris du panneau comme sur le blanc de l'éditeur, et le texte reste à plus de
+     12:1 dessus. */
+  --focus-fill: #f1d3bf;
 
   /* --- Propres à l'application --- */
 
@@ -77,6 +82,7 @@
 
     --border-line: #393939;
     --border-strong: #6f6f6f;
+    --focus-fill: #4a3a2c;
 
     --ok: #4ade80;
   }
@@ -221,6 +227,13 @@ body {
   .layout { grid-template-columns: minmax(0, 1fr); }
 }
 
+/* Les cadres de panneau ont été retirés : le fond `--surface` suffit à détacher
+   le panneau de la page, et un cadre autour d'un champ déjà bordé faisait deux
+   lignes pour une seule limite. Le champ garde **son** filet — c'est lui qui
+   porte le contraste de 3:1 exigé par WCAG 1.4.11 pour la limite d'un composant.
+   La structure se lit donc par le fond et par l'espacement, pas par des traits.
+   Les cadres restants (`--banner`, `.printer`, `.preview`) ne contiennent aucun
+   champ : ce sont des surfaces, et leur contour dit ce qu'elles enferment. */
 .panel {
   display: flex;
   flex-direction: column;
@@ -230,7 +243,10 @@ body {
   min-width: 0;
   gap: 12px;
   padding: 16px;
-  border: 1px solid var(--border-line);
+  /* Retiré explicitement, et non laissé absent : un `fieldset` sans règle de
+     bordure reprend le contour par défaut du navigateur — 2 px, mesurés dans
+     Chrome pendant la vérification. */
+  border: 0;
   border-radius: var(--radius);
   background: var(--surface);
 }
@@ -295,7 +311,10 @@ body {
   gap: 12px;
   margin: 0;
   padding: 12px;
-  border: 1px solid var(--border-line);
+  /* Retiré explicitement, et non laissé absent : un `fieldset` sans règle de
+     bordure reprend le contour par défaut du navigateur — 2 px, mesurés dans
+     Chrome pendant la vérification. */
+  border: 0;
   border-radius: var(--radius);
   background: var(--bg);
 }
@@ -324,21 +343,36 @@ body {
 
 .add-form { display: flex; gap: 6px; }
 
+/* **Un seul trait, et rien derrière.** Le champ portait un cadre *et* un fond
+   blanc : dans un panneau gris, cela faisait une boîte dans une boîte — deux
+   contours pour une seule zone de saisie. Il est maintenant une aire **soulignée
+   par son seul filet**, posée sur la surface qui le porte (le gris du panneau, le
+   blanc de l'éditeur), et c'est ce filet qui tient le contraste de 3:1 exigé par
+   WCAG 1.4.11 pour la limite d'un composant. */
 .input {
   width: 100%;
   padding: 8px 10px;
   border: 1px solid var(--border-strong);
   border-radius: var(--radius);
-  background: var(--bg);
+  background: transparent;
   color: var(--text);
   font-family: inherit;
   font-size: 13px;
 }
 
+/* **Le focus se dit par le fond, pas par un contour.** L'anneau ajoutait une
+   seconde ligne autour d'un champ qui en avait déjà une : deux rectangles
+   concentriques pour dire « ce champ est actif ». Le fond teinté le dit mieux —
+   c'est l'aire de saisie elle-même qui change —, et il n'ajoute aucun trait.
+   `:focus` et non `:focus-visible` : cliquer dans un champ doit aussi le montrer
+   actif, pas seulement y arriver au clavier.
+   `outline: none` explicite, y compris sur `:focus-visible` : sans lui, le
+   navigateur dessine **son** anneau au clavier, et le contour revient par la
+   porte de derrière — c'est précisément ce qui a fait durer le double filet. */
+.input:focus,
 .input:focus-visible {
-  border-color: var(--accent);
-  outline: 2px solid var(--focus);
-  outline-offset: 2px;
+  background: var(--focus-fill);
+  outline: none;
 }
 
 .input--compact { padding: 6px 9px; }
@@ -392,6 +426,64 @@ body {
    ligne, sans qu'une requête de média ait à le prévoir. */
 .fields > .field--count { flex: 0 0 132px; }
 
+/* Choix de la collection : la liste prend la place, les deux commandes gardent
+   la leur. Pas d'enroulement ici — une liste déroulante qui passe à la ligne
+   au-dessus de ses propres boutons ne se lit plus comme un seul réglage. */
+.collection-picker { display: flex; align-items: flex-end; gap: 6px; }
+.collection-picker .field--grow { flex: 1; min-width: 0; }
+.collection-picker .btn { flex: none; }
+
+/* La ligne entière se masque hors de l'extension — c'est le cas de la page web
+   autonome, qui n'a qu'une collection. `display: flex` l'emporterait sur le
+   `display: none` de l'attribut `hidden` : sans cette règle, le sélecteur
+   restait visible avec une seule option et deux commandes sans effet. */
+.collection-picker[hidden] { display: none; }
+
+/* --- Choix du rangement d'un import --- */
+
+/* Le panneau reste **dans le flux**, sous le bouton qui l'a ouvert : il ne
+   recouvre pas la liste qu'on vient de relire, et une liste longue ne le cache
+   pas non plus. Le fond de surface le détache du panneau, qui est de la même
+   teinte que lui. */
+.import-menu {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  padding: 10px 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+}
+
+/* Le panneau se ferme par l'attribut `hidden`, et `display: flex` l'emporterait
+   sur le `display: none` du navigateur : sans cette règle, « Annuler » fermait le
+   panneau dans le document et le laissait peint à l'écran. Constaté à la
+   capture — le substitut de DOM des tests, lui, ne peint rien. */
+.import-menu[hidden] { display: none; }
+
+.import-menu__title { margin: 0; font-size: 13px; font-weight: 650; }
+
+/* Une issue par ligne, à toute la largeur : les libellés portent un nom de
+   collection, et un nom long se replie au lieu d'être coupé. */
+.import-menu__choices { display: flex; flex-direction: column; gap: 6px; }
+
+.import-menu__choices .btn {
+  display: flex;
+  justify-content: flex-start;
+  width: 100%;
+  text-align: left;
+  white-space: normal;
+}
+
+/* « Annuler » ne range rien : il est plus petit, et se distingue des trois
+   issues plutôt que de s'y aligner. */
+.import-menu__choices .btn--small { align-self: flex-start; width: auto; }
+
+/* Même piège pour la commande de collection nouvelle : `display: flex`
+   ci-dessus l'emporte sur le `display: none` de l'attribut `hidden`, et la
+   commande resterait visible là où il n'y a qu'une collection. */
+.import-menu [hidden] { display: none; }
+
 .field-error { margin: 0; color: var(--danger); font-size: 12px; }
 
 .toolbar { display: flex; align-items: flex-end; gap: 6px; }
@@ -414,6 +506,38 @@ body {
 
 .list-head__box { display: flex; flex: none; align-items: center; min-height: 24px; }
 .list-head .hint { flex: 1; }
+
+/* Déplacer la sélection : le bouton et le choix de la collection d'arrivée.
+   Le panneau s'ouvre sous son bouton, en superposition — il ne doit pas
+   repousser la liste qu'on vient de cocher. */
+.move { position: relative; flex: none; }
+
+.move__menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 190px;
+  max-height: 240px;
+  overflow-y: auto;
+  padding: 6px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.move__menu[hidden] { display: none; }
+
+/* Une collection par ligne, à toute la largeur du panneau : un nom long se
+   replie plutôt que d'être coupé, et la cible ne dépend pas de la longueur. */
+.move__choice {
+  justify-content: flex-start;
+  width: 100%;
+  text-align: left;
+}
 
 /* --- Bandeau d'alerte persistant --- */
 
@@ -535,7 +659,8 @@ body {
 
 /* Le rouge est posé **au repos**, et non plus au survol.
  *
- * « Tout effacer » vide la collection sans confirmation ni retour arrière : le
+ * « Vider la collection » vide la collection affichée, sans confirmation et sans
+ * retour arrière : le
  * rouge au survol était le seul avertissement avant un geste irréversible. Or
  * son survol est désormais occupé par l'aplat d'accent, comme les autres
  * boutons du pied — le signal aurait donc purement disparu.
@@ -651,18 +776,6 @@ body {
 /* La cible du QR Code, propre à ce lien. Elle n'apparaît que lorsqu'un raccourci
    existe : sans lui, il n'y a rien à choisir. Discrète — c'est un réglage de
    sortie, pas une information sur le lien. */
-.link__target {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  margin-top: 4px;
-  color: var(--text-2);
-  font-size: 11.5px;
-  cursor: pointer;
-}
-
-.link__target input { flex: none; margin: 0; accent-color: var(--accent); }
-.link__target-label { min-width: 0; }
 
 /* Puce « plate » : un fond, rien d'autre.
  *
@@ -814,15 +927,23 @@ body {
 
 /* Le domaine reste discret, la ligne raccourcie encore plus : elle doit se
    remarquer sans disputer la vedette au titre. */
+/* La ligne du lien court **est** le contrôle : une case, l'adresse, le service.
+   Elle se coche d'un clic n'importe où — le libellé d'une case est cliquable —
+   et il n'y a plus de lien concurrent au-dessus duquel viser. */
 .link__short {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   gap: 4px;
+  max-width: 100%;
+  margin-top: 2px;
   overflow: hidden;
   color: var(--text-2);
   font-size: 11px;
   white-space: nowrap;
+  cursor: pointer;
 }
+
+.link__short-check { flex: none; margin: 0; accent-color: var(--accent); }
 
 .link__short-mark { flex: none; color: var(--text-3); }
 
@@ -835,6 +956,10 @@ body {
 
 .link__short-provider { flex: none; color: var(--text-3); }
 
+/* Le lien court, dans l'éditeur : il y reste cliquable — c'est le seul endroit
+   d'où l'on peut vérifier une adresse raccourcie avant de l'imprimer. */
+.link__editor-short-url { color: var(--text-2); }
+
 /* --- Choix des colonnes du tableau --- */
 
 .columns {
@@ -843,7 +968,10 @@ body {
   gap: 4px 14px;
   margin: 10px 0 0;
   padding: 8px 10px;
-  border: 1px solid var(--border-line);
+  /* Retiré explicitement, et non laissé absent : un `fieldset` sans règle de
+     bordure reprend le contour par défaut du navigateur — 2 px, mesurés dans
+     Chrome pendant la vérification. */
+  border: 0;
   border-radius: var(--radius);
 }
 
@@ -929,7 +1057,10 @@ body {
   gap: 6px;
   margin-top: 8px;
   padding: 10px;
-  border: 1px solid var(--border-line);
+  /* Retiré explicitement, et non laissé absent : un `fieldset` sans règle de
+     bordure reprend le contour par défaut du navigateur — 2 px, mesurés dans
+     Chrome pendant la vérification. */
+  border: 0;
   border-radius: var(--radius);
   background: var(--bg);
 }
@@ -1009,7 +1140,10 @@ body {
   gap: 12px;
   margin: 0;
   padding: 10px;
-  border: 1px solid var(--border-line);
+  /* Retiré explicitement, et non laissé absent : un `fieldset` sans règle de
+     bordure reprend le contour par défaut du navigateur — 2 px, mesurés dans
+     Chrome pendant la vérification. */
+  border: 0;
   border-radius: var(--radius);
   background: var(--bg);
 }
@@ -1056,6 +1190,41 @@ body {
   padding: 8px;
   background: #ffffff;
   box-shadow: 0 1px 6px rgba(0, 0, 0, 0.12);
+}
+
+/* --- Pied de page --- */
+
+/* Le même lien que dans la fenêtre de l'extension, sous l'application, avec la
+   signature du projet.
+   **Centré** : c'est un pied de page, pas une colonne de réglages — rien ne
+   s'aligne au-dessus de lui, et l'alignement à gauche le faisait passer pour la
+   suite du panneau. Les marges reprennent celles de la grille principale. */
+.app-footer {
+  padding: 0 clamp(16px, 4vw, 40px) 40px;
+  text-align: center;
+}
+
+/* La signature : plus discrète que le lien, et sur sa propre ligne. L'encre
+   tertiaire est la plus claire de la charte qui tienne encore 4,5:1 sur le
+   fond — c'est une mention, pas une information à lire en premier. */
+.app-footer__signature {
+  margin: 6px 0 0;
+  color: var(--text-3);
+  font-size: 12px;
+}
+
+.app-footer__sep { padding: 0 2px; }
+
+.app-footer__link {
+  color: var(--text-2);
+  font-size: 12px;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.app-footer__link:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
 }
 
 /* --- Retour transitoire --- */
@@ -1109,7 +1278,14 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
+  /* **En haut, et non au centre.** Centrer le contenu plaçait le QR Code plus
+     haut sur une étiquette dont le texte tient en deux lignes que sur sa voisine
+     qui en porte cinq : les codes ne s'alignaient ni en ligne ni en colonne, et
+     c'est ce désordre qui se voyait sur la planche imprimée. En haut, le QR Code
+     part du même bord dans toute la grille, et c'est le texte qui s'aligne sur
+     lui — la réserve de lignes posée par le script mettant les blocs suivants à
+     la même hauteur. */
+  justify-content: flex-start;
   gap: 1.5mm;
   overflow: hidden;
   /* Les traits fins disparaissent à l'impression ; on force le noir. */
@@ -1141,6 +1317,18 @@ body {
    sa couleur. */
 .print-cell__text .print-cell__date { display: block; }
 
+/* L'URL commence son propre bloc, sous le titre. Un demi-interligne les sépare :
+   sans cet écart, deux blocs se suivraient sans qu'on voie où l'un finit et où
+   l'autre commence — c'est ce qui arrivait quand ils partageaient une ligne. */
+.print-cell__text .print-cell__url { display: block; }
+.print-cell__text .print-cell__url:not(.print-cell__date) { margin-top: 0.4mm; }
+
+/* La réserve qui aligne les blocs d'une étiquette à l'autre.
+   Sa hauteur est posée en ligne par le script — le nombre de lignes qui manquent
+   pour atteindre celle du plus long de la page, multiplié par l'interligne. Elle
+   ne porte aucun texte : elle ne doit donc ni se voir, ni s'annoncer. */
+.print-cell__spacer { display: block; width: 100%; }
+
 /* Bordure de découpe, en option. Elle suit le motif du tableau imprimé — un
    trait de 0,2 mm — plutôt qu'un trait de 1 px, qui disparaîtrait à
    l'impression. `box-sizing: border-box` étant posé pour tout le document, la
@@ -1153,6 +1341,19 @@ body {
   border-collapse: collapse;
   font-size: 8pt;
   background: #fff;
+  /* **Grille fixe.** Le tableau est découpé en un `<table>` par page : sans
+     largeurs imposées, chacun se dimensionne sur son propre contenu et les
+     colonnes ne s'alignent plus d'une page à l'autre — mesuré dans Chrome, la
+     colonne des titres commençait à 465 px sur la première page et 430 px sur la
+     deuxième. Les largeurs viennent d'un `<colgroup>` calculé par `app.js`. */
+  table-layout: fixed;
+}
+
+/* Une adresse longue se replie au lieu de déborder de sa colonne : sans cela,
+   une URL sans espace élargirait la colonne — ou sortirait de la feuille. */
+.print-table td,
+.print-table th {
+  overflow-wrap: anywhere;
 }
 
 .print-table th,
@@ -1170,7 +1371,9 @@ body {
   break-inside: avoid;
 }
 
-.print-table__qr { width: 1%; }
+/* La largeur de cette colonne est donnée par le `<colgroup>` — la taille du QR
+   Code plus le rembourrage. La règle ne garde donc que le centrage. */
+.print-table__qr { text-align: center; }
 
 /* En-tête de la page imprimée : le nom de la collection, et la date si on la
    demande. Les marges sont posées en ligne, calculées depuis les réglages. */

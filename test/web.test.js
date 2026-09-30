@@ -320,7 +320,7 @@ test("la planche peut imprimer l'URL sous le QR Code", () => {
   // Et elle doit être branchée : une case qui ne change rien est pire qu'une
   // case absente.
   assert.match(app, /el\.sheetUrl\.checked/, 'la case n\'est pas lue');
-  assert.match(app, /texteSousLeQr\(/, 'le texte imprimé ne suit pas le choix');
+  assert.match(app, /blocsSousLeQr\(/, 'le texte imprimé ne suit pas le choix');
 });
 
 test("les écarts de la planche sont nommés d'après les étiquettes, pas les lignes", () => {
@@ -404,7 +404,7 @@ test('la composition du texte vient du cœur, pas d\'une expression locale', () 
   // écrire le texte — finiraient par diverger, et le QR Code rognerait le texte
   // ou laisserait un vide.
   const app = readFileSync(join(WEB, 'app.js'), 'utf8');
-  assert.match(app, /sheetCellText\(item, choixTexte\)/);
+  assert.match(app, /sheetCellBlocks\(item, choixTexte\)/);
   assert.match(app, /const choixTexte = \{ title: el\.sheetTitle\.checked, url: el\.sheetUrl\.checked \}/);
 });
 
@@ -655,7 +655,12 @@ test("l'en-tête offre la note de collection, sur la planche comme au tableau", 
   assert.match(app, /note !== '' && el\.sheetHeaderNote\.checked/);
   assert.match(app, /note !== '' && el\.tableTitleNote\.checked/);
   // La case redessine l'aperçu, et son état suit la note à la frappe.
-  assert.match(app, /el\.sheetHeader, el\.sheetHeaderDate, el\.sheetHeaderNote,/);
+  // L'en-tête a son propre écouteur : cocher la case **fait la place** dans la
+  // marge du haut, au lieu de refuser en silence. Les deux sous-options, elles,
+  // ne changent que le contenu.
+  assert.match(app, /el\.sheetHeaderDate, el\.sheetHeaderNote,/);
+  assert.match(app, /el\.sheetHeader\?\.addEventListener\('change'/, "l'en-tête doit avoir son écouteur");
+  assert.match(app, /el\.sheetMarginY\.value = String\(SHEET_HEADER_MM\)/);
   assert.match(app, /el\.tableTitle, el\.tableTitleDate, el\.tableTitleNote/);
 });
 
@@ -684,7 +689,10 @@ test("l'en-tête n'est dessiné que s'il tient dans la marge", () => {
   const app = readFileSync(join(WEB, 'app.js'), 'utf8');
   assert.match(app, /sheetHeaderFits\(\{ marginYMm: layout\.marginYMm \}\)/);
   assert.match(app, /veutEnTete && placeEnTete\.fits/);
-  assert.match(app, /el\.sheetHeaderHint\.textContent = veutEnTete && !placeEnTete\.fits/);
+  // Le refus restant est **à l'alerte**, et nomme la marge à atteindre : en
+  // encre secondaire, il passait pour un aperçu qui ne se rafraîchit pas.
+  assert.match(app, /el\.sheetHeaderHint\.style\.color = refuse \? 'var\(--danger\)'/);
+  assert.match(app, /Portez la marge haute à/);
 });
 
 // ---------------------------------------------------------------------------
@@ -757,7 +765,11 @@ test('les deux groupes se voient sans être lus', () => {
   const css = readFileSync(join(WEB, 'style.css'), 'utf8');
   const regle = css.match(/\.sheet-group\s*\{([\s\S]*?)\}/);
   assert.ok(regle, 'aucune règle pour les groupes de la planche');
-  assert.match(regle[1], /border:\s*1px solid var\(--border-line\)/);
+  // Le groupe se détache par son fond, pas par un cadre : un cadre autour d'un
+  // champ déjà bordé faisait deux lignes pour une seule limite. Le filet du
+  // champ, lui, reste — c'est lui qui porte le contraste de 3:1 de WCAG 1.4.11.
+  assert.match(regle[1], /background:\s*var\(--bg\)/);
+  assert.doesNotMatch(regle[1], /border:\s*1px solid/, 'le cadre du groupe est revenu');
   assert.match(regle[1], /flex-direction:\s*column/);
   // Le titre est un élément ordinaire, et non une `<legend>` : dans une boîte
   // flexible, la légende se pose sur le cadre et mord dessus.
@@ -766,6 +778,82 @@ test('les deux groupes se voient sans être lus', () => {
   // Chaque groupe garde un nom accessible, par `aria-labelledby`.
   assert.match(html, /<fieldset class="sheet-group" aria-labelledby="sheet-group-page">/);
   assert.match(html, /<fieldset class="sheet-group" aria-labelledby="sheet-group-label">/);
+});
+
+test('une planche aligne ses QR Codes et ses blocs de texte', () => {
+  // Le défaut signalé : « la mise en page automatique doit aligner les QR Codes,
+  // l'alignement des URL est chaotique ». Deux causes, et deux corrections :
+  //
+  // 1. le contenu d'une case était **centré verticalement**, si bien qu'une
+  //    étiquette dont le titre tient sur une ligne posait son QR Code plus haut
+  //    que sa voisine qui en porte trois ;
+  // 2. le titre et l'URL n'avaient pas de hauteur commune, donc l'adresse
+  //    descendait d'autant de lignes que le titre en occupait.
+  //
+  // Ce que ce test tient est la **structure** produite ; la position réelle est
+  // mesurée dans Chrome, sur la racine d'impression, par `verify:chrome` — c'est
+  // elle qui fait foi, et elle mesure 0 px d'écart sur 49 étiquettes.
+  const css = readFileSync(join(WEB, 'style.css'), 'utf8');
+  const cellule = css.match(/\n\.print-cell\s*\{([\s\S]*?)\}/)[1];
+  assert.match(cellule, /justify-content:\s*flex-start/, 'la case centre encore son contenu');
+  assert.doesNotMatch(cellule, /justify-content:\s*center/);
+  assert.ok(css.match(/\n\.print-cell__spacer\s*\{/), 'aucune règle pour la réserve');
+
+  const app = readFileSync(join(WEB, 'app.js'), 'utf8');
+  // Les hauteurs communes se calculent **par page**, sur le plus long des blocs :
+  // c'est ce qui met les blocs suivants à la même hauteur d'une étiquette à
+  // l'autre.
+  assert.match(app, /const reserve = \{ title: lignesDuBloc\('title'\), url: lignesDuBloc\('url'\) \}/);
+  assert.match(app, /Math\.max\(0, \(reserve\[kind\] \?\? 0\) - compte\(kind\)\) \* metrics\.lineHeightMm/);
+  assert.match(app, /vide\.className = 'print-cell__spacer'/);
+  // Un blanc de mise en page n'est pas du contenu.
+  assert.match(app, /vide\.setAttribute\('aria-hidden', 'true'\)/);
+  // Le numéro d'ordre compte pour une ligne : `rang` faux le faisait disparaître
+  // sur une collection commençant à zéro, et l'étiquette se décalait d'un cran.
+  assert.match(app, /if \(rang != null\) lines\.unshift/);
+});
+
+test('un seul filet autour des champs : le champ, pas son contenant', () => {
+  // Le défaut signalé : deux lignes pour une seule limite — le cadre du panneau,
+  // puis celui du champ. Les contenants qui enferment des champs ne dessinent
+  // donc plus de contour ; leur fond suffit à les détacher.
+  const css = readFileSync(join(WEB, 'style.css'), 'utf8');
+  for (const selecteur of ['.panel', '.sheet-group', '.link__editor-form', '.series', '.columns']) {
+    // La règle du contenant lui-même, et non une de ses descendantes : la
+    // recherche est ancrée en début de ligne, sinon `.columns` tombait sur
+    // `.sheet-group .columns` — une règle contextuelle, écrite pour une autre
+    // raison.
+    const regle = css.match(new RegExp(`\\n\\${selecteur}\\s*\\{([\\s\\S]*?)\\}`));
+    assert.ok(regle, `aucune règle pour ${selecteur}`);
+    assert.doesNotMatch(
+      regle[1],
+      /border:\s*1px solid/,
+      `${selecteur} redessine un cadre autour de ses champs`,
+    );
+    // `border: 0` **explicite**, et pas seulement absent : trois de ces
+    // contenants sont des `fieldset`, et un `fieldset` sans règle de bordure
+    // reprend le contour par défaut du navigateur. La vérification dans Chrome a
+    // mesuré 2 px là où le source ne disait plus rien — le défaut signalé serait
+    // resté, en plus épais.
+    assert.match(
+      regle[1],
+      /border:\s*0;/,
+      `${selecteur} doit retirer son cadre explicitement (défaut du navigateur sur un fieldset)`,
+    );
+  }
+
+  // Le champ, lui, garde son filet : `--border-strong` tient le 3:1 sur les deux
+  // fonds de l'application, et c'est la seule limite qui reste.
+  const champ = css.match(/\.input\s*\{([\s\S]*?)\}/)[1];
+  assert.match(champ, /border:\s*1px solid var\(--border-strong\)/);
+
+  // Les cadres qui restent ne contiennent aucun champ : leur contour dit ce
+  // qu'ils enferment (une alerte, une surface d'aperçu).
+  for (const selecteur of ['.banner--error', '.preview']) {
+    const regle = css.match(new RegExp(`\\${selecteur}\\s*\\{([\\s\\S]*?)\\}`));
+    assert.ok(regle, `aucune règle pour ${selecteur}`);
+    assert.match(regle[1], /border:\s*1px solid/, `${selecteur} a perdu son contour`);
+  }
 });
 
 // ---------------------------------------------------------------------------
@@ -912,4 +1000,263 @@ test('les colonnes de la mise en page peuvent rétrécir', () => {
     const regle = css.match(new RegExp(`${selecteur}([\\s\\S]*?)\\}`))[1];
     assert.match(regle, /min-width:\s*0/, `${selecteur} n'a pas de minimum à zéro`);
   }
+});
+
+// ---------------------------------------------------------------------------
+// Collections
+// ---------------------------------------------------------------------------
+
+test('le panneau de collection offre le choix, la création et la suppression', () => {
+  // Le sélecteur vient avant le nom : on choisit de quoi on parle, puis on le
+  // décrit. Les trois commandes vivent donc dans le même bloc.
+  assert.match(html, /id="collection-picker"/);
+  assert.match(html, /<select id="collection-select"/);
+  assert.match(html, /id="collection-add"[^>]*type="button"/);
+  assert.match(html, /id="collection-delete"[^>]*type="button"/);
+  assert.match(html, /id="collection-hint"/);
+
+  // Chaque identifiant est déclaré : un `id` renommé d'un côté seulement ne
+  // produit qu'une erreur `null` à l'exécution.
+  for (const id of ['collection-picker', 'collection-select', 'collection-add', 'collection-delete', 'collection-hint']) {
+    assert.ok(ELEMENT_IDS.includes(id), `${id} doit être déclaré dans element-ids.js`);
+  }
+});
+
+test('l\'application a des collections dans l\'extension, et une seule ailleurs', () => {
+  const app = readFileSync(join(WEB, 'app.js'), 'utf8');
+
+  // La source est choisie à l'exécution : le stockage de l'extension quand il
+  // existe, un adaptateur adossé aux réglages sinon. C'est ce qui permet à la
+  // page web autonome de garder le comportement d'avant — une seule collection —
+  // sans que le reste du fichier ait à connaître le contexte.
+  assert.match(app, /function createCollectionSource\(\)/);
+  assert.match(app, /createCollectionStore\(\{ area: extensionApi\.storage\.local \}\)/);
+  assert.match(app, /available: false/);
+
+  // Le sélecteur est masqué quand il n'y a rien à choisir.
+  assert.match(app, /el\.collectionPicker\.hidden = !disponible/);
+});
+
+test('ce que l\'application masque est réellement masqué', () => {
+  const css = readFileSync(join(WEB, 'style.css'), 'utf8');
+
+  // `display: flex` l'emporte sur le `display: none` de l'attribut `hidden` :
+  // un panneau qui s'ouvre et se ferme doit donc porter **sa** règle `[hidden]`,
+  // sinon il se ferme dans le document et reste peint à l'écran. Le défaut a été
+  // commis deux fois — le sélecteur de collection sur la page autonome, puis le
+  // panneau du choix d'import, dont « Annuler » ne fermait rien. Le substitut de
+  // DOM des tests ne peint pas : seule une capture pouvait le montrer.
+  for (const selecteur of ['.field', '.banner', '.move__menu', '.collection-picker', '.import-menu']) {
+    assert.ok(
+      css.includes(`${selecteur}[hidden] { display: none; }`),
+      `${selecteur} porte un display qui l'emporterait sur l'attribut hidden`,
+    );
+  }
+  // Les commandes masquées **à l'intérieur** d'un panneau suivent la même règle :
+  // la nouvelle collection ne se propose que là où il y en a plusieurs.
+  assert.ok(
+    css.includes('.import-menu [hidden] { display: none; }'),
+    'la commande de collection nouvelle resterait visible hors de l\'extension',
+  );
+  assert.match(readFileSync(join(WEB, 'app.js'), 'utf8'), /el\.importAdd\.hidden = !collections\.available/);
+});
+
+test('le magasin suit la collection affichée', () => {
+  const app = readFileSync(join(WEB, 'app.js'), 'utf8');
+
+  // Un magasin borné, réaffecté à chaque bascule : la liste, les exports, la
+  // planche et l'impression suivent la collection sans qu'aucun appel n'ait eu
+  // à changer. Un filtre appliqué à chaque lecture aurait fini par en oublier un.
+  assert.match(app, /let store = withCollection\(allStores, DEFAULT_COLLECTION_ID\)/);
+  assert.match(app, /function bindStore\(\)/);
+  assert.match(app, /store = withCollection\(allStores, activeCollectionId\)/);
+  assert.match(app, /switchCollection\(el\.collectionSelect\.value\)/);
+});
+
+test('supprimer une collection demande confirmation et annonce ce qui est perdu', () => {
+  const app = readFileSync(join(WEB, 'app.js'), 'utf8');
+
+  // La seule action de l'application qui détruit en masse : elle ne doit pas
+  // tenir à un clic mal placé, et le nombre de liens perdus doit être dit.
+  assert.match(app, /if \(el\.collectionDelete\.dataset\.confirm !== '1'\)/);
+  assert.match(app, /'Confirmer : \{count\} lien sera perdu'/);
+  assert.match(app, /'Confirmer : \{count\} liens seront perdus'/);
+  // Et l'arme se désarme toute seule.
+  assert.match(app, /deleteConfirmTimer/);
+
+  // La collection privée ne se supprime pas, et la **dernière** collection non
+  // plus : toutes les autres le sont, y compris celle par défaut.
+  assert.match(app, /isPrivateCollection\(collection\) \|\| ordinaryCollectionCount\(\) <= 1/);
+  assert.match(app, /function ordinaryCollectionCount\(\)/);
+  assert.match(app, /&& ordinaryCollectionCount\(\) > 1;/);
+  assert.doesNotMatch(app, /courante\?\.id !== DEFAULT_COLLECTION_ID/, 'la règle vise encore la collection par défaut');
+});
+
+test('le nom et la note appartiennent à la collection affichée', () => {
+  const app = readFileSync(join(WEB, 'app.js'), 'utf8');
+
+  // Dans l'extension, ils s'écrivent dans la collection ; sur la page autonome,
+  // dans les réglages d'avant. Les deux passent par la même source.
+  assert.match(app, /collections\.rename\(activeCollectionId, saisi\)/);
+  assert.match(app, /collections\.setNote\(activeCollectionId, note\)/);
+  assert.match(app, /settings\.save\(\{ collectionName: collectionName\(\) \}\)/);
+  assert.match(app, /settings\.save\(\{ collectionNote: collectionNote\(\) \}\)/);
+
+  // L'écriture est différée : deux frappes rapprochées réécrivent le document
+  // entier, et la plus lente gagnerait sans ce délai.
+  assert.match(app, /function debounced\(action, ms = 400\)/);
+});
+
+test('le service proposé dépend de l\'environnement, et ne raccourcit rien', () => {
+  const app = readFileSync(join(WEB, 'app.js'), 'utf8');
+
+  // T.LY n'accepte un lien anonyme que depuis une origine d'extension : la page
+  // web autonome présélectionne donc un service qui répond depuis une origine
+  // ordinaire.
+  assert.match(app, /createSettingsStore\(\{ defaultShortener: defaultShortenerId\(\) \}\)/);
+
+  // Et l'aide dit l'essentiel : rien n'est raccourci tant qu'on ne le demande pas.
+  assert.match(app, /function updateShortenerHint\(\)/);
+  assert.match(
+    app,
+    /'Si vous voulez un lien plus court, choisissez un service puis cliquez sur Raccourcir\. Rien ne change tant que vous ne le faites pas\.'/,
+  );
+});
+
+// ---------------------------------------------------------------------------
+// Déplacer la sélection
+// ---------------------------------------------------------------------------
+
+test('la commande de déplacement n\'apparaît qu\'avec une sélection', () => {
+  const app = readFileSync(join(WEB, 'app.js'), 'utf8');
+
+  // Elle vit à côté du rangement, dans le bandeau de la liste.
+  assert.match(html, /id="move-group"[^>]*hidden/);
+  assert.match(html, /id="move-to"[^>]*type="button"/);
+  assert.match(html, /id="move-menu"[^>]*role="group"/);
+  for (const id of ['move-group', 'move-to', 'move-menu']) {
+    assert.ok(ELEMENT_IDS.includes(id), `${id} doit être déclaré dans element-ids.js`);
+  }
+
+  // Le même état la fait vivre et mourir : la sélection. Rien à synchroniser.
+  assert.match(app, /function updateMoveControl\(\)/);
+  assert.match(app, /selected\.size > 0 && moveTargets\(\)\.length > 0/);
+  assert.match(app, /el\.moveGroup\.hidden = !possible/);
+  // Et elle est réglée là où tout changement de case passe déjà — **avant**
+  // les sorties anticipées, sans quoi « tout cocher » n'y arriverait pas.
+  assert.match(app, /updateMoveControl\(\);\n\n  if \(links\.length === 0\)/);
+});
+
+test('déplacer change la collection sans recréer le lien', () => {
+  const app = readFileSync(join(WEB, 'app.js'), 'utf8');
+
+  // Un déplacement n'est pas une copie : une seule écriture, qui garde
+  // l'identifiant, la date de collecte, les tags, la note et le raccourci.
+  assert.match(app, /async function moveSelection\(targetId\)/);
+  assert.match(app, /const cible = withCollection\(allStores, targetId\)/);
+  assert.match(app, /await cible\.put\(sansRang\)/);
+
+  // Le rang appartient à la collection qu'on quitte : il ne suit pas.
+  assert.match(app, /const \{ order, \.\.\.sansRang \} = link;/);
+
+  // Une adresse déjà présente fusionne, au lieu de créer un doublon dans la
+  // collection d'arrivée — la règle vaut partout ailleurs.
+  assert.match(app, /const existant = findDuplicate\(surPlace, link\.url\)/);
+  assert.match(app, /mergeDuplicate\(existant, link\)/);
+  assert.match(app, /await store\.remove\(link\.id\)/);
+
+  // La destination ne peut pas être la collection affichée.
+  assert.match(app, /collection\.id !== activeCollectionId\)/);
+});
+
+test('le choix de la collection s\'ouvre sous son bouton, sans select agissant', () => {
+  const app = readFileSync(join(WEB, 'app.js'), 'utf8');
+
+  // Un `<select>` qui agirait au changement déplacerait des liens à la molette
+  // ou aux flèches du clavier. Le panneau demande donc un clic explicite.
+  assert.doesNotMatch(html, /id="move-target"/);
+  assert.match(app, /function openMoveMenu\(\)/);
+  assert.match(app, /choix\.addEventListener\('click', \(\) => moveSelection\(collection\.id\)\)/);
+  assert.match(app, /el\.moveTo\.setAttribute\('aria-expanded', 'true'\)/);
+
+  // Échap referme, et le focus revient au bouton qui a ouvert le panneau.
+  assert.match(app, /event\.key === 'Escape'/);
+  assert.match(app, /function closeMoveMenu\(\)/);
+});
+
+test('le premier numéro appartient à la collection affichée', () => {
+  const app = readFileSync(join(WEB, 'app.js'), 'utf8');
+
+  // Le numéro n'est plus un réglage de l'application : il suit la collection,
+  // comme le nom et la note. C'est ce qui permet de continuer une série ici
+  // sans toucher à la numérotation d'ailleurs.
+  assert.match(app, /function premierNumero\(\) \{\n  const collection = activeCollection\(\);/);
+  assert.match(app, /collections\.setStartIndex\(activeCollectionId, collection\.startIndex\)/);
+  assert.match(app, /const sauverNumeroDiffere = debounced\(saveStartIndex\)/);
+  // Le bornage est celui du cœur : le refaire ici ferait deux règles à tenir.
+  assert.match(app, /const voulu = cleanStartIndex\(brut\)/);
+  assert.doesNotMatch(app, /sanitizeSettings\(\{ startIndex/);
+
+  // Le champ est reposé à chaque bascule, avec le numéro de la collection.
+  assert.match(app, /el\.collectionStart\.value = String\(premierNumero\(\)\)/);
+
+  // La reprise des réglages emporte le numéro, qui était global avant.
+  assert.match(app, /anciens\.startIndex !== DEFAULT_START_INDEX/);
+});
+
+test('le tableau imprimé garde la même grille d\'une page à l\'autre', () => {
+  const app = readFileSync(join(WEB, 'app.js'), 'utf8');
+  const css = readFileSync(join(WEB, 'style.css'), 'utf8');
+
+  // Le tableau est découpé en un `<table>` par page : sans largeurs imposées,
+  // chacun se dimensionne sur son propre contenu, et les colonnes ne s'alignent
+  // plus — mesuré dans Chrome, la colonne des titres commençait à 465 px sur la
+  // première page et 430 px sur la deuxième.
+  assert.match(app, /function tableColumnWidths\(columns, size\)/);
+  assert.match(app, /const largeurs = tableColumnWidths\(columns, size\)/);
+  // Elle est calculée **une fois** et donnée à toutes les pages, mesure comprise.
+  assert.match(app, /measureTableRows\(rows, columns, config, largeurs\)/);
+  assert.match(app, /buildTable\(columns, rows\.slice\(start, end\), largeurs\)/);
+  assert.match(app, /const groupe = document\.createElement\('colgroup'\)/);
+
+  // La feuille obéit au `<colgroup>` : en `table-layout: auto`, les largeurs
+  // déclarées sont ignorées.
+  assert.match(css, /\.print-table \{[\s\S]*?table-layout: fixed;/);
+  // Et une adresse longue se replie au lieu d'élargir sa colonne.
+  assert.match(css, /\.print-table td,\s*\n\.print-table th \{\s*\n  overflow-wrap: anywhere;/);
+});
+
+test('un texte coupé sur la planche est annoncé, jamais tu', () => {
+  const app = readFileSync(join(WEB, 'app.js'), 'utf8');
+
+  // Le défaut rapporté : en A4 3 × 8, le QR Code au minimum et le titre coupé —
+  // sans un mot. La légende de l'étiquette Niimbot annonçait déjà ce cas ; la
+  // planche, non.
+  assert.match(app, /const cutTexts = new Set\(\);/);
+  // La détection est **exacte** : elle compte les lignes que le texte réclame,
+  // au lieu de se fier aux points de suspension — un titre peut finir par « … ».
+  assert.match(app, /for \(const bloc of blocsSousLeQr\(item\)\)/);
+  assert.match(app, /maxLines: 99 \}\)\.length\s*\n\s*> dessinees\.length/);
+  assert.match(app, /'Texte coupé sur \{count\} étiquette : /);
+  assert.match(app, /'Texte coupé sur \{count\} étiquettes : /);
+  // Et la ligne d'information passe à l'alerte, comme le refus de largeur.
+  assert.match(app, /el\.sheetInfo\.style\.color = cutTexts\.size > 0 \? 'var\(--danger\)' : ''/);
+});
+
+test('la ligne du lien court est le contrôle, et rien d\'autre', () => {
+  const app = readFileSync(join(WEB, 'app.js'), 'utf8');
+
+  // Le défaut rapporté : « la case encode the short link dans la liste n'est pas
+  // claire, surtout quand on clique sur l'hyper lien ». Deux intentions dans le
+  // même bloc — vérifier l'adresse courte (un lien), ou l'encoder (une case dont
+  // la phrase ne disait pas laquelle). La case porte maintenant l'adresse comme
+  // libellé : on coche ce qu'on lit.
+  assert.match(app, /cible\.className = 'link__short'/);
+  assert.match(app, /case_\.className = 'link__short-check'/);
+  assert.match(app, /url\.textContent = link\.shortUrl/);
+  assert.match(app, /'Encoder \{url\} pour « \{title\} »'/);
+  // L'adresse courte n'est plus un lien dans la ligne…
+  assert.doesNotMatch(app, /linkAnchor\(link\.shortUrl, 'link__short-url'\)/);
+  // …mais elle reste vérifiable dans l'éditeur de la ligne.
+  assert.match(app, /linkAnchor\(link\.shortUrl, 'link__editor-short-url'\)/);
 });

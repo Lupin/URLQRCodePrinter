@@ -14,13 +14,22 @@
  * iOS**. Sans ces précautions, l'extension échouerait au chargement sur iPhone.
  */
 
-import { createChromeStorageStore } from './core/store.js';
+import { createChromeStorageStore, createCompositeStore, withCollection } from './core/store.js';
+import {
+  DEFAULT_COLLECTION_ID,
+  PRIVATE_COLLECTION_ID,
+  PRIVATE_LINKS_KEY,
+  createCollectionStore,
+  displayedDocuments,
+} from './core/collections.js';
 import {
   MENU_IDS,
   buildMenuDefinitions,
   captureFromClick,
 } from './core/capture.js';
-import { resolveApi, contextMenusAvailable, installContextMenus } from './api.js';
+import {
+  resolveApi, contextMenusAvailable, installContextMenus, sessionStorageArea,
+} from './api.js';
 import { initI18n } from './core/i18n.js';
 import { readConsent, isAccepted } from './core/privacy.js';
 
@@ -55,7 +64,84 @@ const BADGE_DUPLICATE = { fond: '#f4f4f4', texte: '#161616' };
 const BADGE_UPDATED = { fond: '#1c7c4a', texte: '#ffffff' };
 const BADGE_ERROR = { fond: '#b3122b', texte: '#ffffff' };
 
-const store = createChromeStorageStore({ area: api?.storage?.local });
+/**
+ * Durée d'un retour transitoire sur l'icône, en millisecondes.
+ *
+ * Le retour dure 2,5 s : un clic droit se fait en regardant la page, pas la
+ * barre d'outils, et 1,5 s s'écoulaient souvent avant que l'œil n'y arrive.
+ */
+const FLASH_MS = 2500;
+
+/**
+ * Jusqu'à quand un retour transitoire occupe l'icône.
+ *
+ * La collecte écrit dans le stockage **avant** de poser son signe, et cette
+ * écriture réveille l'écouteur de `storage.onChanged` ci-dessous : sans cette
+ * échéance, le compteur remplacerait le « + » dans le même souffle, et le clic
+ * droit n'aurait plus aucun retour visible.
+ */
+let flashUntil = 0;
+
+/**
+ * Les deux zones de liens, et la composition qui les réunit.
+ *
+ * Les liens ordinaires vivent dans `chrome.storage.local`. Ceux de la
+ * collection de navigation privée vivent dans `chrome.storage.session` : en
+ * mémoire, pour la durée du navigateur. C'est le routage par identifiant de
+ * collection qui garantit qu'une URL privée ne peut pas être écrite sur le
+ * disque — il n'existe aucun chemin qui l'y conduise.
+ *
+ * Sans `storage.session` (Chrome antérieur à 102, Safari antérieur à 16.4), la
+ * collection privée n'existe pas : `privateStore` vaut `null` et une capture
+ * faite depuis une fenêtre privée rejoint la collection courante ordinaire,
+ * plutôt que d'inventer une persistance qui n'aurait pas lieu.
+ */
+const localStore = createChromeStorageStore({ area: api?.storage?.local });
+const privateStore = (() => {
+  const area = sessionStorageArea(api);
+  if (!area) return null;
+  try {
+    return createChromeStorageStore({ area, key: PRIVATE_LINKS_KEY });
+  } catch {
+    return null;
+  }
+})();
+
+const store = createCompositeStore([
+  { store: localStore, match: (collectionId) => collectionId !== PRIVATE_COLLECTION_ID },
+  ...(privateStore
+    ? [{ store: privateStore, match: (collectionId) => collectionId === PRIVATE_COLLECTION_ID }]
+    : []),
+]);
+
+/** La liste des collections, et celle qui est courante. */
+const collections = createCollectionStore({ area: api?.storage?.local });
+
+/**
+ * La collection de navigation privée est-elle utilisable dans ce contexte ?
+ * @param {boolean} isPrivate
+ * @returns {boolean}
+ */
+function privateCollectionUsable(isPrivate) {
+  return Boolean(isPrivate) && privateStore !== null;
+}
+
+/**
+ * La collection courante d'un contexte, ou la collection par défaut.
+ *
+ * Ne lève jamais : une lecture impossible retombe sur la collection par défaut,
+ * qui existe toujours — c'est la seule qui ne peut pas manquer.
+ *
+ * @param {boolean} isPrivate
+ * @returns {Promise<string>}
+ */
+async function activeCollection(isPrivate) {
+  try {
+    return await collections.getActive(privateCollectionUsable(isPrivate));
+  } catch {
+    return DEFAULT_COLLECTION_ID;
+  }
+}
 
 /**
  * Impose la couleur du texte du badge, si l'API existe.
@@ -76,10 +162,20 @@ async function applyBadgeTextColor(couleur) {
   }
 }
 
-/** Met à jour le badge avec le nombre de liens, ou le vide. */
-async function refreshBadge() {
+/**
+ * Met à jour le badge avec le nombre de liens de la collection courante.
+ *
+ * Le badge compte **ce qui est affiché** dans la fenêtre, et non la base
+ * entière : un compteur qui annoncerait douze liens quand la collection en
+ * contient deux ne dirait rien d'utile. Le contexte est celui de l'appelant —
+ * une fenêtre privée a sa propre collection courante.
+ *
+ * @param {{ isPrivate?: boolean }} [options]
+ */
+async function refreshBadge(options = {}) {
   try {
-    const links = await store.list();
+    const collectionId = await activeCollection(Boolean(options.isPrivate));
+    const links = await withCollection(store, collectionId).list();
     await api.action.setBadgeBackgroundColor({ color: BADGE_COUNT.fond });
     await applyBadgeTextColor(BADGE_COUNT.texte);
     await api.action.setBadgeText({ text: links.length ? String(links.length) : '' });
@@ -99,9 +195,10 @@ async function flashBadge(text, badge) {
     await api.action.setBadgeBackgroundColor({ color: badge.fond });
     await applyBadgeTextColor(badge.texte);
     await api.action.setBadgeText({ text });
-    // Le retour dure 2,5 s : un clic droit se fait en regardant la page, pas la
-    // barre d'outils, et 1,5 s s'écoulaient souvent avant que l'œil n'y arrive.
-    setTimeout(refreshBadge, 2500);
+    // L'échéance est posée **après** le signe : c'est ce qui garantit qu'aucun
+    // rafraîchissement ne le remplace avant son terme.
+    flashUntil = Date.now() + FLASH_MS;
+    setTimeout(refreshBadge, FLASH_MS);
   } catch {
     // Idem : le badge est un confort, pas une fonction.
   }
@@ -142,10 +239,18 @@ async function installMenus() {
  * appelants ferait dépendre la garantie de leur discipline : un chemin oublié
  * collecterait sans que personne ne l'ait accepté.
  *
+ * Le rangement dans une collection est ici pour la même raison. Le contexte est
+ * celui de l'onglet visé : une capture faite depuis une fenêtre privée rejoint
+ * la collection privée, et une capture faite ailleurs ne peut pas l'atteindre.
+ * C'est ce qui rend la sauvegarde spontanée — l'utilisateur n'a rien à choisir,
+ * la collection courante est déjà la bonne — sans qu'une URL privée puisse
+ * atterrir sur le disque.
+ *
  * @param {object|null} capture
+ * @param {{ isPrivate?: boolean }} [options]
  * @returns {Promise<{ recorded: boolean, reason?: 'consent'|'empty' }>}
  */
-async function record(capture) {
+async function record(capture, options = {}) {
   if (!capture) {
     await flashBadge('!', BADGE_ERROR);
     return { recorded: false, reason: 'empty' };
@@ -153,10 +258,12 @@ async function record(capture) {
 
   const consent = await readConsent(api?.storage?.local);
   if (!isAccepted(consent)) {
-    // La mention n'est rouverte que si l'utilisateur ne s'est **jamais**
-    // prononcé. Après un refus explicite, rouvrir un onglet à chaque tentative
-    // serait du harcèlement : le refus est une décision, pas une absence.
-    if (consent === null) {
+    // La mention est rouverte dans deux cas, et deux seulement : l'utilisateur
+    // ne s'est **jamais** prononcé, ou son accord portait sur un texte qui a
+    // changé depuis — il doit alors lire celui qui s'applique. Après un refus
+    // explicite, rouvrir un onglet à chaque tentative serait du harcèlement : le
+    // refus est une décision, pas une absence.
+    if (consent === null || consent.decision === 'accepted') {
       // Le badge est posé **dans les deux cas**. Il ne l'était pas à la première
       // installation : l'onglet de la mention s'ouvrait, et rien n'expliquait
       // sur l'icône pourquoi le clic droit n'avait rien enregistré. Un refus
@@ -169,7 +276,8 @@ async function record(capture) {
   }
 
   try {
-    const { duplicate, updated } = await store.add(capture);
+    const collectionId = await activeCollection(Boolean(options.isPrivate));
+    const { duplicate, updated } = await withCollection(store, collectionId).add(capture);
     // Trois retours distincts, du plus informatif au plus plat : le titre a été
     // adopté, le lien était déjà là, ou il vient d'arriver.
     if (updated) await flashBadge('✎', BADGE_UPDATED);
@@ -196,6 +304,9 @@ function openPrivacyNotice() {
 
 api?.runtime?.onInstalled?.addListener((details) => {
   installMenus();
+  // La collection par défaut est matérialisée à l'installation : c'est elle qui
+  // reçoit les liens de qui n'en crée jamais d'autre.
+  collections.ensureDefault().catch(() => {});
   refreshBadge();
 
   // Seulement à la première installation. Rouvrir un onglet à chaque mise à
@@ -205,6 +316,7 @@ api?.runtime?.onInstalled?.addListener((details) => {
 
 api?.runtime?.onStartup?.addListener(() => {
   installMenus();
+  collections.ensureDefault().catch(() => {});
   refreshBadge();
 });
 
@@ -233,7 +345,10 @@ if (contextMenusAvailable(api)) {
     // Le consentement est contrôlé par `record` lui-même : le clic droit serait
     // sinon un chemin de collecte contournant la mention, que personne
     // n'ouvrirait jamais depuis la fenêtre.
-    await record(captureFromClick(info, tab));
+    //
+    // `tab.incognito` dit de quelle fenêtre vient le clic : c'est la seule
+    // source fiable ici, le service worker n'ayant pas d'onglet à lui.
+    await record(captureFromClick(info, tab), { isPrivate: Boolean(tab?.incognito) });
   });
 }
 
@@ -244,13 +359,40 @@ api?.storage?.onChanged?.addListener((changes, area) => {
   if (area === 'local' && changes?.locale) installMenus();
 });
 
+// Le compteur suit le stockage, quel que soit celui qui l'écrit.
+//
+// L'application écrit dans les mêmes documents que la fenêtre — vider la
+// collection, supprimer un lien, importer une archive — et elle ne parle pas au
+// service worker, qui n'a aucune raison d'être connu d'elle. Le compteur gardait
+// donc le nombre d'avant : un « 3 » qui survivait à une collection vidée, posé
+// sur l'icône jusqu'au prochain événement. Le badge se réconcilie désormais **à
+// la source**, plutôt que de demander à chaque page d'y penser — la même règle
+// que le consentement, qui vit dans `record()` et non chez ses appelants.
+api?.storage?.onChanged?.addListener((changes, area) => {
+  // Les liens de la collection privée vivent dans `storage.session`, et le
+  // compteur d'une fenêtre privée est posé par la fenêtre elle-même : elle seule
+  // sait dans quelle fenêtre elle s'affiche. Un rafraîchissement déclenché d'ici
+  // annoncerait à cette fenêtre le compte de la collection ordinaire.
+  if (area !== 'local') return;
+  if (!displayedDocuments('local').some((cle) => cle in changes)) return;
+  // Un retour transitoire est à l'écran : c'est lui que l'œil doit voir, et
+  // l'échéance posée par `flashBadge` repose le compteur juste après.
+  if (Date.now() < flashUntil) return;
+  // Volontairement non attendu : l'écouteur n'a rien à rendre à personne, et
+  // `refreshBadge` ne lève jamais.
+  refreshBadge();
+});
+
 api?.runtime?.onMessage?.addListener((message, _sender, sendResponse) => {
   if (message?.type === 'refresh-badge') {
-    refreshBadge().then(() => sendResponse({ ok: true }));
+    // Le contexte vient de la page qui demande : elle seule sait dans quelle
+    // fenêtre elle s'affiche.
+    refreshBadge({ isPrivate: Boolean(message.isPrivate) }).then(() => sendResponse({ ok: true }));
     return true; // réponse asynchrone
   }
   if (message?.type === 'record-capture') {
-    record(message.capture).then(() => sendResponse({ ok: true }));
+    record(message.capture, { isPrivate: Boolean(message.isPrivate) })
+      .then(() => sendResponse({ ok: true }));
     return true;
   }
   return false;
