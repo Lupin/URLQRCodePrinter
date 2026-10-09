@@ -1,5 +1,13 @@
 # URLQRCodePrinter
 
+[![Version](https://img.shields.io/github/package-json/v/Lupin/URLQRCodePrinter?label=version)](https://github.com/Lupin/URLQRCodePrinter/blob/main/package.json)
+[![License](https://img.shields.io/github/license/Lupin/URLQRCodePrinter?label=licence)](https://github.com/Lupin/URLQRCodePrinter/blob/main/LICENSE)
+[![Node](https://img.shields.io/badge/node-%3E%3D20-brightgreen?logo=nodedotjs&logoColor=white)](https://github.com/Lupin/URLQRCodePrinter/blob/main/package.json)
+[![Build](https://img.shields.io/github/actions/workflow/status/Lupin/URLQRCodePrinter/site.yml?label=build)](https://github.com/Lupin/URLQRCodePrinter/actions/workflows/site.yml)
+[![Chrome Web Store](https://img.shields.io/chrome-web-store/v/fmfbpjekpbopeijaobdffbhhnfgjjbmi?label=chrome%20web%20store&logo=googlechrome&logoColor=white)](https://chromewebstore.google.com/detail/urlqrcodeprinter/fmfbpjekpbopeijaobdffbhhnfgjjbmi)
+[![Rating](https://img.shields.io/chrome-web-store/rating/fmfbpjekpbopeijaobdffbhhnfgjjbmi?label=note)](https://chromewebstore.google.com/detail/urlqrcodeprinter/fmfbpjekpbopeijaobdffbhhnfgjjbmi)
+[![Site](https://img.shields.io/website?url=https%3A%2F%2Flupin.github.io%2FURLQRCodePrinter%2F&label=site&up_message=online&down_message=offline)](https://lupin.github.io/URLQRCodePrinter/)
+
 **Français** · [English](README.md) · [Guide d'utilisation](docs/guide.fr.md)
 
 Collecter des URL depuis le navigateur (clic droit ou bouton), les garder dans
