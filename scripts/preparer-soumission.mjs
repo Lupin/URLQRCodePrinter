@@ -32,11 +32,16 @@ const SORTIE = join(ROOT, 'dist', 'a-coller-mise-a-jour.md');
 
 /** Les visuels du magasin, et où ils vivent. */
 const VISUELS = [
-  { champ: 'Captures d’écran (4 sur 5 emplacements)', chemins: [
+  // Cinq captures, c'est le maximum que le magasin accepte — et ce que la
+  // documentation recommande de remplir. La cinquième montre la gestion des
+  // collections : nom validé, « Nouvelle » sur la ligne du nom, et la
+  // confirmation de suppression.
+  { champ: 'Captures d’écran (5 sur 5 emplacements)', chemins: [
     'store/screenshots/01-fenetre-popup-fr.jpg',
     'store/screenshots/02-application-fr.png',
     'store/screenshots/03-impression-niimbot-fr.png',
     'store/screenshots/04-mention-confidentialite-fr.png',
+    'store/screenshots/05-collections-fr.png',
   ] },
   { champ: 'Petite image promotionnelle (440 × 280)', chemins: ['store/promo/promo-440x280.jpg'] },
   { champ: 'Icône de la fiche (128 × 128)', chemins: ['src/extension-src/icons/icon-128.png'] },

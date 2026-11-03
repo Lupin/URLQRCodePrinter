@@ -1,0 +1,15 @@
+{
+  "_comment": "Les collections que la fiche montre EN PLUS de celle du contenu d'exemple — celle-ci porte les douze liens et reste affichée. Leurs noms diffèrent volontairement du sien : deux collections homonymes dans le sélecteur ne montreraient rien, et le contrôle des doublons les refuserait en plus. Lues par scripts/capture-store-shots.mjs : sans elles, « Supprimer » est grisé (il doit toujours rester une collection) et le sélecteur n'aurait qu'une option.",
+  "collections": [
+    {
+      "id": "lectures",
+      "name": "Lectures de la semaine",
+      "note": "Les pages gardées pour le week-end."
+    },
+    {
+      "id": "projets",
+      "name": "Projets à monter",
+      "note": "Ce qui attend une première étagère."
+    }
+  ]
+}

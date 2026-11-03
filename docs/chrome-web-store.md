@@ -384,7 +384,7 @@ main, et de ce que le portail ne dit pas tout seul.
 | Justifications de permissions | **Rédigées** ci-dessus |
 | Choix trader / non-trader | **Traité** |
 | Mention et consentement dans l'interface | **Fait** — voir section 3 ; reste à éprouver à la main dans le navigateur |
-| Captures d'écran | **Fait** — quatre en 1280 × 800 dans `store/screenshots/`, dont `02` à `04` **régénérées le 3 novembre 2026** avec l'interface 0.3.0. Le dossier ne contient que les captures déclarées ; les huit captures brutes du 30 septembre en ont été sorties (voir section 7). Il manque celle du **menu contextuel**, prévue au plan, sur les cinq emplacements autorisés |
+| Captures d'écran | **Fait — les cinq emplacements sont remplis** : `01` et `02` à `04` régénérées le 3 novembre 2026 avec l'interface 0.3.0, plus la nouvelle `05-collections-fr.png` (nom validé, « Nouvelle », confirmation de suppression). Toutes en 1280 × 800. Le dossier ne contient que les captures déclarées ; les huit captures brutes du 30 septembre en ont été sorties (voir section 7) |
 | Petite image promotionnelle 440 × 280 | **Fait** — `store/promo/promo-440x280.jpg`, à la bonne dimension |
 | Icône de la fiche | Déjà conforme : `src/extension-src/icons/icon-128.png` (128×128, avec alpha, vérifié) |
 | Image « marquee » 1400 × 560 | Facultative — nécessaire seulement pour être mis en avant |
@@ -449,9 +449,10 @@ contenait **huit captures non déclarées** (celles du 30 septembre, en
 captures, en 1280 × 800 ou 640 × 400, et `test/publication.test.js` refusait les
 deux : c'est ce qui faisait les 2 échecs de la première préparation. Les huit
 brutes ont été sorties du dossier (déplacées dans `dist/brouillons-captures/`,
-non versionné), et `02` à `04` ont été **régénérées** avec l'interface 0.3.0. Le
-dossier ne contient donc plus que les quatre captures déclarées, et le test de la
-fiche passe de 10/12 à **12/12**.
+non versionné), et `02` à `04` ont été **régénérées** avec l'interface 0.3.0. Une
+cinquième — `05-collections-fr.png`, qui montre la gestion des collections —
+remplit le dernier emplacement : le dossier ne contient donc plus que
+**les cinq captures déclarées**, et le test de la fiche passe de 10/12 à **12/12**.
 
 **Une limite de la machine, à connaître.** `npm run test:swift` ne peut pas être
 rejoué ici : SwiftPM n'obtient pas son cache utilisateur

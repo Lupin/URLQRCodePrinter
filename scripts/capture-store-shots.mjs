@@ -64,6 +64,16 @@ const OUT = process.env.CAPTURES_SORTIE
   ? resolve(ROOT, process.env.CAPTURES_SORTIE)
   : CAPTURES;
 const EXEMPLE = join(CAPTURES, 'contenu-exemple.json');
+
+/**
+ * Les secondes collections des captures.
+ *
+ * Les liens restent ceux de `contenu-exemple.json` — la collection affichée les
+ * porte tous. Ce fichier ajoute seulement les **autres** collections : sans
+ * elles, « Supprimer » est grisé (il doit toujours en rester une), et ni le
+ * sélecteur ni le panneau de confirmation ne pourraient se montrer.
+ */
+const EXEMPLE_FICHE = join(CAPTURES, 'contenu-fiche.json');
 const PORT = 9333;
 
 const WIDTH = 1280;
@@ -164,6 +174,30 @@ function contenuExemple() {
   };
 }
 
+/**
+ * Les collections que la fiche montre en plus de celle du contenu d'exemple.
+ *
+ * Deux seulement, et nommées par l'usage plutôt que par un numéro : le sélecteur
+ * doit montrer qu'on range ses liens, et « Mes liens » doit rester la collection
+ * des liens d'exemple. Le fichier est relu à part, pour que son nom et sa note
+ * restent modifiables sans toucher au script — comme `contenu-exemple.json`.
+ *
+ * @returns {Array<{ id: string, name: string, note: string, startIndex: number, createdAt: number }>}
+ */
+function collectionsSupplementaires() {
+  const fichier = JSON.parse(readFileSync(EXEMPLE_FICHE, 'utf8'));
+  const autres = Array.isArray(fichier?.collections) ? fichier.collections : [];
+  return autres
+    .filter((entree) => typeof entree?.id === 'string' && entree.id !== DEFAULT_COLLECTION_ID)
+    .map((entree, rang) => ({
+      id: entree.id,
+      name: typeof entree.name === 'string' ? entree.name : '',
+      note: typeof entree.note === 'string' ? entree.note : '',
+      startIndex: 1,
+      createdAt: DATE_BASE + rang + 1,
+    }));
+}
+
 /** Écrit la grappe depuis la page — c'est là que l'application écrit. */
 function seedExpression(grappe) {
   return `chrome.storage.local.set(${JSON.stringify(grappe)})
@@ -175,9 +209,9 @@ function seedExpression(grappe) {
  * Enregistre une capture d'une page de l'extension.
  *
  * @param {{ port: number, id: string, file: string, name: string,
- *           before?: string, seed?: boolean }} shot
+ *           before?: string, seed?: boolean, extraCollections?: boolean }} shot
  */
-async function capture({ port, id, file, name, before, seed }) {
+async function capture({ port, id, file, name, before, seed, extraCollections = false }) {
   const target = await fetch(
     `http://127.0.0.1:${port}/json/new?chrome-extension://${id}/${file}`,
     { method: 'PUT' },
@@ -193,8 +227,20 @@ async function capture({ port, id, file, name, before, seed }) {
   await new Promise((r) => setTimeout(r, 1000));
 
   if (seed) {
+    const grappe = contenuExemple();
+    const autres = extraCollections ? collectionsSupplementaires() : [];
+    if (autres.length > 0) {
+      // Les liens restent ceux de la collection affichée ; les autres
+      // collections ne servent qu'au sélecteur et à « Supprimer ».
+      grappe[COLLECTIONS_KEY] = {
+        ...grappe[COLLECTIONS_KEY],
+        items: [...grappe[COLLECTIONS_KEY].items, ...autres],
+      };
+    }
+    console.log(`  collections : ${grappe[COLLECTIONS_KEY].items
+      .map((item) => item.name || '(sans nom)').join(', ')}`);
     const written = await page.send('Runtime.evaluate', {
-      expression: seedExpression(contenuExemple()),
+      expression: seedExpression(grappe),
       awaitPromise: true, returnByValue: true,
     });
     console.log(`  amorçage : ${describe(written)}`);
@@ -258,6 +304,9 @@ const SHOTS = [
     file: 'app.html',
     name: '02-application-fr.png',
     seed: true,
+    // Deux collections de plus que celle des liens d'exemple, pour que le
+    // sélecteur montre un rangement réel.
+    extraCollections: true,
     // Le haut de l'application : la collection avec ses tags et sa note, son nom,
     // et le panneau de mise en forme. C'est ce que voit quelqu'un qui ouvre
     // l'application — la fenêtre de l'extension, elle, ne montre que la liste.
@@ -283,6 +332,42 @@ const SHOTS = [
       window.scrollTo(0, ${DEFILEMENT_NIIMBOT});
       await new Promise((r) => setTimeout(r, 300));
       return onglet ? 'onglet Niimbot, défilement ' + window.scrollY : 'onglet Niimbot introuvable';
+    })()`,
+  },
+  {
+    file: 'app.html',
+    name: '05-collections-fr.png',
+    seed: true,
+    // Les trois gestes de la gestion des collections, sur une seule image : le
+    // sélecteur et sa suppression, le nom sur la ligne duquel siègent
+    // « Enregistrer » et « Nouvelle », et le panneau de confirmation ouvert — qui
+    // nomme la collection et compte les liens qu'elle emporte. La série montre
+    // donc ce que la 0.3.0 apporte, et non seulement la collection déjà connue.
+    // Deux collections de plus que celle des liens, pour que le sélecteur ait un
+    // rangement à montrer et que « Supprimer » soit offert.
+    extraCollections: true,
+    before: `(async () => {
+      window.scrollTo(0, 0);
+      await new Promise((r) => setTimeout(r, 200));
+      // Le nom se valide : on montre une saisie en attente, le bouton actif,
+      // l'aide qui annonce les deux issues, et « Nouvelle » qui reprendra ce nom.
+      const champ = document.getElementById('collection-name');
+      const enregistre = champ.value;
+      champ.value = enregistre + ' 2026';
+      champ.dispatchEvent(new Event('input', { bubbles: true }));
+      await new Promise((r) => setTimeout(r, 400));
+      const bouton = document.getElementById('collection-name-save');
+      if (bouton.disabled) return 'bouton « Enregistrer » INACTIF';
+      bouton.click();
+      await new Promise((r) => setTimeout(r, 600));
+      // Puis la suppression : question ouverte, et rien d'effacé tant qu'on
+      // n'a pas confirmé.
+      document.getElementById('collection-delete').click();
+      await new Promise((r) => setTimeout(r, 300));
+      const panneau = document.getElementById('collection-delete-confirm');
+      return (panneau && !panneau.hidden ? 'confirmation ouverte' : 'confirmation FERMÉE')
+        + ' · nom enregistré « ' + document.getElementById('collection-name').value + ' »'
+        + ' · « ' + (document.getElementById('collection-delete-confirm-text')?.textContent ?? '').trim() + ' »';
     })()`,
   },
   {
