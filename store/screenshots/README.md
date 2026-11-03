@@ -8,9 +8,9 @@ Les captures déposées ici partent sur la fiche du Chrome Web Store.
 
 ## Ce qui est en place
 
-Cinq captures, toutes en **1280 × 800**, toutes en RGB sans transparence — le
-magasin en accepte cinq au maximum, et la documentation recommande de les
-remplir :
+Neuf captures, toutes en **1280 × 800**, toutes en RGB sans transparence — le
+magasin en accepte cinq au maximum **par langue**, et la documentation
+recommande de les remplir :
 
 ```
 01-fenetre-popup-fr.jpg              la fenêtre, ouverte sur une page
@@ -19,7 +19,26 @@ remplir :
 04-mention-confidentialite-fr.png    la mention, en attente d'accord
 05-collections-fr.png                la gestion des collections : nom validé,
                                      « Nouvelle », et la confirmation de suppression
+
+02-application-en.png                les mêmes, en anglais — sauf `01`
+03-impression-niimbot-en.png
+04-mention-confidentialite-en.png
+05-collections-en.png
 ```
+
+**Deux séries, une par langue.** Le magasin accepte des captures par langue :
+la fiche française reçoit la série `-fr`, la fiche anglaise la série `-en`. Sans
+elle, le magasin sert les captures françaises aux visiteurs anglophones. Les
+quatre de la série anglaise sont produites **par le même script, dans la même
+passe** que la française : la langue est écrite dans `chrome.storage.local`
+(clé `locale`, ce qu'écrit le sélecteur de langue de l'application), la page est
+rechargée, et le script **vérifie ce qui est rendu** — `lang`, puis les trois
+premiers textes de l'interface — avant de cadrer. Une traduction manquante ou
+un repli sur le français se verrait donc dans la sortie du script.
+
+`01` n'a pas de version anglaise : c'est une capture d'écran manuelle de la
+fenêtre du navigateur, et la reconstituer en anglais serait une maquette. La
+série anglaise part donc avec quatre images, et un emplacement libre.
 
 `02`, `03`, `04` et `05` sont produites par `scripts/capture-store-shots.mjs` sur
 `contenu-exemple.json` : elles montrent donc la collection d'exemple, avec ses
@@ -30,12 +49,13 @@ panneau de confirmation de suppression : les captures montrent donc l'interface
 réellement déposée.
 
 `05` est nouvelle. Sa mise en scène est celle de la 0.3.0, et elle est réelle :
-le script **tape** un nom, clique « Enregistrer » (il refuse de continuer si le
-bouton est resté inactif), puis ouvre le panneau de suppression de la collection
-qui vient d'être renommée. Pour que la scène soit possible, elle ajoute deux
-collections à celles du contenu d'exemple — `contenu-fiche.json`, lu par le
-script : sans elles, « Supprimer » serait grisé, puisqu'il doit toujours rester
-une collection.
+le script **tape** un nom, vérifie que l'aide d'attente dit ce qu'elle doit dire
+(« Nom en attente… » ou « Pending name… », selon la langue), clique
+« Enregistrer » (il refuse de continuer si le bouton est resté inactif), puis
+ouvre le panneau de suppression de la collection qui vient d'être renommée. Pour
+que la scène soit possible, elle ajoute deux collections à celles du contenu
+d'exemple — `contenu-fiche.json`, lu par le script : sans elles, « Supprimer »
+serait grisé, puisqu'il doit toujours rester une collection.
 
 Le dossier ne contient **que les captures déclarées**. Les huit captures brutes
 du 30 septembre (2870 × 1796, non déclarées) ont été déplacées hors du dossier,
@@ -173,9 +193,9 @@ depuis l'extension réelle chargée dans Chrome : elles sont donc reproductibles
 `01` vient d'une capture d'écran manuelle, faute de pouvoir ouvrir la fenêtre de
 l'extension depuis le contenu web.
 
-Le magasin permet des captures **par langue**. Le manifeste déclare `fr` par
-défaut, avec `en` : si vous visez les deux, suffixez `-en` pour la seconde
-série. Sans elle, la fiche anglaise affichera les captures françaises.
+Le suffixe est la langue que la page affiche : `-fr` ou `-en`, dans la même
+passe de `scripts/capture-store-shots.mjs`. Les deux séries sont déjà produites ;
+la fiche française reçoit l'une, la fiche anglaise l'autre.
 
 ## Un piège à connaître
 

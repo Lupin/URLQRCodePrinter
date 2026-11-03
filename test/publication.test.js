@@ -263,15 +263,37 @@ test('les captures annoncées existent, et aucune n\'est en trop', () => {
   const surDisque = readdirSync(CAPTURES)
     .filter((nom) => /\.(png|jpe?g)$/i.test(nom))
     .sort();
-  // Le magasin en accepte cinq au maximum : au-delà, la fiche est refusée.
-  assert.ok(surDisque.length >= 1 && surDisque.length <= 5, `${surDisque.length} capture(s)`);
+
+  // Le magasin en accepte cinq au maximum **par langue** : une série française
+  // et une série anglaise cohabitent dans le même dossier, et c'est le suffixe
+  // `-fr` / `-en` qui les sépare. Le plafond vaut donc par série, pas pour le
+  // dossier — quinze images en une seule série seraient refusées.
+  const series = new Map();
+  for (const nom of surDisque) {
+    const langue = /-([a-z]{2})\.(?:png|jpe?g)$/i.exec(nom)?.[1]?.toLowerCase() ?? 'sans suffixe';
+    series.set(langue, [...(series.get(langue) ?? []), nom]);
+  }
+  assert.ok(series.size >= 1, 'aucune capture');
+  for (const [langue, noms] of series) {
+    assert.ok(
+      noms.length <= 5,
+      `${noms.length} capture(s) en « ${langue} » : le magasin en accepte cinq par langue`,
+    );
+  }
 
   const readme = readFileSync(join(CAPTURES, 'README.md'), 'utf8');
   for (const nom of surDisque) {
     assert.ok(readme.includes(nom), `${nom} n'est pas décrite dans store/screenshots/README.md`);
   }
   for (const [, nom] of readme.matchAll(/^(\d\d-[^\s]+\.(?:png|jpe?g))$/gim)) {
-    assert.ok(surDisque.includes(nom), `${nom} est décrite mais absente du dossier`);
+    for (const langue of series.keys()) {
+      // Une ligne du README décrit une capture : dans les deux séries, quand la
+      // capture existe dans les deux (tout sauf la fenêtre, manuelle).
+      assert.ok(
+        surDisque.includes(nom) || surDisque.includes(nom.replace(/-fr\./, `-${langue}.`)),
+        `${nom} est décrite mais absente du dossier`,
+      );
+    }
   }
 });
 

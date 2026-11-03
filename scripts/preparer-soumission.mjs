@@ -35,13 +35,23 @@ const VISUELS = [
   // Cinq captures, c'est le maximum que le magasin accepte — et ce que la
   // documentation recommande de remplir. La cinquième montre la gestion des
   // collections : nom validé, « Nouvelle » sur la ligne du nom, et la
-  // confirmation de suppression.
-  { champ: 'Captures d’écran (5 sur 5 emplacements)', chemins: [
+  // confirmation de suppression. Le magasin accepte une série **par langue** :
+  // chaque série est déposée dans son propre champ de la console.
+  { champ: 'Captures d’écran — FR (5 sur 5 emplacements)', chemins: [
     'store/screenshots/01-fenetre-popup-fr.jpg',
     'store/screenshots/02-application-fr.png',
     'store/screenshots/03-impression-niimbot-fr.png',
     'store/screenshots/04-mention-confidentialite-fr.png',
     'store/screenshots/05-collections-fr.png',
+  ] },
+  // `01` n'a pas de version anglaise : c'est une capture d'écran manuelle de la
+  // fenêtre du navigateur, et la reconstituer serait une maquette. La série
+  // anglaise part donc avec quatre images, et un emplacement libre.
+  { champ: 'Captures d’écran — EN (4 sur 5 emplacements)', chemins: [
+    'store/screenshots/02-application-en.png',
+    'store/screenshots/03-impression-niimbot-en.png',
+    'store/screenshots/04-mention-confidentialite-en.png',
+    'store/screenshots/05-collections-en.png',
   ] },
   { champ: 'Petite image promotionnelle (440 × 280)', chemins: ['store/promo/promo-440x280.jpg'] },
   { champ: 'Icône de la fiche (128 × 128)', chemins: ['src/extension-src/icons/icon-128.png'] },

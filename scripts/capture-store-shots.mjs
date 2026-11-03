@@ -206,12 +206,36 @@ function seedExpression(grappe) {
 }
 
 /**
+ * La bascule de langue, exécutée **dans** la page avant de la recharger.
+ *
+ * L'interface mémorise sa langue dans `chrome.storage.local`, sous la clé
+ * `locale` : c'est le même stockage dans les deux surfaces (application et
+ * mention), et `app.html` y écrit dès qu'on change la langue par le sélecteur.
+ * On l'y écrit donc directement — c'est ce que ferait ce sélecteur — puis on
+ * recharge, puisque la langue se relit au démarrage.
+ *
+ * `chrome.i18n` seul ne suffirait pas : il ne choisit que les chaînes du
+ * manifeste, alors que l'interface entière est rendue par l'application.
+ *
+ * @param {'fr'|'en'} langue
+ * @returns {string} L'expression à évaluer dans la page.
+ */
+function langueExpression(langue) {
+  return `chrome.storage.local.set({ locale: ${JSON.stringify(langue)} })
+    .then(() => 'langue : ' + ${JSON.stringify(langue)})
+    .catch((e) => 'ÉCHEC langue : ' + (e && e.message ? e.message : String(e)))`;
+}
+
+/**
  * Enregistre une capture d'une page de l'extension.
  *
  * @param {{ port: number, id: string, file: string, name: string,
- *           before?: string, seed?: boolean, extraCollections?: boolean }} shot
+ *           before?: (langue: 'fr'|'en') => string, seed?: boolean,
+ *           extraCollections?: boolean, langue?: 'fr'|'en' }} shot
  */
-async function capture({ port, id, file, name, before, seed, extraCollections = false }) {
+async function capture({
+  port, id, file, name, before, seed, extraCollections = false, langue = 'fr',
+}) {
   const target = await fetch(
     `http://127.0.0.1:${port}/json/new?chrome-extension://${id}/${file}`,
     { method: 'PUT' },
@@ -226,8 +250,17 @@ async function capture({ port, id, file, name, before, seed, extraCollections = 
   });
   await new Promise((r) => setTimeout(r, 1000));
 
+  if (langue === 'en') {
+    // La langue d'abord : elle survit au rechargement, et l'amorçage qui suit ne
+    // la réécrit pas — la grappe ne porte `locale` que pour la série française.
+    console.log(`  langue : ${describe(await page.send('Runtime.evaluate', {
+      expression: langueExpression('en'), awaitPromise: true, returnByValue: true,
+    }))}`);
+  }
+
   if (seed) {
     const grappe = contenuExemple();
+    if (langue === 'en') grappe.locale = 'en';
     const autres = extraCollections ? collectionsSupplementaires() : [];
     if (autres.length > 0) {
       // Les liens restent ceux de la collection affichée ; les autres
@@ -246,11 +279,21 @@ async function capture({ port, id, file, name, before, seed, extraCollections = 
     console.log(`  amorçage : ${describe(written)}`);
     await page.send('Page.reload', {});
     await new Promise((r) => setTimeout(r, 1500));
+    // La langue réellement rendue, et non celle qu'on a demandée : une clé
+    // oubliée s'afficherait en français au milieu d'une page anglaise, et la
+    // capture partirait telle quelle sur la fiche.
+    console.log(`  interface : ${describe(await page.send('Runtime.evaluate', {
+      expression: `'lang=' + document.documentElement.lang
+        + ' · ' + [...document.querySelectorAll('[data-i18n]')].slice(0, 3)
+            .map((n) => n.textContent.trim()).join(' | ')`,
+      returnByValue: true,
+    }))}`);
   }
 
   if (before) {
     const applied = await page.send('Runtime.evaluate', {
-      expression: before, awaitPromise: true, returnByValue: true,
+      expression: typeof before === 'function' ? before(langue) : before,
+      awaitPromise: true, returnByValue: true,
     });
     console.log(`  mise en scène : ${describe(applied)}`);
     await new Promise((r) => setTimeout(r, 700));
@@ -299,6 +342,9 @@ async function capture({ port, id, file, name, before, seed, extraCollections = 
  */
 const DEFILEMENT_NIIMBOT = 620;
 
+/** Le suffixe de nom d'une série : la langue que la page affiche. */
+const SUFFIXE = { fr: 'fr', en: 'en' };
+
 const SHOTS = [
   {
     file: 'app.html',
@@ -346,29 +392,41 @@ const SHOTS = [
     // Deux collections de plus que celle des liens, pour que le sélecteur ait un
     // rangement à montrer et que « Supprimer » soit offert.
     extraCollections: true,
-    before: `(async () => {
-      window.scrollTo(0, 0);
-      await new Promise((r) => setTimeout(r, 200));
-      // Le nom se valide : on montre une saisie en attente, le bouton actif,
-      // l'aide qui annonce les deux issues, et « Nouvelle » qui reprendra ce nom.
-      const champ = document.getElementById('collection-name');
-      const enregistre = champ.value;
-      champ.value = enregistre + ' 2026';
-      champ.dispatchEvent(new Event('input', { bubbles: true }));
-      await new Promise((r) => setTimeout(r, 400));
-      const bouton = document.getElementById('collection-name-save');
-      if (bouton.disabled) return 'bouton « Enregistrer » INACTIF';
-      bouton.click();
-      await new Promise((r) => setTimeout(r, 600));
-      // Puis la suppression : question ouverte, et rien d'effacé tant qu'on
-      // n'a pas confirmé.
-      document.getElementById('collection-delete').click();
-      await new Promise((r) => setTimeout(r, 300));
-      const panneau = document.getElementById('collection-delete-confirm');
-      return (panneau && !panneau.hidden ? 'confirmation ouverte' : 'confirmation FERMÉE')
-        + ' · nom enregistré « ' + document.getElementById('collection-name').value + ' »'
-        + ' · « ' + (document.getElementById('collection-delete-confirm-text')?.textContent ?? '').trim() + ' »';
-    })()`,
+    before: (langue) => {
+      // Le texte du nom en attente suit la langue de la capture : « Nom en
+      // attente : … » en français, « Pending name: … » en anglais.
+      const enAttente = langue === 'en'
+        ? 'Pending name: “Save” applies it to the displayed collection; “New” creates a collection with that name.'
+        : "Nom en attente : \u00ab Enregistrer \u00bb l'applique à la collection affichée ; \u00ab Nouvelle \u00bb crée une collection de ce nom.";
+      return `(async () => {
+        window.scrollTo(0, 0);
+        await new Promise((r) => setTimeout(r, 200));
+        // Le nom se valide : on montre la saisie en attente, le bouton actif,
+        // l'aide qui annonce les deux issues, et « Nouvelle » qui reprendra ce nom.
+        const champ = document.getElementById('collection-name');
+        const enregistre = champ.value;
+        champ.value = enregistre + ' 2026';
+        champ.dispatchEvent(new Event('input', { bubbles: true }));
+        await new Promise((r) => setTimeout(r, 400));
+        const aide = document.getElementById('collection-hint');
+        const texteAttendu = ${JSON.stringify(enAttente)};
+        if (!aide || aide.hidden || aide.textContent.trim() !== texteAttendu) {
+          return 'aide inattendue : « ' + (aide ? aide.textContent.trim() : 'absente') + ' »';
+        }
+        const bouton = document.getElementById('collection-name-save');
+        if (bouton.disabled) return 'bouton « Save/Enregistrer » INACTIF';
+        bouton.click();
+        await new Promise((r) => setTimeout(r, 600));
+        // Puis la suppression : question ouverte, et rien d'effacé tant qu'on
+        // n'a pas confirmé.
+        document.getElementById('collection-delete').click();
+        await new Promise((r) => setTimeout(r, 300));
+        const panneau = document.getElementById('collection-delete-confirm');
+        return (panneau && !panneau.hidden ? 'confirmation ouverte' : 'confirmation FERMÉE')
+          + ' · nom enregistré « ' + document.getElementById('collection-name').value + ' »'
+          + ' · « ' + (document.getElementById('collection-delete-confirm-text')?.textContent ?? '').trim() + ' »';
+      })()`;
+    },
   },
   {
     file: 'privacy.html',
@@ -428,9 +486,16 @@ async function main() {
     }
     console.log(`Extension ${id}\n`);
 
-    for (const shot of SHOTS) {
-      console.log(`${shot.name}`);
-      await capture({ port: PORT, id, ...shot });
+    // Deux séries : la française, et la même en anglais. Le magasin accepte des
+    // captures par langue, et une fiche anglaise servie avec des captures
+    // françaises se lit mal — d'où la série anglaise, produite à l'identique.
+    for (const langue of ['fr', 'en']) {
+      for (const shot of SHOTS) {
+        if (shot.langue && shot.langue !== langue) continue;
+        const nom = shot.name.replace(/-fr\.png$/, `-${SUFFIXE[langue]}.png`);
+        console.log(nom);
+        await capture({ port: PORT, id, ...shot, name: nom, langue });
+      }
     }
 
     console.log(`\n✓ captures écrites dans ${OUT.slice(ROOT.length + 1)}`);
