@@ -1,6 +1,6 @@
 {
   "name": "url-qr-code-printer",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "type": "module",
   "description": "Collect URLs from the browser, keep them in a local database, and print them as QR labels — sheet, CSV/Markdown export, or direct Niimbot D110 / M2 printing.",
   "keywords": [

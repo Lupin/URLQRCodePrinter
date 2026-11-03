@@ -1,11 +1,11 @@
 # URLQRCodePrinter
 
 [![Version](https://img.shields.io/github/package-json/v/Lupin/URLQRCodePrinter?label=version)](https://github.com/Lupin/URLQRCodePrinter/blob/main/package.json)
-[![License](https://img.shields.io/github/license/Lupin/URLQRCodePrinter?label=licence)](https://github.com/Lupin/URLQRCodePrinter/blob/main/LICENSE)
+[![Licence](https://img.shields.io/github/license/Lupin/URLQRCodePrinter?label=licence)](https://github.com/Lupin/URLQRCodePrinter/blob/main/LICENSE)
 [![Node](https://img.shields.io/badge/node-%3E%3D20-brightgreen?logo=nodedotjs&logoColor=white)](https://github.com/Lupin/URLQRCodePrinter/blob/main/package.json)
 [![Build](https://img.shields.io/github/actions/workflow/status/Lupin/URLQRCodePrinter/site.yml?label=build)](https://github.com/Lupin/URLQRCodePrinter/actions/workflows/site.yml)
 [![Chrome Web Store](https://img.shields.io/chrome-web-store/v/fmfbpjekpbopeijaobdffbhhnfgjjbmi?label=chrome%20web%20store&logo=googlechrome&logoColor=white)](https://chromewebstore.google.com/detail/urlqrcodeprinter/fmfbpjekpbopeijaobdffbhhnfgjjbmi)
-[![Rating](https://img.shields.io/chrome-web-store/rating/fmfbpjekpbopeijaobdffbhhnfgjjbmi?label=note)](https://chromewebstore.google.com/detail/urlqrcodeprinter/fmfbpjekpbopeijaobdffbhhnfgjjbmi)
+[![Note](https://img.shields.io/chrome-web-store/rating/fmfbpjekpbopeijaobdffbhhnfgjjbmi?label=note)](https://chromewebstore.google.com/detail/urlqrcodeprinter/fmfbpjekpbopeijaobdffbhhnfgjjbmi)
 [![Site](https://img.shields.io/website?url=https%3A%2F%2Flupin.github.io%2FURLQRCodePrinter%2F&label=site&up_message=online&down_message=offline)](https://lupin.github.io/URLQRCodePrinter/)
 
 **Français** · [English](README.md) · [Guide d'utilisation](docs/guide.fr.md)
@@ -37,7 +37,7 @@ retrouve et se partage facilement.
 | Protocole Niimbot (trames, profils D110 / M2 / M3) | fait, testé |
 | Transport Web Bluetooth + session d'impression D110 / M2 / M3 | fait, testé, **impression réelle sur une D110** |
 | Extension Brave / Chrome (clic droit, popup, liens cliquables) | fait, vérifié dans Brave et dans Chrome |
-| **Fiche Chrome Web Store** | **publiée** — `0.1.0` en ligne ; voir [les notes de fiche](docs/chrome-web-store.md) avant de livrer une mise à jour |
+| **Fiche Chrome Web Store** | **publiée** — `0.2.1` en ligne ; la mise à jour `0.3.0` est préparée ; voir [les notes de fiche](docs/chrome-web-store.md) avant de la déposer |
 | Application web autonome (liste, exports, mises en page) | fait, vérifié dans Brave |
 | Raccourcissement d'URL en option (T.LY d'abord, puis TinyURL, is.gd, v.gd, spoo.me) | fait, vérifié dans Brave |
 | Planches Avery A4 et Letter, calibrage d'impression | fait, géométrie confrontée aux cotes publiées |
@@ -48,7 +48,7 @@ retrouve et se partage facilement.
 | Socle natif Swift (protocole, session, CoreBluetooth) | fait, testé |
 | Application iOS qui utilise ce socle | à faire |
 
-**1146 tests, tous verts** — 1042 en JavaScript et 104 en Swift — dont :
+**1177 tests, tous verts** — 1073 en JavaScript et 104 en Swift — dont :
 
 - la validation **octet à octet** des trames Niimbot contre les relevés
   documentés, **dans les deux langages** : deux implémentations indépendantes
@@ -240,6 +240,51 @@ Ce que coûte le tout-local n'est pas la place, c'est la perte. Désinstaller
 l'extension, ou effacer les données de navigation, efface la collection. Le seul
 recours est l'archive exportée — un fichier conservé hors du navigateur — et
 l'import la relit en ignorant les liens déjà présents.
+
+### Nommer, créer et supprimer une collection
+
+**Un nom s'enregistrait à chaque pause de frappe.** Chaque salve de touches
+était un renommage : un nom à moitié tapé partait dans le stockage, la liste et
+les exports le portaient, et le contrôle des doublons pouvait refuser un nom en
+pleine saisie — la correction arrivait alors après un refus qui ne voulait plus
+rien dire. Un nom est une identité, pas un paragraphe : il est unique, il titre
+les exports, et il ne doit pas changer sans que quelqu'un le décide. Le nom n'est
+donc écrit qu'à la validation — **Entrée** ou le bouton **« Enregistrer »** à
+côté du champ — et ce bouton reste inactif tant que rien n'a changé, ce qui
+montre aussi, à lui seul, qu'une saisie attend. **Échap** abandonne la saisie et
+rétablit le nom enregistré. Un nom en attente est annoncé sous le sélecteur,
+parce que la liste et les exports nomment encore la collection avec l'ancien ;
+changer de collection l'abandonne, et le dit. Un nom refusé, déjà pris, reste
+dans le champ pour être corrigé.
+
+**« Nouvelle » partage la ligne du nom parce qu'il fait le même travail sur le
+même nom.** Il crée une collection nommée avec ce qui est saisi, au lieu de
+créer « Nouvelle collection » puis de la renommer aussitôt. Un nom en attente ne
+s'applique jamais à la collection affichée — il a été tapé pour la nouvelle — et
+il n'est pas consommé pour autant : sans nom, « Nouvelle collection », puis
+« Nouvelle collection 2 »… Un nom déjà pris est refusé sans rien créer, et la
+saisie reste dans le champ.
+
+**La suppression, seule action qui détruit en masse, passe par une question.**
+Un clic sur « Supprimer » n'efface plus : il ouvre un panneau de confirmation
+sous le sélecteur, qui nomme la collection et annonce combien de liens seront
+perdus. « Annuler » est le premier bouton et reçoit le focus ; Échap referme le
+panneau, et seul le bouton « Supprimer » du panneau exécute — un second geste
+distinct, pas un second clic sur le bouton qui a ouvert la question.
+
+**La note, elle, reste enregistrée à la frappe.** C'est un paragraphe, sans
+identité ni contrôle de doublons : rien à valider. Le nom est l'identité, d'où la
+validation explicite qui lui est propre.
+
+**Les règles n'ont pas changé.** La collection de navigation privée ne se
+supprime pas, et la dernière non plus — il doit toujours rester une collection à
+afficher. Un nom vide est un nom : il s'affiche et s'exporte sous le libellé
+intégré, « Mes liens », traduit au moment de l'affichage et jamais écrit.
+
+Ces gestes — frappe, Entrée, Échap, « Enregistrer », « Nouvelle », changement de
+collection, panneau de suppression — sont exécutés par
+`test/web-collections.test.js`, qui lance l'application réelle dans son contexte
+d'extension.
 
 ## Utilisation
 
@@ -624,13 +669,13 @@ Ce qui a été mis en cohérence :
 
 | Champ | Saisie | Sorties |
 |---|---|---|
-| URL | champ « Ajouter », extension | toutes |
+| URL | champ « Ajouter », extension, éditeur de la ligne (✎) | toutes |
 | Titre | éditeur de la ligne (✎) | CSV, Markdown, classeur, dossier du tableau, nom des fichiers d'étiquettes |
 | Tags | éditeur de la ligne (✎), virgules | CSV, Markdown, classeur, dossier du tableau |
 | Note | éditeur de la ligne (✎) | CSV, Markdown, classeur, tableau imprimé, dossier du tableau |
 | Nom de collection | champ « Nom de la collection » | titre du Markdown, titre de la planche HTML, nom des fichiers exportés, titre du tableau HTML |
 
-Deux choix méritent d'être connus :
+Trois choix méritent d'être connus :
 
 **Les colonnes facultatives n'apparaissent que si elles servent.** « Note » (dans
 le Markdown et le classeur), « URL courte » (CSV) et « URL d'origine » (dans les
@@ -642,6 +687,21 @@ toute la hauteur, et les tests existants auraient dû changer à chaque ajout.
 l'index est donc recalculé (`spreadsheetLayout`) : une image ancrée sur la
 mauvaise colonne serait tout simplement invisible. Les tags y sont écrits sans
 « # », comme dans le CSV : dans un tableur, le dièse gêne le filtrage.
+
+**L'adresse elle-même s'édite, et un fragment y survit.** Le bouton ✎ ouvre
+quatre champs, l'adresse en tête — sans quoi corriger une URL demandait de
+supprimer le lien pour le rajouter, en perdant au passage son rang, ses tags et
+sa note. Trois conséquences :
+
+- les paramètres de campagne (`utm_`, `fbclid`, `gclid`…) sont retirés comme
+  partout ailleurs : ils ne changent pas la destination, seulement la longueur du
+  QR Code ;
+- un **fragment** est conservé, alors qu'il est retiré à la capture : `#t=1m30s`
+  démarre la lecture d'une vidéo à 1 min 30, et l'effacer viderait la correction
+  de son sens ;
+- changer l'adresse **retire le raccourci**, qui pointe vers l'ancienne chez un
+  tiers : le garder ferait imprimer un QR Code menant ailleurs que ce que la ligne
+  affiche. Le raccourcir à nouveau reste possible.
 
 Les tags ne s'impriment pas sur les étiquettes : ils classent la collection, et
 les étiquettes portent le QR Code et le texte choisi. Ils ressortent en revanche dans
@@ -947,7 +1007,7 @@ pull request :
 
 ```bash
 npm install
-npm run test:all   # 1042 tests JavaScript + 104 tests Swift
+npm run test:all   # 1073 tests JavaScript + 104 tests Swift
 ```
 
 Les conventions du dépôt — cœur sans DOM ni réseau implicite, zéro dépendance,

@@ -23,6 +23,70 @@ invented here either.
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-11-03
+
+This update makes a link's address correctable from the list, streamlines
+collection management — the name is validated, "New" adopts the name you typed,
+and deletion asks for confirmation — and ends two silences: an application that
+froze while a form stayed open, and a rejected address shown encoded.
+
+### Added
+
+- **A link's address is now editable in the list**, with the **✎** button on its
+  row. The form opens four fields — link, title, tags, note — instead of three,
+  and the address comes first: it is what the QR Code encodes. Fixing a URL no
+  longer means deleting the link and adding it again, losing its rank, its tags
+  and its note along the way. You edit an address to add a timestamp (`?t=3139`,
+  or `#t=1m30s`), to strip tracking parameters, to fix a typo, or to follow a page
+  that has moved.
+
+### Changed
+
+- An **edited** address keeps its fragment, whereas a **captured** one still loses
+  it: `#t=1m30s` starts a video at 1 min 30, and removing it would empty the
+  correction of its meaning. Campaign parameters (`utm_*`, `fbclid`, `gclid`…)
+  are still stripped in both cases: they do not change the destination, only the
+  length of the QR Code.
+- Changing a link's address **drops its short link**, which points to the old one
+  at a third party, and the message says so: without that, the printed QR Code
+  would lead somewhere other than what the row displays.
+- **A collection name is saved on explicit validation**, no longer as you type:
+  the **Enter** key in the field, or the **"Save"** button beside it — inactive
+  until the name has changed. **Escape** drops the pending entry and restores the
+  saved name. A pending name is announced under the selector, and switching
+  collections with that selector drops it: it is not saved, and the message says
+  so.
+- **"New" adopts the name you typed**: when the field carries a pending name,
+  different from the displayed collection's, the new collection takes that name
+  instead of "New collection" — the displayed collection keeps its own. Without a
+  pending name, the automatic proposal stays what it was: "New collection",
+  "New collection 2"…
+- **"New" moves next to "Save"**, under the name field: creating and saving bear
+  on the same name, and the selector row keeps only "Delete".
+- **Deleting a collection asks for confirmation in a panel** under the selector:
+  it names the collection and states how many links will be lost. "Cancel"
+  receives the focus; the two-click arming of the button is gone.
+
+### Fixed
+
+- **The icon's feedback now lasts its full term.** The "+" of an add — and likewise
+  "✎" and "=" — was overwritten by a counter refresh that had started before it:
+  the sign stayed visible for one second instead of the 2.5 s announced, and the
+  browser relevance record had been reporting it since 0.2.0.
+- **The app no longer freezes while a link editor is open.** It used to hold its
+  refresh back until the form was closed, so as not to carry off what was being
+  typed — and meanwhile showed a stale link count, "4 links" under an icon
+  announcing 7, without saying so. What is being typed is now captured before the
+  redraw and handed back to the reopened form: the list follows storage, and
+  nothing written is lost.
+- A rejected host name is written back the way it was typed — "pas une url", not
+  "pas%20une%20url". The message asked you to decode the address in your head at
+  the very moment you are looking for why it does not go through.
+
+### What does not change
+
+Nothing new is read, stored or sent. No permission has been added.
+
 ## [0.2.1] - 2026-09-30
 
 This update makes the toolbar counter and the collection agree: emptying the

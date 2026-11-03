@@ -51,39 +51,78 @@
       <h2 id="collection-title" class="panel__title" data-i18n="Ma collection">Ma collection</h2>
 
       <!-- Le choix de la collection vient avant son nom : on choisit de quoi
-           on parle, puis on le décrit. Les deux commandes tiennent sur la même
-           ligne que la liste, et sont masquées sur la page web autonome, qui
-           n'a qu'une seule collection — celle du produit d'avant. -->
+           on parle, puis on le décrit. Le sélecteur et sa suppression sont
+           masqués sur la page web autonome, qui n'a qu'une seule collection —
+           celle du produit d'avant. « Nouvelle » est donc avec « Enregistrer »,
+           sous le nom : créer une collection, c'est d'abord lui donner un nom. -->
       <div id="collection-picker" class="collection-picker">
         <label class="field field--compact field--grow">
           <span class="field__label" data-i18n="Collection affichée">Collection affichée</span>
           <select id="collection-select" class="input input--compact"></select>
         </label>
-        <button id="collection-add" class="btn btn--ghost" type="button" data-i18n="Nouvelle">Nouvelle</button>
         <button id="collection-delete" class="btn btn--ghost btn--danger" type="button"
+                aria-expanded="false" aria-controls="collection-delete-confirm"
                 data-i18n="Supprimer">Supprimer</button>
       </div>
-      <!-- Ce que la suppression emporte, et ce qu'une collection de navigation
-           privée devient : deux choses qu'on ne devine pas. -->
-      <p id="collection-hint" class="hint hint--tight"></p>
+
+      <!-- La suppression demande confirmation ici, et non par un second clic sur
+           le bouton : la question annonce la collection visée et ce qu'elle
+           emporte, et « Annuler » est le premier bouton — le geste destructeur
+           ne doit pas se trouver sous le doigt qui vient d'ouvrir la question.
+           Le panneau reste dans le flux, sous le sélecteur, pour ne rien
+           recouvrir de ce qu'il faut relire. -->
+      <div id="collection-delete-confirm" class="collection-confirm" role="alertdialog"
+           aria-labelledby="collection-delete-confirm-text" hidden>
+        <p id="collection-delete-confirm-text" class="collection-confirm__text"></p>
+        <div class="collection-confirm__actions">
+          <button id="collection-delete-cancel" class="btn btn--ghost" type="button"
+                  data-i18n="Annuler">Annuler</button>
+          <button id="collection-delete-confirm-yes" class="btn btn--ghost btn--danger" type="button"
+                  data-i18n="Supprimer">Supprimer</button>
+        </div>
+      </div>
+      <!-- Ce que la suppression emporte, ce qu'une collection de navigation
+           privée devient, et ce qu'un nom en attente attend : trois choses
+           qu'on ne devine pas. `aria-live` parce que l'aide change sans que le
+           focus y entre — un lecteur d'écran doit l'entendre. -->
+      <p id="collection-hint" class="hint hint--tight" aria-live="polite"></p>
 
       <!-- Le nom et le premier numéro décrivent tous deux la collection
-           elle-même, et tiennent donc sur une ligne : le nom prend la place, le
-           numéro garde la sienne. Sous eux vient la note, qui est un
-           paragraphe. -->
+           elle-même. Le nom prend la ligne : il porte deux commandes à sa
+           droite, « Enregistrer » et « Nouvelle ». Le numéro garde la sienne,
+           en dessous. Sous eux vient la note, qui est un paragraphe. -->
       <div class="fields">
       <!-- Ce nom devient le titre des exports Markdown et de la planche
              imprimable : il doit donc être saisissable ici. Le champ est
              **vide** quand la collection n'est pas nommée : c'est le cas de la
              collection par défaut, et de toute collection dont on vient de
              vider le nom. Le libellé intégré — « Mes liens » — est alors en
-             filigrane, et sert de titre aux exports. -->
-        <label class="field field--compact">
-          <span class="field__label" data-i18n="Nom de la collection">Nom de la collection</span>
-          <input id="collection-name" class="input input--compact" type="text"
-                 maxlength="80" placeholder="Mes liens" data-i18n-placeholder="Mes liens"
-                 autocomplete="off" spellcheck="false">
-        </label>
+             filigrane, et sert de titre aux exports.
+
+             La saisie n'est enregistrée qu'à la validation : le bouton
+             « Enregistrer », ou la touche Entrée. Sans elle, chaque pause dans
+             la frappe renommait la collection, et un nom à moitié tapé partait
+             dans le stockage. Le bouton reste donc inactif tant que rien n'a
+             changé — il montre aussi, à lui seul, qu'une saisie attend.
+             « Nouvelle » l'accompagne : le nom saisi nomme la collection qu'on
+             crée, au lieu de la créer « Nouvelle collection » puis de la
+             renommer. -->
+        <div class="field field--compact field--name">
+          <label class="field__label" for="collection-name" data-i18n="Nom de la collection">Nom de la collection</label>
+          <div class="field__row">
+            <input id="collection-name" class="input input--compact" type="text"
+                   maxlength="80" placeholder="Mes liens" data-i18n-placeholder="Mes liens"
+                   autocomplete="off" spellcheck="false">
+            <button id="collection-name-save" class="btn btn--ghost btn--small" type="button"
+                    data-i18n="Enregistrer" disabled
+                    aria-label="Enregistrer le nom de la collection"
+                    data-i18n-aria-label="Enregistrer le nom de la collection"
+                    title="Enregistrer le nom de la collection (Entrée)"
+                    data-i18n-title="Enregistrer le nom de la collection (Entrée)">Enregistrer</button>
+            <button id="collection-add" class="btn btn--ghost btn--small" type="button"
+                    data-i18n="Nouvelle">Nouvelle</button>
+          </div>
+        </div>
 
         <!-- Le premier numéro. Il sert à **continuer une série** : on efface les
              liens d'un lot terminé, on garde la numérotation, et le lot suivant

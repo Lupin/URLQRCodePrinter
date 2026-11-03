@@ -26,9 +26,34 @@ import { fileURLToPath } from 'node:url';
 import { parseImportFile, toImportableLinks } from '../src/core/import.js';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+
+/**
+ * Lit un fichier de `dist/`, en attendant qu'une construction parallèle le repose.
+ *
+ * `test/extension.test.js` relance `scripts/build.mjs` dans un autre processus de
+ * test, et la construction commence par supprimer son dossier de sortie : le
+ * manifeste peut donc manquer une fraction de seconde au chargement de ce
+ * fichier. Sans cette attente, la panne est un ENOENT aléatoire qui ne dit rien
+ * de la fiche.
+ *
+ * @param {string} chemin
+ * @param {number} [essais]
+ * @returns {Promise<string>}
+ */
+async function lireDist(chemin, essais = 250) {
+  for (let i = 0; ; i += 1) {
+    try {
+      return readFileSync(chemin, 'utf8');
+    } catch (error) {
+      if (i >= essais) throw error;
+      await new Promise((r) => setTimeout(r, 20));
+    }
+  }
+}
+
 const LISTING = JSON.parse(readFileSync(join(ROOT, 'store', 'listing.json'), 'utf8'));
 const DOC = readFileSync(join(ROOT, 'docs', 'chrome-web-store.md'), 'utf8');
-const MANIFEST = JSON.parse(readFileSync(join(ROOT, 'dist', 'extension', 'manifest.json'), 'utf8'));
+const MANIFEST = JSON.parse(await lireDist(join(ROOT, 'dist', 'extension', 'manifest.json')));
 const MESSAGES_EN = JSON.parse(
   readFileSync(join(ROOT, 'src', 'extension-src', '_locales', 'en', 'messages.json'), 'utf8'),
 );

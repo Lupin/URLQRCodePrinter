@@ -52,6 +52,31 @@ export and to the
 HTML sheet of the image archive, and gives its name to the exported files —
 `Veille-du-vendredi-20260915-1741.md` rather than `liens-qr-….md`.
 
+The name is saved on explicit validation, not as you type: press **Enter** in the
+field, or use the **"Save"** (« Enregistrer ») button beside it — it stays
+inactive until the name has changed. **Escape** drops the pending entry and
+restores the saved name. While a name is pending, a message under the selector
+says so — "Pending name: “Save” applies it to the displayed collection; “New”
+creates a collection with that name." — and it disappears once the name is saved.
+An emptied field is a pending empty name too; the message then names only
+**"Save"**, since "New" would fall back to "New collection" rather than take an
+empty name.
+
+The list of collections therefore changes only on saving, whereas the exports
+read the field: what you see in the field is the title they carry, even before
+validation. The name is an identity, and it is checked against duplicates: a name
+already carried by another collection is refused with a message, and the entry
+stays in the field to be corrected. The note, for its part, is still saved as you
+type, and the first number still applies when you leave the field: only the name
+waits.
+
+The name can still be emptied: emptied **then saved**, it yields an empty name,
+displayed and exported under the built-in label **"My links"** (« Mes liens »):
+validation changes when it is written, not what an empty name means.
+
+On the standalone web page, where there is only one collection and no **"New"**
+button, the **"Save"** button and the **Enter** key do the same.
+
 The **"Collection note (optional)" (« Note de la collection (facultative) »)**
 field, just below, describes the whole — what it is about, where it comes from. It
 is not a link's note: it belongs to the collection, and therefore appears
@@ -128,9 +153,14 @@ not reset it to 1, which is exactly what is worth preserving. Sorting, on the
 other hand, stays a view: it renumbers the display without touching either the
 starting number or the stored order.
 
-**Title, tags and note.** The **✎** button on each row opens the three fields
-that go into the exports:
+**Link, title, tags and note.** The **✎** button on each row opens the four
+fields that go into the exports:
 
+- **Link** (« Lien ») — the address itself, the one the QR Code encodes. You edit
+  it to add a timestamp (`?t=3139`, or `#t=1m30s` to start a video at 1 min 30),
+  to strip tracking parameters glued on by a share, to fix a typo, or to follow a
+  page that has moved. Fixing the address beats deleting the link and adding it
+  again: the rank, the tags and the note stay in place;
 - **Title** (« Titre ») — the page title is picked up automatically on capture,
   but a link added by hand has none: this is where you give it one;
 - **Tags** — comma-separated, deduplicated and formatted automatically
@@ -139,14 +169,24 @@ that go into the exports:
 - **Note** — free text, visible under the row and carried into the printed table
   if you check "Show notes" (« Afficher les notes »).
 
+A rejected address does not close the form: the complaint appears under the
+field, and the correction you just typed stays there.
+
 **Save** and **Cancel** close the form, and the shortcuts still work: Enter
-saves, Escape cancels. These three fields appear in the CSV, the Markdown and the
+saves, Escape cancels. These fields appear in the CSV, the Markdown and the
 workbook — and only if they have content, so as not to add empty columns. Tags
 are not printed on labels: they classify the collection.
 
-URLs are normalized on entry: `https://` added if missing, fragment removed,
-campaign parameters (`utm_*`, `fbclid`, `gclid`…) stripped — they make the QR Code
-code longer without adding anything on paper.
+URLs are normalized on entry: `https://` added if missing, campaign parameters
+(`utm_*`, `fbclid`, `gclid`…) stripped — they make the QR Code longer without
+adding anything on paper. The **fragment**, however, is removed on capture but
+kept when you edit the address: `#t=1m30s` picks a passage of the page there, and
+removing it would empty your correction of its meaning.
+
+**Changing the address of a shortened link drops its short link.** It points to
+the old address, at a third party: keeping it would print a QR Code leading
+somewhere other than what the row displays. The message says so, and you can
+shorten again.
 
 **A search-engine redirect address is replaced by its destination.** A
 right-click on a Google, Bing or DuckDuckGo result targets an address of the
@@ -172,7 +212,9 @@ At rest it carries the **number of links in the displayed collection**, and that
 number follows what you do, wherever you do it: clearing the collection from the
 application clears the counter on the icon too, and clearing it from the
 extension window updates the application — the window, the application and the
-service worker all read the same documents.
+service worker all read the same documents. A link added elsewhere reaches the
+list **even while you are editing another one**: what you are typing is kept, and
+the editor comes back exactly as you left it.
 
 **Dating the labels.** The "Date below the QR Code" (« Date sous le QR Code »)
 selector prints the link's collection date — `None` by default,
@@ -265,26 +307,38 @@ The window only browses: it creates, renames and deletes nothing. That is
 deliberate — those gestures need a name, a note, and the room to read them back,
 which a 380 px column does not offer. Everything therefore happens in the
 application, where the **"Displayed collection"** (« Collection affichée »)
-selector does what the arrows do, and the **"New"** (« Nouvelle ») and
-**"Delete"** (« Supprimer ») buttons go further:
+selector does what the arrows do, and **"Delete"** (« Supprimer ») follows it;
+**"New"** (« Nouvelle ») sits with **"Save"** (« Enregistrer »), under the name
+field:
 
-- **New** creates a collection named "New collection", then "New collection 2",
-  and so on. The name field takes focus straight after: you name what you just
-  created.
-- **Delete** asks for confirmation, and states **how many links will be lost** —
-  a collection takes its links with it. The button disarms itself after five
-  seconds. **Every collection can be deleted except the last one**: the default
-  collection is nothing special, and keeping it while another exists would force
-  you to create a collection just to get rid of the first. What cannot happen is
-  that none is left — the window and the application would have nowhere to save.
+- **New** is the companion of **Save**, under the name: the name you type names
+  the collection you create. With no pending name, the proposal stays "New
+  collection", then "New collection 2", and so on. With a pending name different
+  from the displayed collection's, the new collection takes **that name**, and
+  the displayed collection keeps its own. The name field takes focus straight
+  after: you name what you just created.
+- **Delete** does not delete on the first click: it opens a question under the
+  selector, naming the collection and stating **how many links will be lost** —
+  a collection takes its links with it. "Cancel" (« Annuler ») closes the question
+  without touching anything, and it is the one that has focus; "Delete", the
+  second button, carries it out. **Every collection can be deleted except the last
+  one**: the default collection is nothing special, and keeping it while another
+  exists would force you to create a collection just to get rid of the first.
+  What cannot happen is that none is left — the window and the application would
+  have nowhere to save.
 - The **name** and the **note** belong to the displayed collection. The name
   becomes the title of the Markdown export, the sheet and the table; it is
   reused in file names.
-- The name may be **emptied**. An empty field is an empty name, saved as such,
-  and not a lost correction: the collection is then displayed in the list and
-  titles its exports under the built-in label, **"My links"** (« Mes liens »),
-  and the hint under the selector says so. Empty therefore differs from "never
-  renamed" by what it says on screen, not by what it stores.
+- The name may be **emptied**. An empty field, once validated, is an empty name,
+  saved as such, and not a lost correction: the collection is then displayed in
+  the list and titles its exports under the built-in label, **"My links"** (« Mes
+  liens »), and the hint under the selector says so. Empty therefore differs from
+  "never renamed" by what it says on screen, not by what it stores.
+
+Switching collections with the selector **drops** a pending name: it is not
+saved, and the message says so — "Pending name discarded: it was not saved." The
+collection you leave keeps the name it had; the one that appears comes with its
+own.
 
 The same address may appear in two collections: that is what filing means. Inside
 one collection, though, a duplicate is still a duplicate — right-clicking an

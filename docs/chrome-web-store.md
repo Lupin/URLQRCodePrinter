@@ -384,13 +384,13 @@ main, et de ce que le portail ne dit pas tout seul.
 | Justifications de permissions | **Rédigées** ci-dessus |
 | Choix trader / non-trader | **Traité** |
 | Mention et consentement dans l'interface | **Fait** — voir section 3 ; reste à éprouver à la main dans le navigateur |
-| Captures d'écran | **Fait** — quatre en 1280 × 800 dans `store/screenshots/`. Il manque celle du **menu contextuel**, prévue au plan, sur les cinq emplacements autorisés |
+| Captures d'écran | **Fait** — quatre en 1280 × 800 dans `store/screenshots/`, dont `02` à `04` **régénérées le 3 novembre 2026** avec l'interface 0.3.0. Le dossier ne contient que les captures déclarées ; les huit captures brutes du 30 septembre en ont été sorties (voir section 7). Il manque celle du **menu contextuel**, prévue au plan, sur les cinq emplacements autorisés |
 | Petite image promotionnelle 440 × 280 | **Fait** — `store/promo/promo-440x280.jpg`, à la bonne dimension |
 | Icône de la fiche | Déjà conforme : `src/extension-src/icons/icon-128.png` (128×128, avec alpha, vérifié) |
 | Image « marquee » 1400 × 560 | Facultative — nécessaire seulement pour être mis en avant |
 | Catégorie et langue | **À choisir** : la locale par défaut du manifeste est `fr` |
 | Instructions de test pour la revue | À rédiger si l'extension exige une action particulière |
-| Version publiée | Enregistrée dans `store/listing.json` (`item.publishedVersion`). Le dépôt doit la dépasser — voir section 7 |
+| Version publiée | Enregistrée dans `store/listing.json` (`item.publishedVersion`, aujourd'hui `0.2.1`). Le dépôt doit la dépasser — voir section 7 |
 
 Les dimensions des visuels sont récapitulées dans [`store/README.md`](../store/README.md),
 avec la source officielle.
@@ -398,8 +398,10 @@ avec la source officielle.
 Un point que ce tableau ne peut pas porter : **la fiche publiée porte encore
 l'ancienne formulation**, le sigle seul là où le produit écrit « QR Code » depuis
 le commit `5822115`. Son message l'assume : les deux ne se rejoindront qu'à la
-prochaine soumission. C'est à corriger en même temps que le paquet, sinon la
-fiche et la fenêtre se contredisent — exactement ce qu'un examinateur cherche.
+prochaine soumission — celle de la 0.3.0, dont les textes de
+[`store/listing.json`](../store/listing.json) portent déjà la bonne formulation.
+C'est à recoller en même temps que le paquet, sinon la fiche et la fenêtre se
+contredisent — exactement ce qu'un examinateur cherche.
 
 ---
 
@@ -415,7 +417,54 @@ l'envoi, et son message ne nomme aucun fichier. D'où l'ordre ci-dessous.
 | Console | <https://chrome.google.com/webstore/devconsole> |
 | Fiche publique | <https://chromewebstore.google.com/detail/urlqrcodeprinter/fmfbpjekpbopeijaobdffbhhnfgjjbmi> |
 
-### État de la soumission 0.2.1 — 30 septembre 2026
+### État de la soumission 0.3.0 — 3 novembre 2026
+
+Version de fonctionnalité : l'adresse d'un lien s'édite dans la liste, avec le
+bouton ✎ de sa ligne — le formulaire ouvre quatre champs au lieu de trois, et
+l'adresse vient en tête, puisque c'est elle que le QR Code encode. La gestion des
+collections y gagne aussi : le nom se valide — **Entrée** ou bouton
+**« Enregistrer »** — au lieu de s'écrire à chaque pause de frappe, **« Nouvelle »**
+siège à côté d'« Enregistrer » et reprend le nom saisi pour la collection qu'il
+crée, et la suppression passe par un panneau de confirmation qui nomme la
+collection et compte les liens perdus. Deux corrections l'accompagnent, l'une et
+l'autre constatées dans un vrai Chrome : l'application ne gèle plus tant qu'un
+éditeur est ouvert (elle affichait un nombre de liens périmé, « 4 liens » sous une
+icône qui en annonçait 7), et le retour transitoire de l'icône tient enfin son
+terme — le « + » d'un ajout était écrasé par une relecture du compteur, et ne
+durait qu'une seconde sur les 2,5 promises.
+
+| Élément | État mesuré |
+|---|---|
+| Version à déposer | **0.3.0** (publiée : 0.2.1) |
+| Archive | `dist/url-qrcode-printer-chrome.zip` — **21 fichiers, 1407 Kio**, manifeste MV3, 4 permissions, **aucun hôte** |
+| Tests du produit | `npm test` → **1073 JavaScript, tous verts** |
+| Socle natif | `swift test` → **104 tests** au relevé du 1er octobre. Non rejoués ici : SwiftPM n'obtient pas son cache utilisateur dans ce bac à sable (voir plus bas). Le socle natif n'a pas changé depuis. |
+| Relevé navigateur | `npm run verify:chrome` → **167/167** constats satisfaits (3 novembre 2026) |
+| Tests de la fiche | `test/publication.test.js` → **12/12** |
+| Vérification du compteur | `npm run verify:badge` → l'icône, l'application et la fenêtre disent la même chose après un vidage, dans les deux sens (3 novembre 2026) |
+
+**Le point qui bloquait la première préparation est réglé.** `store/screenshots/`
+contenait **huit captures non déclarées** (celles du 30 septembre, en
+2870 × 1796) en plus des quatre de la fiche. Le magasin n'accepte que cinq
+captures, en 1280 × 800 ou 640 × 400, et `test/publication.test.js` refusait les
+deux : c'est ce qui faisait les 2 échecs de la première préparation. Les huit
+brutes ont été sorties du dossier (déplacées dans `dist/brouillons-captures/`,
+non versionné), et `02` à `04` ont été **régénérées** avec l'interface 0.3.0. Le
+dossier ne contient donc plus que les quatre captures déclarées, et le test de la
+fiche passe de 10/12 à **12/12**.
+
+**Une limite de la machine, à connaître.** `npm run test:swift` ne peut pas être
+rejoué ici : SwiftPM n'obtient pas son cache utilisateur
+(`~/Library/org.swift.swiftpm` inaccessible), et la compilation s'arrête sur
+« Unknown error parsing property list ». Ce n'est pas un échec du socle : le
+relevé du 1er octobre donnait 104 tests pour 0 échec, et le socle natif n'a pas
+changé depuis. Sur une machine où le cache est accessible, la suite se lance par :
+
+```bash
+npm run test:swift
+```
+
+### État de la soumission 0.2.1 — 30 septembre 2026 · **publiée**
 
 Version de correction : le compteur de l'icône et les deux pages qui vident la
 collection disent désormais la même chose, quelle que soit celle d'où le bouton
@@ -424,7 +473,7 @@ n'a été ajoutée.
 
 | Élément | État mesuré |
 |---|---|
-| Version à déposer | **0.2.1** (publiée : 0.1.0) |
+| Version déposée | **0.2.1** — acceptée et publiée (précédente : 0.1.0) |
 | Archive | `dist/url-qrcode-printer-chrome.zip` — **21 fichiers, 1374 Kio**, manifeste MV3, 4 permissions, **aucun hôte** |
 | Tests du produit | `npm test` → **1042 JavaScript**, tous verts |
 | Vérification du compteur | `npm run verify:badge` → l'icône, l'application et la fenêtre disent la même chose après un vidage |

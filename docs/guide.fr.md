@@ -51,6 +51,33 @@ vidéo, et la page demandée n'arrivait jamais.
 de l'archive d'images, et son nom aux fichiers exportés —
 `Veille-du-vendredi-20260915-1741.md` plutôt que `liens-qr-….md`.
 
+Le nom s'enregistre sur validation explicite, et non à la frappe : tapez-le, puis
+validez par la touche **Entrée** dans le champ, ou par le bouton
+**« Enregistrer »** placé à côté de lui — il reste inactif tant que le nom n'a pas
+changé. La touche **Échap** abandonne la saisie en attente et rétablit le nom
+enregistré. Tant qu'un nom attend, un message le dit sous le sélecteur : « Nom en
+attente : « Enregistrer » l'applique à la collection affichée ; « Nouvelle » crée
+une collection de ce nom. » Il disparaît une fois le nom enregistré. Un champ
+vidé attend lui aussi sa validation ; le message ne nomme alors que
+**« Enregistrer »**, puisque « Nouvelle » ne prendrait pas un nom vide — il
+retombe sur « Nouvelle collection ».
+
+La liste des collections ne change donc qu'à l'enregistrement, alors que les
+exports lisent le champ : ce que vous voyez dans le champ est le titre qu'ils
+portent, même avant la validation. Le nom est une identité, et il est soumis au
+contrôle des doublons : un nom déjà porté par une autre collection est refusé
+avec un message, et la saisie reste dans le champ pour être corrigée. La note,
+elle, reste enregistrée à la frappe, et le premier numéro reste appliqué à la
+sortie du champ : seul le nom attend.
+
+Le nom peut toujours être vidé : vidé **puis enregistré**, il produit un nom vide,
+affiché et exporté sous le libellé intégré **« Mes liens »** : la validation
+change le moment de l'écriture, pas ce qu'un nom vide veut dire.
+
+Sur la page web autonome, où il n'y a qu'une collection et pas de bouton
+**« Nouvelle »**, le bouton **« Enregistrer »** et la touche **Entrée** font de
+même.
+
 Le champ **« Note de la collection (facultative) »**, juste en dessous, décrit
 l'ensemble — de quoi il parle, d'où il vient. Ce n'est pas la note d'un lien : elle
 appartient à la collection, et se retrouve donc là où la collection est nommée :
@@ -126,9 +153,15 @@ remet pas à 1, c'est précisément ce qu'on veut préserver. Le tri, lui, reste
 vue : il renumérote l'affichage, mais ne touche ni le numéro de départ ni l'ordre
 enregistré.
 
-**Titre, tags et note.** Le bouton **✎** de chaque ligne ouvre les trois champs
-qui partent dans les exports :
+**Lien, titre, tags et note.** Le bouton **✎** de chaque ligne ouvre les quatre
+champs qui partent dans les exports :
 
+- **Lien** — l'adresse elle-même, celle que le QR Code encode. On l'édite pour
+  ajouter un horodatage (`?t=3139`, ou `#t=1m30s` pour démarrer une vidéo à
+  1 min 30), retirer des paramètres de suivi collés par un partage, corriger une
+  faute de frappe, ou suivre une page qui a déménagé. Corriger l'adresse vaut
+  mieux que supprimer le lien pour le rajouter : le rang, les tags et la note
+  restent en place ;
 - **Titre** — le titre de la page est repris automatiquement à la capture, mais
   un lien ajouté à la main n'en a pas : c'est ici qu'on le donne ;
 - **Tags** — séparés par des virgules, dédoublonnés et mis en forme
@@ -137,15 +170,25 @@ qui partent dans les exports :
 - **Note** — texte libre, visible sous la ligne et repris dans le tableau
   imprimé si vous cochez « Afficher les notes ».
 
+Une adresse refusée ne referme pas le formulaire : le reproche s'affiche sous le
+champ, et la correction qu'on vient d'écrire y reste.
+
 **Enregistrer** et **Annuler** referment le formulaire, et les raccourcis
-restent : Entrée enregistre, Échap annule. Ces trois champs apparaissent dans le
+restent : Entrée enregistre, Échap annule. Ces champs apparaissent dans le
 CSV, le Markdown et le classeur — et seulement s'ils ont du contenu, pour ne pas
 ajouter de colonnes vides. Les tags ne s'impriment pas sur les étiquettes : ils
 classent la collection.
 
-Les URL sont normalisées à l'entrée : `https://` ajouté si absent, fragment
-retiré, paramètres de campagne (`utm_*`, `fbclid`, `gclid`…) supprimés — ils
-allongent le QR Code sans rien apporter au papier.
+Les URL sont normalisées à l'entrée : `https://` ajouté si absent, paramètres de
+campagne (`utm_*`, `fbclid`, `gclid`…) supprimés — ils allongent le QR Code sans
+rien apporter au papier. Le **fragment**, lui, est retiré à la capture mais
+conservé quand vous éditez l'adresse : `#t=1m30s` y choisit un passage de la
+page, et l'effacer viderait votre correction de son sens.
+
+**Changer l'adresse d'un lien raccourci retire son raccourci.** Il pointe vers
+l'ancienne adresse, chez un tiers : le garder ferait imprimer un QR Code qui mène
+ailleurs que ce que la ligne affiche. Le message le dit, et vous pouvez
+raccourcir à nouveau.
 
 **Une adresse de redirection de moteur de recherche est remplacée par sa
 destination.** Un clic droit sur un résultat de Google, de Bing ou de
@@ -172,7 +215,9 @@ Au repos, elle porte le **nombre de liens de la collection affichée**, et ce
 nombre suit ce que vous faites, d'où que vous le fassiez : vider la collection
 depuis l'application efface aussi le compteur sur l'icône, et vider depuis la
 fenêtre de l'extension met l'application à jour — la fenêtre, l'application et
-le service worker lisent les mêmes documents.
+le service worker lisent les mêmes documents. Un lien ajouté ailleurs arrive
+dans la liste **même si vous êtes en train d'en éditer un** : votre saisie est
+conservée, et l'éditeur se retrouve tel que vous l'avez laissé.
 
 **Dater les étiquettes.** Le sélecteur « Date sous le QR Code » imprime la date
 de collecte du lien — `Aucune` par défaut, `Date de collecte` (`15/09/2026`) ou
@@ -268,26 +313,37 @@ La fenêtre ne fait que parcourir : elle ne crée, ne renomme et ne supprime rie
 C'est délibéré — ces gestes demandent un nom, une note, et la place de les relire,
 ce qu'une colonne de 380 px n'offre pas. Tout se fait donc dans l'application, où
 le sélecteur **« Collection affichée »** fait la même chose que les flèches, et où
-les boutons **« Nouvelle »** et **« Supprimer »** vont plus loin :
+**« Supprimer »** le suit ; **« Nouvelle »** est avec **« Enregistrer »**, sous le
+nom du champ :
 
-- **Nouvelle** crée une collection nommée « Nouvelle collection », puis
-  « Nouvelle collection 2 », etc. Le champ du nom prend le focus juste après :
-  on nomme ce qu'on vient de créer.
-- **Supprimer** demande confirmation, et annonce **combien de liens seront
-  perdus** — une collection emporte ses liens. Le bouton se désarme tout seul
-  après cinq secondes. **Toutes les collections se suppriment, sauf la
-  dernière** : la collection par défaut n'a rien de particulier, et la garder
-  quand une autre existe obligerait à créer une collection pour pouvoir se
-  débarrasser de la première. Ce qui ne peut pas arriver, c'est qu'il n'en reste
-  aucune — la fenêtre et l'application n'auraient plus où enregistrer.
+- **Nouvelle** est le compagnon d'**Enregistrer**, sous le nom : le nom saisi
+  nomme la collection qu'on crée. Sans nom en attente, la proposition reste
+  « Nouvelle collection », puis « Nouvelle collection 2 », etc. Avec un nom en
+  attente différent de celui de la collection affichée, la collection nouvelle
+  prend **ce nom**, et la collection affichée garde le sien. Le champ du nom
+  prend le focus juste après : on nomme ce qu'on vient de créer.
+- **Supprimer** ne supprime pas au premier clic : il ouvre une question sous le
+  sélecteur, qui nomme la collection visée et annonce **combien de liens seront
+  perdus** — une collection emporte ses liens. « Annuler » referme la question
+  sans rien toucher, et c'est lui qui a le focus ; « Supprimer », le second
+  bouton, exécute. **Toutes les collections se suppriment, sauf la dernière** :
+  la collection par défaut n'a rien de particulier, et la garder quand une autre
+  existe obligerait à créer une collection pour pouvoir se débarrasser de la
+  première. Ce qui ne peut pas arriver, c'est qu'il n'en reste aucune — la
+  fenêtre et l'application n'auraient plus où enregistrer.
 - Le **nom** et la **note** portent sur la collection affichée. Le nom devient le
   titre des exports Markdown, de la planche et du tableau ; il est repris dans le
   nom des fichiers.
-- Le nom peut être **vidé**. Un champ vide est un nom vide, enregistré comme tel,
-  et non une correction perdue : la collection s'affiche alors dans la liste et
-  titre ses exports sous le libellé intégré, **« Mes liens »**, et l'aide sous le
-  sélecteur le rappelle. Le vide se distingue donc de « non renommée » par ce
-  qu'il dit à l'écran, pas par ce qu'il stocke.
+- Le nom peut être **vidé**. Un champ vide, une fois validé, est un nom vide,
+  enregistré comme tel, et non une correction perdue : la collection s'affiche
+  alors dans la liste et titre ses exports sous le libellé intégré, **« Mes
+  liens »**, et l'aide sous le sélecteur le rappelle. Le vide se distingue donc de
+  « non renommée » par ce qu'il dit à l'écran, pas par ce qu'il stocke.
+
+Changer de collection avec le sélecteur **abandonne** un nom en attente : il n'est
+pas enregistré, et le message le dit — « Nom en attente abandonné : il n'a pas été
+enregistré. » La collection que vous quittez garde le nom qu'elle avait ; celle qui
+s'affiche arrive avec le sien.
 
 Une même adresse peut figurer dans deux collections : c'est le sens du rangement.
 En revanche, dans une collection donnée, un doublon reste un doublon — un clic

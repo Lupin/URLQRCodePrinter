@@ -176,6 +176,16 @@ async function refreshBadge(options = {}) {
   try {
     const collectionId = await activeCollection(Boolean(options.isPrivate));
     const links = await withCollection(store, collectionId).list();
+
+    // **Le contrôle du retour transitoire est refait ici, après les lectures.**
+    // Il l'est déjà à l'entrée de l'écouteur du stockage, mais une relecture
+    // partie *avant* que le signe soit armé y arrive *après* lui : les lectures
+    // ci-dessus prennent quelques millisecondes, et le compteur écrasait alors
+    // le « + » que l'œil devait voir. Mesuré dans Chrome : « + » à 13 ms, « 4 » à
+    // 979 ms, pour un signe qui doit tenir 2,5 s. Laisser la place au signe ne
+    // perd rien : `flashBadge` repose le compteur à la fin de son terme.
+    if (Date.now() < flashUntil) return;
+
     await api.action.setBadgeBackgroundColor({ color: BADGE_COUNT.fond });
     await applyBadgeTextColor(BADGE_COUNT.texte);
     await api.action.setBadgeText({ text: links.length ? String(links.length) : '' });

@@ -385,6 +385,94 @@ test("le formulaire de l'éditeur empile ses commandes sans les étirer", () => 
   assert.match(boutons[1], /flex:\s*none/);
 });
 
+test("l'éditeur de lien édite l'adresse elle-même", () => {
+  // Le manque rapporté : « en mode édition de lien, il manque la possibilité
+  // d'éditer le lien ». On ne pouvait corriger que le titre, les tags et la
+  // note — pour ajouter un horodatage YouTube, retirer des paramètres de suivi
+  // ou suivre une page qui a déménagé, il fallait supprimer le lien et le
+  // rajouter, en perdant son rang, ses tags et sa note.
+  const app = readFileSync(join(WEB, 'app.js'), 'utf8');
+  const editeur = app.slice(app.indexOf('function linkEditor'), app.indexOf('function renderLink'));
+
+  // L'adresse est un champ de l'éditeur, et c'est le premier : c'est elle qui
+  // décide de ce que le QR Code encode.
+  assert.match(editeur, /key: 'url',\s*\n\s*label: t\('Lien'\)/, 'aucun champ pour l\'adresse');
+  assert.ok(
+    editeur.indexOf("key: 'url'") < editeur.indexOf("key: 'title'"),
+    'l\'adresse doit venir avant le titre',
+  );
+  // Le champ est prérempli avec l'enregistrement — ou avec ce qui était en
+  // cours d'écriture, si le formulaire se rouvre après un redessin.
+  assert.match(editeur, /input\.value = brouillon\?\.fields\?\.\[field\.key\] \?\? field\.value \?\? ''/);
+
+  // L'adresse éditée garde son fragment : `#t=1m30s` démarre la vidéo à 1 min 30.
+  assert.match(editeur, /}, \{ keepFragment: true \}\)/, 'le fragment serait perdu à l\'enregistrement');
+});
+
+test("une adresse refusée ne referme pas l'éditeur", () => {
+  // Une URL invalide doit se dire, et laisser la correction en place : un
+  // formulaire qui se referme sur un refus perdrait ce qu'on venait d'y écrire.
+  const app = readFileSync(join(WEB, 'app.js'), 'utf8');
+  const editeur = app.slice(app.indexOf('function linkEditor'), app.indexOf('function renderLink'));
+
+  const refus = editeur.indexOf('urlError.hidden = false');
+  assert.ok(refus > 0, 'aucun message sous le champ de l\'adresse');
+  // Le refus sort de `finish` **avant** la fermeture (`settled = true`).
+  const fermeture = editeur.indexOf('settled = true');
+  assert.ok(refus < fermeture, 'le refus doit précéder la fermeture du formulaire');
+  assert.match(editeur, /urlError\.setAttribute\('role', 'alert'\)/);
+  assert.match(editeur, /field-error/);
+});
+
+test("un raccourci devenu faux est retiré avec l'adresse qui change", () => {
+  // Le raccourci pointe vers l'ancienne adresse, chez un tiers : le garder
+  // ferait imprimer un QR Code qui mène ailleurs que ce que la ligne affiche.
+  const app = readFileSync(join(WEB, 'app.js'), 'utf8');
+  assert.match(app, /const raccourciPerime = updated\.url !== link\.url && hasShortUrl\(link\)/);
+  assert.match(app, /shortUrl: '', shortProvider: '', shortenedAt: 0/);
+  // Et on le dit : un raccourci disparu sans un mot ressemblerait à une perte.
+  assert.match(app, /le raccourci a été retiré, il menait à l'ancienne adresse/);
+});
+
+test('un éditeur ouvert ne retient plus la remise à jour de la liste', () => {
+  // Le défaut rapporté : « toujours une dissonance entre le nombre de liens
+  // affiché et le nombre sur l'icône » — 4 liens dans l'application, 7 sur
+  // l'icône. La liste gelait tant qu'un formulaire restait déplié : la remise à
+  // jour était reportée à sa fermeture, et l'application affichait un compte
+  // périmé sans rien dire. Éprouvé dans Chrome : badge 7, pastille 4, tant que
+  // l'éditeur était ouvert ; 7 partout une fois refermé.
+  const app = readFileSync(join(WEB, 'app.js'), 'utf8');
+  const synchro = app.slice(app.indexOf('async function syncFromStorage'), app.indexOf('/** Programme une relecture'));
+  assert.doesNotMatch(synchro, /syncPending|linkEditorOpen/, 'la remise à jour est encore reportée');
+  assert.match(synchro, /captureEditorDraft\(\)/, 'la saisie n\'est pas relevée avant le redessin');
+});
+
+test('la saisie de l\'éditeur survit à un redessin de la liste', () => {
+  // La protection n'est plus le report, c'est le brouillon : ce qui était écrit
+  // est relevé avant le redessin, et rendu au formulaire qui se rouvre.
+  const app = readFileSync(join(WEB, 'app.js'), 'utf8');
+
+  // Le relevé se fait sur les champs de l'éditeur, identifiés par `data-field`.
+  assert.match(app, /input\.dataset\.field = field\.key/);
+  assert.match(app, /function captureEditorDraft\(\)/);
+  assert.match(app, /querySelectorAll\('input\[data-field\]'\)/);
+  // Le champ au curseur se lit sur `document.activeElement` : le sélecteur
+  // `:focus` ne suit rien quand la fenêtre n'a pas le focus.
+  assert.match(app, /const actif = document\.activeElement/);
+
+  // Le formulaire relu reprend ce qui y était écrit, et se rouvre sur **sa**
+  // ligne — jamais sur une autre.
+  assert.match(app, /input\.value = brouillon\?\.fields\?\.\[field\.key\] \?\? field\.value \?\? ''/);
+  assert.match(app, /if \(editorDraft && editorDraft\.id === link\.id\)/);
+
+  // Le curseur ne peut être posé qu'une fois la ligne dans la page : `focus()`
+  // sur un élément détaché ne fait rien, et le formulaire rouvert est détaché
+  // au moment où il est construit.
+  const rendu = app.slice(app.indexOf('function renderList'), app.indexOf('function linkAnchor'));
+  assert.match(rendu, /if \(champ\.isConnected\)/, 'le curseur doit attendre que la ligne soit ajoutée');
+  assert.match(app, /if \(wrap\.isConnected\)/, 'un formulaire détaché ne peut pas recevoir le curseur');
+});
+
 // ---------------------------------------------------------------------------
 // Options de la planche : le titre, et la bordure de découpe
 // ---------------------------------------------------------------------------
@@ -1007,17 +1095,28 @@ test('les colonnes de la mise en page peuvent rétrécir', () => {
 // ---------------------------------------------------------------------------
 
 test('le panneau de collection offre le choix, la création et la suppression', () => {
-  // Le sélecteur vient avant le nom : on choisit de quoi on parle, puis on le
-  // décrit. Les trois commandes vivent donc dans le même bloc.
+  // Le sélecteur et sa suppression forment une ligne : on choisit de quoi on
+  // parle, puis on peut s'en débarrasser. « Nouvelle » est avec « Enregistrer »,
+  // sous le nom — créer une collection, c'est d'abord lui donner un nom.
   assert.match(html, /id="collection-picker"/);
   assert.match(html, /<select id="collection-select"/);
-  assert.match(html, /id="collection-add"[^>]*type="button"/);
   assert.match(html, /id="collection-delete"[^>]*type="button"/);
   assert.match(html, /id="collection-hint"/);
+  assert.match(html, /id="collection-name-save"[\s\S]{0,600}?id="collection-add"[^>]*data-i18n="Nouvelle"/);
+
+  // La suppression a son panneau de confirmation, avec deux issues.
+  assert.match(html, /id="collection-delete-confirm"[^>]*hidden/);
+  assert.match(html, /id="collection-delete-confirm-text"/);
+  assert.match(html, /id="collection-delete-cancel"[^>]*type="button"/);
+  assert.match(html, /id="collection-delete-confirm-yes"[^>]*type="button"/);
 
   // Chaque identifiant est déclaré : un `id` renommé d'un côté seulement ne
   // produit qu'une erreur `null` à l'exécution.
-  for (const id of ['collection-picker', 'collection-select', 'collection-add', 'collection-delete', 'collection-hint']) {
+  for (const id of [
+    'collection-picker', 'collection-select', 'collection-add', 'collection-delete',
+    'collection-hint', 'collection-delete-confirm', 'collection-delete-confirm-text',
+    'collection-delete-confirm-yes', 'collection-delete-cancel',
+  ]) {
     assert.ok(ELEMENT_IDS.includes(id), `${id} doit être déclaré dans element-ids.js`);
   }
 });
@@ -1046,7 +1145,7 @@ test('ce que l\'application masque est réellement masqué', () => {
   // commis deux fois — le sélecteur de collection sur la page autonome, puis le
   // panneau du choix d'import, dont « Annuler » ne fermait rien. Le substitut de
   // DOM des tests ne peint pas : seule une capture pouvait le montrer.
-  for (const selecteur of ['.field', '.banner', '.move__menu', '.collection-picker', '.import-menu']) {
+  for (const selecteur of ['.field', '.banner', '.move__menu', '.collection-picker', '.collection-confirm', '.import-menu']) {
     assert.ok(
       css.includes(`${selecteur}[hidden] { display: none; }`),
       `${selecteur} porte un display qui l'emporterait sur l'attribut hidden`,
@@ -1077,18 +1176,23 @@ test('supprimer une collection demande confirmation et annonce ce qui est perdu'
   const app = readFileSync(join(WEB, 'app.js'), 'utf8');
 
   // La seule action de l'application qui détruit en masse : elle ne doit pas
-  // tenir à un clic mal placé, et le nombre de liens perdus doit être dit.
-  assert.match(app, /if \(el\.collectionDelete\.dataset\.confirm !== '1'\)/);
-  assert.match(app, /'Confirmer : \{count\} lien sera perdu'/);
-  assert.match(app, /'Confirmer : \{count\} liens seront perdus'/);
-  // Et l'arme se désarme toute seule.
-  assert.match(app, /deleteConfirmTimer/);
+  // tenir à un clic mal placé. « Supprimer » ouvre donc une question, qui nomme
+  // la collection et le nombre de liens perdus ; la suppression ne part que du
+  // bouton de cette question.
+  assert.doesNotMatch(app, /dataset\.confirm/, 'la confirmation tient encore au double clic');
+  assert.match(app, /function openDeleteConfirm\(\)/);
+  assert.match(app, /function closeDeleteConfirm\(/);
+  assert.match(app, /'Supprimer la collection « \{name\} » \? \{count\} lien sera perdu\.'/);
+  assert.match(app, /'Supprimer la collection « \{name\} » \? \{count\} liens seront perdus\.'/);
+  // « Annuler » reçoit le focus : le geste destructeur n'est pas sous le doigt.
+  assert.match(app, /el\.collectionDeleteCancel\.focus\(\)/);
+  assert.match(app, /el\.collectionDeleteConfirmYes\.addEventListener\('click', \(\) => deleteAppCollection\(\)\)/);
 
   // La collection privée ne se supprime pas, et la **dernière** collection non
   // plus : toutes les autres le sont, y compris celle par défaut.
-  assert.match(app, /isPrivateCollection\(collection\) \|\| ordinaryCollectionCount\(\) <= 1/);
+  assert.match(app, /function deletableCollection\(collection\)/);
+  assert.match(app, /!isPrivateCollection\(collection\)\s*\n\s*&& ordinaryCollectionCount\(\) > 1/);
   assert.match(app, /function ordinaryCollectionCount\(\)/);
-  assert.match(app, /&& ordinaryCollectionCount\(\) > 1;/);
   assert.doesNotMatch(app, /courante\?\.id !== DEFAULT_COLLECTION_ID/, 'la règle vise encore la collection par défaut');
 });
 
@@ -1099,12 +1203,61 @@ test('le nom et la note appartiennent à la collection affichée', () => {
   // dans les réglages d'avant. Les deux passent par la même source.
   assert.match(app, /collections\.rename\(activeCollectionId, saisi\)/);
   assert.match(app, /collections\.setNote\(activeCollectionId, note\)/);
-  assert.match(app, /settings\.save\(\{ collectionName: collectionName\(\) \}\)/);
   assert.match(app, /settings\.save\(\{ collectionNote: collectionNote\(\) \}\)/);
 
-  // L'écriture est différée : deux frappes rapprochées réécrivent le document
-  // entier, et la plus lente gagnerait sans ce délai.
+  // La note s'écrit à la frappe, et l'écriture est différée : deux frappes
+  // rapprochées réécrivent le document entier, et la plus lente gagnerait sans
+  // ce délai.
+  assert.match(app, /const sauverNoteDifferee = debounced\(saveCollectionNote\)/);
   assert.match(app, /function debounced\(action, ms = 400\)/);
+});
+
+test('le nom attend une validation, au clavier comme au bouton', () => {
+  const app = readFileSync(join(WEB, 'app.js'), 'utf8');
+
+  // Le défaut rapporté : le nom s'enregistrait à la frappe, sans validation —
+  // un nom à moitié tapé partait dans le stockage, et une pause suffisait à
+  // renommer. La frappe n'écrit donc plus rien.
+  assert.doesNotMatch(app, /sauverNomDifferee/, 'le nom s\'enregistre encore à la frappe');
+  assert.doesNotMatch(app, /saveCollectionName/, 'l\'écriture immédiate du nom subsiste');
+  assert.match(app, /async function commitCollectionName\(\)/);
+  assert.match(app, /el\.collectionName\.addEventListener\('keydown'/);
+  assert.match(app, /event\.key === 'Enter'/);
+  assert.match(app, /event\.key === 'Escape'/);
+  assert.match(app, /el\.collectionNameSave\.addEventListener\('click', \(\) => commitCollectionName\(\)\)/);
+
+  // Le bouton reste en place, et son état dit si une saisie attend : le masquer
+  // ferait sauter la rangée à chaque frappe. La collection de navigation privée
+  // n'a pas de nom modifiable : la commande y reste inactive.
+  assert.match(app, /el\.collectionNameSave\.disabled = privee \|\| !enAttente/);
+  assert.match(app, /function collectionNamePending\(\)/);
+  assert.match(app, /function persistedCollectionName\(\)/);
+  assert.match(app, /el\.collectionName\.disabled = privee/);
+
+  // Un nom en attente est annoncé, et « Nouvelle » dit ce qu'il deviendra.
+  assert.match(app, /Nom en attente : « Enregistrer » l\\'applique à la collection affichée/);
+  assert.match(app, /Créer une collection nommée « \{name\} »/);
+});
+
+test('« Nouvelle » reprend le nom saisi, sans le donner à la collection affichée', () => {
+  const app = readFileSync(join(WEB, 'app.js'), 'utf8');
+
+  // Le geste demandé : taper le nom, puis « Nouvelle », plutôt que créer
+  // « Nouvelle collection » et la renommer aussitôt.
+  assert.match(app, /const nomme = saisi !== '' && saisi !== persistedCollectionName\(\)/);
+  assert.match(app, /const nom = nomme\n\s*\? saisi\n\s*: freeCollectionName\(t\('Nouvelle collection'\), visibleCollectionsList\)/);
+
+  // Un nom en attente ne suit pas la bascule : il appartient à la collection
+  // qu'on quitte, et le quitter sans l'enregistrer se dit.
+  assert.match(app, /const nomAbandonne = collectionNamePending\(\)/);
+  assert.match(app, /Nom en attente abandonné : il n\\'a pas été enregistré\./);
+
+  // Une relecture venue du stockage ne doit pas emporter une saisie en cours,
+  // mais elle doit reprendre un nom venu d'ailleurs : l'attente se constate donc
+  // **avant** la relecture, quand le nom enregistré est encore l'ancien.
+  assert.match(app, /reloadCollections\(\{ replaceName: false \}\)/);
+  assert.match(app, /const saisieEnCours = collectionNamePending\(\);\n\s*visibleCollectionsList = await collections\.visible/);
+  assert.match(app, /replaceName: options\.replaceName !== false\n\s*\|\| activeCollectionId !== precedent\n\s*\|\| !saisieEnCours,/);
 });
 
 test('le service proposé dépend de l\'environnement, et ne raccourcit rien', () => {

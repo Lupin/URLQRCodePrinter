@@ -19,7 +19,16 @@ Quatre captures, toutes en **1280 × 800**, toutes en RGB sans transparence :
 
 `02`, `03` et `04` sont produites par `scripts/capture-store-shots.mjs` sur
 `contenu-exemple.json` : elles montrent donc la collection d'exemple, avec ses
-tags, ses notes et son nom — et non trois fois la même adresse.
+tags, ses notes et son nom — et non trois fois la même adresse. Elles ont été
+**régénérées pour la soumission 0.3.0**, après le déplacement d'« Enregistrer »
+et « Nouvelle » sous le nom de collection : la capture montre donc l'interface
+réellement déposée.
+
+Le dossier ne contient **que les captures déclarées**. Les huit captures brutes
+du 30 septembre (2870 × 1796, non déclarées) ont été déplacées hors du dossier,
+dans `dist/brouillons-captures/` — `dist/` n'est pas versionné. C'est la sortie
+que `test/publication.test.js` demandait : au-delà de cinq images, ou hors des
+tailles admises, la fiche est refusée.
 
 **Il en manque une** : le menu contextuel, décrit au point 2 du plan ci-dessous.
 Le magasin en autorise cinq, et recommande le maximum — l'emplacement reste donc

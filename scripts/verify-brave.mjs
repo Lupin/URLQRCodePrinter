@@ -1326,7 +1326,11 @@ async function main() {
       const nameField = document.getElementById('collection-name');
       nameField.value = 'Veille du vendredi';
       nameField.dispatchEvent(new Event('input'));
-      await pause(200);
+      // Le nom s'enregistre sur validation explicite : sans Entrée, la saisie
+      // ne serait qu'affichée, et les exports liraient le champ sans que la
+      // collection soit renommée.
+      nameField.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+      await pause(300);
 
       // Édition du premier lien : titre, tags, note.
       document.querySelector('#list .link__edit').click();

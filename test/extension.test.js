@@ -236,6 +236,30 @@ test('la fenêtre rattrape ses erreurs de démarrage', () => {
   assert.match(source, /^main\(\);$/m);
 });
 
+test('le compteur de l\'icône ne peut pas écraser le retour transitoire', () => {
+  // `flashBadge` pose « + » puis arme son échéance ; l'écriture du même lien
+  // déclenche, elle, la relecture du compteur. Partie **avant** que le signe
+  // soit armé, cette relecture y arrive après ses lectures de stockage et
+  // écrasait le signe par le compte. Mesuré dans Chrome, avant correction :
+  // « + » à 13 ms, puis « 4 » à 979 ms — pour un signe qui doit tenir 2,5 s.
+  //
+  // Le contrôle refait **après** les lectures est ce qui l'empêche. Le relevé
+  // navigateur le constate (`npm run verify:chrome`, constat « un ajout affiche
+  // « + » sur le badge », rouge depuis 0.2.0) ; ce test le fige, parce qu'un
+  // relevé ne tourne pas à chaque `npm test`.
+  const source = readFileSync(join(EXT, 'background.js'), 'utf8');
+  const debut = source.indexOf('async function refreshBadge');
+  assert.ok(debut > 0, 'refreshBadge est introuvable');
+  const corps = source.slice(debut, source.indexOf('\n}\n', debut));
+
+  const lectures = corps.indexOf('const links = await');
+  const garde = corps.indexOf('if (Date.now() < flashUntil) return;');
+  const ecriture = corps.indexOf('await api.action.setBadgeText');
+  assert.ok(lectures > 0 && garde > 0 && ecriture > 0, 'refreshBadge a changé de forme');
+  assert.ok(garde > lectures, 'la garde doit venir après les lectures du stockage');
+  assert.ok(garde < ecriture, 'et avant l\'écriture du compteur');
+});
+
 // ---------------------------------------------------------------------------
 // Construction
 // ---------------------------------------------------------------------------

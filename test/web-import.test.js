@@ -337,13 +337,15 @@ test('en navigation privée, remplacer ne touche ni au nom ni à la note', async
 
 test('vider le champ du nom enregistre un nom vide', async () => {
   // Le défaut d'origine : le champ vidé n'écrivait rien, le nom d'avant restait
-  // dans le stockage, et la liste continuait de l'afficher.
+  // dans le stockage, et la liste continuait de l'afficher. Le vide s'enregistre
+  // donc comme un nom, à la validation — la frappe ne l'écrit plus.
   const app = await demarrer({ active: 'veille' });
   const champ = app.node('collection-name');
   assert.equal(champ.value, 'Veille', 'le champ montre le nom enregistré');
 
   champ.value = '   ';
-  await fire(champ, 'change');
+  await fire(champ, 'input');
+  await fire(champ, 'keydown', { key: 'Enter' });
   await laisserFinir();
 
   assert.equal(app.collection('veille').name, '', 'le vide est écrit');

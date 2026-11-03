@@ -207,6 +207,24 @@ export function unwrapRedirectUrl(input) {
 }
 
 /**
+ * L'hôte tel qu'on puisse le relire dans un message.
+ *
+ * `URL` encode l'espace de l'hôte : refuser `pas une url` en recopiant
+ * `pas%20une%20url` demande de décoder mentalement ce qu'on vient de taper, au
+ * moment précis où l'on cherche pourquoi ça ne passe pas.
+ *
+ * On ne décode **que l'espace**, et pas l'échappement en général : un espace ne
+ * peut jamais être voulu dans un nom d'hôte, alors qu'un `%2E` peut l'être, et
+ * le décoder ferait passer l'hôte refusé pour ce qu'il n'est pas.
+ *
+ * @param {string} hostname
+ * @returns {string}
+ */
+function hoteLisible(hostname) {
+  return String(hostname).replace(/%20/gi, ' ');
+}
+
+/**
  * Normalise une URL saisie ou capturée.
  *
  * - ajoute `https://` si le schéma est absent ;
@@ -218,11 +236,19 @@ export function unwrapRedirectUrl(input) {
  *   `#` allonge inutilement la matrice) ;
  * - supprime un éventuel slash final redondant sur la racine.
  *
+ * `keepFragment` renverse la seule règle du fragment, et rien d'autre. Elle vaut
+ * pour l'**édition** d'un lien, où l'adresse est saisie délibérément : sur
+ * YouTube, `#t=90` démarre la lecture à 1 min 30, et l'enregistrer sans son
+ * fragment ferait perdre ce que l'utilisateur vient d'écrire — précisément ce
+ * qu'il demandait à pouvoir faire. La distinction n'est pas « paramètre » contre
+ * « fragment » : un `utm_source` ne change pas la destination, un fragment si.
+ *
  * @param {string} input
+ * @param {{ keepFragment?: boolean }} [options]
  * @returns {string} URL normalisée.
  * @throws {TypeError} si l'entrée ne peut pas être analysée comme une URL http(s).
  */
-export function normalizeUrl(input) {
+export function normalizeUrl(input, options = {}) {
   if (typeof input !== 'string') throw new TypeError(t('URL attendue sous forme de chaîne'));
   let raw = input.trim();
   if (raw === '') throw new TypeError(t('URL vide'));
@@ -244,14 +270,14 @@ export function normalizeUrl(input) {
     throw new TypeError(t('URL invalide : {input}', { input }));
   }
   if (!parsed.hostname.includes('.') && parsed.hostname !== 'localhost') {
-    throw new TypeError(t("Nom d'hôte invalide : {host}", { host: parsed.hostname }));
+    throw new TypeError(t("Nom d'hôte invalide : {host}", { host: hoteLisible(parsed.hostname) }));
   }
 
   // La redirection est dépliée **avant** le nettoyage : c'est la destination
   // qui porte les paramètres de campagne à retirer, et non l'enveloppe.
   parsed = sansRedirection(parsed);
 
-  parsed.hash = '';
+  if (options.keepFragment !== true) parsed.hash = '';
 
   // Paramètres de campagne : ils polluent le QR Code et le rendent plus dense.
   for (const key of [...parsed.searchParams.keys()]) {
@@ -287,13 +313,17 @@ export function isValidUrl(input) {
  * recevoir autre chose qu'une URL http(s), jamais un `javascript:` ni un `data:`.
  * Les appelants affichent du texte simple quand cette fonction renvoie `''`.
  *
+ * Le fragment est conservé : une adresse éditée à la main peut en porter un qui
+ * choisit un passage précis (`#t=90`), et un lien affiché avec son horodatage
+ * mais ouvert sans lui serait un lien qui ment sur ce qu'il fait.
+ *
  * @param {unknown} url
  * @returns {string}
  */
 export function safeHref(url) {
   if (typeof url !== 'string' || url.trim() === '') return '';
   try {
-    return normalizeUrl(url);
+    return normalizeUrl(url, { keepFragment: true });
   } catch {
     return '';
   }
@@ -353,8 +383,13 @@ function normalizeShortUrl(value) {
 /**
  * Construit un LinkRecord complet et validé à partir d'une saisie partielle.
  *
+ * `keepFragment` suit la même règle que `normalizeUrl` : il ne vaut que pour une
+ * adresse **éditée**, jamais pour une adresse capturée. Passé en option, et non
+ * déduit de l'entrée, parce que c'est l'intention de l'appelant qui décide — la
+ * même chaîne peut venir d'un clic droit ou d'une correction à la main.
+ *
  * @param {Partial<LinkRecord> & { url: string }} input
- * @param {{ now?: number, source?: string }} [options]
+ * @param {{ now?: number, source?: string, keepFragment?: boolean }} [options]
  * @returns {LinkRecord}
  */
 export function createLink(input, options = {}) {
@@ -368,7 +403,7 @@ export function createLink(input, options = {}) {
 
   return {
     id: typeof input.id === 'string' && input.id !== '' ? input.id : newId(),
-    url: normalizeUrl(input.url),
+    url: normalizeUrl(input.url, { keepFragment: options.keepFragment === true }),
     title,
     note: typeof input.note === 'string' ? input.note.trim() : '',
     tags: normalizeTags(input.tags),

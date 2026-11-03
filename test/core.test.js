@@ -16,6 +16,7 @@ import {
   isSameTarget,
   findDuplicate,
   hasShortUrl,
+  safeHref,
   sourceUrl,
   sourceHost,
   resolveTarget,
@@ -56,6 +57,51 @@ test('normalizeUrl supprime le fragment', () => {
   assert.equal(normalizeUrl('https://example.com/a#section'), 'https://example.com/a');
 });
 
+test('normalizeUrl garde le fragment sur une adresse éditée', () => {
+  // Une adresse capturée perd son fragment : c'est du bruit, et il allonge la
+  // matrice. Une adresse **éditée** ne le perd pas : `#t=1m30s` démarre la
+  // lecture d'une vidéo à 1 min 30, et l'effacer viderait le geste de son sens.
+  assert.equal(
+    normalizeUrl('https://youtu.be/X7JMfPFDuvU#t=1m30s', { keepFragment: true }),
+    'https://youtu.be/X7JMfPFDuvU#t=1m30s',
+  );
+
+  // Le fragment ne dispense pas du reste : le nettoyage des paramètres de
+  // campagne reste, lui, sans exception.
+  assert.equal(
+    normalizeUrl('https://exemple.fr/a?utm_source=news#haut', { keepFragment: true }),
+    'https://exemple.fr/a#haut',
+  );
+
+  // L'option vaut pour une édition, pas pour la capture : sans elle, rien ne
+  // change.
+  assert.equal(normalizeUrl('https://exemple.fr/a#haut'), 'https://exemple.fr/a');
+  assert.equal(normalizeUrl('https://exemple.fr/a#haut', {}), 'https://exemple.fr/a');
+});
+
+test('safeHref garde le fragment, pour que le lien ouvre ce qu\'il annonce', () => {
+  // Une ligne affiche l'adresse avec son horodatage : l'ouvrir sans lui ferait
+  // un lien qui ment sur ce qu'il fait.
+  assert.equal(
+    safeHref('https://youtu.be/X7JMfPFDuvU#t=90'),
+    'https://youtu.be/X7JMfPFDuvU#t=90',
+  );
+  // Le contrôle de sûreté, lui, ne faiblit pas.
+  assert.equal(safeHref('javascript:alert(1)'), '');
+  assert.equal(safeHref('data:text/html,<b>x</b>'), '');
+});
+
+test('createLink ne garde le fragment que si l\'appelant le demande', () => {
+  const capture = createLink({ url: 'https://youtu.be/X7JMfPFDuvU#t=90' }, { now: T0 });
+  assert.equal(capture.url, 'https://youtu.be/X7JMfPFDuvU');
+
+  const edite = createLink(
+    { url: 'https://youtu.be/X7JMfPFDuvU#t=90' },
+    { now: T0, keepFragment: true },
+  );
+  assert.equal(edite.url, 'https://youtu.be/X7JMfPFDuvU#t=90');
+});
+
 test('normalizeUrl retire les paramètres de campagne mais garde les utiles', () => {
   const out = normalizeUrl('https://example.com/p?utm_source=news&id=42&fbclid=xyz');
   assert.equal(out, 'https://example.com/p?id=42');
@@ -68,6 +114,16 @@ test('normalizeUrl retire le slash final de la racine', () => {
 test('normalizeUrl refuse les schémas non web', () => {
   assert.throws(() => normalizeUrl('mailto:a@b.com'), TypeError);
   assert.throws(() => normalizeUrl('ftp://example.com'), TypeError);
+});
+
+test('un hôte refusé est relu tel qu\'on l\'a tapé', () => {
+  // Node refuse l'espace avant d'atteindre le contrôle d'hôte, et le message
+  // reprend alors l'entrée telle quelle. Chrome, lui, encode l'hôte puis le
+  // refuse : c'est `hoteLisible` qui y rend « pas une url » plutôt que
+  // « pas%20une%20url ». Les deux chemins disent donc la même chose — un refus
+  // qui demande de décoder à la main ce qu'on vient de taper est un refus qu'on
+  // ne comprend pas.
+  assert.throws(() => normalizeUrl('pas une url'), /URL invalide : pas une url/);
 });
 
 test('normalizeUrl refuse un hôte sans point', () => {

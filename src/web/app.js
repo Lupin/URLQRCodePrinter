@@ -238,8 +238,14 @@ let largeurApercuRendue = 0;
  */
 const servicesEnEchec = new Map();
 
-/** Minuteur qui désarme la confirmation de suppression d'une collection. */
-let deleteConfirmTimer = null;
+/**
+ * Une validation du nom de collection est-elle en cours d'écriture ?
+ *
+ * Le document des collections s'écrit entier à chaque renommage : deux
+ * validations lancées coup sur coup — Entrée maintenue, double clic — se
+ * termineraient dans le désordre. La seconde attend donc la première.
+ */
+let renommageEnCours = false;
 
 /** La largeur utile retenue pour ce rendu, ou une mesure de secours. */
 function largeurUtileApercu() {
@@ -726,6 +732,22 @@ function renderList() {
   updatePrintScope();
 
   for (const link of visible) el.list.appendChild(renderLink(link));
+
+  // C'est **maintenant** que le curseur peut être posé : le formulaire rouvert
+  // par un brouillon attendait d'être dans la page.
+  if (editorFocus) {
+    const champ = editorFocus;
+    editorFocus = null;
+    if (champ.isConnected) {
+      champ.focus();
+      champ.setSelectionRange(champ.value.length, champ.value.length);
+    }
+  }
+
+  // Un brouillon que personne n'a repris n'a plus où aller : le lien édité a
+  // disparu, ou la recherche le masque. Le garder le ferait ressurgir sur une
+  // ligne qui ne l'attend pas.
+  editorDraft = null;
 }
 
 /**
@@ -757,14 +779,22 @@ function linkAnchor(url, className, label = url) {
 }
 
 /**
- * Éditeur des champs de saisie d'un lien : titre, tags, note.
+ * Éditeur des champs de saisie d'un lien : l'adresse, le titre, les tags, la note.
  *
- * Ces trois champs partent dans les exports — colonnes « Titre », « Tags » et
+ * Ces champs partent dans les exports — colonnes « Titre », « Tags » et
  * « Note » du CSV, du Markdown et du classeur. Tant qu'ils n'étaient pas
  * saisissables, les exports transportaient des colonnes qu'aucune interface ne
  * pouvait remplir : le titre restait vide sur un lien ajouté à la main, et les
  * tags ne pouvaient venir que d'un import. Un export n'a de sens que s'il est
  * raccord avec ce qu'on peut saisir.
+ *
+ * **L'adresse elle-même est éditable.** Elle ne l'était pas, et la seule façon
+ * de corriger une URL était de supprimer le lien pour le rajouter — en perdant
+ * au passage son rang, ses tags et sa note. On édite pourtant une adresse pour
+ * de bonnes raisons : ajouter un horodatage (`?t=3139`, ou `#t=1m30s` sur
+ * YouTube), retirer des paramètres de campagne qu'un partage avait collés,
+ * corriger une faute de frappe, ou suivre une page qui a déménagé. C'est le
+ * champ qui décide de ce que le QR Code encode : il doit être corrigeable.
  *
  * L'édition reste repliée derrière un bouton : la ligne doit rester lisible
  * quand on ne modifie rien.
@@ -776,17 +806,39 @@ function linkEditor(link) {
   const wrap = document.createElement('div');
   wrap.className = 'link__editor';
 
-  const open = button('✎', 'link__edit', () => {
+  /**
+   * Ouvre le formulaire, avec ce qui y était écrit s'il rouvre après un
+   * redessin.
+   *
+   * @param {{ fields?: Record<string, string>, focus?: string }|null} [brouillon]
+   */
+  const ouvrir = (brouillon = null) => {
     let settled = false;
 
     const form = document.createElement('div');
     form.className = 'link__editor-form';
 
+    // L'adresse vient en tête : c'est l'identité de l'enregistrement, et ce que
+    // le QR Code encode. Les trois autres champs l'habillent.
     const fields = [
+      {
+        key: 'url',
+        label: t('Lien'),
+        value: link.url,
+        placeholder: t('https://exemple.com/page'),
+        aria: t("Adresse encodée dans le QR Code de « {title} »", { title: link.title || link.url }),
+      },
       { key: 'title', label: t('Titre'), value: link.title, placeholder: t('Titre de la page') },
       { key: 'tags', label: t('Tags'), value: link.tags.join(', '), placeholder: t('veille, travail') },
       { key: 'note', label: t('Note'), value: link.note, placeholder: t('Note libre') },
     ];
+
+    // Le refus d'une adresse s'affiche sous son champ, et sous lui seul : une
+    // erreur qui ne nomme pas la ligne fautive oblige à relire les quatre.
+    const urlError = document.createElement('p');
+    urlError.className = 'field-error';
+    urlError.setAttribute('role', 'alert');
+    urlError.hidden = true;
 
     const inputs = new Map();
     for (const field of fields) {
@@ -800,12 +852,19 @@ function linkEditor(link) {
       const input = document.createElement('input');
       input.type = 'text';
       input.className = 'input input--compact';
-      input.value = field.value ?? '';
+      // La saisie en cours prime sur l'enregistrement : c'est elle qu'on est en
+      // train d'écrire.
+      input.value = brouillon?.fields?.[field.key] ?? field.value ?? '';
       input.placeholder = field.placeholder;
-      input.setAttribute('aria-label', t('{label} pour {url}', { label: field.label, url: link.url }));
+      // Le champ se nomme lui-même : c'est ce qui permet de retrouver, après un
+      // redessin, lequel portait le curseur.
+      input.dataset.field = field.key;
+      input.setAttribute('aria-label', field.aria
+        ?? t('{label} pour {url}', { label: field.label, url: link.url }));
 
       line.append(caption, input);
       form.appendChild(line);
+      if (field.key === 'url') form.appendChild(urlError);
       inputs.set(field.key, input);
     }
 
@@ -849,32 +908,71 @@ function linkEditor(link) {
 
     const finish = async (save) => {
       if (settled) return;
+
+      let updated = null;
+      if (save) {
+        const brute = inputs.get('url').value.trim();
+        if (brute === '') {
+          urlError.textContent = t('Saisissez une URL.');
+          urlError.hidden = false;
+          inputs.get('url').focus();
+          return;
+        }
+        try {
+          // `createLink` normalise : les tags sont dédoublonnés et mis en forme,
+          // le titre comme la note sont bornés, l'adresse est validée.
+          //
+          // `keepFragment` : l'adresse est saisie ici délibérément, et un
+          // fragment qui choisit un passage de la page (`#t=1m30s` sur YouTube)
+          // doit survivre. Voir `normalizeUrl`.
+          updated = createLink({
+            ...link,
+            url: brute,
+            title: inputs.get('title').value,
+            note: inputs.get('note').value,
+            tags: inputs.get('tags').value.split(','),
+          }, { keepFragment: true });
+        } catch (error) {
+          // **On ne ferme pas.** Un formulaire qui se referme sur une adresse
+          // refusée perdrait la correction qu'on venait d'y écrire, et il ne
+          // resterait qu'à la retaper.
+          urlError.textContent = error.message;
+          urlError.hidden = false;
+          inputs.get('url').focus();
+          return;
+        }
+      }
+
       settled = true;
 
-      if (save) {
-        // `createLink` normalise : les tags sont dédoublonnés et mis en forme,
-        // le titre comme la note sont bornés.
-        const updated = createLink({
-          ...link,
-          title: inputs.get('title').value,
-          note: inputs.get('note').value,
-          tags: inputs.get('tags').value.split(','),
-        });
-        const changed = updated.title !== link.title
+      if (updated) {
+        const changed = updated.url !== link.url
+          || updated.title !== link.title
           || updated.note !== link.note
           || updated.tags.join(',') !== link.tags.join(',');
         if (changed) {
-          await store.put({ ...link, title: updated.title, note: updated.note, tags: updated.tags });
+          // **Un raccourci ne survit pas au changement d'adresse.** Il pointe
+          // vers l'ancienne, chez un tiers : le garder ferait imprimer un
+          // QR Code qui mène ailleurs que ce que la ligne affiche. On le retire,
+          // et on le dit — un raccourci disparu sans un mot ressemblerait à une
+          // perte. Le raccourcir à nouveau reste possible.
+          const raccourciPerime = updated.url !== link.url && hasShortUrl(link);
+          await store.put({
+            ...link,
+            url: updated.url,
+            title: updated.title,
+            note: updated.note,
+            tags: updated.tags,
+            ...(raccourciPerime ? { shortUrl: '', shortProvider: '', shortenedAt: 0 } : {}),
+          });
           await refresh();
-          toast(t('Lien mis à jour'));
-          // La liste vient d'être reconstruite : l'éditeur est fermé, et une
-          // remise à jour qui attendait son tour peut passer.
-          resumeDeferredSync();
+          toast(raccourciPerime
+            ? t("Lien mis à jour ; le raccourci a été retiré, il menait à l'ancienne adresse")
+            : t('Lien mis à jour'));
           return;
         }
       }
       await refresh();
-      resumeDeferredSync();
     };
 
     for (const input of inputs.values()) {
@@ -889,14 +987,49 @@ function linkEditor(link) {
       });
     }
 
+    // Une faute corrigée efface son reproche : laisser « URL invalide » sous un
+    // champ redevenu bon ferait douter de ce qu'on vient d'écrire.
+    inputs.get('url').addEventListener('input', () => {
+      urlError.hidden = true;
+    });
+
     wrap.textContent = '';
     wrap.appendChild(form);
-    inputs.get('title')?.focus();
-  });
-  open.setAttribute('aria-label', t('Modifier titre, tags et note de {title}', { title: link.title || link.url }));
-  open.title = t('Modifier le titre, les tags et la note');
+
+    // Le curseur revient au champ qui le portait, et à la fin de sa valeur :
+    // c'est là qu'on écrivait. On ne replace pas le caret au caractère près —
+    // cela demanderait de suivre chaque frappe pour un gain que personne ne
+    // verrait sur une saisie de quelques mots.
+    //
+    // Un formulaire rouvert **avant** d'être dans la page ne peut pas recevoir
+    // le curseur : `focus()` sur un élément détaché ne fait rien. C'est alors le
+    // rendu de la liste qui le pose, la ligne ajoutée (voir `renderList`).
+    const champ = brouillon?.focus ? inputs.get(brouillon.focus) : null;
+    const cible = champ ?? inputs.get('title');
+    if (wrap.isConnected) {
+      cible?.focus();
+      if (champ) champ.setSelectionRange(champ.value.length, champ.value.length);
+    } else {
+      editorFocus = cible ?? null;
+    }
+  };
+
+  const open = button('✎', 'link__edit', () => ouvrir(null));
+  open.setAttribute('aria-label', t('Modifier le lien, le titre, les tags et la note de {title}', { title: link.title || link.url }));
+  open.title = t('Modifier le lien, le titre, les tags et la note');
 
   wrap.appendChild(open);
+
+  // **La saisie survit au redessin.** Un lien ajouté ailleurs — clic droit, autre
+  // onglet, fenêtre de l'extension — fait relire le stockage et reconstruire la
+  // liste, ce qui emporterait le formulaire ouvert et ce qu'on y écrivait. Le
+  // brouillon relevé avant le redessin rouvre donc l'éditeur tel qu'il était.
+  if (editorDraft && editorDraft.id === link.id) {
+    const brouillon = editorDraft;
+    editorDraft = null;
+    ouvrir(brouillon);
+  }
+
   return wrap;
 }
 
@@ -1614,6 +1747,75 @@ function activeCollectionLabel() {
 }
 
 /**
+ * Le nom **enregistré** de la collection affichée.
+ *
+ * Le champ peut porter une saisie qui n'a pas encore été validée : c'est de ce
+ * nom-ci que la collection porte, et c'est à lui qu'il faut comparer ce que le
+ * champ affiche. Sans cette distinction, l'application ne saurait pas dire si
+ * une validation attend — et « Nouvelle » ne pourrait pas reconnaître le nom
+ * qu'on vient de taper.
+ *
+ * Sur la page web autonome, le nom vit dans les réglages d'avant, dont le nom
+ * vide retombe sur le libellé intégré : la comparaison se fait donc sur la
+ * valeur d'affichage — vide pour « Mes liens » —, celle que le champ montre au
+ * chargement.
+ *
+ * @returns {string}
+ */
+function persistedCollectionName() {
+  if (collections.available) return activeCollection()?.name ?? '';
+  const reglages = settings.load();
+  return reglages.collectionName === DEFAULT_SETTINGS.collectionName
+    ? ''
+    : reglages.collectionName;
+}
+
+/**
+ * Une saisie de nom attend-elle d'être enregistrée ?
+ *
+ * La comparaison porte sur le nom borné comme le champ : une espace de trop ne
+ * doit pas compter comme un renommage, pas plus qu'un dépassement de longueur
+ * que le `maxlength` empêche déjà.
+ *
+ * @returns {boolean}
+ */
+function collectionNamePending() {
+  const saisi = el.collectionName.value.trim().slice(0, COLLECTION_NAME_MAX);
+  return saisi !== persistedCollectionName();
+}
+
+/**
+ * Met à jour la commande d'enregistrement du nom, et ce que « Nouvelle »
+ * annonce.
+ *
+ * Le bouton reste **en place** et s'active seulement quand une saisie attend :
+ * le masquer ferait sauter la rangée à chaque frappe, et un bouton toujours
+ * actif laisserait croire qu'il y a toujours quelque chose à enregistrer.
+ *
+ * La collection de navigation privée est synthétisée, jamais écrite : son nom
+ * n'est pas modifiable. Le champ y est donc désactivé, plutôt que de laisser
+ * activer une commande dont le cœur refuse toujours l'écriture.
+ *
+ * L'infobulle de « Nouvelle » est ce qui prévient que le nom saisi nommera la
+ * collection à créer : sans elle, la création nommée serait une surprise.
+ */
+function updateCollectionNameControls() {
+  const enAttente = collectionNamePending();
+  const privee = isPrivateCollection(activeCollection());
+  el.collectionName.disabled = privee;
+  el.collectionNameSave.disabled = privee || !enAttente;
+
+  if (!collections.available) {
+    el.collectionAdd.title = '';
+    return;
+  }
+  const saisi = el.collectionName.value.trim().slice(0, COLLECTION_NAME_MAX);
+  el.collectionAdd.title = !privee && enAttente && saisi !== ''
+    ? t('Créer une collection nommée « {name} »', { name: saisi })
+    : '';
+}
+
+/**
  * Peint le sélecteur de collection, et l'aide qui l'accompagne.
  *
  * La ligne entière est masquée quand l'environnement n'a pas de collections :
@@ -1634,31 +1836,86 @@ function fillCollections() {
   }
   el.collectionSelect.value = activeCollectionId;
 
-  // Les deux commandes restent visibles même quand elles sont refusées : leur
-  // `disabled` dit pourquoi, là où les masquer laisserait croire à une fonction
-  // absente.
+  // La commande reste visible même quand elle est refusée : son `disabled` dit
+  // pourquoi, là où la masquer laisserait croire à une fonction absente.
   //
   // **Toutes les collections se suppriment, sauf la dernière** — y compris
   // celle par défaut, qui n'a rien de particulier : elle est celle de qui n'en
   // crée jamais, et la garder quand une autre existe obligeait à créer une
   // collection pour pouvoir se débarrasser de la première. Ce qui ne peut pas
   // arriver, c'est qu'il n'en reste aucune.
-  const courante = activeCollection();
-  const supprimable = disponible && !isPrivateCollection(courante)
-    && ordinaryCollectionCount() > 1;
-  el.collectionDelete.disabled = !supprimable;
-  el.collectionDelete.textContent = t('Supprimer');
-  el.collectionDelete.dataset.confirm = '';
+  el.collectionDelete.disabled = !deletableCollection(activeCollection());
+  // La question portait sur la collection affichée : quelque chose a changé
+  // derrière elle, et la laisser ouverte plus tard nommerait peut-être une autre.
+  closeDeleteConfirm();
 
   updateCollectionHint();
+  updateCollectionNameControls();
+}
+
+/**
+ * Une collection peut-elle être supprimée ?
+ *
+ * Même règle que le bouton qui demande la suppression et que le cœur, qui la
+ * refuse de toute façon : la collection de navigation privée est synthétisée,
+ * jamais écrite, et il doit toujours en rester une.
+ *
+ * @param {object|undefined} collection
+ * @returns {boolean}
+ */
+function deletableCollection(collection) {
+  return Boolean(collections.available && collection)
+    && !isPrivateCollection(collection)
+    && ordinaryCollectionCount() > 1;
+}
+
+/**
+ * Ouvre la confirmation de suppression de la collection affichée.
+ *
+ * La question nomme la collection et annonce **ce qu'elle emporte** : ses liens.
+ * Le premier bouton est « Annuler », et il reçoit le focus — le geste destructeur
+ * ne doit pas être celui qu'un doigt pressé trouve sous lui.
+ */
+function openDeleteConfirm() {
+  const collection = activeCollection();
+  if (!deletableCollection(collection)) return;
+
+  el.collectionDeleteConfirmText.textContent = tpl(
+    links.length,
+    'Supprimer la collection « {name} » ? {count} lien sera perdu.',
+    'Supprimer la collection « {name} » ? {count} liens seront perdus.',
+    { name: activeCollectionLabel() },
+  );
+  el.collectionDeleteConfirm.hidden = false;
+  el.collectionDelete.setAttribute('aria-expanded', 'true');
+  el.collectionDeleteCancel.focus();
+}
+
+/**
+ * Referme la confirmation de suppression, sans rien supprimer.
+ *
+ * @param {{ focus?: boolean }} [options] `focus: true` rend le focus au bouton
+ *   qui a ouvert la question — le geste a été annulé, pas déplacé.
+ */
+function closeDeleteConfirm({ focus = false } = {}) {
+  if (el.collectionDeleteConfirm.hidden) return;
+  el.collectionDeleteConfirm.hidden = true;
+  el.collectionDelete.setAttribute('aria-expanded', 'false');
+  if (focus) el.collectionDelete.focus();
 }
 
 /**
  * L'aide sous le sélecteur : ce que la collection affichée implique.
  *
- * Deux choses seulement méritent d'être dites ici — ce que devient une
- * collection de navigation privée, et ce que signifie un nom vide. Le reste se
- * voit à l'écran : ce qu'une suppression emporte, la confirmation le dit déjà.
+ * Trois choses seulement méritent d'être dites ici — ce que devient une
+ * collection de navigation privée, ce qu'attend un nom saisi mais non validé, et
+ * ce que signifie un nom vide. Le reste se voit à l'écran : ce qu'une
+ * suppression emporte, la confirmation le dit déjà.
+ *
+ * Le nom en attente est le cas qui prête le plus à confusion : la liste et les
+ * exports nomment encore la collection avec son ancien nom tant qu'on n'a pas
+ * validé, et « Nouvelle » crée une collection du nom saisi. Le dire évite les
+ * deux erreurs.
  *
  * Le nom vide est le cas le moins devinable : le champ est vide, la collection
  * s'appelle pourtant « Mes liens » dans la liste, et c'est ce nom-là qui titre
@@ -1669,6 +1926,17 @@ function updateCollectionHint() {
   let texte = '';
   if (isPrivateCollection(collection)) {
     texte = t("Navigation privée : ces liens ne sont conservés que jusqu'à la fermeture du navigateur.");
+  } else if (collectionNamePending()) {
+    // Deux messages, parce que le champ peut ne rien porter du tout : un champ
+    // vidé attend une validation comme un autre, mais « Nouvelle » ne prendra
+    // pas un nom vide — il retombe sur « Nouvelle collection ». Lui promettre
+    // le contraire serait faux.
+    const nomSaisi = el.collectionName.value.trim() !== '';
+    // La page autonome n'a pas de commande « Nouvelle » : le message ne parle
+    // alors que de l'enregistrement.
+    texte = collections.available && nomSaisi
+      ? t('Nom en attente : « Enregistrer » l\'applique à la collection affichée ; « Nouvelle » crée une collection de ce nom.')
+      : t('Nom en attente : « Enregistrer » l\'applique à la collection affichée.');
   } else if (collection && collection.name.trim() === '') {
     texte = t('Nom vide : cette collection s\'affiche et s\'exporte sous le nom « {name} ».', {
       name: t(DEFAULT_COLLECTION_NAME),
@@ -1695,6 +1963,9 @@ async function switchCollection(id) {
   // libellés faux, et « Fusionner » écrirait ailleurs que ce qui est annoncé :
   // la question est donc retirée, et l'import reste à refaire.
   closeImportMenu();
+  // Un nom saisi mais non enregistré appartient à la collection qu'on quitte :
+  // il ne suit pas la bascule. On le dit, plutôt que de l'effacer en silence.
+  const nomAbandonne = collectionNamePending();
   activeCollectionId = id;
   await collections.setActive(id, appPrivateContext());
   bindStore();
@@ -1702,6 +1973,7 @@ async function switchCollection(id) {
   await refresh();
   applyCollectionName();
   fillCollections();
+  if (nomAbandonne) toast(t('Nom en attente abandonné : il n\'a pas été enregistré.'));
 }
 
 /**
@@ -1711,30 +1983,50 @@ async function switchCollection(id) {
  * est ce qui vient d'être fait, et le réafficher plein ferait croire que rien
  * n'a été écrit. Le libellé intégré — « Mes liens » — reste en filigrane du
  * champ, et c'est lui qui s'affiche dans la liste et titre les exports.
+ *
+ * @param {{ replaceName?: boolean }} [options] `replaceName: false` laisse le
+ *   champ du nom tel quel quand une saisie y attend : c'est ce qu'un redessin
+ *   venu du stockage doit faire, sous peine d'emporter une correction en cours.
  */
-async function loadActiveCollectionFields() {
+async function loadActiveCollectionFields({ replaceName = true } = {}) {
   const collection = activeCollection();
-  el.collectionName.value = collection ? collection.name : '';
+  if (replaceName || !collectionNamePending()) {
+    el.collectionName.value = collection ? collection.name : '';
+  }
   el.collectionNote.value = collection ? collection.note : '';
   // Le premier numéro suit la même règle que le nom : c'est celui de la
   // collection affichée, et changer de collection change la numérotation.
   el.collectionStart.value = String(premierNumero());
+  updateCollectionNameControls();
 }
 
 /**
  * Crée une collection, et l'affiche.
  *
- * Le nom est proposé plutôt que demandé : « Nouvelle collection », puis
- * « Nouvelle collection 2 », etc. Le champ du nom est juste en dessous, et
- * prend le focus juste après — on nomme ce qu'on vient de créer, sans passer
- * par une boîte de dialogue.
+ * **Un nom saisi et non encore enregistré nomme la collection qu'on crée.**
+ * C'est le geste qui évite de créer « Nouvelle collection » pour la renommer
+ * aussitôt : on tape le nom, on clique « Nouvelle », et la collection naît
+ * nommée. La collection affichée garde le sien — le nom saisi était pour la
+ * nouvelle, pas pour elle. Un nom déjà pris est refusé par le cœur, et la
+ * saisie reste alors dans le champ pour être corrigée.
+ *
+ * Sans nom saisi, le nom est proposé plutôt que demandé : « Nouvelle
+ * collection », puis « Nouvelle collection 2 », etc. Le champ du nom est juste
+ * en dessous, et prend le focus juste après — on nomme ce qu'on vient de créer,
+ * sans passer par une boîte de dialogue.
  *
  * @returns {Promise<void>}
  */
 async function createAppCollection() {
   if (!collections.available) return;
 
-  const nom = freeCollectionName(t('Nouvelle collection'), visibleCollectionsList);
+  // Le nom enregistré de la collection affichée ne dit rien de la nouvelle :
+  // seul un nom qui s'en écarte a été tapé pour celle qu'on crée.
+  const saisi = el.collectionName.value.trim().slice(0, COLLECTION_NAME_MAX);
+  const nomme = saisi !== '' && saisi !== persistedCollectionName();
+  const nom = nomme
+    ? saisi
+    : freeCollectionName(t('Nouvelle collection'), visibleCollectionsList);
 
   try {
     const collection = await collections.create(nom);
@@ -1752,36 +2044,36 @@ async function createAppCollection() {
     el.collectionName.select();
   } catch (error) {
     toast(error?.message ?? t('Création impossible'), 'error');
+    // Le nom refusé reste dans le champ : c'est lui qu'il faut corriger, et le
+    // remplacer par un nom proposé ferait perdre ce qu'on vient de taper.
+    if (nomme) {
+      el.collectionName.focus();
+      el.collectionName.select();
+    }
   }
 }
 
 /**
- * Supprime la collection affichée, en deux temps.
+ * Supprime la collection affichée, après confirmation.
  *
- * Un clic demande confirmation et **dit ce qui sera perdu** ; le second
- * supprime. Une suppression de collection emporte ses liens : c'est la seule
- * action de l'application qui détruit en masse, et elle ne doit pas tenir à un
- * clic mal placé.
+ * C'est le **second** geste : la question a été posée par `openDeleteConfirm`,
+ * qui a dit quelle collection et combien de liens. Une suppression de collection
+ * emporte ses liens : c'est la seule action de l'application qui détruit en
+ * masse, et elle ne doit pas tenir à un clic mal placé.
  *
  * @returns {Promise<void>}
  */
 async function deleteAppCollection() {
   const collection = activeCollection();
-  if (!collections.available || !collection) return;
   // La même règle que le bouton : la collection privée ne se supprime pas, et
-  // la dernière collection non plus. Le cœur la refuse de toute façon — ce
-  // garde-fou évite d'armer une confirmation pour rien.
-  if (isPrivateCollection(collection) || ordinaryCollectionCount() <= 1) return;
-
-  if (el.collectionDelete.dataset.confirm !== '1') {
-    el.collectionDelete.dataset.confirm = '1';
-    el.collectionDelete.textContent = tpl(
-      links.length,
-      'Confirmer : {count} lien sera perdu',
-      'Confirmer : {count} liens seront perdus',
-    );
+  // la dernière non plus. Le cœur la refuse de toute façon — ce garde-fou évite
+  // d'effacer des liens avant un refus.
+  if (!deletableCollection(collection)) {
+    closeDeleteConfirm();
     return;
   }
+
+  closeDeleteConfirm();
 
   // Les liens d'abord, la collection ensuite : si l'écriture du document
   // échoue, il reste une collection vide plutôt que des liens orphelins que
@@ -1872,33 +2164,67 @@ async function setupCollections() {
  * c'est elle qui décide de ce qui est affiché, et entre deux pages qui partagent
  * le même stockage, c'est lui qui fait foi.
  *
+ * @param {{ replaceName?: boolean }} [options] `replaceName: false` demande de
+ *   ne pas écraser un nom en cours de saisie — voir
+ *   `loadActiveCollectionFields`. La collection affichée garde alors le champ
+ *   tel quel ; si elle a changé, le nom vient forcément de la nouvelle.
  * @returns {Promise<void>}
  */
-async function reloadCollections() {
+async function reloadCollections(options = {}) {
   const prive = appPrivateContext();
+  const precedent = activeCollectionId;
+  // L'attente se constate **avant** la relecture. Après, le nom venu d'ailleurs
+  // est le nom enregistré, et le champ — que personne n'a touché — paraîtrait en
+  // retard : l'application le prendrait pour une saisie en attente, et un Entrée
+  // écraserait le renommage de l'autre surface. Une saisie réelle, elle, est
+  // constatée ici et survit à la relecture.
+  const saisieEnCours = collectionNamePending();
   visibleCollectionsList = await collections.visible({ isPrivate: prive });
   activeCollectionId = await collections.getActive(prive);
   bindStore();
-  await loadActiveCollectionFields();
+  await loadActiveCollectionFields({
+    replaceName: options.replaceName !== false
+      || activeCollectionId !== precedent
+      || !saisieEnCours,
+  });
   await refresh();
   fillCollections();
   applyCollectionName();
 }
-
 /**
- * Un éditeur de lien est-il ouvert dans la liste ?
+ * Ce qui est en cours de saisie dans l'éditeur ouvert, s'il y en a un.
  *
- * `renderList` reconstruit la liste entière : remettre la page d'aplomb pendant
- * une saisie emporterait le titre en cours de frappe, sans un mot.
+ * Relevé **avant** un redessin, et rendu à l'éditeur qui se rouvre : c'est ce
+ * qui permet à la liste de suivre le stockage sans emporter une correction en
+ * cours d'écriture.
  *
- * @returns {boolean}
+ * @returns {{ id: string, fields: Record<string, string>, focus: string }|null}
  */
-function linkEditorOpen() {
-  return Boolean(el.list.querySelector?.('.link__editor-form'));
+function captureEditorDraft() {
+  const form = el.list.querySelector?.('.link__editor-form');
+  if (!form) return null;
+  const id = form.closest('.link')?.dataset?.id ?? '';
+  if (id === '') return null;
+
+  const fields = {};
+  for (const input of form.querySelectorAll('input[data-field]')) {
+    fields[input.dataset.field] = input.value;
+  }
+  // Le champ au curseur se lit sur `document.activeElement`, et non par le
+  // sélecteur `:focus` : quand la fenêtre n'a pas le focus — un onglet en
+  // arrière-plan, un relevé automatisé — le sélecteur ne suit plus rien, alors
+  // que l'élément actif, lui, est toujours le bon.
+  const actif = document.activeElement;
+  const focus = actif && form.contains(actif) ? (actif.dataset?.field ?? '') : '';
+  return { id, fields, focus };
 }
 
-/** Une remise à jour a été reportée par un éditeur ouvert. */
-let syncPending = false;
+/** Le brouillon relevé, en attente d'un éditeur qui se rouvre. */
+let editorDraft = null;
+
+/** Le champ qui doit recevoir le curseur, une fois la ligne dans la page. */
+let editorFocus = null;
+
 /** Le report d'une remise à jour, le temps qu'un geste finisse d'écrire. */
 let syncTimer = null;
 
@@ -1922,10 +2248,7 @@ const SYNC_DELAY_MS = 150;
  * @returns {Promise<void>}
  */
 async function syncFromStorage() {
-  if (linkEditorOpen()) {
-    syncPending = true;
-    return;
-  }
+  const brouillon = captureEditorDraft();
 
   const prive = appPrivateContext();
   const liste = await collections.visible({ isPrivate: prive });
@@ -1937,7 +2260,16 @@ async function syncFromStorage() {
     && JSON.stringify(liens) === JSON.stringify(links);
   if (identique) return;
 
-  await reloadCollections();
+  // Relevé seulement quand quelque chose change vraiment : sinon un brouillon
+  // attendrait un redessin qui n'a pas lieu. Et posé seulement si le formulaire
+  // est **encore** là : entre le relevé et ici, un enregistrement a pu le
+  // fermer, et rouvrir un formulaire qu'on vient de fermer serait une
+  // réapparition.
+  editorDraft = el.list.querySelector?.('.link__editor-form') ? brouillon : null;
+  // Une relecture venue d'ailleurs ne doit pas emporter un nom en cours de
+  // saisie : le champ garde son brouillon tant que la collection affichée ne
+  // change pas.
+  await reloadCollections({ replaceName: false });
 }
 
 /** Programme une relecture, en regroupant les écritures d'un même geste. */
@@ -1947,18 +2279,6 @@ function scheduleSync() {
     syncTimer = null;
     syncFromStorage().catch(() => {});
   }, SYNC_DELAY_MS);
-}
-
-/**
- * Solde la remise à jour qu'un éditeur ouvert avait fait attendre.
- *
- * Appelée à la fermeture de l'éditeur, une fois la liste reconstruite : c'est le
- * seul moment où redessiner ne coûte rien à personne.
- */
-function resumeDeferredSync() {
-  if (!syncPending) return;
-  syncPending = false;
-  scheduleSync();
 }
 
 /**
@@ -6110,11 +6430,15 @@ el.collectionStart.addEventListener('change', () => {
 /**
  * Diffère une écriture, puis n'en garde qu'une.
  *
- * Le nom et la note s'enregistrent à la frappe — perdre une correction serait
- * agaçant — mais chaque frappe réécrit le document des collections **entier**.
- * Sans ce délai, deux écritures lancées coup sur coup pourraient se terminer
- * dans le désordre, et la première gagnerait : c'est la dernière frappe qu'on
- * veut voir enregistrée, pas la plus lente.
+ * La note et le premier numéro s'enregistrent à la frappe — perdre une
+ * correction serait agaçant — mais chaque frappe réécrit le document des
+ * collections **entier**. Sans ce délai, deux écritures lancées coup sur coup
+ * pourraient se terminer dans le désordre, et la première gagnerait : c'est la
+ * dernière frappe qu'on veut voir enregistrée, pas la plus lente.
+ *
+ * Le nom, lui, n'en a plus besoin : il attend une validation, et c'est ce geste
+ * qui l'écrit. Un nom à moitié tapé n'a jamais à se retrouver dans le stockage,
+ * ce qui est précisément ce que ce délai ne savait pas empêcher.
  *
  * @param {() => Promise<void>} action
  * @param {number} [ms]
@@ -6132,27 +6456,69 @@ function debounced(action, ms = 400) {
 }
 
 /**
- * Écrit le nom de la collection affichée, et suit l'affichage.
+ * Enregistre le nom saisi, et suit l'affichage.
+ *
+ * C'est le **seul** chemin d'écriture du nom : la frappe ne l'écrit plus. Un
+ * nom à moitié tapé n'a pas à se retrouver dans le stockage, et un nom déjà
+ * pris doit être refusé avant d'avoir été écrit — d'où une validation, et non
+ * un enregistrement différé.
  *
  * **Un champ vidé est un nom vide**, et non une écriture à ignorer : c'était le
  * défaut — vider le champ laissait le nom précédent en place, et rien ne le
  * disait. Le nom vide est enregistré comme tel ; la liste et les exports
  * retombent alors sur le libellé intégré, et l'aide sous le sélecteur l'annonce.
+ *
+ * @returns {Promise<boolean>} vrai quand le nom enregistré est celui du champ.
  */
-async function saveCollectionName() {
-  const saisi = el.collectionName.value.trim();
-  if (!collections.available) return;
-  if (saisi === (activeCollection()?.name ?? '')) return;
+async function commitCollectionName() {
+  // Une validation en cours écrit le document des collections **entier** :
+  // deux écritures concurrentes — Entrée maintenue, double clic — pourraient se
+  // terminer dans le désordre. La seconde ne refait donc rien : à l'arrivée, le
+  // nom est déjà celui du champ.
+  if (renommageEnCours) return false;
+
+  const saisi = el.collectionName.value.trim().slice(0, COLLECTION_NAME_MAX);
+  if (!collectionNamePending()) {
+    // Rien à écrire : le champ est seulement remis au nom enregistré, pour
+    // qu'une espace de trop ne reste pas comme une saisie en attente.
+    el.collectionName.value = persistedCollectionName();
+    updateCollectionNameControls();
+    updateCollectionHint();
+    return true;
+  }
+
+  renommageEnCours = true;
+  // Le bouton n'est pas utilisable pendant l'écriture : le laisser actif
+  // laisserait croire qu'un second clic a été pris en compte.
+  el.collectionNameSave.disabled = true;
   try {
     await collections.rename(activeCollectionId, saisi);
     visibleCollectionsList = await collections.visible({ isPrivate: appPrivateContext() });
+    el.collectionName.value = persistedCollectionName();
+    // La liste, l'aide et la commande d'enregistrement se remettent à jour par
+    // le même chemin que le reste : rien à tenir d'accord à la main.
     fillCollections();
     applyCollectionName();
+    // Le nom titre la planche et le tableau : leur aperçu suit, comme il suit
+    // la note et le premier numéro.
+    renderPreview();
+    toast(t('Nom de la collection enregistré'));
+    // Le bouton vient de passer à `disabled` alors qu'il avait le focus quand on
+    // a cliqué : sans cela, Chrome rendrait le focus au document, et le clavier
+    // repartirait de nulle part.
+    el.collectionName.focus();
+    return true;
   } catch (error) {
-    // Un nom déjà pris est refusé : on le dit, et le champ revient au nom
-    // réellement enregistré — sinon l'écran afficherait un nom qui n'existe pas.
     toast(error?.message ?? t('Renommage impossible'), 'error');
-    el.collectionName.value = activeCollection()?.name ?? '';
+    // Un nom refusé — déjà pris, par exemple — reste dans le champ : c'est lui
+    // qu'il faut corriger, et le remplacer par l'ancien ferait perdre la saisie.
+    el.collectionName.focus();
+    el.collectionName.select();
+    updateCollectionHint();
+    return false;
+  } finally {
+    renommageEnCours = false;
+    updateCollectionNameControls();
   }
 }
 
@@ -6164,23 +6530,38 @@ async function saveCollectionNote() {
   visibleCollectionsList = await collections.visible({ isPrivate: appPrivateContext() });
 }
 
-const sauverNomDiffere = debounced(saveCollectionName);
 const sauverNoteDifferee = debounced(saveCollectionNote);
 const sauverNumeroDiffere = debounced(saveStartIndex);
 
+// **La frappe ne décide de rien.** Elle annonce seulement qu'un nom attend
+// d'être enregistré : le bouton s'active, l'aide dit ce que « Nouvelle » fera,
+// et le titre de la page suit — c'est ce qu'on emporterait si l'on exportait
+// maintenant. L'écriture, elle, attend la validation.
 el.collectionName.addEventListener('input', () => {
   applyCollectionName();
-  // Sur la page autonome, le nom est un réglage : `rename` l'y écrit. Dans
-  // l'extension, il appartient à la collection affichée.
-  if (collections.available) sauverNomDiffere();
-  else settings.save({ collectionName: collectionName() });
+  updateCollectionHint();
+  updateCollectionNameControls();
 });
 
-// À la sortie du champ, on écrit sans attendre : le délai est un confort de
-// frappe, pas une raison de perdre la dernière correction.
-el.collectionName.addEventListener('change', () => {
-  if (collections.available) saveCollectionName().catch(() => {});
+// Entrée valide, Échap abandonne. Ce sont les deux gestes du clavier, et ils
+// sont rendus tels quels par les gestionnaires pour qu'un test puisse les
+// attendre — le DOM, lui, ignore la valeur de retour.
+el.collectionName.addEventListener('keydown', (event) => {
+  if (event.key === 'Enter') {
+    event.preventDefault();
+    return commitCollectionName();
+  }
+  if (event.key === 'Escape') {
+    event.preventDefault();
+    el.collectionName.value = persistedCollectionName();
+    applyCollectionName();
+    updateCollectionHint();
+    updateCollectionNameControls();
+  }
+  return undefined;
 });
+
+el.collectionNameSave.addEventListener('click', () => commitCollectionName());
 
 // La note suit la même règle, à la frappe : c'est un paragraphe, pas une
 // commande, et rien n'oblige à valider. Elle est réenregistrée telle quelle —
@@ -6200,23 +6581,32 @@ el.collectionNote.addEventListener('change', () => {
 });
 
 el.collectionSelect.addEventListener('change', () => {
-  switchCollection(el.collectionSelect.value);
+  // Le gestionnaire rend la promesse de la bascule : le DOM l'ignore, mais un
+  // test peut ainsi attendre que la nouvelle collection soit affichée.
+  return switchCollection(el.collectionSelect.value);
 });
 
 el.collectionAdd.addEventListener('click', createAppCollection);
 
+// « Supprimer » ne supprime pas : il ouvre la question. Un second clic sur le
+// même bouton la referme — le geste qui a ouvert la question la referme.
 el.collectionDelete.addEventListener('click', () => {
-  // La confirmation se referme toute seule : un bouton resté armé détruirait la
-  // collection au moindre clic ultérieur, et rien ne le signalerait.
-  deleteAppCollection().then(() => {
-    clearTimeout(deleteConfirmTimer);
-    if (el.collectionDelete.dataset.confirm === '1') {
-      deleteConfirmTimer = setTimeout(() => {
-        el.collectionDelete.dataset.confirm = '';
-        el.collectionDelete.textContent = t('Supprimer');
-      }, 5000);
-    }
-  });
+  if (el.collectionDeleteConfirm.hidden) openDeleteConfirm();
+  else closeDeleteConfirm({ focus: true });
+});
+
+el.collectionDeleteCancel.addEventListener('click', () => {
+  closeDeleteConfirm({ focus: true });
+});
+
+el.collectionDeleteConfirmYes.addEventListener('click', () => deleteAppCollection());
+
+// Échap referme la question, comme les autres panneaux de l'application. Le
+// focus rendu au bouton évite de repartir du document.
+el.collectionDeleteConfirm.addEventListener('keydown', (event) => {
+  if (event.key !== 'Escape') return;
+  event.preventDefault();
+  closeDeleteConfirm({ focus: true });
 });
 
 el.selectAllBox.addEventListener('change', () => {

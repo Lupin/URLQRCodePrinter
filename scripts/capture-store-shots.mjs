@@ -291,9 +291,21 @@ const SHOTS = [
   },
 ];
 
+/** Effacer le bac à sable, même si Chrome vient à peine de le libérer. */
+const effacerBac = () => rmSync(SANDBOX, {
+  recursive: true,
+  force: true,
+  // Le profil Chrome est encore tenu par des fichiers de verrou une fraction de
+  // seconde après le SIGKILL : sans ces reprises, le nettoyage échouait en
+  // ENOTEMPTY et le script sortait en erreur alors que les captures étaient
+  // écrites.
+  maxRetries: 10,
+  retryDelay: 100,
+});
+
 /** Point d'entrée. */
 async function main() {
-  rmSync(SANDBOX, { recursive: true, force: true });
+  effacerBac();
   mkdirSync(PROFILE, { recursive: true });
   mkdirSync(OUT, { recursive: true });
 
@@ -343,7 +355,7 @@ async function main() {
     } catch {
       // Déjà arrêté.
     }
-    rmSync(SANDBOX, { recursive: true, force: true });
+    effacerBac();
   }
 }
 

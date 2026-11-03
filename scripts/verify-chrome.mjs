@@ -1958,8 +1958,9 @@ async function main() {
 
     const apresSuppression = await evalApp(`(async () => {
       const pause = (ms) => new Promise((r) => setTimeout(r, ms));
-      // On passe sur la collection de contrôle, puis on la supprime en deux
-      // temps : la confirmation annonce ce qui est perdu, le second clic exécute.
+      // On passe sur la collection de contrôle, puis on la supprime : le clic
+      // ouvre la question, qui annonce ce qui est perdu, et le bouton de cette
+      // question exécute.
       const select = document.getElementById('collection-select');
       select.value = 'controle';
       select.dispatchEvent(new Event('change', { bubbles: true }));
@@ -1967,9 +1968,20 @@ async function main() {
 
       const bouton = document.getElementById('collection-delete');
       bouton.click();
-      await pause(60);
-      const confirme = { texte: bouton.textContent.trim(), arme: bouton.dataset.confirm === '1' };
-      bouton.click();
+      await pause(80);
+      const question = document.getElementById('collection-delete-confirm');
+      const confirme = {
+        ouverte: question ? !question.hidden : false,
+        texte: document.getElementById('collection-delete-confirm-text')?.textContent.trim() ?? '',
+        affichee: select.value,
+      };
+      // Rien n'est supprimé avant le bouton de la question.
+      const avant = await new Promise((resolve) => chrome.storage.local.get(
+        'url-qr-code-printer/collections', resolve,
+      ));
+      confirme.intacte = (avant['url-qr-code-printer/collections']?.items ?? [])
+        .some((item) => item.id === 'controle');
+      document.getElementById('collection-delete-confirm-yes')?.click();
       await pause(500);
 
       const valeur = await new Promise((resolve) => chrome.storage.local.get(
@@ -1987,11 +1999,14 @@ async function main() {
 
     record(
       'supprimer une collection demande confirmation, puis la retire',
-      apresSuppression?.confirme?.arme === true
+      apresSuppression?.confirme?.ouverte === true
         && /perdu/.test(apresSuppression?.confirme?.texte ?? '')
+        && apresSuppression?.confirme?.intacte === true
         && (apresSuppression?.restantes ?? []).join('|') === 'default'
         && apresSuppression?.affichee === 'default',
-      `confirmation : « ${apresSuppression?.confirme?.texte} », `
+      `question ouverte : ${apresSuppression?.confirme?.ouverte}, `
+        + `texte : « ${apresSuppression?.confirme?.texte} », `
+        + `intacte avant confirmation : ${apresSuppression?.confirme?.intacte}, `
         + `restantes : ${(apresSuppression?.restantes ?? []).join(', ')}, `
         + `affichée : ${apresSuppression?.affichee}`,
     );
@@ -3993,17 +4008,26 @@ async function main() {
 
         // Un ajout neuf, le **même** lien avec un autre titre, puis le même
         // encore sans rien changer : trois issues distinctes, et trois retours.
-        // Chaque lecture suit immédiatement la réponse, car le retour
-        // transitoire est remplacé par le compteur au bout de 1,5 s.
+        //
+        // Le premier retour est lu **deux fois** : aussitôt, puis à 1,2 s. Une
+        // seule lecture immédiate donnait un constat qui flottait — le compteur
+        // peut être écrit juste avant que le signe soit posé, et la lecture
+        // tombait alors sur lui à peu près une fois sur deux. La seconde lecture
+        // demande, elle, ce qu'un signe doit être : **durable**. C'est elle qui
+        // aurait vu le défaut corrigé en 0.3.0, où le « + » était écrasé par une
+        // relecture du compteur partie avant lui — visible 0,98 s au lieu des
+        // 2,5 s promis.
         const neuf = 'https://exemple.fr/sonde-' + Date.now();
         const premier = await ajouter(neuf, 'Sonde');
-        await pause(3000);
+        await pause(1200);
+        const premierTard = await lire();
+        await pause(1800);
         const corrige = await ajouter(neuf, 'Sonde corrigée');
         await pause(3000);
         const doublon = await ajouter(neuf, 'Sonde corrigée');
         await pause(3000);
         const repos = await lire();
-        return { premier, corrige, doublon, repos };
+        return { premier, premierTard, corrige, doublon, repos };
       })()`);
 
       const perm = await evalWorker(
@@ -4013,8 +4037,12 @@ async function main() {
       if (badges?.__erreur) {
         record('le badge est interrogeable', false, badges.__erreur);
       } else {
-        record('un ajout affiche « + » sur le badge', badges?.premier?.texte === '+',
-          `« ${badges?.premier?.texte} » sur ${badges?.premier?.couleur}`);
+        record(
+          'un ajout affiche « + » sur le badge, et le garde',
+          badges?.premier?.texte === '+' && badges?.premierTard?.texte === '+',
+          `« ${badges?.premier?.texte} » aussitôt, « ${badges?.premierTard?.texte} » `
+            + `à 1,2 s, sur ${badges?.premierTard?.couleur}`,
+        );
         record(
           'un titre corrigé affiche « ✎ » sur le badge, et se distingue du doublon',
           badges?.corrige?.texte === '✎' && badges?.corrige?.texte !== badges?.doublon?.texte,

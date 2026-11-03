@@ -146,6 +146,14 @@ const EN_MESSAGES = {
   "Suppression impossible": "Could not delete the collection",
   "Il doit rester au moins une collection": "At least one collection must remain",
   "Renommage impossible": "Could not rename the collection",
+  "Nom de la collection enregistré": "Collection name saved",
+  "Nom en attente abandonné : il n'a pas été enregistré.":
+    "Pending name discarded: it was not saved.",
+  "Nom en attente : « Enregistrer » l'applique à la collection affichée.":
+    "Pending name: “Save” applies it to the displayed collection.",
+  "Nom en attente : « Enregistrer » l'applique à la collection affichée ; « Nouvelle » crée une collection de ce nom.":
+    "Pending name: “Save” applies it to the displayed collection; “New” creates a collection with that name.",
+  "Créer une collection nommée « {name} »": "Create a collection named “{name}”",
   "Collection supprimée": "Collection deleted",
   "Collection affichée": "Displayed collection",
   "Nouvelle": "New",
@@ -155,8 +163,10 @@ const EN_MESSAGES = {
   "{count} liens déplacés vers « {name} »": "{count} links moved to “{name}”",
   "{count} adresse déjà présente : fusionnée": "{count} address already there: merged",
   "{count} adresses déjà présentes : fusionnées": "{count} addresses already there: merged",
-  "Confirmer : {count} lien sera perdu": "Confirm: {count} link will be lost",
-  "Confirmer : {count} liens seront perdus": "Confirm: {count} links will be lost",
+  "Supprimer la collection « {name} » ? {count} lien sera perdu.":
+    "Delete the collection “{name}”? {count} link will be lost.",
+  "Supprimer la collection « {name} » ? {count} liens seront perdus.":
+    "Delete the collection “{name}”? {count} links will be lost.",
   "Les collections ne sont disponibles que dans l'extension":
     "Collections are available in the extension only",
   "Navigation privée : ces liens ne sont conservés que jusqu'à la fermeture du navigateur.":
@@ -216,6 +226,8 @@ const EN_MESSAGES = {
   "Rechargez l'extension (↻ dans brave://extensions), puis rouvrez cette page. Si cela persiste, videz le cache du navigateur.": "Reload the extension (↻ in brave://extensions), then reopen this page. If it persists, clear the browser cache.",
   "Ma collection": "My collection",
   "Nom de la collection": "Collection name",
+  "Enregistrer le nom de la collection": "Save the collection name",
+  "Enregistrer le nom de la collection (Entrée)": "Save the collection name (Enter)",
   "Mes liens": "My links",
   "URL à ajouter": "URL to add",
   "https://exemple.com/page": "https://example.com/page",
@@ -422,6 +434,7 @@ const EN_MESSAGES = {
   "Imprimer les {count} liens": "Print the {count} links",
   "Imprimer {count} étiquette": "Print {count} label",
   "Imprimer {count} étiquettes": "Print {count} labels",
+  "Adresse encodée dans le QR Code de « {title} »": "Address encoded in the QR Code for \u201c{title}\u201d",
   "L'URL collectée": "The collected URL",
   "Le QR Code encode l'URL collectée.": "The QR Code encodes the collected URL.",
   "Ce choix vaut pour toute la collection ; chaque lien peut dire le contraire dans la liste.":
@@ -435,10 +448,12 @@ const EN_MESSAGES = {
   "Les {count} liens sont cochés.": "All {count} links are checked.",
   "Lien ajouté": "Link added",
   "Lien mis à jour": "Link updated",
+  "Lien mis à jour ; le raccourci a été retiré, il menait à l'ancienne adresse": "Link updated; the short link was removed, it pointed to the old address",
+  "Lien": "Link",
   "Longueur imposée par le rouleau : {mm} mm.": "Length imposed by the roll: {mm} mm.",
   "Markdown": "Markdown",
-  "Modifier le titre, les tags et la note": "Edit the title, tags and note",
-  "Modifier titre, tags et note de {title}": "Edit title, tags and note for {title}",
+  "Modifier le lien, le titre, les tags et la note": "Edit the link, title, tags and note",
+  "Modifier le lien, le titre, les tags et la note de {title}": "Edit the link, title, tags and note for {title}",
   "Niimbot {id} — {mm} mm utiles, {dpi} dpi": "Niimbot {id} — {mm} mm usable, {dpi} dpi",
   "Note libre": "Free note",
   "QR Code de {side} mm ({module} mm par module, minimum {minimum} mm) — réglable de {range} — {lines} de texte.": "QR Code {side} mm ({module} mm per module, minimum {minimum} mm) — adjustable from {range} — {lines} of text.",

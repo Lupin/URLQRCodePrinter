@@ -146,6 +146,14 @@ const EN_MESSAGES = {
   "Suppression impossible": "Could not delete the collection",
   "Il doit rester au moins une collection": "At least one collection must remain",
   "Renommage impossible": "Could not rename the collection",
+  "Nom de la collection enregistré": "Collection name saved",
+  "Nom en attente abandonné : il n'a pas été enregistré.":
+    "Pending name discarded: it was not saved.",
+  "Nom en attente : « Enregistrer » l'applique à la collection affichée.":
+    "Pending name: “Save” applies it to the displayed collection.",
+  "Nom en attente : « Enregistrer » l'applique à la collection affichée ; « Nouvelle » crée une collection de ce nom.":
+    "Pending name: “Save” applies it to the displayed collection; “New” creates a collection with that name.",
+  "Créer une collection nommée « {name} »": "Create a collection named “{name}”",
   "Collection supprimée": "Collection deleted",
   "Collection affichée": "Displayed collection",
   "Nouvelle": "New",
@@ -155,8 +163,10 @@ const EN_MESSAGES = {
   "{count} liens déplacés vers « {name} »": "{count} links moved to “{name}”",
   "{count} adresse déjà présente : fusionnée": "{count} address already there: merged",
   "{count} adresses déjà présentes : fusionnées": "{count} addresses already there: merged",
-  "Confirmer : {count} lien sera perdu": "Confirm: {count} link will be lost",
-  "Confirmer : {count} liens seront perdus": "Confirm: {count} links will be lost",
+  "Supprimer la collection « {name} » ? {count} lien sera perdu.":
+    "Delete the collection “{name}”? {count} link will be lost.",
+  "Supprimer la collection « {name} » ? {count} liens seront perdus.":
+    "Delete the collection “{name}”? {count} links will be lost.",
   "Les collections ne sont disponibles que dans l'extension":
     "Collections are available in the extension only",
   "Navigation privée : ces liens ne sont conservés que jusqu'à la fermeture du navigateur.":
@@ -216,6 +226,8 @@ const EN_MESSAGES = {
   "Rechargez l'extension (↻ dans brave://extensions), puis rouvrez cette page. Si cela persiste, videz le cache du navigateur.": "Reload the extension (↻ in brave://extensions), then reopen this page. If it persists, clear the browser cache.",
   "Ma collection": "My collection",
   "Nom de la collection": "Collection name",
+  "Enregistrer le nom de la collection": "Save the collection name",
+  "Enregistrer le nom de la collection (Entrée)": "Save the collection name (Enter)",
   "Mes liens": "My links",
   "URL à ajouter": "URL to add",
   "https://exemple.com/page": "https://example.com/page",
@@ -422,6 +434,7 @@ const EN_MESSAGES = {
   "Imprimer les {count} liens": "Print the {count} links",
   "Imprimer {count} étiquette": "Print {count} label",
   "Imprimer {count} étiquettes": "Print {count} labels",
+  "Adresse encodée dans le QR Code de « {title} »": "Address encoded in the QR Code for \u201c{title}\u201d",
   "L'URL collectée": "The collected URL",
   "Le QR Code encode l'URL collectée.": "The QR Code encodes the collected URL.",
   "Ce choix vaut pour toute la collection ; chaque lien peut dire le contraire dans la liste.":
@@ -435,10 +448,12 @@ const EN_MESSAGES = {
   "Les {count} liens sont cochés.": "All {count} links are checked.",
   "Lien ajouté": "Link added",
   "Lien mis à jour": "Link updated",
+  "Lien mis à jour ; le raccourci a été retiré, il menait à l'ancienne adresse": "Link updated; the short link was removed, it pointed to the old address",
+  "Lien": "Link",
   "Longueur imposée par le rouleau : {mm} mm.": "Length imposed by the roll: {mm} mm.",
   "Markdown": "Markdown",
-  "Modifier le titre, les tags et la note": "Edit the title, tags and note",
-  "Modifier titre, tags et note de {title}": "Edit title, tags and note for {title}",
+  "Modifier le lien, le titre, les tags et la note": "Edit the link, title, tags and note",
+  "Modifier le lien, le titre, les tags et la note de {title}": "Edit the link, title, tags and note for {title}",
   "Niimbot {id} — {mm} mm utiles, {dpi} dpi": "Niimbot {id} — {mm} mm usable, {dpi} dpi",
   "Note libre": "Free note",
   "QR Code de {side} mm ({module} mm par module, minimum {minimum} mm) — réglable de {range} — {lines} de texte.": "QR Code {side} mm ({module} mm per module, minimum {minimum} mm) — adjustable from {range} — {lines} of text.",
@@ -1101,6 +1116,24 @@ function unwrapRedirectUrl(input) {
 }
 
 /**
+ * L'hôte tel qu'on puisse le relire dans un message.
+ *
+ * `URL` encode l'espace de l'hôte : refuser `pas une url` en recopiant
+ * `pas%20une%20url` demande de décoder mentalement ce qu'on vient de taper, au
+ * moment précis où l'on cherche pourquoi ça ne passe pas.
+ *
+ * On ne décode **que l'espace**, et pas l'échappement en général : un espace ne
+ * peut jamais être voulu dans un nom d'hôte, alors qu'un `%2E` peut l'être, et
+ * le décoder ferait passer l'hôte refusé pour ce qu'il n'est pas.
+ *
+ * @param {string} hostname
+ * @returns {string}
+ */
+function hoteLisible(hostname) {
+  return String(hostname).replace(/%20/gi, ' ');
+}
+
+/**
  * Normalise une URL saisie ou capturée.
  *
  * - ajoute `https://` si le schéma est absent ;
@@ -1112,11 +1145,19 @@ function unwrapRedirectUrl(input) {
  *   `#` allonge inutilement la matrice) ;
  * - supprime un éventuel slash final redondant sur la racine.
  *
+ * `keepFragment` renverse la seule règle du fragment, et rien d'autre. Elle vaut
+ * pour l'**édition** d'un lien, où l'adresse est saisie délibérément : sur
+ * YouTube, `#t=90` démarre la lecture à 1 min 30, et l'enregistrer sans son
+ * fragment ferait perdre ce que l'utilisateur vient d'écrire — précisément ce
+ * qu'il demandait à pouvoir faire. La distinction n'est pas « paramètre » contre
+ * « fragment » : un `utm_source` ne change pas la destination, un fragment si.
+ *
  * @param {string} input
+ * @param {{ keepFragment?: boolean }} [options]
  * @returns {string} URL normalisée.
  * @throws {TypeError} si l'entrée ne peut pas être analysée comme une URL http(s).
  */
-function normalizeUrl(input) {
+function normalizeUrl(input, options = {}) {
   if (typeof input !== 'string') throw new TypeError(t('URL attendue sous forme de chaîne'));
   let raw = input.trim();
   if (raw === '') throw new TypeError(t('URL vide'));
@@ -1138,14 +1179,14 @@ function normalizeUrl(input) {
     throw new TypeError(t('URL invalide : {input}', { input }));
   }
   if (!parsed.hostname.includes('.') && parsed.hostname !== 'localhost') {
-    throw new TypeError(t("Nom d'hôte invalide : {host}", { host: parsed.hostname }));
+    throw new TypeError(t("Nom d'hôte invalide : {host}", { host: hoteLisible(parsed.hostname) }));
   }
 
   // La redirection est dépliée **avant** le nettoyage : c'est la destination
   // qui porte les paramètres de campagne à retirer, et non l'enveloppe.
   parsed = sansRedirection(parsed);
 
-  parsed.hash = '';
+  if (options.keepFragment !== true) parsed.hash = '';
 
   // Paramètres de campagne : ils polluent le QR Code et le rendent plus dense.
   for (const key of [...parsed.searchParams.keys()]) {
@@ -1181,13 +1222,17 @@ function isValidUrl(input) {
  * recevoir autre chose qu'une URL http(s), jamais un `javascript:` ni un `data:`.
  * Les appelants affichent du texte simple quand cette fonction renvoie `''`.
  *
+ * Le fragment est conservé : une adresse éditée à la main peut en porter un qui
+ * choisit un passage précis (`#t=90`), et un lien affiché avec son horodatage
+ * mais ouvert sans lui serait un lien qui ment sur ce qu'il fait.
+ *
  * @param {unknown} url
  * @returns {string}
  */
 function safeHref(url) {
   if (typeof url !== 'string' || url.trim() === '') return '';
   try {
-    return normalizeUrl(url);
+    return normalizeUrl(url, { keepFragment: true });
   } catch {
     return '';
   }
@@ -1247,8 +1292,13 @@ function normalizeShortUrl(value) {
 /**
  * Construit un LinkRecord complet et validé à partir d'une saisie partielle.
  *
+ * `keepFragment` suit la même règle que `normalizeUrl` : il ne vaut que pour une
+ * adresse **éditée**, jamais pour une adresse capturée. Passé en option, et non
+ * déduit de l'entrée, parce que c'est l'intention de l'appelant qui décide — la
+ * même chaîne peut venir d'un clic droit ou d'une correction à la main.
+ *
  * @param {Partial<LinkRecord> & { url: string }} input
- * @param {{ now?: number, source?: string }} [options]
+ * @param {{ now?: number, source?: string, keepFragment?: boolean }} [options]
  * @returns {LinkRecord}
  */
 function createLink(input, options = {}) {
@@ -1262,7 +1312,7 @@ function createLink(input, options = {}) {
 
   return {
     id: typeof input.id === 'string' && input.id !== '' ? input.id : newId(),
-    url: normalizeUrl(input.url),
+    url: normalizeUrl(input.url, { keepFragment: options.keepFragment === true }),
     title,
     note: typeof input.note === 'string' ? input.note.trim() : '',
     tags: normalizeTags(input.tags),
@@ -3650,6 +3700,16 @@ async function refreshBadge(options = {}) {
   try {
     const collectionId = await activeCollection(Boolean(options.isPrivate));
     const links = await withCollection(store, collectionId).list();
+
+    // **Le contrôle du retour transitoire est refait ici, après les lectures.**
+    // Il l'est déjà à l'entrée de l'écouteur du stockage, mais une relecture
+    // partie *avant* que le signe soit armé y arrive *après* lui : les lectures
+    // ci-dessus prennent quelques millisecondes, et le compteur écrasait alors
+    // le « + » que l'œil devait voir. Mesuré dans Chrome : « + » à 13 ms, « 4 » à
+    // 979 ms, pour un signe qui doit tenir 2,5 s. Laisser la place au signe ne
+    // perd rien : `flashBadge` repose le compteur à la fin de son terme.
+    if (Date.now() < flashUntil) return;
+
     await api.action.setBadgeBackgroundColor({ color: BADGE_COUNT.fond });
     await applyBadgeTextColor(BADGE_COUNT.texte);
     await api.action.setBadgeText({ text: links.length ? String(links.length) : '' });

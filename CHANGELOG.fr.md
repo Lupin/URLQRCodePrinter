@@ -23,6 +23,73 @@ l'époque, et elle n'est pas inventée ici.
 
 ## [Non publié]
 
+## [0.3.0] - 2026-11-03
+
+Cette mise à jour rend l'adresse d'un lien corrigeable depuis la liste, fluidifie
+la gestion des collections — le nom se valide, « Nouvelle » reprend le nom saisi,
+et la suppression demande confirmation — et fait cesser deux silences : une
+application qui gelait tant qu'un formulaire restait ouvert, et un refus
+d'adresse qui s'affichait encodé.
+
+### Ajouté
+
+- **L'adresse d'un lien s'édite dans la liste**, avec le bouton **✎** de sa ligne.
+  Le formulaire ouvre désormais quatre champs — lien, titre, tags, note — au lieu
+  de trois, et l'adresse vient en tête : c'est elle que le QR Code encode.
+  Corriger une URL ne demande plus de supprimer le lien pour le rajouter, en
+  perdant son rang, ses tags et sa note. On édite une adresse pour ajouter un
+  horodatage (`?t=3139`, ou `#t=1m30s`), retirer des paramètres de suivi, réparer
+  une faute de frappe, ou suivre une page qui a déménagé.
+
+### Modifié
+
+- Une adresse **éditée** garde son fragment, alors qu'une adresse **capturée** le
+  perd comme avant : `#t=1m30s` démarre la lecture d'une vidéo à 1 min 30, et
+  l'effacer viderait la correction de son sens. Les paramètres de campagne
+  (`utm_*`, `fbclid`, `gclid`…) restent retirés dans les deux cas : ils ne
+  changent pas la destination, seulement la longueur du QR Code.
+- Changer l'adresse d'un lien **retire son raccourci**, qui pointe vers
+  l'ancienne chez un tiers, et le message le dit : sans cela, le QR Code imprimé
+  mènerait ailleurs que ce que la ligne affiche.
+- **Le nom d'une collection s'enregistre sur validation explicite**, et non plus
+  à la frappe : la touche **Entrée** dans le champ, ou le bouton
+  **« Enregistrer »** placé à côté — inactif tant que le nom n'a pas changé. La
+  touche **Échap** abandonne la saisie en attente et rétablit le nom enregistré.
+  Un nom en attente est annoncé sous le sélecteur, et changer de collection avec
+  ce sélecteur l'abandonne : il n'est pas enregistré, et le message le dit.
+- **« Nouvelle » reprend le nom saisi** : quand le champ porte un nom en attente,
+  différent de celui de la collection affichée, la collection créée prend ce nom
+  au lieu de « Nouvelle collection » — la collection affichée garde le sien. Sans
+  nom en attente, la proposition automatique reste celle d'avant : « Nouvelle
+  collection », « Nouvelle collection 2 »…
+- **« Nouvelle » passe à côté d'« Enregistrer »**, sous le champ du nom : la
+  création et la validation portent sur le même nom, et la ligne du sélecteur ne
+  garde que « Supprimer ».
+- **La suppression d'une collection demande confirmation dans un panneau** placé
+  sous le sélecteur : il nomme la collection et annonce combien de liens seront
+  perdus. « Annuler » reçoit le focus ; le double clic qui armait le bouton
+  disparaît.
+
+### Corrigé
+
+- **Le retour de l'icône tient maintenant son terme.** Le « + » d'un ajout — et
+  de même « ✎ » et « = » — était écrasé par une relecture du compteur partie
+  avant lui : le signe ne restait visible qu'une seconde au lieu des 2,5 s
+  annoncées, et le relevé navigateur le constatait depuis la 0.2.0.
+- **L'application ne gèle plus tant qu'un éditeur de lien est ouvert.** Elle
+  retenait alors sa remise à jour jusqu'à la fermeture du formulaire, pour ne pas
+  emporter la saisie — et affichait pendant ce temps un nombre de liens périmé,
+  « 4 liens » sous une icône qui en annonçait 7, sans rien dire. La saisie est
+  maintenant relevée avant le redessin et rendue au formulaire rouvert : la liste
+  suit le stockage, et rien de ce qui était écrit ne se perd.
+- Le refus d'un nom d'hôte le réécrit tel qu'il a été tapé — « pas une url » et
+  non « pas%20une%20url ». Le message demandait de décoder mentalement l'adresse
+  au moment précis où l'on cherche pourquoi elle ne passe pas.
+
+### Ce qui ne change pas
+
+Rien de nouveau n'est lu, stocké ni envoyé. Aucune permission n'a été ajoutée.
+
 ## [0.2.1] - 2026-09-30
 
 Cette mise à jour fait dire la même chose au compteur de l'icône et à la

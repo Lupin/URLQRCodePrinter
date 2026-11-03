@@ -420,15 +420,19 @@ body {
 .field__label { color: var(--text-2); font-size: 12px; }
 .fields { display: flex; flex-wrap: wrap; gap: 12px; }
 
-/* Le premier numéro tient à côté du nom : deux champs d'une ligne, qui décrivent
-   tous deux la collection elle-même. Sa largeur est fixe et le nom prend le
-   reste ; sous 160 px de place, l'enroulement de `.fields` le fait passer à la
-   ligne, sans qu'une requête de média ait à le prévoir. */
+/* Le nom prend la ligne entière : il porte deux commandes à sa droite —
+   « Enregistrer » et « Nouvelle » —, qui ne tiendraient pas à côté du numéro.
+   Le numéro garde sa largeur fixe, et l'enroulement de `.fields` le fait passer
+   sous le nom, sans qu'une requête de média ait à le prévoir. */
+.fields > .field--name { flex: 1 1 100%; }
+
+/* Le premier numéro : sa largeur est fixe, et il décrit la collection comme le
+   nom — il reste donc dans la même rangée, sous le nom. */
 .fields > .field--count { flex: 0 0 132px; }
 
-/* Choix de la collection : la liste prend la place, les deux commandes gardent
-   la leur. Pas d'enroulement ici — une liste déroulante qui passe à la ligne
-   au-dessus de ses propres boutons ne se lit plus comme un seul réglage. */
+/* Choix de la collection : la liste prend la place, la commande de suppression
+   garde la sienne. Pas d'enroulement ici — une liste déroulante qui passe à la
+   ligne au-dessus de son bouton ne se lit plus comme un seul réglage. */
 .collection-picker { display: flex; align-items: flex-end; gap: 6px; }
 .collection-picker .field--grow { flex: 1; min-width: 0; }
 .collection-picker .btn { flex: none; }
@@ -436,8 +440,29 @@ body {
 /* La ligne entière se masque hors de l'extension — c'est le cas de la page web
    autonome, qui n'a qu'une collection. `display: flex` l'emporterait sur le
    `display: none` de l'attribut `hidden` : sans cette règle, le sélecteur
-   restait visible avec une seule option et deux commandes sans effet. */
+   restait visible avec une seule option et une commande sans effet. */
 .collection-picker[hidden] { display: none; }
+
+/* --- Confirmation de suppression d'une collection --- */
+
+/* Le panneau reste **dans le flux**, sous le sélecteur : il ne recouvre pas la
+   liste, et la question se lit avec ce qu'elle engage. `display: flex`
+   l'emporterait sur le `display: none` de l'attribut `hidden`. */
+.collection-confirm {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid var(--border-line);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+}
+
+.collection-confirm[hidden] { display: none; }
+
+.collection-confirm__text { margin: 0; font-size: 13px; }
+
+.collection-confirm__actions { display: flex; gap: 6px; }
 
 /* --- Choix du rangement d'un import --- */
 

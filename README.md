@@ -36,7 +36,7 @@ share.
 | Niimbot protocol (frames, D110 / M2 / M3 profiles) | done, tested |
 | Web Bluetooth transport + D110 / M2 / M3 print session | done, tested, **printed on a real D110** |
 | Brave / Chrome extension (right-click, popup, clickable links) | done, verified in Brave and in Chrome |
-| **Chrome Web Store listing** | **published** — `0.1.0` live; see [the listing notes](docs/chrome-web-store.md) before shipping an update |
+| **Chrome Web Store listing** | **published** — `0.2.1` live; the `0.3.0` update is prepared; see [the listing notes](docs/chrome-web-store.md) before shipping it |
 | Standalone web app (list, exports, layouts) | done, verified in Brave |
 | Optional URL shortening (T.LY first, then TinyURL, is.gd, v.gd, spoo.me) | done, verified in Brave |
 | Avery A4 and Letter sheets, print calibration | done, geometry checked against published dimensions |
@@ -47,7 +47,7 @@ share.
 | Native Swift core (protocol, session, CoreBluetooth) | done, tested |
 | iOS app that uses that core | to do |
 
-**1146 tests, all green** — 1042 in JavaScript and 104 in Swift — including:
+**1177 tests, all green** — 1073 in JavaScript and 104 in Swift — including:
 
 - **byte-for-byte** validation of the Niimbot frames against the documented
   records, **in both languages**: two independent implementations that
@@ -235,6 +235,49 @@ What local-only costs is not space but loss. Uninstall the extension, or clear
 your browsing data, and the collection is gone. The only backup is the Archive
 export — a file you keep yourself — and the import reads it back, skipping the
 links already present.
+
+### Naming, creating and deleting a collection
+
+**A name used to be written on every typing pause.** Each batch of keystrokes
+was a rename: a name half typed went into storage, the list and the exports
+carried it, and the duplicate check could refuse a name in the middle of being
+typed — the correction then arrived after a refusal that no longer meant
+anything. A name is an identity, not a paragraph: it is unique, it titles the
+exports, and it must not change without someone deciding so. The name is
+therefore written only on validation — **Enter** or the **Save** button beside
+the field — and that button stays inactive while nothing has changed, which is
+also how a pending entry shows itself. **Escape** abandons the entry and
+restores the recorded name. A pending name is announced under the selector,
+because the list and the exports still use the old one; switching collection
+abandons it, and says so. A name refused as already taken stays in the field,
+for correction.
+
+**"New" shares the name's row because it does the same work on the same name.**
+It creates a collection named with what is typed, instead of creating "New
+collection" and renaming it immediately. A pending name never applies to the
+displayed collection — it was typed for the new one — and it is not consumed
+either: with no name, "New collection", then "New collection 2"… A name already
+taken is refused and nothing is created; the entry stays in the field.
+
+**Deletion, the only action that destroys in bulk, asks first.** A click on
+"Delete" no longer erases: it opens a confirmation panel under the selector,
+which names the collection and counts the links it will lose. "Cancel" is the
+first button and takes the focus; Escape closes the panel, and only the panel's
+"Delete" button performs the deletion — a second, distinct gesture, not a
+second click on the button that opened the question.
+
+**The note keeps being written as you type.** It is a paragraph, carries no
+identity and takes no part in the duplicate check: there is nothing to validate.
+The name is the identity, which is why it alone gets an explicit validation.
+
+**The rules have not changed.** The private-browsing collection cannot be
+deleted, and neither can the last one — there must always be a collection to
+display. An empty name is a name: it is displayed and exported as the built-in
+label, "My links", translated at display time and never written.
+
+These gestures — typing, Enter, Escape, Save, New, switching collection, the
+delete panel — are executed by `test/web-collections.test.js`, which runs the
+real application in its extension context.
 
 ## Usage
 
@@ -617,13 +660,13 @@ What has been made consistent:
 
 | Field | Input | Outputs |
 |---|---|---|
-| URL | "Add" field, extension | all |
+| URL | "Add" field, extension, row editor (✎) | all |
 | Title | row editor (✎) | CSV, Markdown, workbook, table folder, label file names |
 | Tags | row editor (✎), commas | CSV, Markdown, workbook, table folder |
 | Note | row editor (✎) | CSV, Markdown, workbook, printed table, table folder |
 | Collection name | "Collection name" field | Markdown title, HTML sheet title, exported file names, HTML table title |
 
-Two choices deserve to be known:
+Three choices deserve to be known:
 
 **Optional columns appear only if they serve a purpose.** "Note" (in the
 Markdown and the workbook), "Short URL" (CSV) and "Original URL" (in the
@@ -636,6 +679,19 @@ addition.
 is therefore recomputed (`spreadsheetLayout`): an image anchored to the wrong
 column would simply be invisible. The tags there are written without "#", as in
 the CSV: in a spreadsheet, the hash sign hinders filtering.
+
+**The address itself is editable, and a fragment survives there.** The ✎ button
+opens four fields, the address first — without it, fixing a URL meant deleting the
+link and adding it again, losing its rank, its tags and its note along the way.
+Three consequences:
+
+- campaign parameters (`utm_`, `fbclid`, `gclid`…) are stripped as everywhere
+  else: they do not change the destination, only the length of the QR Code;
+- a **fragment** is kept, whereas capture strips it: `#t=1m30s` starts a video at
+  1 min 30, and removing it would empty the correction of its meaning;
+- changing the address **drops the short link**, which points to the old one at a
+  third party: keeping it would print a QR Code leading somewhere other than what
+  the row displays. Shortening again remains possible.
 
 Tags are not printed on labels: they classify the collection, and the labels
 carry the QR Code and the chosen text. They do appear, however, in all data exports.
@@ -930,7 +986,7 @@ exists in French and English. Before opening a pull request:
 
 ```bash
 npm install
-npm run test:all   # 1042 JavaScript tests + 104 Swift tests
+npm run test:all   # 1073 JavaScript tests + 104 Swift tests
 ```
 
 The repository conventions — a core with no DOM and no implicit network, zero
