@@ -386,7 +386,7 @@ main, et de ce que le portail ne dit pas tout seul.
 | Mention et consentement dans l'interface | **Fait** — voir section 3 ; reste à éprouver à la main dans le navigateur |
 | Captures d'écran | **Fait — les cinq emplacements sont remplis** : `01` et `02` à `04` régénérées le 3 novembre 2026 avec l'interface 0.3.0, plus la nouvelle `05-collections-fr.png` (nom validé, « Nouvelle », confirmation de suppression). Toutes en 1280 × 800. Le dossier ne contient que les captures déclarées ; les huit captures brutes du 30 septembre en ont été sorties (voir section 7) |
 | Petite image promotionnelle 440 × 280 | **Fait** — `store/promo/promo-440x280.jpg`, 440 × 280, JPEG 24 bits sans alpha, régénérée le 4 novembre 2026 |
-| Icône de la fiche | Déjà conforme : `src/extension-src/icons/icon-128.png` (128×128, avec alpha, vérifié) |
+| Icône de la fiche | **Fait** — `src/extension-src/icons/icon-128.png`, 128 × 128 avec alpha : tuile orange, étiquette QR Code sortant d'une imprimante (dessin retenu parmi huit propositions). Même source pour l'icône d'application, en bord perdu — `npm run icons` écrit les deux jeux |
 | Image « marquee » 1400 × 560 | **Fait** — `store/promo/marquee-1400x560.jpg`, 1400 × 560, JPEG 24 bits sans alpha. Facultative pour publier, mais c'est elle qui sert la mise en avant |
 | Catégorie et langue | **À choisir** : la locale par défaut du manifeste est `fr` |
 | Instructions de test pour la revue | À rédiger si l'extension exige une action particulière |
@@ -442,13 +442,18 @@ permission ne change.
 | Élément | État mesuré |
 |---|---|
 | Version à déposer | **0.3.1** (publiée : 0.3.0) |
-| Archive | `dist/url-qrcode-printer-chrome.zip` — **21 fichiers, 1407 Kio**, manifeste MV3, 4 permissions, **aucun hôte** |
-| Tests du produit | `npm test` → **1076 JavaScript, tous verts** |
+| Archive | `dist/url-qrcode-printer-chrome.zip` — **21 fichiers, 1413 Kio**, manifeste MV3, 4 permissions, **aucun hôte** |
+| Tests du produit | `npm test` → **1078 JavaScript, tous verts** |
 | Tests de la fiche | `test/publication.test.js` → **15/15**, dont le résumé identique sur toutes les surfaces et les visuels promotionnels mesurés |
 | Visuels promotionnels | `store/promo/promo-440x280.jpg` et `store/promo/marquee-1400x560.jpg` — JPEG 24 bits sans alpha, générés par `npm run capture:promo`, sans texte (donc valables pour les deux fiches) |
 | Relevé navigateur | `npm run verify:chrome` → **167/167** constats satisfaits (3 novembre 2026) |
 | Socle natif | **104 tests** au relevé du 1er octobre, non rejoués ici (cache SwiftPM inaccessible) |
 | Note de version | Lue dans `CHANGELOG.md` / `CHANGELOG.fr.md`, entrée `0.3.1` |
+
+La 0.3.1 porte aussi la **nouvelle icône** — tuile orange, étiquette QR Code
+sortant d'une imprimante — produite par `npm run icons` pour l'extension et pour
+le catalogue Xcode de l'application. C'est la même source qui sert le site
+vitrine et le favicon de l'application.
 
 Le reste de la fiche est inchangé depuis la 0.3.0 : les champs de texte, les
 justifications de permissions et les cinq captures sont ceux décrits ci-dessous.
@@ -472,8 +477,8 @@ durait qu'une seconde sur les 2,5 promises.
 | Élément | État mesuré |
 |---|---|
 | Version à déposer | **0.3.0** (publiée : 0.2.1) |
-| Archive | `dist/url-qrcode-printer-chrome.zip` — **21 fichiers, 1407 Kio**, manifeste MV3, 4 permissions, **aucun hôte** |
-| Tests du produit | `npm test` → **1076 JavaScript, tous verts** |
+| Archive | `dist/url-qrcode-printer-chrome.zip` — **21 fichiers, 1413 Kio**, manifeste MV3, 4 permissions, **aucun hôte** |
+| Tests du produit | `npm test` → **1078 JavaScript, tous verts** |
 | Socle natif | `swift test` → **104 tests** au relevé du 1er octobre. Non rejoués ici : SwiftPM n'obtient pas son cache utilisateur dans ce bac à sable (voir plus bas). Le socle natif n'a pas changé depuis. |
 | Relevé navigateur | `npm run verify:chrome` → **167/167** constats satisfaits (3 novembre 2026) |
 | Tests de la fiche | `test/publication.test.js` → **12/12** |

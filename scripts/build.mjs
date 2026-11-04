@@ -52,7 +52,7 @@ const TARGETS = {
   // L'application web reste en modules ES natifs : elle n'est pas assemblée,
   // mais ses dépendances de paquet doivent être recopiées. Voir
   // `vendorExternalModules`.
-  web: { from: join(SRC, 'web'), shared: [join(SRC, 'core')], externals: true },
+  web: { from: join(SRC, 'web'), shared: [join(SRC, 'core')], externals: true, icons: true },
 };
 
 /** Fichiers de l'application web recopiés dans l'extension. */
@@ -398,6 +398,12 @@ async function buildTarget(name) {
   await mkdir(outDir, { recursive: true });
 
   await cp(target.from, outDir, { recursive: true });
+
+  // L'application web vit hors de l'extension : ses icônes doivent voyager avec
+  // elle, sinon la marque du bandeau et le favicon manquent.
+  if (target.icons) {
+    await cp(join(SRC, 'extension-src', 'icons'), join(outDir, 'icons'), { recursive: true });
+  }
 
   for (const sharedDir of target.shared) {
     const sharedName = sharedDir.split('/').pop();

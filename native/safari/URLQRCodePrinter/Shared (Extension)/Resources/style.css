@@ -138,20 +138,10 @@ body {
   flex: none;
   width: 30px;
   height: 30px;
-  /* La marque porte la couleur de la marque, pas l'encre du texte : c'est le
-     seul endroit de la page où l'accent désigne une **identité** et non une
-     action, et `craft/color.md` ne rationne pas ce cas — il plafonne les usages
-     de l'accent dans l'interface, pas la signature du produit.
-     Le titre, lui, reste à l'encre.
-     La couleur suit le thème toute seule : `--accent` vaut orange brûlé en
-     clair, orange clair en sombre. Une inversion photographique aurait
-     transformé la feuille en aplat noir ; ici le « papier » garde la couleur du
-     fond et seuls le trait et le QR Code changent. */
-  color: var(--accent);
+  /* La tuile arrondie fait partie du dessin : l'icône porte déjà son fond et
+     son arrondi, et l'image reste la même dans les deux thèmes. */
+  border-radius: 7px;
 }
-
-.marque__papier { fill: var(--bg); }
-.marque__qr { fill: currentColor; }
 
 .topbar__title {
   margin: 0;

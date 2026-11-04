@@ -26,7 +26,7 @@ invented here either.
 ## [0.3.1] - 2026-11-04
 
 This update does not change what the product does: it aligns what the product
-says with what it does. The summary shipped with the package — the one the
+says with what it does, and gives it a single mark. The summary shipped with the package — the one the
 browser shows and the store listing reuses — no longer names a printer brand,
 and it now says the same thing as the listing summary: no account, no server run
 by the publisher. It no longer promises that "everything stays on your device",
@@ -46,6 +46,12 @@ chosen service, and the listing already says so.
   favour of what can be verified: no account, no server run by the publisher.
   Shortening, which is optional, sends the address to the chosen service, and
   the listing says so.
+
+- **A new icon**, chosen from eight proposals: a QR Code label coming out of a
+  printer, on a tile in the brand orange. One source produces it for every use —
+  the extension, the Safari and macOS/iOS app (full bleed, so the system applies
+  its own mask), the showcase site and the app favicon. The app header now
+  carries that icon instead of a separate drawing to keep in agreement.
 
 ### What does not change
 

@@ -6,7 +6,7 @@ vérifiée le 21 septembre 2026 — pas d'une estimation.
 
 | Image | Dimensions | Format | Obligatoire ? | État |
 |---|---|---|---|---|
-| Icône de l'extension | 128 × 128 | PNG, avec canal alpha | **Oui**, dans le `.zip` | ✅ `src/extension-src/icons/icon-128.png` |
+| Icône de l'extension | 128 × 128 | PNG, avec canal alpha | **Oui**, dans le `.zip` | ✅ `src/extension-src/icons/icon-128.png` — tuile orange, étiquette QR Code et imprimante |
 | Captures d'écran | 1280 × 800 **ou** 640 × 400 | PNG ou JPEG | **Oui**, au moins 1, jusqu'à 5 | ✅ `screenshots/` — 01 à 04 |
 | Petite image promotionnelle | 440 × 280 | PNG ou JPEG | **Oui** | ✅ [`promo/promo-440x280.jpg`](promo/promo-440x280.jpg) |
 | Image « marquee » | 1400 × 560 | PNG ou JPEG | Non | ✅ [`promo/marquee-1400x560.jpg`](promo/marquee-1400x560.jpg) |
@@ -29,29 +29,26 @@ reléguée derrière les autres dans les résultats du magasin.
 ## L'icône : ce qui est vérifié
 
 `icon-128.png` fait bien 128 × 128 et **possède un canal alpha** — vérifié. La
-conséquence compte : d'après la documentation, une icône *sans* alpha est placée
-dans un cadre à coins arrondis, ce qui n'est pas le cas ici.
+transparence ne sert qu'autour de la **tuile arrondie** : le dessin occupe tout le
+carré, moins les quatre coins.
 
-Une recommandation qu'elle ne suit peut-être pas : le magasin suggère que le
-dessin occupe **96 × 96** au centre, les 16 pixels de chaque côté restant
-transparents. C'est un conseil d'harmonie visuelle entre extensions, pas une
-exigence — à vérifier à l'œil si vous voulez soigner ce point.
+Le dessin est celui retenu après les huit propositions : une étiquette crème avec
+son QR Code sortant d'une imprimante, sur une tuile de l'orange de la marque. Il
+est généré par [`scripts/make-icons.mjs`](../scripts/make-icons.mjs) à toutes les
+tailles (16 à 1024 px), à partir de formes — chaque taille est donc
+anti-crénelée, et le QR Code se simplifie quand ses modules deviendraient plus fins
+qu'un pixel : 21 modules au-dessus de 128 px, 7 au-dessus de 40, 3 en dessous.
 
-### Changer de dessin
+**La même source sert l'icône d'application**, en bord perdu : Safari, macOS et
+iOS appliquent leur propre masque, et une tuile déjà arrondie y laisserait des
+coins transparents. `npm run icons` écrit les deux jeux — `icon-*.png` pour
+l'extension et les onze fichiers de `AppIcon.appiconset` pour l'application.
 
-```bash
-npm run icons:propositions
-```
-
-Le script écrit **huit propositions** dans `dist/brouillons-icones/` — huit PNG
-128 × 128 avec canal alpha, leurs rendus 512 px, et une planche qui les montre à
-256, à 128, à 32 px et sur fond sombre (le gris clair de la fiche n'est pas le
-seul fond où l'icône vit). Les dessins sont des **formes SVG** rendues par Chrome
-puis réduites à 128 px : nets à toute taille, et le fond reste transparent.
-
-Le dessin retenu ne s'expédie pas tel quel : il est reporté dans
-[`scripts/make-icons.mjs`](../scripts/make-icons.mjs), qui reste la source des
-icônes du paquet et les produit à toutes les tailles, sans dépendance graphique.
+Le magasin suggère que le dessin occupe **96 × 96** au centre, les 16 pixels de
+chaque côté restant transparents. C'est un conseil d'harmonie visuelle entre
+extensions, pas une exigence : la tuile occupe ici tout le carré, comme la
+plupart des icônes récentes, pour rester visible dans une barre d'outils claire
+comme sombre.
 
 ## Les images promotionnelles : comment elles se conçoivent
 

@@ -436,31 +436,28 @@ test("les puces de tag sont plates et sans « # »", () => {
 // La marque de l'en-tête
 // ---------------------------------------------------------------------------
 
-test("la marque de l'en-tête suit le thème au lieu d'être figée en noir", () => {
-  const svg = APP_HTML.match(/<svg class="marque"[\s\S]*?<\/svg>/);
-  assert.ok(svg, "aucune marque dans l'en-tête");
+test("la marque de l'en-tête est l'icône du produit", () => {
+  // La marque n'est plus un tracé SVG inline : c'est le PNG de l'icône, le même
+  // que l'extension, la fiche du magasin et le site. Un SVG teint par
+  // `currentColor` suivait le thème ; le PNG, lui, porte sa tuile orange et son
+  // papier crème — c'est ce qui le rend identique partout, et c'est le prix
+  // assumé de cette unité. Ce test vérifie donc que la page **référence bien
+  // l'icône**, et non qu'elle recolore un tracé.
+  const marque = APP_HTML.match(/<img class="marque"[^>]*>/);
+  assert.ok(marque, "aucune marque dans l'en-tête");
 
   // Décorative : le <h1> qui suit porte déjà le nom. Un texte de remplacement
   // ferait annoncer « URLQRCodePrinter » deux fois.
-  assert.match(svg[0], /aria-hidden="true"/, 'la marque est exposée aux lecteurs d\'écran');
+  assert.match(marque[0], /aria-hidden="true"/, 'la marque est exposée aux lecteurs d\'écran');
+  assert.match(marque[0], /src="icons\/icon-32\.png"/, "la marque n'est pas l'icône du produit");
 
-  // Aucune couleur en dur. Un noir figé rendrait la marque invisible en thème
-  // sombre, et une inversion photographique transformerait la feuille en aplat
-  // noir au lieu de lui donner la couleur du fond.
-  assert.doesNotMatch(svg[0], /#[0-9a-fA-F]{3,6}/, 'couleur figée dans la marque');
-  assert.match(svg[0], /stroke="currentColor"/, "le tracé n'hérite pas de la couleur");
-
-  const marque = APP_CODE_BEFORE_PRINT.match(/\.marque\s*\{([\s\S]*?)\}/);
-  assert.ok(marque, 'aucune règle .marque');
-  // L'accent, et non l'encre : la marque porte la couleur du produit. Ce qui
-  // compte pour ce test est qu'elle vienne d'un **jeton** — une couleur
-  // écrite en dur ne suivrait pas le thème.
-  assert.match(marque[1], /color:\s*var\(--accent\)/, "la marque ne prend pas l'accent");
-  assert.match(
-    APP_CODE_BEFORE_PRINT,
-    /\.marque__papier\s*\{\s*fill:\s*var\(--bg\)/,
-    'le papier ne prend pas la couleur du fond',
-  );
+  // La feuille de style n'a plus à colorer ni à dessiner la marque : elle en
+  // fixe la taille, et l'arrondi suit celui du dessin (28 unités sur 128).
+  const regle = APP_CODE_BEFORE_PRINT.match(/\.marque\s*\{([\s\S]*?)\}/);
+  assert.ok(regle, 'aucune règle .marque');
+  assert.match(regle[1], /width:\s*30px/, 'la marque ne tient pas sa place');
+  assert.match(regle[1], /height:\s*30px/, 'la marque ne tient pas sa place');
+  assert.match(regle[1], /border-radius:/, "l'arrondi de la tuile n'est pas posé");
 
   // La marque précède le titre dans l'ordre du document : c'est ce qui la place
   // à gauche, et un lecteur d'écran lit le nom juste après le dessin.

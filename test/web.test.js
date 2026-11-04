@@ -134,10 +134,18 @@ test('les ressources locales référencées par le HTML existent', () => {
     ...[...html.matchAll(/<link[^>]*\bhref=["']([^"']+)["']/gi)].map((m) => m[1]),
   ];
   assert.ok(sources.length >= 2);
+  // Les icônes ne vivent pas dans `src/web` : elles viennent de
+  // `src/extension-src/icons`, la source unique de la marque, que la
+  // construction recopie dans `dist/web/icons`. Un contrôle qui ne regarderait
+  // que `src/web` signalerait donc un faux manque.
+  const racines = [WEB, join(ROOT, 'src', 'extension-src')];
   for (const source of sources) {
     // On ignore les URL absolues (polices, CDN éventuels).
     if (/^https?:/i.test(source)) continue;
-    assert.ok(existsSync(join(WEB, source)), `ressource manquante : ${source}`);
+    assert.ok(
+      racines.some((racine) => existsSync(join(racine, source))),
+      `ressource manquante : ${source}`,
+    );
   }
 });
 

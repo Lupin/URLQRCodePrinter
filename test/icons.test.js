@@ -15,6 +15,8 @@ import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import {
+  APP_ICON_DIR,
+  APP_ICON_FILES,
   buildMatrix,
   renderIcon,
   writeIcons,
@@ -136,16 +138,26 @@ test('renderIcon produit un tampon RVBA de la bonne taille', () => {
   assert.equal(image.data.length, 64 * 64 * 4);
 });
 
-test('le fond de l\'icône est transparent', () => {
-  // Inversion assumée : le fond était opaque et blanc. Une icône de barre
-  // d'outils doit laisser voir la barre — un carré blanc opaque s'y lit comme
-  // un autocollant, et MV3 ne permet plus de fournir une variante par thème
-  // (`theme_icons` a disparu avec MV2). C'est donc le PNG lui-même qui doit
-  // fonctionner sur les deux fonds.
+test('les coins de la tuile sont transparents', () => {
+  // L'icône est une tuile arrondie : le dessin occupe le carré, mais les quatre
+  // coins laissent voir la barre d'outils. Sans cet alpha, le magasin et le
+  // navigateur afficheraient un carré plein aux angles vifs — et MV3 ne permet
+  // plus de fournir une variante par thème (`theme_icons` a disparu avec MV2).
   const image = renderIcon(64);
-  // Le coin supérieur gauche est dans la marge de silence.
+  // Le coin supérieur gauche est hors de l'arrondi.
   assert.equal(image.data[3], 0, 'alpha du fond');
   assert.equal(image.data[0], 0);
+});
+
+test('l\'icône d\'application est en bord perdu, sans transparence', () => {
+  // macOS et iOS découpent eux-mêmes leur squircle : une tuile déjà arrondie y
+  // laisserait des coins vides, et le système n\'aurait plus rien à masquer.
+  const image = renderIcon(64, { plein: true });
+  for (let i = 3; i < image.data.length; i += 4) {
+    assert.equal(image.data[i], 255, `pixel transparent à l\'indice ${i / 4}`);
+  }
+  // Le coin est bien de la couleur de la tuile, pas du papier.
+  assert.deepEqual([...image.data.subarray(0, 3)], INK);
 });
 
 test('l\'encre reste lisible sur une barre d\'outils claire et sombre', () => {
@@ -261,6 +273,21 @@ test('chaque fichier d\'icône est un PNG aux bonnes dimensions', () => {
     const decoded = decodePng(readFileSync(file));
     assert.equal(decoded.width, size, `largeur incorrecte pour icon-${size}.png`);
     assert.equal(decoded.height, size, `hauteur incorrecte pour icon-${size}.png`);
+  }
+});
+
+test('le catalogue d\'icônes de l\'application est d\'accord avec le générateur', () => {
+  // Ces fichiers ne sont pas dans le paquet de l'extension : rien ne les
+  // régénère à la construction. Sans ce contrôle, le projet Xcode pourrait
+  // garder l'ancienne marque et personne ne le verrait avant une compilation
+  // sur une machine Apple.
+  for (const [fichier, taille] of Object.entries(APP_ICON_FILES)) {
+    const chemin = join(APP_ICON_DIR, fichier);
+    assert.ok(existsSync(chemin), `icône d'application absente : ${fichier}`);
+    const decoded = decodePng(readFileSync(chemin));
+    assert.equal(decoded.width, taille, `${fichier} : largeur`);
+    assert.equal(decoded.height, taille, `${fichier} : hauteur`);
+    assert.equal(decoded.data[3], 255, `${fichier} : coin transparent`);
   }
 });
 

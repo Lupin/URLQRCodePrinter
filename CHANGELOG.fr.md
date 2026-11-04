@@ -26,7 +26,7 @@ l'époque, et elle n'est pas inventée ici.
 ## [0.3.1] - 2026-11-04
 
 Cette mise à jour ne change pas ce que fait le produit : elle aligne ce qu'il
-dit sur ce qu'il fait. Le résumé qui accompagne le paquet — celui que le
+dit sur ce qu'il fait, et lui donne une marque unique. Le résumé qui accompagne le paquet — celui que le
 navigateur affiche et que la fiche du magasin reprend — ne nomme plus de marque
 d'imprimante, et il dit la même chose que le résumé de la fiche : aucun compte,
 aucun serveur de l'éditeur. Il ne promet plus que « tout reste sur l'appareil »,
@@ -47,6 +47,13 @@ service choisi, et la fiche le dit déjà.
   profit de ce qui se vérifie : aucun compte, aucun serveur de l'éditeur. Le
   raccourcissement, facultatif, envoie l'adresse au service choisi, et la fiche
   le dit.
+
+- **Nouvelle icône**, choisie parmi huit propositions : une étiquette QR Code
+  sortant d'une imprimante, sur une tuile de l'orange de la marque. Une seule
+  source la produit pour tous les usages — extension, application Safari et
+  macOS/iOS (en bord perdu, pour que le système applique son propre masque),
+  site vitrine et favicon de l'application. L'en-tête de l'application porte
+  désormais cette icône, et non plus un tracé distinct à tenir d'accord.
 
 ### Ce qui ne change pas
 
