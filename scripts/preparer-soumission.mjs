@@ -38,16 +38,17 @@ const VISUELS = [
   // confirmation de suppression. Le magasin accepte une série **par langue** :
   // chaque série est déposée dans son propre champ de la console.
   { champ: 'Captures d’écran — FR (5 sur 5 emplacements)', chemins: [
-    'store/screenshots/01-fenetre-popup-fr.jpg',
+    'store/screenshots/01-fenetre-popup-fr.png',
     'store/screenshots/02-application-fr.png',
     'store/screenshots/03-impression-niimbot-fr.png',
     'store/screenshots/04-mention-confidentialite-fr.png',
     'store/screenshots/05-collections-fr.png',
   ] },
-  // `01` n'a pas de version anglaise : c'est une capture d'écran manuelle de la
-  // fenêtre du navigateur, et la reconstituer serait une maquette. La série
-  // anglaise part donc avec quatre images, et un emplacement libre.
-  { champ: 'Captures d’écran — EN (4 sur 5 emplacements)', chemins: [
+  // La série anglaise est complète elle aussi : la fenêtre est produite par
+  // `scripts/capture-popup-shots.mjs`, y compris en anglais — la langue y est
+  // vérifiée avant le cliché.
+  { champ: 'Captures d’écran — EN (5 sur 5 emplacements)', chemins: [
+    'store/screenshots/01-fenetre-popup-en.png',
     'store/screenshots/02-application-en.png',
     'store/screenshots/03-impression-niimbot-en.png',
     'store/screenshots/04-mention-confidentialite-en.png',

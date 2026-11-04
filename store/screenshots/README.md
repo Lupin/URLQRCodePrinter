@@ -13,32 +13,52 @@ magasin en accepte cinq au maximum **par langue**, et la documentation
 recommande de les remplir :
 
 ```
-01-fenetre-popup-fr.jpg              la fenêtre, ouverte sur une page
+01-fenetre-popup-fr.png              la fenêtre, avec les liens collectés
 02-application-fr.png                l'application : collection, mise en forme
 03-impression-niimbot-fr.png         l'onglet Niimbot : réglages, commandes, étiquette
 04-mention-confidentialite-fr.png    la mention, en attente d'accord
 05-collections-fr.png                la gestion des collections : nom validé,
                                      « Nouvelle », et la confirmation de suppression
 
-02-application-en.png                les mêmes, en anglais — sauf `01`
+01-fenetre-popup-en.png              les mêmes, en anglais
+02-application-en.png
 03-impression-niimbot-en.png
 04-mention-confidentialite-en.png
 05-collections-en.png
 ```
 
-**Deux séries, une par langue.** Le magasin accepte des captures par langue :
-la fiche française reçoit la série `-fr`, la fiche anglaise la série `-en`. Sans
-elle, le magasin sert les captures françaises aux visiteurs anglophones. Les
-quatre de la série anglaise sont produites **par le même script, dans la même
-passe** que la française : la langue est écrite dans `chrome.storage.local`
-(clé `locale`, ce qu'écrit le sélecteur de langue de l'application), la page est
-rechargée, et le script **vérifie ce qui est rendu** — `lang`, puis les trois
-premiers textes de l'interface — avant de cadrer. Une traduction manquante ou
-un repli sur le français se verrait donc dans la sortie du script.
+**Deux séries, une par langue — cinq captures chacune.** Le magasin accepte des
+captures par langue : la fiche française reçoit la série `-fr`, la fiche
+anglaise la série `-en`. Sans elle, le magasin sert les captures françaises aux
+visiteurs anglophones.
 
-`01` n'a pas de version anglaise : c'est une capture d'écran manuelle de la
-fenêtre du navigateur, et la reconstituer en anglais serait une maquette. La
-série anglaise part donc avec quatre images, et un emplacement libre.
+Les quatre captures d'application (`02` à `05`) sont produites **par le même
+script, dans la même passe**, pour les deux langues : la langue est écrite dans
+`chrome.storage.local` (clé `locale`, ce qu'écrit le sélecteur de langue de
+l'application), la page est rechargée, et le script **vérifie ce qui est
+rendu** — `lang`, puis les trois premiers textes de l'interface — avant de
+cadrer. Une traduction manquante ou un repli sur le français se verrait dans la
+sortie du script.
+
+`01` est produite par `scripts/capture-popup-shots.mjs`, un script à part : la
+fenêtre de la barre d'outils ne s'ouvre qu'à 380 × 560 px, et un cliché à cette
+taille ne pèse que le tiers d'une image de 1280. Le script la charge donc dans
+un onglet, cadre sur ses 380 × 560 px réels, agrandit ce cliché ×1,5, le centre
+sur le fond de la page — et cliche **cette page**, sans aucune retouche de
+fichier. Deux langues, deux chargements : la langue est réécrite juste avant le
+chargement qui compte, et la sortie du script le confirme (`langue : en`).
+
+**Ce que `01` ne montre pas, et pourquoi.** Elle est chargée dans un onglet, et
+non dans la vraie fenêtre de la barre d'outils : aucun script ne peut ouvrir
+celle-ci ni la cadrer en 1280 × 800. La capture montre donc le document réel de
+la fenêtre, à sa largeur réelle, sans page de navigateur derrière — c'est ce que
+le magasin demande (l'expérience réelle, et non une maquette), à ceci près que la
+fenêtre n'est pas posée sur une page.
+
+Une ancienne `01-fenetre-popup-fr.jpg` (1280 × 800, capture d'écran manuelle du
+21 septembre) est retirée du dossier : elle montrait une interface antérieure —
+un bouton « Tout effacer », et un autre qui n'existe plus — que la version
+déposée n'a plus.
 
 `02`, `03`, `04` et `05` sont produites par `scripts/capture-store-shots.mjs` sur
 `contenu-exemple.json` : elles montrent donc la collection d'exemple, avec ses
@@ -134,16 +154,18 @@ cherche à montrer, capture par capture, est dans [`../campagne.md`](../campagne
 
 ```bash
 npm run build
-node scripts/capture-store-shots.mjs
+node scripts/capture-store-shots.mjs   # 02 à 05, dans les deux langues
+node scripts/capture-popup-shots.mjs   # 01, dans les deux langues
 ```
 
-Le script charge `dist/extension` dans Chrome par le protocole de débogage
-(`Extensions.loadUnpacked` : `--load-extension` est ignoré par les Chrome
-récents, qui démarrent alors sans rien dire et sans l'extension), pose les
-dimensions par `Emulation.setDeviceMetricsOverride` — la capture fait donc
-exactement 1280 × 800, et non la taille de la fenêtre —, écrit le contenu
-d'exemple **en passant par l'importateur du produit**, puis cadre chaque image
-avant de la prendre.
+Les deux scripts chargent `dist/extension` dans Chrome par le protocole de
+débogage (`Extensions.loadUnpacked` : `--load-extension` est ignoré par les
+Chrome récents, qui démarrent alors sans rien dire et sans l'extension), posent
+les dimensions par `Emulation.setDeviceMetricsOverride` — la capture fait donc
+exactement 1280 × 800, et non la taille de la fenêtre —, écrivent le contenu
+d'exemple **en passant par l'importateur du produit**, puis cadrent chaque image
+avant de la prendre. Les deux produisent la série française puis la série
+anglaise, et relisent ce qui est rendu (`lang`, libellés) avant de cadrer.
 
 Pour essayer un cadrage **sans écraser la fiche** :
 
@@ -157,41 +179,50 @@ sa note, ses tags, et le panneau de mise en forme. `03` descend jusqu'à
 l'étiquette composée à la taille réelle, qui est ce que l'onglet produit. Une
 seule image ne peut pas montrer les deux : la page entière ne tient pas.
 
-## Ce que le script ne peut pas produire
+## Ce que les scripts ne peuvent pas produire
 
-Deux captures de la fiche demandent un geste qui n'est pas du contenu web :
+Une capture de la fiche demande un geste qui n'est pas du contenu web : le
+**menu contextuel**, sur « Ajouter cette page à URLQRCodePrinter ». Le menu est
+natif, il n'appartient pas à la page, et aucun script ne peut l'ouvrir ni le
+photographier. Il se capture à la main, page ouverte derrière et clic droit
+au-dessus — puis ramené à 1280 × 800.
 
-- **`01`, la fenêtre de l'extension ouverte par-dessus une page.** La fenêtre de
-  la barre d'outils relève de l'interface du navigateur : aucun script ne l'ouvre,
-  et la reconstituer serait une maquette — ce que la documentation du magasin
-  refuse. Il faut ouvrir la page voulue, cliquer l'icône, puis capturer l'écran
-  (menu ⌘⇧4 sur macOS) et ramener l'image à 1280 × 800, voir « Un piège à
-  connaître ». Sur cette machine, `screencapture` ne rend que le fond d'écran :
-  l'autorisation « Enregistrement de l'écran » n'est pas accordée au terminal, et
-  le contrôle l'a montré — une fenêtre peinte en bleu vif ne laissait aucun pixel
-  bleu dans l'image.
-- **`05`, le menu contextuel.** Le menu est natif : il se capture à la main, de
-  la même façon, page ouverte derrière et clic droit au-dessus.
+Ce n'est pas un manque pour la fiche actuelle : les cinq emplacements sont
+remplis, et la cinquième capture montre la gestion des collections plutôt que le
+menu. Garder cette possibilité en réserve vaut pour une prochaine version.
+
+La **fenêtre de l'extension**, elle, est produite par script depuis la 0.3.0 :
+`scripts/capture-popup-shots.mjs` la charge dans un onglet, cadre sur ses
+380 × 560 px réels, agrandit ce cliché ×1,5 et le centre sur le fond. La vraie
+fenêtre de la barre d'outils, elle, ne s'ouvre pas depuis un script — mais c'est
+le même document, à la même largeur, et le magasin demande l'expérience réelle :
+ce que la capture montre est ce que la fenêtre affiche.
 
 ## Comment elles sont nommées
 
 Le préfixe donne l'ordre d'affichage, le suffixe la langue :
 
 ```
-01-fenetre-popup-fr.jpg              la fenêtre, ouverte sur une page
+01-fenetre-popup-fr.png              la fenêtre de l'extension, avec ses liens
 02-application-fr.png                l'application : collection, mise en forme, aperçu
 03-impression-niimbot-fr.png         l'onglet d'impression sur l'imprimante
 04-mention-confidentialite-fr.png    la mention, en attente d'accord
 05-collections-fr.png                la gestion des collections et la confirmation
+
+01-fenetre-popup-en.png              les mêmes, en anglais
+02-application-en.png
+03-impression-niimbot-en.png
+04-mention-confidentialite-en.png
+05-collections-en.png
 ```
 
-Les cinq sont en **1280 × 800**. Le préfixe est l'ordre d'affichage sur la fiche :
+Les dix sont en **1280 × 800**. Le préfixe est l'ordre d'affichage sur la fiche :
 `05` vient donc en dernier, et non à une place libre au milieu.
 
-`02` à `05` sont produites par `scripts/capture-store-shots.mjs`, qui les prend
-depuis l'extension réelle chargée dans Chrome : elles sont donc reproductibles.
-`01` vient d'une capture d'écran manuelle, faute de pouvoir ouvrir la fenêtre de
-l'extension depuis le contenu web.
+`02` à `05` sont produites par `scripts/capture-store-shots.mjs` ; `01` par
+`scripts/capture-popup-shots.mjs`. Les deux prennent l'extension réelle chargée
+dans Chrome : les captures sont donc reproductibles, et la langue de chaque
+série y est vérifiée avant de cadrer.
 
 Le suffixe est la langue que la page affiche : `-fr` ou `-en`, dans la même
 passe de `scripts/capture-store-shots.mjs`. Les deux séries sont déjà produites ;
