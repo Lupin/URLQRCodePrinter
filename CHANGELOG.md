@@ -23,6 +23,34 @@ invented here either.
 
 ## [Unreleased]
 
+## [0.3.1] - 2026-11-04
+
+This update does not change what the product does: it aligns what the product
+says with what it does. The summary shipped with the package — the one the
+browser shows and the store listing reuses — no longer names a printer brand,
+and it now says the same thing as the listing summary: no account, no server run
+by the publisher. It no longer promises that "everything stays on your device",
+which was false as soon as a link is shortened: the address then goes to the
+chosen service, and the listing already says so.
+
+### Changed
+
+- **The product summary is the same everywhere**: on the store listing, in the
+  package description, in the manifest description, in the meta description of
+  both site pages and at the top of both READMEs. One sentence, with no printer
+  brand, within the store's 132-character limit.
+- The manifest description no longer names a printer model. Compatibility is
+  described in the detailed listing and in the guide, where it is true; a
+  product description that names a model ages with the first hardware revision.
+- **The absolute promise is gone** — "everything stays on your device" — in
+  favour of what can be verified: no account, no server run by the publisher.
+  Shortening, which is optional, sends the address to the chosen service, and
+  the listing says so.
+
+### What does not change
+
+No feature, no setting, no permission. Nothing new is read, stored or sent.
+
 ## [0.3.0] - 2026-11-03
 
 This update makes a link's address correctable from the list, streamlines

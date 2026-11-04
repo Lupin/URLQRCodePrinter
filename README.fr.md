@@ -40,7 +40,7 @@ retrouve et se partage facilement.
 | Protocole Niimbot (trames, profils D110 / M2 / M3) | fait, testé |
 | Transport Web Bluetooth + session d'impression D110 / M2 / M3 | fait, testé, **impression réelle sur une D110** |
 | Extension Brave / Chrome (clic droit, popup, liens cliquables) | fait, vérifié dans Brave et dans Chrome |
-| **Fiche Chrome Web Store** | **publiée** — `0.2.1` en ligne ; la mise à jour `0.3.0` est préparée ; voir [les notes de fiche](docs/chrome-web-store.md) avant de la déposer |
+| **Fiche Chrome Web Store** | **publiée** — `0.3.0` en ligne ; la mise à jour `0.3.1` (résumé aligné, sans marque d'imprimante) est préparée ; voir [les notes de fiche](docs/chrome-web-store.md) avant de la déposer |
 | Application web autonome (liste, exports, mises en page) | fait, vérifié dans Brave |
 | Raccourcissement d'URL en option (T.LY d'abord, puis TinyURL, is.gd, v.gd, spoo.me) | fait, vérifié dans Brave |
 | Planches Avery A4 et Letter, calibrage d'impression | fait, géométrie confrontée aux cotes publiées |

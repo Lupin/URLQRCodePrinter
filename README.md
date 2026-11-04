@@ -38,7 +38,7 @@ share.
 | Niimbot protocol (frames, D110 / M2 / M3 profiles) | done, tested |
 | Web Bluetooth transport + D110 / M2 / M3 print session | done, tested, **printed on a real D110** |
 | Brave / Chrome extension (right-click, popup, clickable links) | done, verified in Brave and in Chrome |
-| **Chrome Web Store listing** | **published** — `0.2.1` live; the `0.3.0` update is prepared; see [the listing notes](docs/chrome-web-store.md) before shipping it |
+| **Chrome Web Store listing** | **published** — `0.3.0` live; the `0.3.1` update (summary aligned, no printer brand) is prepared; see [the listing notes](docs/chrome-web-store.md) before shipping it |
 | Standalone web app (list, exports, layouts) | done, verified in Brave |
 | Optional URL shortening (T.LY first, then TinyURL, is.gd, v.gd, spoo.me) | done, verified in Brave |
 | Avery A4 and Letter sheets, print calibration | done, geometry checked against published dimensions |

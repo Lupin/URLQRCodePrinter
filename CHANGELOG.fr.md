@@ -23,6 +23,36 @@ l'époque, et elle n'est pas inventée ici.
 
 ## [Non publié]
 
+## [0.3.1] - 2026-11-04
+
+Cette mise à jour ne change pas ce que fait le produit : elle aligne ce qu'il
+dit sur ce qu'il fait. Le résumé qui accompagne le paquet — celui que le
+navigateur affiche et que la fiche du magasin reprend — ne nomme plus de marque
+d'imprimante, et il dit la même chose que le résumé de la fiche : aucun compte,
+aucun serveur de l'éditeur. Il ne promet plus que « tout reste sur l'appareil »,
+ce qui était faux dès qu'un lien est raccourci : l'adresse part alors chez le
+service choisi, et la fiche le dit déjà.
+
+### Modifié
+
+- **Le résumé du produit est le même partout** : sur la fiche du magasin, dans la
+  description du paquet, dans celle du manifeste, dans la meta description des
+  deux pages du site et à l'ouverture des deux README. Une seule phrase, sans
+  marque d'imprimante, et sous la limite de 132 caractères du magasin.
+- La description du manifeste ne cite plus de modèle d'imprimante. La
+  compatibilité se lit dans la fiche détaillée et dans le guide, où elle est
+  vraie ; une description de produit qui nomme un modèle vieillit au premier
+  changement de gamme.
+- **La promesse absolue disparaît** — « tout reste sur votre appareil » — au
+  profit de ce qui se vérifie : aucun compte, aucun serveur de l'éditeur. Le
+  raccourcissement, facultatif, envoie l'adresse au service choisi, et la fiche
+  le dit.
+
+### Ce qui ne change pas
+
+Aucune fonctionnalité, aucun réglage, aucune permission. Rien de nouveau n'est
+lu, stocké ni envoyé.
+
 ## [0.3.0] - 2026-11-03
 
 Cette mise à jour rend l'adresse d'un lien corrigeable depuis la liste, fluidifie

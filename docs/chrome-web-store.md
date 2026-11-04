@@ -390,18 +390,17 @@ main, et de ce que le portail ne dit pas tout seul.
 | Image « marquee » 1400 × 560 | Facultative — nécessaire seulement pour être mis en avant |
 | Catégorie et langue | **À choisir** : la locale par défaut du manifeste est `fr` |
 | Instructions de test pour la revue | À rédiger si l'extension exige une action particulière |
-| Version publiée | Enregistrée dans `store/listing.json` (`item.publishedVersion`, aujourd'hui `0.2.1`). Le dépôt doit la dépasser — voir section 7 |
+| Version publiée | Enregistrée dans `store/listing.json` (`item.publishedVersion`, aujourd'hui `0.3.0`). Le dépôt doit la **dépasser strictement** — voir section 7 |
 
 Les dimensions des visuels sont récapitulées dans [`store/README.md`](../store/README.md),
 avec la source officielle.
 
-Un point que ce tableau ne peut pas porter : **la fiche publiée porte encore
-l'ancienne formulation**, le sigle seul là où le produit écrit « QR Code » depuis
-le commit `5822115`. Son message l'assume : les deux ne se rejoindront qu'à la
-prochaine soumission — celle de la 0.3.0, dont les textes de
-[`store/listing.json`](../store/listing.json) portent déjà la bonne formulation.
-C'est à recoller en même temps que le paquet, sinon la fiche et la fenêtre se
-contredisent — exactement ce qu'un examinateur cherche.
+Un point que ce tableau ne peut pas porter : les champs de la fiche publiée ne
+sont **pas** mis à jour par un dépôt de paquet. Les textes de
+[`store/listing.json`](../store/listing.json) portent la bonne formulation, y
+compris le résumé sans marque d'imprimante ; il faut les recoller en même temps
+que le paquet, sinon la fiche et le paquet se contredisent — exactement ce qu'un
+examinateur cherche.
 
 ---
 
@@ -417,7 +416,43 @@ l'envoi, et son message ne nomme aucun fichier. D'où l'ordre ci-dessous.
 | Console | <https://chrome.google.com/webstore/devconsole> |
 | Fiche publique | <https://chromewebstore.google.com/detail/urlqrcodeprinter/fmfbpjekpbopeijaobdffbhhnfgjjbmi> |
 
-### État de la soumission 0.3.0 — 3 novembre 2026
+### État de la soumission 0.3.1 — 4 novembre 2026
+
+**Le refus qui a motivé cette version**, mot pour mot :
+
+> Numéro de version incorrect dans le fichier manifeste : 0.3.0. Veuillez vous
+> assurer que la version utilisée dans le fichier manifest.json du package
+> récemment importé est postérieure à celle du package publié : 0.3.0.
+
+Autrement dit : la **0.3.0 est déjà en ligne**, et le magasin refuse tout dépôt de
+même version. C'est exactement le refus décrit plus bas, et il ne nomme aucun
+fichier : la réponse est de **dépasser** la version publiée, pas de reconstruire
+l'archive. La 0.3.1 est donc la version déposée, et elle porte la seule chose qui
+change depuis la 0.3.0 publiée : le résumé du produit.
+
+**Ce que la 0.3.1 change.** Le résumé — celui du paquet, que le navigateur
+affiche et que la fiche reprend — ne nomme plus de marque d'imprimante, et il dit
+la même chose que le résumé de la fiche : *aucun compte, aucun serveur de
+l'éditeur*. La promesse absolue « tout reste sur votre appareil » disparaît, car
+elle était fausse dès qu'un lien est raccourci. La même phrase est désormais
+partout : fiche, paquet, manifeste, meta description des deux pages du site, et
+ouverture des deux README. Aucune fonctionnalité, aucun réglage, aucune
+permission ne change.
+
+| Élément | État mesuré |
+|---|---|
+| Version à déposer | **0.3.1** (publiée : 0.3.0) |
+| Archive | `dist/url-qrcode-printer-chrome.zip` — **21 fichiers, 1407 Kio**, manifeste MV3, 4 permissions, **aucun hôte** |
+| Tests du produit | `npm test` → **1075 JavaScript, tous verts** |
+| Tests de la fiche | `test/publication.test.js` → **14/14**, dont le résumé identique sur toutes les surfaces |
+| Relevé navigateur | `npm run verify:chrome` → **167/167** constats satisfaits (3 novembre 2026) |
+| Socle natif | **104 tests** au relevé du 1er octobre, non rejoués ici (cache SwiftPM inaccessible) |
+| Note de version | Lue dans `CHANGELOG.md` / `CHANGELOG.fr.md`, entrée `0.3.1` |
+
+Le reste de la fiche est inchangé depuis la 0.3.0 : les champs de texte, les
+justifications de permissions et les cinq captures sont ceux décrits ci-dessous.
+
+### État de la soumission 0.3.0 — 3 novembre 2026 · **publiée**
 
 Version de fonctionnalité : l'adresse d'un lien s'édite dans la liste, avec le
 bouton ✎ de sa ligne — le formulaire ouvre quatre champs au lieu de trois, et

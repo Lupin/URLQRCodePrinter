@@ -63,7 +63,7 @@ déposée n'a plus.
 `02`, `03`, `04` et `05` sont produites par `scripts/capture-store-shots.mjs` sur
 un **contenu d'exemple** : elles montrent donc la collection d'exemple, avec ses
 tags, ses notes et son nom — et non trois fois la même adresse. Elles ont été
-**régénérées pour la soumission 0.3.0**, après le déplacement d'« Enregistrer »
+**régénérées pour la soumission 0.3.1**, après le déplacement d'« Enregistrer »
 et « Nouvelle » sous le nom de collection, la validation explicite du nom et le
 panneau de confirmation de suppression : les captures montrent donc l'interface
 réellement déposée.
