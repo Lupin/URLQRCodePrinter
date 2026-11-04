@@ -385,9 +385,9 @@ main, et de ce que le portail ne dit pas tout seul.
 | Choix trader / non-trader | **Traité** |
 | Mention et consentement dans l'interface | **Fait** — voir section 3 ; reste à éprouver à la main dans le navigateur |
 | Captures d'écran | **Fait — les cinq emplacements sont remplis** : `01` et `02` à `04` régénérées le 3 novembre 2026 avec l'interface 0.3.0, plus la nouvelle `05-collections-fr.png` (nom validé, « Nouvelle », confirmation de suppression). Toutes en 1280 × 800. Le dossier ne contient que les captures déclarées ; les huit captures brutes du 30 septembre en ont été sorties (voir section 7) |
-| Petite image promotionnelle 440 × 280 | **Fait** — `store/promo/promo-440x280.jpg`, à la bonne dimension |
+| Petite image promotionnelle 440 × 280 | **Fait** — `store/promo/promo-440x280.jpg`, 440 × 280, JPEG 24 bits sans alpha, régénérée le 4 novembre 2026 |
 | Icône de la fiche | Déjà conforme : `src/extension-src/icons/icon-128.png` (128×128, avec alpha, vérifié) |
-| Image « marquee » 1400 × 560 | Facultative — nécessaire seulement pour être mis en avant |
+| Image « marquee » 1400 × 560 | **Fait** — `store/promo/marquee-1400x560.jpg`, 1400 × 560, JPEG 24 bits sans alpha. Facultative pour publier, mais c'est elle qui sert la mise en avant |
 | Catégorie et langue | **À choisir** : la locale par défaut du manifeste est `fr` |
 | Instructions de test pour la revue | À rédiger si l'extension exige une action particulière |
 | Version publiée | Enregistrée dans `store/listing.json` (`item.publishedVersion`, aujourd'hui `0.3.0`). Le dépôt doit la **dépasser strictement** — voir section 7 |
@@ -443,8 +443,9 @@ permission ne change.
 |---|---|
 | Version à déposer | **0.3.1** (publiée : 0.3.0) |
 | Archive | `dist/url-qrcode-printer-chrome.zip` — **21 fichiers, 1407 Kio**, manifeste MV3, 4 permissions, **aucun hôte** |
-| Tests du produit | `npm test` → **1075 JavaScript, tous verts** |
-| Tests de la fiche | `test/publication.test.js` → **14/14**, dont le résumé identique sur toutes les surfaces |
+| Tests du produit | `npm test` → **1076 JavaScript, tous verts** |
+| Tests de la fiche | `test/publication.test.js` → **15/15**, dont le résumé identique sur toutes les surfaces et les visuels promotionnels mesurés |
+| Visuels promotionnels | `store/promo/promo-440x280.jpg` et `store/promo/marquee-1400x560.jpg` — JPEG 24 bits sans alpha, générés par `npm run capture:promo`, sans texte (donc valables pour les deux fiches) |
 | Relevé navigateur | `npm run verify:chrome` → **167/167** constats satisfaits (3 novembre 2026) |
 | Socle natif | **104 tests** au relevé du 1er octobre, non rejoués ici (cache SwiftPM inaccessible) |
 | Note de version | Lue dans `CHANGELOG.md` / `CHANGELOG.fr.md`, entrée `0.3.1` |
@@ -472,7 +473,7 @@ durait qu'une seconde sur les 2,5 promises.
 |---|---|
 | Version à déposer | **0.3.0** (publiée : 0.2.1) |
 | Archive | `dist/url-qrcode-printer-chrome.zip` — **21 fichiers, 1407 Kio**, manifeste MV3, 4 permissions, **aucun hôte** |
-| Tests du produit | `npm test` → **1075 JavaScript, tous verts** |
+| Tests du produit | `npm test` → **1076 JavaScript, tous verts** |
 | Socle natif | `swift test` → **104 tests** au relevé du 1er octobre. Non rejoués ici : SwiftPM n'obtient pas son cache utilisateur dans ce bac à sable (voir plus bas). Le socle natif n'a pas changé depuis. |
 | Relevé navigateur | `npm run verify:chrome` → **167/167** constats satisfaits (3 novembre 2026) |
 | Tests de la fiche | `test/publication.test.js` → **12/12** |

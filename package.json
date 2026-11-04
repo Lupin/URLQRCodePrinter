@@ -39,7 +39,8 @@
     "verify:menu": "node scripts/verify-context-menu.mjs",
     "verify:safari": "node scripts/verify-safari.mjs",
     "serve": "node scripts/serve.mjs",
-    "dev": "node scripts/build.mjs && node scripts/serve.mjs"
+    "dev": "node scripts/build.mjs && node scripts/serve.mjs",
+    "capture:promo": "node scripts/capture-promo.mjs"
   },
   "dependencies": {
     "uqr": "^0.1.3"

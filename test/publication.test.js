@@ -349,6 +349,33 @@ test('les captures annoncées existent, et aucune n\'est en trop', () => {
   }
 });
 
+test('les visuels promotionnels ont la dimension du magasin, et pas d\'alpha', () => {
+  // Le magasin impose 440 × 280 pour la petite image (obligatoire) et 1 400 × 560
+  // pour le bandeau. Les deux sont en JPEG ou PNG **24 bits, sans alpha** : un
+  // PNG sorti de Chrome en RGBA serait refusé, alors que le JPEG ne peut pas
+  // porter d'alpha. On lit donc les octets, pas les métadonnées d'un outil.
+  const visuels = [
+    ['promo/promo-440x280.jpg', 440, 280],
+    ['promo/marquee-1400x560.jpg', 1400, 560],
+  ];
+  for (const [chemin, largeur, hauteur] of visuels) {
+    const octets = readFileSync(join(ROOT, 'store', chemin));
+    const taille = dimensions(octets);
+    assert.ok(taille, `${chemin} : dimensions illisibles`);
+    assert.equal(
+      `${taille.largeur}x${taille.hauteur}`,
+      `${largeur}x${hauteur}`,
+      `${chemin} : ${taille.largeur} × ${taille.hauteur} au lieu de ${largeur} × ${hauteur}`,
+    );
+    const estJpeg = octets[0] === 0xff && octets[1] === 0xd8;
+    if (!estJpeg) {
+      // PNG : le type de couleur est à l'octet 25 de l'en-tête IHDR.
+      assert.equal(octets.toString('latin1', 1, 4), 'PNG', `${chemin} : ni JPEG ni PNG`);
+      assert.equal(octets[25], 2, `${chemin} : PNG non RGB (type ${octets[25]}), le magasin veut 24 bits sans alpha`);
+    }
+  }
+});
+
 test('chaque capture a une taille acceptée par le magasin', () => {
   // 1280 × 800 (préféré) ou 640 × 400 : les deux seules tailles admises. Elles
   // sont mesurées dans les octets du fichier — un README peut se tromper, un

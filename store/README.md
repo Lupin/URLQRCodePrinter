@@ -9,7 +9,7 @@ vérifiée le 21 septembre 2026 — pas d'une estimation.
 | Icône de l'extension | 128 × 128 | PNG, avec canal alpha | **Oui**, dans le `.zip` | ✅ `src/extension-src/icons/icon-128.png` |
 | Captures d'écran | 1280 × 800 **ou** 640 × 400 | PNG ou JPEG | **Oui**, au moins 1, jusqu'à 5 | ✅ `screenshots/` — 01 à 04 |
 | Petite image promotionnelle | 440 × 280 | PNG ou JPEG | **Oui** | ✅ [`promo/promo-440x280.jpg`](promo/promo-440x280.jpg) |
-| Image « marquee » | 1400 × 560 | PNG ou JPEG | Non | — |
+| Image « marquee » | 1400 × 560 | PNG ou JPEG | Non | ✅ [`promo/marquee-1400x560.jpg`](promo/marquee-1400x560.jpg) |
 
 ## Le point à ne pas manquer
 
@@ -51,6 +51,32 @@ et donne ces repères :
 
 Une image qui n'est qu'une capture d'écran passera, mais n'aura pas l'effet
 recherché.
+
+### Les deux images, et comment elles sont produites
+
+```bash
+npm run capture:promo
+```
+
+`scripts/capture-promo.mjs` compose les deux scènes en HTML, les fait peindre par
+Chrome, prend le cliché à **deux fois la taille**, puis le ramène à la dimension
+exacte et l'encode en **JPEG** — un 24 bits sans canal alpha par construction,
+ce que le magasin exige ; un PNG sorti de Chrome porterait, lui, un alpha.
+
+Les deux images sont **sans texte**, à une exception près : le nom du produit et
+l'icône, qui sont la marque et non une langue. C'est ce qui leur permet de servir
+la fiche française **et** la fiche internationale : le magasin ne décline pas ces
+visuels par langue. Les QR Codes qu'elles montrent sont **réels** — encodés par
+le produit, ils mènent au site et à la fiche du magasin —, et non un motif
+décoratif. Une image promotionnelle dont le QR Code ne se lit pas serait un aveu.
+
+| Fichier | Dimension | Poids | Contenu |
+|---|---|---|---|
+| [`promo-440x280.jpg`](promo/promo-440x280.jpg) | 440 × 280 | ~28 Ko | la fenêtre qui collecte, la flèche, l'étiquette QR Code |
+| [`marquee-1400x560.jpg`](promo/marquee-1400x560.jpg) | 1400 × 560 | ~148 Ko | la même histoire, au format bandeau : fenêtre, flèche, trois étiquettes |
+
+Les fichiers sont vérifiés à la main après chaque génération : dimension exacte,
+JPEG sans alpha, lisibles réduits de moitié sur le gris clair du magasin.
 
 ## Les captures
 

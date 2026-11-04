@@ -55,6 +55,9 @@ const VISUELS = [
     'store/screenshots/05-collections-en.png',
   ] },
   { champ: 'Petite image promotionnelle (440 × 280)', chemins: ['store/promo/promo-440x280.jpg'] },
+  // Facultative pour le magasin, mais c'est elle qui sert la mise en avant :
+  // elle est à la bonne dimension, et sans texte pour valoir dans les deux langues.
+  { champ: 'Image en haut de la page (1 400 × 560)', chemins: ['store/promo/marquee-1400x560.jpg'] },
   { champ: 'Icône de la fiche (128 × 128)', chemins: ['src/extension-src/icons/icon-128.png'] },
 ];
 
