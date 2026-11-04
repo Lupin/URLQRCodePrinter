@@ -10,9 +10,11 @@
 
 **English** · [Français](README.fr.md) · [User guide](docs/guide.md)
 
-Collect URLs from the browser (right-click or button), keep them in a local
-database, then print them as QR Code labels — table, CSV or Markdown export, or send
-them straight to a Niimbot printer.
+**Collect links from your browser and print them as QR Code labels. No account,
+no server run by the publisher.** Collect with a right-click or the toolbar
+button; the links live in a local database, then come out as a sheet of sticky
+labels, a printed table, a CSV or Markdown export, or straight to a Bluetooth
+label printer. They leave your device only if you ask for a shortened link.
 
 ## Why this exists
 
@@ -47,7 +49,7 @@ share.
 | Native Swift core (protocol, session, CoreBluetooth) | done, tested |
 | iOS app that uses that core | to do |
 
-**1178 tests, all green** — 1074 in JavaScript and 104 in Swift — including:
+**1179 tests, all green** — 1075 in JavaScript and 104 in Swift — including:
 
 - **byte-for-byte** validation of the Niimbot frames against the documented
   records, **in both languages**: two independent implementations that
@@ -986,7 +988,7 @@ exists in French and English. Before opening a pull request:
 
 ```bash
 npm install
-npm run test:all   # 1074 JavaScript tests + 104 Swift tests
+npm run test:all   # 1075 JavaScript tests + 104 Swift tests
 ```
 
 The repository conventions — a core with no DOM and no implicit network, zero

@@ -43,11 +43,11 @@ politique publiée, les déclarations du portail et le comportement réel.
 
 **FR**
 
-> Collectez des liens depuis votre navigateur et imprimez-les en étiquettes QR Code. Tout reste sur votre appareil.
+> Collectez des liens depuis votre navigateur et imprimez-les en étiquettes QR Code. Aucun compte, aucun serveur de l'éditeur.
 
 **EN**
 
-> Collect links from your browser and print them as QR Code labels. Everything stays on your device.
+> Collect links from your browser and print them as QR Code labels. No account, no server run by the publisher.
 
 ### Description détaillée
 
@@ -437,7 +437,7 @@ durait qu'une seconde sur les 2,5 promises.
 |---|---|
 | Version à déposer | **0.3.0** (publiée : 0.2.1) |
 | Archive | `dist/url-qrcode-printer-chrome.zip` — **21 fichiers, 1407 Kio**, manifeste MV3, 4 permissions, **aucun hôte** |
-| Tests du produit | `npm test` → **1073 JavaScript, tous verts** |
+| Tests du produit | `npm test` → **1075 JavaScript, tous verts** |
 | Socle natif | `swift test` → **104 tests** au relevé du 1er octobre. Non rejoués ici : SwiftPM n'obtient pas son cache utilisateur dans ce bac à sable (voir plus bas). Le socle natif n'a pas changé depuis. |
 | Relevé navigateur | `npm run verify:chrome` → **167/167** constats satisfaits (3 novembre 2026) |
 | Tests de la fiche | `test/publication.test.js` → **12/12** |

@@ -164,6 +164,44 @@ test('le nom de la fiche est celui que l\'extension porte', () => {
   }
 });
 
+test('le résumé de la fiche est le même sur toutes les surfaces', () => {
+  // Le résumé court est la phrase d'accroche du produit. Elle circule dans des
+  // surfaces qui n'ont aucune raison de se relire entre elles : la fiche du
+  // magasin, la description du paquet, celle du manifeste, la meta description
+  // des deux pages du site, et l'ouverture des README. Deux formulations qui
+  // divergent finissent par décrire deux produits — d'où ce contrôle unique.
+  const paquet = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8'));
+
+  for (const [langue, messages] of [['en', MESSAGES_EN], ['fr', MESSAGES_FR]]) {
+    const resume = LISTING.summary[langue];
+    assert.ok(resume.trim() !== '', `résumé ${langue} vide`);
+
+    // La description du manifeste, lue dans le catalogue de langue.
+    assert.equal(
+      messages.description?.message,
+      resume,
+      `la description du manifeste (${langue}) n'est pas le résumé de la fiche`,
+    );
+
+    // La meta description de la page publique.
+    const page = join(ROOT, 'src', 'site', langue === 'fr' ? 'index.html' : join('en', 'index.html'));
+    const html = readFileSync(page, 'utf8');
+    const meta = /<meta name="description" content="([^"]*)"/.exec(html)?.[1] ?? '';
+    assert.equal(meta, resume, `la meta description ${langue} n'est pas le résumé de la fiche`);
+
+    // L'ouverture du README : le résumé y figure, éventuellement replié.
+    const readme = readFileSync(join(ROOT, langue === 'fr' ? 'README.fr.md' : 'README.md'), 'utf8');
+    const normaliser = (texte) => texte.replace(/\s+/g, ' ').trim();
+    assert.ok(
+      normaliser(readme).includes(normaliser(resume)),
+      `le README ${langue} n'ouvre pas sur le résumé de la fiche`,
+    );
+  }
+
+  // La description du paquet npm/GitHub est le résumé anglais.
+  assert.equal(paquet.description, LISTING.summary.en);
+});
+
 test('la version publiée ne devance pas celle du paquet', () => {
   const nombre = (v) => v.split('.').map(Number);
   const [maj, min, corr] = nombre(MANIFEST.version);

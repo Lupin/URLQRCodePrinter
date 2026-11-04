@@ -3,7 +3,7 @@
     "message": "URLQRCodePrinter"
   },
   "description": {
-    "message": "Collect links from your browser and print them as QR Code labels. Everything stays on your device."
+    "message": "Collect links from your browser and print them as QR Code labels. No account, no server run by the publisher."
   },
   "action_title": {
     "message": "URLQRCodePrinter"

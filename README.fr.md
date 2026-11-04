@@ -10,9 +10,12 @@
 
 **Français** · [English](README.md) · [Guide d'utilisation](docs/guide.fr.md)
 
-Collecter des URL depuis le navigateur (clic droit ou bouton), les garder dans
-une base locale, puis les imprimer en étiquettes QR Code — tableau, export CSV ou
-Markdown, ou envoi direct à une imprimante Niimbot.
+**Collectez des liens depuis votre navigateur et imprimez-les en étiquettes QR
+Code. Aucun compte, aucun serveur de l'éditeur.** La collecte se fait d'un clic
+droit ou par le bouton de la barre d'outils ; les liens vivent dans une base
+locale, puis sortent en planche d'étiquettes autocollantes, en tableau imprimé,
+en CSV ou Markdown, ou directement sur une imprimante d'étiquettes Bluetooth.
+Ils ne quittent votre appareil que si vous demandez un lien raccourci.
 
 ## Pourquoi ce projet
 
@@ -48,7 +51,7 @@ retrouve et se partage facilement.
 | Socle natif Swift (protocole, session, CoreBluetooth) | fait, testé |
 | Application iOS qui utilise ce socle | à faire |
 
-**1178 tests, tous verts** — 1074 en JavaScript et 104 en Swift — dont :
+**1179 tests, tous verts** — 1075 en JavaScript et 104 en Swift — dont :
 
 - la validation **octet à octet** des trames Niimbot contre les relevés
   documentés, **dans les deux langages** : deux implémentations indépendantes
@@ -1007,7 +1010,7 @@ pull request :
 
 ```bash
 npm install
-npm run test:all   # 1074 tests JavaScript + 104 tests Swift
+npm run test:all   # 1075 tests JavaScript + 104 tests Swift
 ```
 
 Les conventions du dépôt — cœur sans DOM ni réseau implicite, zéro dépendance,

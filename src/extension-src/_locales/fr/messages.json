@@ -3,7 +3,7 @@
     "message": "URLQRCodePrinter"
   },
   "description": {
-    "message": "Collectez des liens depuis votre navigateur et imprimez-les en étiquettes QR Code. Tout reste sur votre appareil."
+    "message": "Collectez des liens depuis votre navigateur et imprimez-les en étiquettes QR Code. Aucun compte, aucun serveur de l'éditeur."
   },
   "action_title": {
     "message": "URLQRCodePrinter"
