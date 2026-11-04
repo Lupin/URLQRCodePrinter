@@ -3,7 +3,7 @@
     "message": "URLQRCodePrinter"
   },
   "description": {
-    "message": "Collects the URLs of your tabs and prints them as QR Code labels (Niimbot D110 / M2)."
+    "message": "Collect links from your browser and print them as QR Code labels. Everything stays on your device."
   },
   "action_title": {
     "message": "URLQRCodePrinter"

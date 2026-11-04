@@ -137,15 +137,29 @@ test('le nom de la fiche est celui que l\'extension porte', () => {
   assert.equal(MANIFEST.name, '__MSG_name__');
   assert.equal(MESSAGES_EN.name.message, LISTING.item.name);
   assert.equal(MESSAGES_FR.name.message, LISTING.item.name);
-  // La description du manifeste n'est **pas** le résumé de la fiche : c'est le
-  // texte que le navigateur affiche dans la page des extensions. Elle obéit à la
-  // même borne de 132 caractères, et c'est ce que ce contrôle vérifie.
-  for (const messages of [MESSAGES_EN, MESSAGES_FR]) {
+  // La description du manifeste est le texte que le navigateur affiche dans la
+  // page des extensions — et, faute de résumé saisi, ce que le magasin peut
+  // reprendre du paquet. Elle dit donc **la même chose que le résumé de la
+  // fiche** : deux formulations concurrentes finiraient par se contredire.
+  for (const [langue, messages] of [['en', MESSAGES_EN], ['fr', MESSAGES_FR]]) {
     const description = messages.description?.message ?? '';
-    assert.ok(description.trim() !== '', 'description absente d\'un catalogue');
+    assert.ok(description.trim() !== '', `description absente du catalogue ${langue}`);
     assert.ok(
       description.length <= LIMITES.resume,
-      `description du manifeste : ${description.length} caractères`,
+      `description du manifeste (${langue}) : ${description.length} caractères`,
+    );
+    assert.equal(
+      description,
+      LISTING.summary[langue],
+      `la description du manifeste (${langue}) ne reprend pas le résumé de la fiche`,
+    );
+    // Une marque d'imprimante n'a rien à faire dans une description de produit :
+    // elle vieillit avec les modèles, et le magasin la lit comme un argument
+    // commercial. La compatibilité se dit dans la fiche détaillée, sans catalogue.
+    assert.doesNotMatch(
+      description,
+      /niimbot|brother|dymo|zebra/i,
+      `la description du manifeste (${langue}) nomme une marque d'imprimante`,
     );
   }
 });
