@@ -40,7 +40,8 @@
     "verify:safari": "node scripts/verify-safari.mjs",
     "serve": "node scripts/serve.mjs",
     "dev": "node scripts/build.mjs && node scripts/serve.mjs",
-    "capture:promo": "node scripts/capture-promo.mjs"
+    "capture:promo": "node scripts/capture-promo.mjs",
+    "icons:propositions": "node scripts/proposer-icones.mjs"
   },
   "dependencies": {
     "uqr": "^0.1.3"

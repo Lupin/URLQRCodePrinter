@@ -37,6 +37,22 @@ dessin occupe **96 × 96** au centre, les 16 pixels de chaque côté restant
 transparents. C'est un conseil d'harmonie visuelle entre extensions, pas une
 exigence — à vérifier à l'œil si vous voulez soigner ce point.
 
+### Changer de dessin
+
+```bash
+npm run icons:propositions
+```
+
+Le script écrit **huit propositions** dans `dist/brouillons-icones/` — huit PNG
+128 × 128 avec canal alpha, leurs rendus 512 px, et une planche qui les montre à
+256, à 128, à 32 px et sur fond sombre (le gris clair de la fiche n'est pas le
+seul fond où l'icône vit). Les dessins sont des **formes SVG** rendues par Chrome
+puis réduites à 128 px : nets à toute taille, et le fond reste transparent.
+
+Le dessin retenu ne s'expédie pas tel quel : il est reporté dans
+[`scripts/make-icons.mjs`](../scripts/make-icons.mjs), qui reste la source des
+icônes du paquet et les produit à toutes les tailles, sans dépendance graphique.
+
 ## Les images promotionnelles : comment elles se conçoivent
 
 Ce ne sont pas des captures. La documentation demande de communiquer la marque,
