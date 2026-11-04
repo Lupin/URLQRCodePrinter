@@ -102,6 +102,40 @@ const tuile = (fond) => `<rect width="128" height="128" rx="28" fill="${fond}"/>
 const ombre = (x, y, w, h, r = 14, opacite = 0.28) =>
   `<rect x="${x}" y="${y + 4}" width="${w}" height="${h}" rx="${r}" fill="rgba(0,0,0,${opacite})"/>`;
 
+/**
+ * L'imprimante et son étiquette — le dessin 3.
+ *
+ * Le fond est un paramètre : c'est la seule chose qui change entre la version
+ * charbon d'origine et la variante orange. Sur orange, le voyant reste orange
+ * mais s'appuie sur le corps crème, et l'ombre portée est plus dense.
+ *
+ * @param {string} fond
+ */
+function imprimante(fond) {
+  const dense = fond === ORANGE;
+  return `${tuile(fond)}
+      <rect x="34" y="14" width="60" height="64" rx="7" fill="${CREME}"/>
+      ${qr(40, 20, 48)}
+      ${ombre(8, 62, 112, 44, 12, dense ? 0.26 : 0.45)}
+      <rect x="8" y="66" width="112" height="44" rx="12" fill="${CREME}"/>
+      <rect x="20" y="76" width="88" height="12" rx="6" fill="${CHARBON}"/>
+      <circle cx="102" cy="99" r="4.5" fill="${dense ? ORANGE_SOMBRE : ORANGE}"/>`;
+}
+
+/** Les variantes demandées, en plus des huit propositions. */
+const VARIANTES = [
+  {
+    nom: 'variante-3-orange',
+    titre: 'Imprimante — fond orange',
+    svg: imprimante(ORANGE),
+  },
+  {
+    nom: 'variante-3-charbon',
+    titre: 'Imprimante — fond charbon (référence)',
+    svg: imprimante(CHARBON),
+  },
+];
+
 /** Les huit dessins. */
 const DESSINS = [
   {
@@ -125,13 +159,7 @@ const DESSINS = [
   },
   {
     titre: 'Imprimante et étiquette',
-    svg: `${tuile(CHARBON)}
-      <rect x="34" y="14" width="60" height="64" rx="7" fill="${CREME}"/>
-      ${qr(40, 20, 48)}
-      ${ombre(8, 62, 112, 44, 12, 0.45)}
-      <rect x="8" y="66" width="112" height="44" rx="12" fill="${CREME}"/>
-      <rect x="20" y="76" width="88" height="12" rx="6" fill="${CHARBON}"/>
-      <circle cx="102" cy="99" r="4.5" fill="${ORANGE}"/>`,
+    svg: imprimante(CHARBON),
   },
   {
     titre: 'Rouleau d\'étiquettes',
@@ -346,7 +374,75 @@ async function main() {
     await pause(500);
     const plancheShot = await page.send('Page.captureScreenshot', { format: 'png', captureBeyondViewport: true });
     writeFileSync(join(SORTIE, 'planche.png'), Buffer.from(plancheShot.result.data, 'base64'));
-    console.log(`\n✓ huit propositions et la planche dans ${SORTIE.slice(ROOT.length + 1)}`);
+    // Les variantes demandées : le dessin 3 sur fond orange, et sa référence
+    // charbon, côte à côte et aux mêmes tailles de contrôle.
+    const rendues = [];
+    for (const variante of VARIANTES) {
+      const grand = await capturer({
+        port: PORT, nom: variante.nom, html: CADRE(variante.svg),
+        largeur: 512, hauteur: 512, dossier: SORTIE,
+      });
+      const sips = spawnSync('sips', ['-z', '128', '128', grand, '--out', join(SORTIE, `${variante.nom}-128.png`)], {
+        encoding: 'utf8',
+      });
+      if (sips.status !== 0) throw new Error(`sips a échoué : ${sips.stderr}`);
+      rendues.push({ ...variante, grand });
+      console.log(`  ${variante.nom} — ${variante.titre}`);
+    }
+    const images = rendues.map((variante) => {
+      const grand = readFileSync(join(SORTIE, `${variante.nom}.png`)).toString('base64');
+      const petit = readFileSync(join(SORTIE, `${variante.nom}-128.png`)).toString('base64');
+      return `<figure>
+        <img src="data:image/png;base64,${grand}" width="256" height="256" alt="">
+        <figcaption>${variante.titre}<br>
+          <img class="mini" src="data:image/png;base64,${petit}" width="32" height="32" alt=""> à 32 px</figcaption>
+      </figure>`;
+    }).join('');
+    const plancheVariante = `<!DOCTYPE html><html><head><meta charset="utf-8"><style>
+      html, body { margin: 0; background: #e9e7e3; font-family: -apple-system, "Helvetica Neue", sans-serif; color: #2c2a27; }
+      h1 { font-size: 28px; margin: 30px 0 4px 40px; font-weight: 700; letter-spacing: -.02em; }
+      p { margin: 0 0 20px 40px; font-size: 15px; color: #6b665f; }
+      .duo { display: flex; gap: 26px; margin: 0 40px; }
+      figure { margin: 0; background: #fff; border-radius: 20px; padding: 22px 22px 16px;
+               box-shadow: 0 2px 10px rgba(0,0,0,.08); text-align: center; }
+      figcaption { font-size: 14px; margin-top: 10px; color: #4a4640; }
+      .mini { vertical-align: -9px; margin-right: 4px; }
+      .sombres { display: flex; gap: 22px; align-items: center; margin: 24px 40px 10px;
+                 background: #202124; border-radius: 16px; padding: 14px 22px; }
+      .sombres img { display: block; }
+      .sombres span { font-size: 13px; color: #b8b4ae; }
+      footer { margin: 8px 40px 30px; font-size: 13px; color: #6b665f; }
+    </style></head><body>
+      <h1>Le dessin 3, sur fond orange</h1>
+      <p>La même forme, deux fonds — 256 px, puis 32 px, puis sur fond sombre.</p>
+      <div class="duo">${images}</div>
+      <div class="sombres"><span>sur fond sombre :</span>
+        ${rendues.map((variante) => `<img src="data:image/png;base64,${readFileSync(join(SORTIE, `${variante.nom}-128.png`)).toString('base64')}" width="64" height="64" alt="">`).join('')}
+      </div>
+      <footer>Fond orange : la tuile porte la marque ; le voyant est assombri d'un cran pour rester lisible sur le corps crème.</footer>
+    </body></html>`;
+    const fichierVariante = join(BAC, 'planche-variante.html');
+    writeFileSync(fichierVariante, plancheVariante, 'utf8');
+    const cibleVariante = await fetch(
+      `http://127.0.0.1:${PORT}/json/new?file://${encodeURIComponent(fichierVariante)}`,
+      { method: 'PUT' },
+    ).then((r) => r.json());
+    const pageVariante = await connect(cibleVariante.webSocketDebuggerUrl);
+    await pageVariante.send('Runtime.enable');
+    await pageVariante.send('Page.enable');
+    await pageVariante.send('Emulation.setDefaultBackgroundColorOverride', {
+      color: { r: 233, g: 231, b: 227, a: 1 },
+    });
+    await pageVariante.send('Emulation.setDeviceMetricsOverride', {
+      width: 1180, height: 640, deviceScaleFactor: 1, mobile: false,
+    });
+    await pause(500);
+    const varianteShot = await pageVariante.send('Page.captureScreenshot', {
+      format: 'png', captureBeyondViewport: true,
+    });
+    writeFileSync(join(SORTIE, 'planche-variante.png'), Buffer.from(varianteShot.result.data, 'base64'));
+
+    console.log(`\n✓ huit propositions, deux variantes et leurs planches dans ${SORTIE.slice(ROOT.length + 1)}`);
   } finally {
     try { browser.kill('SIGKILL'); } catch { /* déjà arrêté */ }
     supprimerAvecReprise(BAC);
