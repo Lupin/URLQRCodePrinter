@@ -36,7 +36,7 @@
  */
 
 import { spawn } from 'node:child_process';
-import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -63,7 +63,10 @@ const CAPTURES = join(ROOT, 'store', 'screenshots');
 const OUT = process.env.CAPTURES_SORTIE
   ? resolve(ROOT, process.env.CAPTURES_SORTIE)
   : CAPTURES;
-const EXEMPLE = join(CAPTURES, 'contenu-exemple.json');
+const EXEMPLES = {
+  fr: join(CAPTURES, 'contenu-exemple.json'),
+  en: join(CAPTURES, 'contenu-exemple-en.json'),
+};
 
 /**
  * Les secondes collections des captures.
@@ -135,14 +138,14 @@ function describe(response) {
  *
  * @returns {object} La grappe à écrire dans `chrome.storage.local`.
  */
-function contenuExemple() {
-  const texte = readFileSync(EXEMPLE, 'utf8');
-  const { kind, records, collection } = parseImportFile({
-    name: 'contenu-exemple.json',
-    text: texte,
-  });
+function contenuExemple(langue = 'fr') {
+  const chemin = EXEMPLES[langue];
+  if (!chemin) throw new Error(`pas de contenu d'exemple pour « ${langue} »`);
+  const texte = readFileSync(chemin, 'utf8');
+  const nom = chemin.slice(CAPTURES.length + 1);
+  const { kind, records, collection } = parseImportFile({ name: nom, text: texte });
   if (kind !== 'links') {
-    throw new Error(`contenu-exemple.json reconnu comme « ${kind} », et non comme une archive de liens`);
+    throw new Error(`${nom} reconnu comme « ${kind} », et non comme une archive de liens`);
   }
 
   const { links, rejected } = toImportableLinks(records, { now: DATE_BASE });
@@ -184,9 +187,10 @@ function contenuExemple() {
  *
  * @returns {Array<{ id: string, name: string, note: string, startIndex: number, createdAt: number }>}
  */
-function collectionsSupplementaires() {
+function collectionsSupplementaires(langue = 'fr') {
   const fichier = JSON.parse(readFileSync(EXEMPLE_FICHE, 'utf8'));
-  const autres = Array.isArray(fichier?.collections) ? fichier.collections : [];
+  // Deux jeux : une capture anglaise ne doit montrer aucun nom français.
+  const autres = Array.isArray(fichier?.[langue]) ? fichier[langue] : [];
   return autres
     .filter((entree) => typeof entree?.id === 'string' && entree.id !== DEFAULT_COLLECTION_ID)
     .map((entree, rang) => ({
@@ -259,9 +263,9 @@ async function capture({
   }
 
   if (seed) {
-    const grappe = contenuExemple();
+    const grappe = contenuExemple(langue);
     if (langue === 'en') grappe.locale = 'en';
-    const autres = extraCollections ? collectionsSupplementaires() : [];
+    const autres = extraCollections ? collectionsSupplementaires(langue) : [];
     if (autres.length > 0) {
       // Les liens restent ceux de la collection affichée ; les autres
       // collections ne servent qu'au sélecteur et à « Supprimer ».
@@ -341,6 +345,33 @@ async function capture({
  * réelle** — ce que l'onglet produit, et non seulement ses réglages.
  */
 const DEFILEMENT_NIIMBOT = 620;
+
+
+/**
+ * Retire les doublons de conflit qu'iCloud fabrique dans le dossier.
+ *
+ * Le dossier des captures est synchronisé, et une écriture pendant la
+ * synchronisation y laisse des « nom 2.png » : le magasin n'en veut pas, et
+ * `test/publication.test.js` échoue sur une capture non déclarée. Les motifs
+ * sont ceux du dépôt — « X 2.ext », « ._X », « .DS_Store » — et rien d'autre
+ * n'est touché.
+ *
+ * @returns {string[]} Les noms retirés.
+ */
+function retirerDoublons(dossier) {
+  const retires = [];
+  for (const nom of readdirSync(dossier)) {
+    if (!/ \d+\.(png|jpe?g)$/i.test(nom) && !/^\._/.test(nom) && nom !== '.DS_Store') continue;
+    try {
+      rmSync(join(dossier, nom), { force: true });
+      retires.push(nom);
+    } catch {
+      // Un fichier déjà parti n'est pas une erreur.
+    }
+  }
+  if (retires.length > 0) console.log(`  doublons retirés : ${retires.join(', ')}`);
+  return retires;
+}
 
 /** Le suffixe de nom d'une série : la langue que la page affiche. */
 const SUFFIXE = { fr: 'fr', en: 'en' };
@@ -451,6 +482,7 @@ async function main() {
   effacerBac();
   mkdirSync(PROFILE, { recursive: true });
   mkdirSync(OUT, { recursive: true });
+  retirerDoublons(OUT);
 
   const browser = spawn(CHROME, [
     '--no-sandbox',

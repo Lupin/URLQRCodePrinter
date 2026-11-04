@@ -1,0 +1,114 @@
+{
+  "_lisezMoi": "Contenu d'exemple anglophone pour les captures de la fiche, destiné à la fiche anglaise du Chrome Web Store : mêmes règles que contenu-exemple.json, mais tous les textes visibles sont en anglais — nom et note de collection, titres, tags, notes des liens. Les adresses sont publiques et vérifiées (HTTP 200 relevées le 4 novembre 2026) ; les sources purement françaises ont été remplacées par leurs équivalents anglais ou internationaux. Les titres tiennent sous 45 caractères parce qu'ils s'affichent dans la fenêtre de 380 px, que le magasin réduit à 640 × 400.",
+  "format": "url-qr-code-printer/links",
+  "version": 1,
+  "exportedAt": "2026-11-04T09:00:00.000Z",
+  "app": "url-qr-code-printer",
+  "collection": {
+    "name": "Manuals and warranties",
+    "note": "Manuals, warranties and gear storage."
+  },
+  "count": 12,
+  "links": [
+    {
+      "url": "https://www.thomann.de/intl/rode_ds3.htm",
+      "title": "Rode DS3 — product page",
+      "tags": [
+        "audio",
+        "warranty"
+      ],
+      "note": "3-year warranty. January invoice in the audio folder."
+    },
+    {
+      "url": "https://www.parts-express.com/",
+      "title": "Cables and connectors — spares",
+      "tags": [
+        "audio",
+        "storage"
+      ],
+      "note": ""
+    },
+    {
+      "url": "https://www.ifixit.com/",
+      "title": "Teardown and repair guides",
+      "tags": [
+        "manuals"
+      ],
+      "note": ""
+    },
+    {
+      "url": "https://www.ikea.com/gb/en/cat/cable-management-16295/",
+      "title": "Cable management — accessories",
+      "tags": [
+        "storage"
+      ],
+      "note": ""
+    },
+    {
+      "url": "https://europa.eu/youreurope/citizens/consumers/shopping/guarantees-returns/index_en.htm",
+      "title": "Legal guarantee of conformity",
+      "tags": [
+        "warranty",
+        "rights"
+      ],
+      "note": ""
+    },
+    {
+      "url": "https://manuals.plus/",
+      "title": "Device manuals — library",
+      "tags": [
+        "manuals"
+      ],
+      "note": ""
+    },
+    {
+      "url": "https://archive.org/details/manuals",
+      "title": "Scanned manuals (archive)",
+      "tags": [
+        "manuals"
+      ],
+      "note": ""
+    },
+    {
+      "url": "https://en.wikipedia.org/wiki/Thermal_printing",
+      "title": "Thermal printing — how it works",
+      "tags": [
+        "printing"
+      ],
+      "note": ""
+    },
+    {
+      "url": "https://en.wikipedia.org/wiki/Label_printer",
+      "title": "Label printers — uses",
+      "tags": [
+        "printing"
+      ],
+      "note": ""
+    },
+    {
+      "url": "https://www.niimbot.com/",
+      "title": "Niimbot — label printers",
+      "tags": [
+        "printing",
+        "warranty"
+      ],
+      "note": ""
+    },
+    {
+      "url": "https://www.which.co.uk/",
+      "title": "Consumer comparisons",
+      "tags": [
+        "reviews"
+      ],
+      "note": ""
+    },
+    {
+      "url": "https://www.consumerreports.org/",
+      "title": "Product testing and reviews",
+      "tags": [
+        "reviews"
+      ],
+      "note": ""
+    }
+  ]
+}

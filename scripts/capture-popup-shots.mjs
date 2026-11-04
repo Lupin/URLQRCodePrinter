@@ -18,7 +18,7 @@
  * cliché CDP.
  */
 import { spawn } from 'node:child_process';
-import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -42,6 +42,33 @@ const CADRE = { largeur: 380, hauteur: 560 };
 const FACTEUR = 1.5;
 
 const pause = (ms) => new Promise((r) => setTimeout(r, ms));
+
+/**
+ * Retire les doublons de conflit qu'iCloud fabrique dans le dossier.
+ *
+ * Le dossier des captures est synchronisé, et une écriture pendant la
+ * synchronisation y laisse des « nom 2.png » : le magasin n'en veut pas, et
+ * `test/publication.test.js` échoue sur une capture non déclarée. Les motifs
+ * sont ceux du dépôt — « X 2.ext », « ._X », « .DS_Store » — et rien d'autre
+ * n'est touché.
+ *
+ * @returns {string[]} Les noms retirés.
+ */
+function retirerDoublons(dossier) {
+  const retires = [];
+  for (const nom of readdirSync(dossier)) {
+    if (!/ \d+\.(png|jpe?g)$/i.test(nom) && !/^\._/.test(nom) && nom !== '.DS_Store') continue;
+    try {
+      rmSync(join(dossier, nom), { force: true });
+      retires.push(nom);
+    } catch {
+      // Un fichier déjà parti n'est pas une erreur.
+    }
+  }
+  if (retires.length > 0) console.log(`  doublons retirés : ${retires.join(', ')}`);
+  return retires;
+}
+
 
 async function connect(url) {
   const ws = new WebSocket(url);
@@ -75,8 +102,11 @@ const evalIn = (page) => async (expression) => {
 };
 
 function contenu(langue) {
-  const texte = readFileSync(join(CAPTURES, 'contenu-exemple.json'), 'utf8');
-  const { records, collection } = parseImportFile({ name: 'contenu-exemple.json', text: texte });
+  // Le contenu suit la langue de la capture : la fenêtre anglaise montre des
+  // collections, des titres et des tags anglais, comme l'interface.
+  const nom = langue === 'en' ? 'contenu-exemple-en.json' : 'contenu-exemple.json';
+  const texte = readFileSync(join(CAPTURES, nom), 'utf8');
+  const { records, collection } = parseImportFile({ name: nom, text: texte });
   const { links } = toImportableLinks(records, { now: 1758400000000 });
   const stockes = links.map((lien, rang) => ({ ...lien, collectionId: DEFAULT_COLLECTION_ID, order: rang }));
   return {
@@ -225,6 +255,7 @@ async function capturer({ port, id, langue, nom }) {
   const final = await posePage.send('Page.captureScreenshot', { format: 'png' });
   if (!final?.data) throw new Error(`capture finale vide : ${nom}`);
   mkdirSync(OUT, { recursive: true });
+  retirerDoublons(OUT);
   writeFileSync(join(OUT, nom), Buffer.from(final.data, 'base64'));
   console.log(`  ✓ ${nom}`);
   await fetch(`http://127.0.0.1:${port}/json/close/${target.id}`);

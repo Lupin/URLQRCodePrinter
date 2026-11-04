@@ -314,20 +314,20 @@ test('chaque capture a une taille acceptée par le magasin', () => {
   assert.ok(mesures.length > 0, 'aucune capture mesurée');
 });
 
-test('le contenu d\'exemple des captures est importable, et se lit à 640 × 400', () => {
-  // `store/screenshots/contenu-exemple.json` est chargé par le bouton
-  // « Importer » avant chaque série de captures : c'est ce qui les rend
-  // reproductibles. Un fichier que l'importateur refuse ne se verrait qu'au
-  // moment de la séance photo — d'où ce contrôle, qui le relit avec le code du
-  // produit plutôt qu'avec un `JSON.parse`.
-  const chemin = join(ROOT, 'store', 'screenshots', 'contenu-exemple.json');
-  assert.ok(existsSync(chemin), 'le contenu d\'exemple a disparu');
-  const texte = readFileSync(chemin, 'utf8');
-
+/**
+ * Vérifie un contenu d'exemple : il doit être importable, lisible dans les deux
+ * tailles du magasin, et assez varié pour montrer quelque chose.
+ *
+ * @param {string} nomFichier
+ * @returns {{ collection: object, links: Array<object>, tags: Set<string> }}
+ */
+function verifierContenuExemple(nomFichier) {
+  const chemin = join(CAPTURES, nomFichier);
+  assert.ok(existsSync(chemin), `${nomFichier} est absent`);
   const { kind, records, collection } = parseImportFile({
-    name: 'contenu-exemple.json', text: texte,
+    name: nomFichier, text: readFileSync(chemin, 'utf8'),
   });
-  assert.equal(kind, 'links', 'le format reconnu doit être celui de l\'archive du produit');
+  assert.equal(kind, 'links', `${nomFichier} : le format doit être celui de l'archive du produit`);
 
   // Le nom et la note de collection sont **lus** par l'importateur : ils vivent
   // dans un objet `collection`. Une chaîne à cette place passe inaperçue —
@@ -335,25 +335,66 @@ test('le contenu d\'exemple des captures est importable, et se lit à 640 × 400
   // rien ne le signale avant la séance photo.
   assert.ok(
     (collection?.name ?? '').trim().length > 0,
-    'le contenu d\'exemple ne donne pas de nom à la collection',
+    `${nomFichier} ne donne pas de nom à la collection`,
   );
 
   const { links, rejected } = toImportableLinks(records, { now: 1_750_000_000_000 });
-  assert.equal(rejected, 0, `${rejected} lien(s) refusé(s) par l'importateur`);
-  assert.ok(links.length >= 10, `une capture montre une collection : ${links.length} lien(s), c'est peu`);
+  assert.equal(rejected, 0, `${nomFichier} : ${rejected} lien(s) refusé(s) par l'importateur`);
+  assert.ok(links.length >= 10, `${nomFichier} : ${links.length} lien(s), c'est peu`);
 
   // Ce que la fenêtre de 380 px impose : un titre qui se replie sur deux lignes
   // rend la capture illisible une fois réduite par le magasin.
   const trop = links.filter((lien) => (lien.title ?? '').length > 45);
   assert.equal(trop.length, 0,
-    `titre(s) trop long(s) pour la colonne étroite : ${trop.map((l) => l.title).join(', ')}`);
+    `${nomFichier} : titre(s) trop long(s) — ${trop.map((l) => l.title).join(', ')}`);
 
   // Un domaine unique répété douze fois ne montre rien : la variété est le but.
   const domaines = new Set(links.map((lien) => new URL(lien.url).hostname));
   assert.ok(domaines.size >= links.length - 2,
-    `${links.length} liens pour ${domaines.size} domaine(s) : la collection doit être variée`);
+    `${nomFichier} : ${links.length} liens pour ${domaines.size} domaine(s)`);
 
   // Les tags sont une fonction : une capture qui n'en montre aucun ne la vend pas.
   const tags = new Set(links.flatMap((lien) => lien.tags ?? []));
-  assert.ok(tags.size >= 4, `${tags.size} tag(s) distinct(s) : la liste n'en montrerait presque aucun`);
+  assert.ok(tags.size >= 4, `${nomFichier} : ${tags.size} tag(s) distinct(s), c'est peu`);
+
+  return { collection, links, tags };
+}
+
+test('le contenu d\'exemple français est importable, et se lit à 640 × 400', () => {
+  // `store/screenshots/contenu-exemple.json` est chargé par le bouton
+  // « Importer » avant la série française : c'est ce qui rend les captures
+  // reproductibles. Un fichier que l'importateur refuse ne se verrait qu'au
+  // moment de la séance photo — d'où ce contrôle, qui le relit avec le code du
+  // produit plutôt qu'avec un `JSON.parse`.
+  verifierContenuExemple('contenu-exemple.json');
 });
+
+test('le contenu d\'exemple anglais est importable, et entièrement en anglais', () => {
+  // La fiche anglaise reçoit la série `-en` : son contenu d'exemple ne doit
+  // montrer **aucun texte français**, sinon la fiche internationale affiche une
+  // collection française au milieu d'une interface anglaise. Les noms et notes
+  // de collection, les titres, les tags et les notes de liens sont donc en
+  // anglais ; les adresses sont des équivalents anglais ou internationaux.
+  const { collection, links, tags } = verifierContenuExemple('contenu-exemple-en.json');
+
+  // Un simple test d'accent suffit à attraper une copie du fichier français :
+  // les mots anglais retenus n'en portent pas, et le fichier français en est
+  // plein (« garantie », « notice », « rangement », « étiqueteuse »…).
+  const textes = [
+    collection.name, collection.note,
+    ...links.flatMap((lien) => [lien.title, lien.note, ...(lien.tags ?? [])]),
+  ].filter((texte) => typeof texte === 'string');
+  const accents = textes.filter((texte) => /[àâäéèêëîïôöùûüçœæ]/i.test(texte));
+  assert.deepEqual(accents, [], `texte(s) encore français : ${accents.join(' · ')}`);
+
+  // Le nom de collection diffère de celui du fichier français : deux séries qui
+  // porteraient le même nom trahiraient un contenu recopié.
+  const francais = verifierContenuExemple('contenu-exemple.json');
+  assert.notEqual(collection.name, francais.collection.name,
+    'les contenus d\'exemple français et anglais portent le même nom de collection');
+
+  // Les tags sont visibles sous chaque ligne : un tag français resterait français
+  // dans la capture anglaise même si le titre, lui, a été traduit.
+  assert.ok(tags.size >= 4, 'la série anglaise doit montrer des tags variés');
+});
+

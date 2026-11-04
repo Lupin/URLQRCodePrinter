@@ -61,12 +61,21 @@ un bouton « Tout effacer », et un autre qui n'existe plus — que la version
 déposée n'a plus.
 
 `02`, `03`, `04` et `05` sont produites par `scripts/capture-store-shots.mjs` sur
-`contenu-exemple.json` : elles montrent donc la collection d'exemple, avec ses
+un **contenu d'exemple** : elles montrent donc la collection d'exemple, avec ses
 tags, ses notes et son nom — et non trois fois la même adresse. Elles ont été
 **régénérées pour la soumission 0.3.0**, après le déplacement d'« Enregistrer »
 et « Nouvelle » sous le nom de collection, la validation explicite du nom et le
 panneau de confirmation de suppression : les captures montrent donc l'interface
 réellement déposée.
+
+**Deux contenus, un par langue.** La fiche française se sert de
+`contenu-exemple.json` ; la fiche anglaise de `contenu-exemple-en.json`. Ce
+n'est pas une traduction de l'interface — elle vient du sélecteur de langue —
+mais du **contenu de la collection** : nom et note de collection, titres, tags,
+notes des liens. Sans lui, la fiche internationale montrerait une collection
+française au milieu d'une interface anglaise. Les adresses du fichier anglais
+sont des équivalents anglais ou internationaux (Wikipédia anglais, IKEA UK,
+Europa, Thomann international…), relevés le 4 novembre 2026.
 
 `05` est nouvelle. Sa mise en scène est celle de la 0.3.0, et elle est réelle :
 le script **tape** un nom, vérifie que l'aide d'attente dit ce qu'elle doit dire
@@ -74,8 +83,9 @@ le script **tape** un nom, vérifie que l'aide d'attente dit ce qu'elle doit dir
 « Enregistrer » (il refuse de continuer si le bouton est resté inactif), puis
 ouvre le panneau de suppression de la collection qui vient d'être renommée. Pour
 que la scène soit possible, elle ajoute deux collections à celles du contenu
-d'exemple — `contenu-fiche.json`, lu par le script : sans elles, « Supprimer »
-serait grisé, puisqu'il doit toujours rester une collection.
+d'exemple — `contenu-fiche.json`, lu par le script, avec un jeu de noms par
+langue : sans elles, « Supprimer » serait grisé, puisqu'il doit toujours rester
+une collection.
 
 Le dossier ne contient **que les captures déclarées**. Les huit captures brutes
 du 30 septembre (2870 × 1796, non déclarées) ont été déplacées hors du dossier,
