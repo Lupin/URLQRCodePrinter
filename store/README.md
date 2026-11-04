@@ -45,10 +45,13 @@ coins transparents. `npm run icons` écrit les deux jeux — `icon-*.png` pour
 l'extension et les onze fichiers de `AppIcon.appiconset` pour l'application.
 
 Le magasin suggère que le dessin occupe **96 × 96** au centre, les 16 pixels de
-chaque côté restant transparents. C'est un conseil d'harmonie visuelle entre
-extensions, pas une exigence : la tuile occupe ici tout le carré, comme la
-plupart des icônes récentes, pour rester visible dans une barre d'outils claire
-comme sombre.
+chaque côté restant transparents. **C'est ce que fait la série** : la tuile est
+réduite à 96 unités sur 128 et centrée, si bien que l'icône de la fiche, celle de
+la page des extensions et celle du site respirent de la même façon, à côté des
+autres extensions. Le dessin perd un quart de sa surface, pas ses proportions.
+
+L'icône d'application, elle, garde le bord perdu : macOS et iOS appliquent leur
+propre masque, et une marge transparente y serait rognée.
 
 ## Les images promotionnelles : comment elles se conçoivent
 

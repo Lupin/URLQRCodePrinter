@@ -149,6 +149,22 @@ test('les coins de la tuile sont transparents', () => {
   assert.equal(image.data[0], 0);
 });
 
+test('l\'icône de la fiche laisse 16 pixels transparents de chaque côté', () => {
+  // La recommandation du magasin : le dessin occupe 96 × 96 au centre d'un carré
+  // de 128, 16 pixels transparents de chaque côté. C'est ce qui fait respirer
+  // l'icône à côté des autres extensions dans la page du magasin.
+  const image = renderIcon(128, { marge: true });
+  const alpha = (x, y) => image.data[(y * 128 + x) * 4 + 3];
+  for (const [x, y] of [[0, 0], [8, 64], [119, 64], [0, 127], [64, 8], [64, 119]]) {
+    assert.equal(alpha(x, y), 0, `le bord n'est pas transparent en ${x},${y}`);
+  }
+  assert.equal(alpha(64, 64), 255, 'le centre du dessin est transparent');
+  // Les fichiers livrés suivent la règle.
+  const livre = decodePng(readFileSync(join(ICONS_DIR, 'icon-128.png')));
+  assert.equal(livre.data[(8 * 128 + 64) * 4 + 3], 0);
+  assert.equal(livre.data[(64 * 128 + 64) * 4 + 3], 255);
+});
+
 test('l\'icône d\'application est en bord perdu, sans transparence', () => {
   // macOS et iOS découpent eux-mêmes leur squircle : une tuile déjà arrondie y
   // laisserait des coins vides, et le système n\'aurait plus rien à masquer.

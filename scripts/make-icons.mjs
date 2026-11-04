@@ -75,6 +75,9 @@ const VOYANT = [143, 47, 8];
  */
 const FORME = {
   tuile: { x: 0, y: 0, w: 128, h: 128, r: 28 },
+  // La marge recommandée par le magasin : le dessin occupe 96 unités sur 128,
+  // 16 de chaque côté restant transparents. Voir `echelleDe`.
+  marges: 16,
   etiquette: { x: 34, y: 14, w: 60, h: 64, r: 7 },
   // Le QR Code s'arrête au bord supérieur du corps : le corps le recouvre, et un
   // repère coupé par le papier se verrait à toutes les tailles.
@@ -203,6 +206,45 @@ function grilleQr(taille) {
 // Rendu
 // ---------------------------------------------------------------------------
 
+/**
+ * Le cadre du dessin, selon que l'on suit ou non la marge du magasin.
+ *
+ * Le magasin suggère que l'icône occupe **96 × 96** au centre d'un carré de
+ * 128, les 16 pixels de chaque côté restant transparents : c'est un conseil
+ * d'harmonie entre extensions dans la page du magasin, pas une exigence. La
+ * variante `marge` l'applique en réduisant le dessin d'un quart et en le
+ * centrant — les proportions, elles, ne changent pas.
+ *
+ * @param {boolean} marge
+ * @returns {{ x: number, y: number, echelle: number }}
+ */
+function cadreDe(marge) {
+  if (!marge) return { x: 0, y: 0, echelle: 1 };
+  const echelle = 96 / 128;
+  const retrait = (128 - 96) / 2;
+  return { x: retrait, y: retrait, echelle };
+}
+
+/** Applique le cadre à un rectangle arrondi. */
+function placerRectangle(forme, cadre) {
+  return {
+    x: cadre.x + forme.x * cadre.echelle,
+    y: cadre.y + forme.y * cadre.echelle,
+    w: forme.w * cadre.echelle,
+    h: forme.h * cadre.echelle,
+    r: forme.r * cadre.echelle,
+  };
+}
+
+/** Applique le cadre à un disque. */
+function placerDisque(forme, cadre) {
+  return {
+    cx: cadre.x + forme.cx * cadre.echelle,
+    cy: cadre.y + forme.cy * cadre.echelle,
+    r: forme.r * cadre.echelle,
+  };
+}
+
 /** Test d'appartenance à un rectangle arrondi, en unités. */
 function dansRectangle(x, y, forme) {
   const { x: gx, y: gy, w, h, r } = forme;
@@ -232,13 +274,15 @@ function dansDisque(x, y, forme) {
  * @returns {number[] | null}
  */
 function couleurAuPoint(x, y, options) {
-  const tuile = options.plein ? { ...FORME.tuile, r: 0 } : FORME.tuile;
+  const { formes } = options;
+  // En bord perdu, la tuile couvre tout le carré : aucune transparence.
+  const tuile = options.plein ? { ...formes.tuile, r: 0 } : formes.tuile;
   if (!dansRectangle(x, y, tuile)) return null;
   let couleur = INK;
 
-  if (dansRectangle(x, y, FORME.etiquette)) {
+  if (dansRectangle(x, y, formes.etiquette)) {
     couleur = PAPIER;
-    const { qr } = FORME;
+    const { qr } = formes;
     if (x >= qr.x && x < qr.x + qr.cote && y >= qr.y && y < qr.y + qr.cote) {
       const colonne = Math.floor(((x - qr.x) / qr.cote) * options.grille.n);
       const ligne = Math.floor(((y - qr.y) / qr.cote) * options.grille.n);
@@ -246,9 +290,9 @@ function couleurAuPoint(x, y, options) {
     }
   }
 
-  if (dansRectangle(x, y, FORME.corps)) couleur = PAPIER;
-  if (dansRectangle(x, y, FORME.fente)) couleur = ENCRE;
-  if (dansDisque(x, y, FORME.voyant)) couleur = VOYANT;
+  if (dansRectangle(x, y, formes.corps)) couleur = PAPIER;
+  if (dansRectangle(x, y, formes.fente)) couleur = ENCRE;
+  if (dansDisque(x, y, formes.voyant)) couleur = VOYANT;
   return couleur;
 }
 
@@ -260,8 +304,10 @@ function couleurAuPoint(x, y, options) {
  * laisse une trace grise plutôt que de disparaître d'un coup.
  *
  * @param {number} size Côté en pixels.
- * @param {{ plein?: boolean }} [options] `plein` : bord perdu, pour l'icône
- *   d'application — le système applique son propre masque.
+ * @param {{ plein?: boolean, marge?: boolean }} [options] `plein` : bord perdu,
+ *   pour l'icône d'application — le système applique son propre masque.
+ *   `marge` : dessin réduit à 96 unités sur 128, la recommandation du magasin
+ *   pour l'icône de la fiche.
  * @returns {{ width: number, height: number, data: Buffer }}
  */
 export function renderIcon(size, options = {}) {
@@ -270,6 +316,19 @@ export function renderIcon(size, options = {}) {
   const data = Buffer.alloc(side * side * 4);
   const quatre = 4;
   const grille = grilleQr(side);
+  const cadre = cadreDe(options.marge === true && options.plein !== true);
+  const formes = {
+    tuile: placerRectangle(FORME.tuile, cadre),
+    etiquette: placerRectangle(FORME.etiquette, cadre),
+    corps: placerRectangle(FORME.corps, cadre),
+    fente: placerRectangle(FORME.fente, cadre),
+    voyant: placerDisque(FORME.voyant, cadre),
+    qr: {
+      x: cadre.x + FORME.qr.x * cadre.echelle,
+      y: cadre.y + FORME.qr.y * cadre.echelle,
+      cote: FORME.qr.cote * cadre.echelle,
+    },
+  };
 
   for (let py = 0; py < side; py++) {
     for (let px = 0; px < side; px++) {
@@ -282,7 +341,7 @@ export function renderIcon(size, options = {}) {
         for (let sx = 0; sx < quatre; sx++) {
           const x = ((px + (sx + 0.5) / quatre) / side) * 128;
           const y = ((py + (sy + 0.5) / quatre) / side) * 128;
-          const couleur = couleurAuPoint(x, y, { plein: options.plein === true, grille });
+          const couleur = couleurAuPoint(x, y, { plein: options.plein === true, grille, formes });
           if (!couleur) continue;
           sommeR += couleur[0];
           sommeV += couleur[1];
@@ -337,7 +396,11 @@ export async function writeIcons(outDir) {
   const written = [];
 
   for (const size of ICON_SIZES) {
-    const png = await encodePng(renderIcon(size));
+    // La marge du magasin : le dessin occupe 96 unités sur 128, 16 de chaque
+    // côté restent transparents. C'est la recommandation de la documentation
+    // pour l'icône de la fiche, appliquée à toute la série pour que l'icône de
+    // la page des extensions et celle du magasin ne diffèrent pas.
+    const png = await encodePng(renderIcon(size, { marge: true }));
     const path = join(outDir, `icon-${size}.png`);
     await writeFile(path, png);
     written.push({ size, path, bytes: png.length });

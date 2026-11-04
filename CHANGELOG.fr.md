@@ -52,8 +52,11 @@ service choisi, et la fiche le dit déjà.
   sortant d'une imprimante, sur une tuile de l'orange de la marque. Une seule
   source la produit pour tous les usages — extension, application Safari et
   macOS/iOS (en bord perdu, pour que le système applique son propre masque),
-  site vitrine et favicon de l'application. L'en-tête de l'application porte
-  désormais cette icône, et non plus un tracé distinct à tenir d'accord.
+  site vitrine et favicon de l'application. Le dessin occupe 96 × 96 au centre
+  d'un carré de 128, avec 16 pixels transparents de chaque côté : la
+  recommandation du magasin pour l'icône de la fiche est suivie. L'en-tête de
+  l'application porte désormais cette icône, et non plus un tracé distinct à
+  tenir d'accord.
 
 ### Ce qui ne change pas
 

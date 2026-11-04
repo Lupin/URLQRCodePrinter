@@ -50,7 +50,9 @@ chosen service, and the listing already says so.
 - **A new icon**, chosen from eight proposals: a QR Code label coming out of a
   printer, on a tile in the brand orange. One source produces it for every use —
   the extension, the Safari and macOS/iOS app (full bleed, so the system applies
-  its own mask), the showcase site and the app favicon. The app header now
+  its own mask), the showcase site and the app favicon. The drawing occupies
+  96 × 96 in the centre of a 128 square, with 16 transparent pixels on each side:
+  the store's recommendation for the listing icon is followed. The app header now
   carries that icon instead of a separate drawing to keep in agreement.
 
 ### What does not change
