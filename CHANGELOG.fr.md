@@ -23,10 +23,37 @@ l'époque, et elle n'est pas inventée ici.
 
 ## [Non publié]
 
+## [0.3.2] - 2026-11-08
+
+Cette mise à jour change la marque du produit, et rien de ce qu'il fait. La
+nouvelle icône est une étiquette QR Code sortant d'une imprimante, sur une tuile
+de l'orange de la marque ; elle remplace le tracé monochrome hérité des débuts.
+
+### Modifié
+
+- **Nouvelle icône**, choisie parmi huit propositions : une étiquette QR Code
+  sortant d'une imprimante, sur une tuile de l'orange de la marque. Une seule
+  source la produit pour tous les usages — extension, application Safari et
+  macOS/iOS (en bord perdu, pour que le système applique son propre masque),
+  site vitrine et favicon de l'application. Le dessin occupe 96 × 96 au centre
+  d'un carré de 128, avec 16 pixels transparents de chaque côté : la
+  recommandation du magasin pour l'icône de la fiche est suivie.
+
+- **L'en-tête de l'application porte cette icône**, et non plus un tracé SVG
+  distinct qu'il fallait tenir d'accord avec les fichiers d'icônes à chaque
+  retouche.
+- Les icônes du site vitrine et le favicon de l'application viennent de la même
+  source : une seule retouche vaut pour l'extension, l'application et le site.
+
+### Ce qui ne change pas
+
+Aucune fonctionnalité, aucun réglage, aucune permission. Rien de nouveau n'est
+lu, stocké ni envoyé.
+
 ## [0.3.1] - 2026-11-04
 
 Cette mise à jour ne change pas ce que fait le produit : elle aligne ce qu'il
-dit sur ce qu'il fait, et lui donne une marque unique. Le résumé qui accompagne le paquet — celui que le
+dit sur ce qu'il fait. Le résumé qui accompagne le paquet — celui que le
 navigateur affiche et que la fiche du magasin reprend — ne nomme plus de marque
 d'imprimante, et il dit la même chose que le résumé de la fiche : aucun compte,
 aucun serveur de l'éditeur. Il ne promet plus que « tout reste sur l'appareil »,
@@ -47,16 +74,6 @@ service choisi, et la fiche le dit déjà.
   profit de ce qui se vérifie : aucun compte, aucun serveur de l'éditeur. Le
   raccourcissement, facultatif, envoie l'adresse au service choisi, et la fiche
   le dit.
-
-- **Nouvelle icône**, choisie parmi huit propositions : une étiquette QR Code
-  sortant d'une imprimante, sur une tuile de l'orange de la marque. Une seule
-  source la produit pour tous les usages — extension, application Safari et
-  macOS/iOS (en bord perdu, pour que le système applique son propre masque),
-  site vitrine et favicon de l'application. Le dessin occupe 96 × 96 au centre
-  d'un carré de 128, avec 16 pixels transparents de chaque côté : la
-  recommandation du magasin pour l'icône de la fiche est suivie. L'en-tête de
-  l'application porte désormais cette icône, et non plus un tracé distinct à
-  tenir d'accord.
 
 ### Ce qui ne change pas
 

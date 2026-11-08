@@ -390,7 +390,7 @@ main, et de ce que le portail ne dit pas tout seul.
 | Image « marquee » 1400 × 560 | **Fait** — `store/promo/marquee-1400x560.jpg`, 1400 × 560, JPEG 24 bits sans alpha. Facultative pour publier, mais c'est elle qui sert la mise en avant |
 | Catégorie et langue | **À choisir** : la locale par défaut du manifeste est `fr` |
 | Instructions de test pour la revue | À rédiger si l'extension exige une action particulière |
-| Version publiée | Enregistrée dans `store/listing.json` (`item.publishedVersion`, aujourd'hui `0.3.0`). Le dépôt doit la **dépasser strictement** — voir section 7 |
+| Version publiée | Enregistrée dans `store/listing.json` (`item.publishedVersion`, aujourd'hui `0.3.1`). Le dépôt doit la **dépasser strictement** — voir section 7 |
 
 Les dimensions des visuels sont récapitulées dans [`store/README.md`](../store/README.md),
 avec la source officielle.
@@ -416,7 +416,34 @@ l'envoi, et son message ne nomme aucun fichier. D'où l'ordre ci-dessous.
 | Console | <https://chrome.google.com/webstore/devconsole> |
 | Fiche publique | <https://chromewebstore.google.com/detail/urlqrcodeprinter/fmfbpjekpbopeijaobdffbhhnfgjjbmi> |
 
-### État de la soumission 0.3.1 — 4 novembre 2026
+### État de la soumission 0.3.2 — 8 novembre 2026
+
+**Ce que la 0.3.2 change.** La marque du produit, et rien de son comportement :
+la nouvelle **icône** — tuile orange, étiquette QR Code sortant d'une imprimante —
+remplace le tracé monochrome. Elle est produite par `npm run icons` pour
+l'extension (16 à 1024 px) et pour le catalogue Xcode de l'application (11
+fichiers, en bord perdu). Le dessin occupe 96 × 96 au centre d'un carré de 128,
+16 px transparents de chaque côté : la recommandation du magasin est suivie.
+
+C'est aussi la marque de l'en-tête de l'application, du site vitrine et de son
+favicon : une seule source, donc plus de tracé à tenir d'accord. Les **dix
+captures** de la fiche ont été refaites en conséquence, dans les deux langues ;
+elles ne font pas partie du paquet, il faut les redéposer.
+
+| Élément | État mesuré |
+|---|---|
+| Version à déposer | **0.3.2** (publiée : 0.3.1) |
+| Archive | `dist/url-qrcode-printer-chrome.zip` — **21 fichiers, 1407 Kio**, manifeste MV3, 4 permissions, **aucun hôte** |
+| Tests du produit | `npm test` → **1079 JavaScript, tous verts** |
+| Tests de la fiche | `test/publication.test.js` → **15/15** |
+| Captures | `01` à `05`, en `-fr` et `-en` — 1280 × 800, régénérées le 8 novembre 2026 |
+| Visuels promotionnels | `store/promo/promo-440x280.jpg` et `store/promo/marquee-1400x560.jpg` — inchangés, JPEG 24 bits sans alpha |
+| Note de version | Lue dans `CHANGELOG.md` / `CHANGELOG.fr.md`, entrée `0.3.2` |
+
+Aucune fonctionnalité, aucun réglage, aucune permission ne change : la fiche n'a
+que l'icône et les captures à recevoir, et le paquet à être remplacé.
+
+### État de la soumission 0.3.1 — 4 novembre 2026 · **publiée**
 
 **Le refus qui a motivé cette version**, mot pour mot :
 
@@ -450,13 +477,9 @@ permission ne change.
 | Socle natif | **104 tests** au relevé du 1er octobre, non rejoués ici (cache SwiftPM inaccessible) |
 | Note de version | Lue dans `CHANGELOG.md` / `CHANGELOG.fr.md`, entrée `0.3.1` |
 
-La 0.3.1 porte aussi la **nouvelle icône** — tuile orange, étiquette QR Code
-sortant d'une imprimante — produite par `npm run icons` pour l'extension et pour
-le catalogue Xcode de l'application. C'est la même source qui sert le site
-vitrine et le favicon de l'application.
-
-Le reste de la fiche est inchangé depuis la 0.3.0 : les champs de texte, les
-justifications de permissions et les cinq captures sont ceux décrits ci-dessous.
+La 0.3.1 est **acceptée et en ligne**. Le reste de la fiche n'a pas bougé depuis
+la 0.3.0 : les champs de texte, les justifications de permissions et les captures
+sont ceux décrits ci-dessous.
 
 ### État de la soumission 0.3.0 — 3 novembre 2026 · **publiée**
 

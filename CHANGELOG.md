@@ -23,10 +23,34 @@ invented here either.
 
 ## [Unreleased]
 
+## [0.3.2] - 2026-11-08
+
+This update changes the product's mark, and nothing about what it does. The new
+icon is a QR Code label coming out of a printer, on a tile in the brand orange;
+it replaces the monochrome line drawing inherited from the early days.
+
+### Changed
+
+- **A new icon**, chosen from eight proposals: a QR Code label coming out of a
+  printer, on a tile in the brand orange. One source produces it for every use —
+  the extension, the Safari and macOS/iOS app (full bleed, so the system applies
+  its own mask), the showcase site and the app favicon. The drawing occupies
+  96 × 96 in the centre of a 128 square, with 16 transparent pixels on each side:
+  the store's recommendation for the listing icon is followed.
+
+- **The app header carries that icon**, instead of a separate SVG drawing that
+  had to be kept in agreement with the icon files on every change.
+- The showcase site's icons and the app favicon come from the same source: one
+  edit now applies to the extension, the app and the site.
+
+### What does not change
+
+No feature, no setting, no permission. Nothing new is read, stored or sent.
+
 ## [0.3.1] - 2026-11-04
 
 This update does not change what the product does: it aligns what the product
-says with what it does, and gives it a single mark. The summary shipped with the package — the one the
+says with what it does. The summary shipped with the package — the one the
 browser shows and the store listing reuses — no longer names a printer brand,
 and it now says the same thing as the listing summary: no account, no server run
 by the publisher. It no longer promises that "everything stays on your device",
@@ -46,14 +70,6 @@ chosen service, and the listing already says so.
   favour of what can be verified: no account, no server run by the publisher.
   Shortening, which is optional, sends the address to the chosen service, and
   the listing says so.
-
-- **A new icon**, chosen from eight proposals: a QR Code label coming out of a
-  printer, on a tile in the brand orange. One source produces it for every use —
-  the extension, the Safari and macOS/iOS app (full bleed, so the system applies
-  its own mask), the showcase site and the app favicon. The drawing occupies
-  96 × 96 in the centre of a 128 square, with 16 transparent pixels on each side:
-  the store's recommendation for the listing icon is followed. The app header now
-  carries that icon instead of a separate drawing to keep in agreement.
 
 ### What does not change
 
