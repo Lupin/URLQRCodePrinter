@@ -97,3 +97,41 @@ Trois garde-fous, appris du produit lui-même (l'audit WCAG annonçait 28 × 28 
 1. **Toute note > 4 doit être justifiée par une mesure du rendu**, jamais par une intention de code. Une règle CSS présente n'est pas un défaut corrigé.
 2. **Toute dimension en hausse doit avoir sa capture** dans le dossier de l'itération, au même état que la capture de référence.
 3. **À chaque itération, chercher un défaut, pas une confirmation.** Le rôle de l'audit sévère est de tenir ce rôle, même quand tout va mieux.
+
+---
+
+## 6. Pourquoi une note basse n'est pas un jugement sur le travail
+
+La question revient à chaque audit : le produit est soigné, testé, documenté — comment peut-il valoir 2,3 ? La réponse tient en une phrase : **le barème ne note pas l'effort, il note ce que la personne devant l'écran obtient.** Un moteur d'impression excellent qui reste invisible ne rend service qu'à moitié.
+
+### Où les points se perdent (version 0.4.0)
+
+| Groupe | Dimensions | Poids | Obtenu | Note du groupe |
+|---|---|---|---|---|
+| Lire et comprendre | clarté (12), architecture (12), densité (10), marque (10), charge cognitive (10) | **54** | 114 / 270 | **2,1** |
+| Système et états | composants (8), états (10), affordance (8), finition (2) | 28 | 70,6 / 140 | 2,5 |
+| Accessibilité et adaptation | accessibilité (10), responsive (4) | 14 | 37 / 70 | 2,6 |
+| Ton et texte | microcopy (4) | 4 | 10,4 / 20 | 2,6 |
+
+**54 points sur 100** portent sur la lecture de l'écran — et c'est là que se concentre la perte : 156 des 268 points manquants. Le socle d'ingénierie, lui, n'apparaît que dans l'accessibilité et la finition (14 points au total). C'est volontaire : un audit qui récompenserait le travail réalisé masquerait exactement le problème à corriger (l'aperçu hors écran, la hiérarchie absente), et la refonte ne partirait pas.
+
+### Ce que la note ne dit pas
+
+- Elle ne dit pas que le produit est cassé : il fonctionne, il est testé (1 088 tests), il est accessible au-delà de la moyenne, et sa fenêtre vaut **3,1 / 5** à elle seule.
+- Elle ne dit pas que le travail est vain : elle dit que **la couche qui donne envie et qui évite l'effort n'a jamais été dessinée**.
+- Elle n'est pas absolue : l'audit source de l'application, avec d'autres poids, conclut 2,6 ; un barème qui pèserait l'ingénierie donnerait ~3,5. Ce barème-ci est celui de la cible 4,8, donc il est sévère par construction.
+
+### Les ancrages
+
+| Note | Ce que ça veut dire |
+|---|---|
+| 2,0 | Utilisable, mais rebutant : on s'en sert par obligation. |
+| 2,3 | **Ici.** Tout fonctionne ; le résultat n'est pas visible, et l'écran demande un effort constant. |
+| 3,0 | Outil correct d'ingénieur : on comprend où l'on est, on voit ce qu'on fait. |
+| 4,0 | Outil qu'on montre : la structure et le système tiennent, la marque commence. |
+| 4,8 | On ne remarque plus l'interface tant elle fait ce qu'on attend. |
+
+### Ce que deux paliers suffisent à changer
+
+- **I0 (correctifs)** : les défauts qui coûtent une erreur disparaissent → 2,5. La note ne bouge presque pas, parce que le dessin n'a pas bougé. C'est normal : I0 protège, il ne séduit pas.
+- **I1 (structure)** : l'aperçu visible, un seul primaire, moins de contrôles, des états vides qui agissent → **3,1**. C'est le premier saut ressenti, et il ne touche ni la couleur ni la typographie.

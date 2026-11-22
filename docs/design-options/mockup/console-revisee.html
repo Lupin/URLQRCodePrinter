@@ -433,6 +433,102 @@ body {
 }
 .status .mono { font-size: 10px; }
 
+
+/* --- Fenêtre depuis la barre d'outils (380 × 560) --- */
+
+.pops { display: grid; grid-template-columns: repeat(3, 380px); gap: 20px; padding: 16px 32px 0; }
+.pop-wrap { display: flex; flex-direction: column; gap: 8px; }
+.pop-cap { font-size: 12px; color: #45454a; }
+.pop-cap b { color: #17171a; font-weight: 620; }
+.pop {
+  position: relative;
+  width: 380px; height: 560px;
+  display: flex; flex-direction: column;
+  background: var(--bg);
+  border: 1px solid var(--line-strong);
+  box-shadow: 0 1px 2px rgba(0,0,0,.10), 0 16px 34px rgba(0,0,0,.13);
+}
+.pop__bar {
+  display: flex; align-items: center; gap: 8px;
+  height: 48px; padding: 0 10px 0 12px;
+  border-bottom: 1px solid var(--line-strong);
+  flex: none;
+}
+.pop__mark { width: 18px; height: 18px; display: block; }
+.pop__name {
+  display: inline-flex; align-items: center; gap: 4px;
+  height: 26px; padding: 0 4px;
+  border: 1px solid transparent; background: transparent;
+  font: 600 12.5px/1 var(--font); color: var(--ink); cursor: pointer;
+}
+.pop__count {
+  margin-left: auto;
+  height: 20px; padding: 0 7px;
+  display: inline-flex; align-items: center;
+  background: var(--surface-2); color: var(--ink-2);
+  font: 500 10px/1 var(--mono); letter-spacing: .02em;
+}
+.pop__capture {
+  flex: none;
+  display: flex; flex-direction: column; gap: 7px;
+  padding: 11px 12px 12px;
+  border-bottom: 1px solid var(--line-strong);
+}
+.pop__eyebrow { font: 600 9.5px/1 var(--mono); letter-spacing: .09em; color: var(--ink-3); }
+.pop__page { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.pop__title {
+  font-size: 12.5px; font-weight: 600; line-height: 1.25;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.pop__url { font: 400 10px/1.3 var(--mono); color: var(--ink-3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pop__acts { display: flex; gap: 6px; }
+.pop__acts .btn--primary { flex: 1; height: 32px; }
+.pop__acts .btn--outline { height: 32px; }
+.pop__notice {
+  display: flex; gap: 8px;
+  padding: 8px 10px;
+  border-left: 2px solid var(--ink);
+  background: var(--surface);
+}
+.pop__notice i { flex: none; width: 14px; height: 14px; margin-top: 1px; color: var(--ink); }
+.pop__notice div { display: flex; flex-direction: column; gap: 2px; }
+.pop__notice b { font-size: 11.5px; font-weight: 620; }
+.pop__notice span { font-size: 10.5px; color: var(--ink-3); line-height: 1.35; }
+.pop__manual { display: flex; gap: 6px; }
+.pop__manual .input { height: 30px; font-size: 11.5px; }
+.pop__manual .btn { height: 30px; flex: none; }
+.pop__manual .pop__iconbtn { width: 32px; padding: 0; }
+.pop__list { flex: 1; min-height: 0; overflow: hidden; }
+.pop__row {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center; gap: 8px;
+  height: 44px; padding: 0 6px 0 12px;
+  border-top: 1px solid var(--line);
+}
+.pop__row:first-child { border-top: 0; }
+.pop__row.is-hover { background: var(--surface); }
+.pop__rowmain { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.pop__rowtitle { font-size: 12px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pop__rowhost { font: 400 10px/1.2 var(--mono); color: var(--ink-3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pop__row .iconbtn { opacity: 0; }
+.pop__row:hover .iconbtn, .pop__row.is-hover .iconbtn, .pop__row .iconbtn:focus-visible { opacity: 1; }
+.pop__empty {
+  flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 8px; padding: 20px 26px; text-align: center;
+}
+.pop__empty-t { font-size: 13px; font-weight: 620; }
+.pop__empty-b { font-size: 11px; color: var(--ink-3); line-height: 1.4; max-width: 30ch; }
+.pop__empty .btn { height: 30px; }
+.pop__foot {
+  flex: none;
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  height: 40px; padding: 0 10px 0 12px;
+  border-top: 1px solid var(--line-strong);
+}
+.pop__link { font-size: 10.5px; color: var(--ink-3); text-decoration: underline; text-underline-offset: 2px; }
+.pop__promise { font: 400 9.5px/1 var(--mono); color: var(--ink-3); }
+.pop__foot .btn { height: 26px; padding: 0 8px; font-size: 11px; }
+
 /* --- Spécimens et fondations (hors écrans) --- */
 
 .specimens { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; padding: 18px 32px 0; }
@@ -495,6 +591,8 @@ body {
     <symbol id="i-plus" viewBox="0 0 16 16"><path d="M8 4v8M4 8h8"/></symbol>
     <symbol id="i-down" viewBox="0 0 16 16"><path d="M8 3v10M4 9l4 4 4-4"/></symbol>
     <symbol id="i-printer" viewBox="0 0 16 16"><path d="M4 6V3h8v3M4 12H3V7h10v5h-1M5 9h6v4H5z"/></symbol>
+    <symbol id="i-arrow-up" viewBox="0 0 16 16"><path d="M5 11L11 5M6 5h5v5"/></symbol>
+    <symbol id="i-info" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6"/><path d="M8 7.2v4M8 4.8v.6"/></symbol>
     <symbol id="i-grip" viewBox="0 0 16 16"><circle cx="6" cy="5" r=".8"/><circle cx="10" cy="5" r=".8"/><circle cx="6" cy="8" r=".8"/><circle cx="10" cy="8" r=".8"/><circle cx="6" cy="11" r=".8"/><circle cx="10" cy="11" r=".8"/></symbol>
   </defs>
 </svg>
@@ -832,6 +930,128 @@ body {
     </ol>
   </section>
 
+
+  <!-- ============================================================ -->
+  <!-- ÉCRAN 3 — FENÊTRE DEPUIS LA BARRE                            -->
+  <!-- ============================================================ -->
+  <section class="spec">
+    <div class="spec__caption">
+      <span class="spec__num">ÉCRAN 3 / 3</span>
+      <span class="spec__title">La capture depuis la barre — fenêtre 380 × 560 <small>· page supportée, page refusée, collection vide</small></span>
+    </div>
+
+    <p class="page__lead" style="padding:10px 32px 0;font-size:12px;color:#45454a;max-width:110ch">
+      Le cadre montre la fenêtre à sa taille <b>maximale</b> (380 × 560) : dans Chrome, une fenêtre d'extension se dimensionne à son contenu, donc un état à six liens serait plus court. Les trois états sont rendus au même cadre pour être comparés.
+    </p>
+
+    <div class="pops">
+
+      <!-- A. Page supportée -->
+      <div class="pop-wrap">
+        <div class="pop-cap"><b>A — Page supportée.</b> Le geste par défaut : capturer.</div>
+        <div class="pop" id="pop-a">
+          <div class="pop__bar">
+            <img class="pop__mark" src="../../../src/extension-src/icons/icon-32.png" width="18" height="18" alt="">
+            <button class="pop__name">Mes liens <svg class="i i--12"><use href="#i-chevron"/></svg></button>
+            <span class="pop__count mono">6 liens</span>
+          </div>
+          <div class="pop__capture">
+            <span class="pop__eyebrow">PAGE COURANTE</span>
+            <span class="pop__page">
+              <span class="pop__title">Un article de fond sur la question</span>
+              <span class="pop__url">exemple.fr/un-article-assez-long-pour-compter</span>
+            </span>
+            <div class="pop__acts">
+              <button class="btn btn--primary">Ajouter cette page <kbd>⌘↵</kbd></button>
+              <button class="btn btn--outline">Application <svg class="i i--12"><use href="#i-arrow-up"/></svg></button>
+            </div>
+          </div>
+          <div class="pop__list" id="pop-list-a"></div>
+          <div class="pop__foot">
+            <a class="pop__link" href="#">Confidentialité</a>
+            <button class="btn btn--quiet">Exporter <svg class="i i--12"><use href="#i-chevron"/></svg></button>
+          </div>
+        </div>
+      </div>
+
+      <!-- B. Page refusée -->
+      <div class="pop-wrap">
+        <div class="pop-cap"><b>B — Page refusée.</b> Une cause, un chemin manuel, des actions vivantes.</div>
+        <div class="pop" id="pop-b">
+          <div class="pop__bar">
+            <img class="pop__mark" src="../../../src/extension-src/icons/icon-32.png" width="18" height="18" alt="">
+            <button class="pop__name">Mes liens <svg class="i i--12"><use href="#i-chevron"/></svg></button>
+            <span class="pop__count mono">6 liens</span>
+          </div>
+          <div class="pop__capture">
+            <span class="pop__eyebrow">PAGE COURANTE</span>
+            <div class="pop__notice">
+              <svg class="i"><use href="#i-info"/></svg>
+              <div>
+                <b>Cette page ne peut pas être enregistrée.</b>
+                <span>Les pages internes du navigateur ne sont pas lisibles par l'extension.</span>
+              </div>
+            </div>
+            <div class="pop__manual">
+              <input class="input" placeholder="Coller un lien…" aria-label="Coller un lien">
+              <button class="btn btn--primary">Ajouter</button>
+              <button class="btn btn--outline pop__iconbtn" aria-label="Ouvrir l'application" title="Ouvrir l'application">
+                <svg class="i i--12"><use href="#i-arrow-up"/></svg>
+              </button>
+            </div>
+          </div>
+          <div class="pop__list" id="pop-list-b"></div>
+          <div class="pop__foot">
+            <a class="pop__link" href="#">Confidentialité</a>
+            <button class="btn btn--quiet">Exporter <svg class="i i--12"><use href="#i-chevron"/></svg></button>
+          </div>
+        </div>
+      </div>
+
+      <!-- C. Collection vide -->
+      <div class="pop-wrap">
+        <div class="pop-cap"><b>C — Collection vide.</b> Une action de sortie, pas un cul-de-sac.</div>
+        <div class="pop" id="pop-c">
+          <div class="pop__bar">
+            <img class="pop__mark" src="../../../src/extension-src/icons/icon-32.png" width="18" height="18" alt="">
+            <button class="pop__name">Mes liens <svg class="i i--12"><use href="#i-chevron"/></svg></button>
+            <span class="pop__count mono">0 lien</span>
+          </div>
+          <div class="pop__capture">
+            <span class="pop__eyebrow">PAGE COURANTE</span>
+            <span class="pop__page">
+              <span class="pop__title">Un article de fond sur la question</span>
+              <span class="pop__url">exemple.fr/un-article-assez-long-pour-compter</span>
+            </span>
+            <div class="pop__acts">
+              <button class="btn btn--primary">Ajouter cette page <kbd>⌘↵</kbd></button>
+              <button class="btn btn--outline">Application <svg class="i i--12"><use href="#i-arrow-up"/></svg></button>
+            </div>
+          </div>
+          <div class="pop__empty">
+            <span class="pop__empty-t">Votre premier lien apparaîtra ici</span>
+            <span class="pop__empty-b">Capturez une page depuis la barre, ou ouvrez l'application pour importer une archive.</span>
+            <button class="btn btn--outline">Importer une archive</button>
+          </div>
+          <div class="pop__foot">
+            <a class="pop__link" href="#">Confidentialité</a>
+            <span class="pop__promise">Aucune donnée envoyée</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <ol class="notes">
+      <li><span class="notes__n">1</span><span><b>Capturer est l'action primaire.</b> Un seul orange : « Ajouter cette page ». « Application » reste un secondaire de contour — on quitte la fenêtre pour un travail plus long, on n'y est pas poussé.</span></li>
+      <li><span class="notes__n">2</span><span><b>La page refusée n'est plus une impasse.</b> La cause est écrite, le collage manuel est à portée, les actions restent vivantes : plus d'écran à un seul arrêt de tabulation.</span></li>
+      <li><span class="notes__n">3</span><span><b>La collection vide propose une sortie.</b> Un texte, puis « Importer une archive » ; les exports sans objet disparaissent, et « Vider » n'est plus offert sur du vide.</span></li>
+      <li><span class="notes__n">4</span><span><b>La confidentialité est permanente.</b> Le lien est dans le pied, à chaque état — il ne disparaît plus avec le bandeau de consentement.</span></li>
+      <li><span class="notes__n">5</span><span><b>Le destructif est rangé.</b> Les exports et « Vider la collection » passent dans un menu « Exporter », avec confirmation pour le vidage, au lieu d'un bouton nu à côté de « Markdown ».</span></li>
+      <li><span class="notes__n">6</span><span><b>Une seule zone de défilement.</b> La liste défile (44 px par ligne, × de 24 px), le pied reste fixe ; plus de chevrons de collection non étiquetés — le nom ouvre le menu.</span></li>
+    </ol>
+  </section>
+
   <!-- ============================================================ -->
   <!-- SPÉCIMENS D'ÉTATS                                            -->
   <!-- ============================================================ -->
@@ -1069,6 +1289,23 @@ function rendreFeuille() {
 rendreListe('rows-1', 6, false);
 rendreListe('rows-2', 6, false);
 rendreFeuille();
+
+function rendrePopup() {
+  const lignes = LIENS.slice(1, 7).map(([titre, host], i) => `
+    <div class="pop__row${i === 1 ? ' is-hover' : ''}">
+      <span class="pop__rowmain">
+        <span class="pop__rowtitle">${titre}</span>
+        <span class="pop__rowhost mono">${host}</span>
+      </span>
+      <button class="iconbtn" aria-label="Retirer ce lien"><svg class="i i--12"><use href="#i-close"/></svg></button>
+    </div>`).join('');
+  for (const id of ['pop-list-a', 'pop-list-b']) {
+    const el = document.getElementById(id);
+    if (el) el.innerHTML = lignes;
+  }
+}
+rendrePopup();
+
 document.querySelectorAll('.qr[data-qr]').forEach((el) => {
   el.innerHTML = qrSvg(Number(el.dataset.qr) * 97 + 11);
 });

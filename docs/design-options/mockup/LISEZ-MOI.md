@@ -18,15 +18,16 @@ c'est une proposition à valider, pas une livraison.
 |---|---|
 | Écran 1 — mode Planche | Trois zones : collection (340 px), feuille sur bureau (flexible), inspecteur (304 px). La feuille est visible en permanence, à l'échelle, avec ses repères de coupe et son format écrit dessous. |
 | Écran 2 — mode Niimbot | Même châssis, autre surface : une étiquette cotée (22 × 12 mm), l'imprimante comme **état** en tête d'inspecteur, et un contenu d'étiquette réduit à quatre cases. |
+| Écran 3 — fenêtre depuis la barre | 380 × 560, même langage : capturer est l'action primaire, « Application » un secondaire ; trois états — page supportée, page refusée (cause + collage manuel), collection vide (action de sortie). Confidentialité permanente, exports dans un menu, destructif rangé. |
 | Spécimens | Collection vide, sélection active, série en cours : les trois états qui doivent devenir évidents. |
 | Fondations | Rôles de couleur, échelle typographique, échelle d'espacement, contrôles 28/32/36, rayon 0, une seule ombre. |
 
 ## Ce qui n'est **pas** dans la maquette (volontairement)
 
-Mode sombre, états de focus détaillés, fenêtre 380 px, panneau d'import,
-onboarding, mouvement, mode Tableau et mode Images au-delà de l'onglet. Ces
-sujets viennent en I2 (système, thèmes, focus), I3 (import) et I4 (canvas), et
-seront maquettés au moment de leur palier.
+Mode sombre, états de focus détaillés, panneau d'import complet, onboarding,
+mouvement, mode Tableau et mode Images au-delà de l'onglet. Ces sujets viennent
+en I2 (système, thèmes, focus), I3 (import) et I4 (canvas), et seront maquettés
+au moment de leur palier.
 
 ## Les six décisions à valider (recommandation entre parenthèses)
 
@@ -45,10 +46,15 @@ Elles se tranchent dans le ticket GitHub **#12** (`[Cadrage] Valider la maquette
    repos. (Recommandé : oui, avec le spécimen « sélection » comme état de repli.)
 6. **Le bloc RÉSUMÉ dans l'inspecteur** — feuille, places, pages. (Recommandé :
    oui, il évite d'aller chercher l'information dans le canvas.)
+7. **La fenêtre parle le même langage** — capturer en primaire, l'application en
+   secondaire, la confidentialité permanente, le destructif rangé dans un menu.
+   (Recommandé : oui, une fenêtre n'est pas un second produit.)
 
 ## Après validation
 
 Le palier **I0 (correctifs)** ne dépend pas de ces décisions et peut être livré
-avant. **I1 (structure)** implémente ces deux écrans avec les jetons réels du
-produit, puis rejoue la matrice de captures et le barème
-(`../barre-qualite-ui.md`) pour vérifier la note cible : **3,1 / 5**.
+avant. **I1 (structure)** implémente les deux écrans de l'application avec les
+jetons réels du produit, puis rejoue la matrice de captures et le barème
+(`../barre-qualite-ui.md`) pour vérifier la note cible : **3,1 / 5**. La fenêtre
+suit dans le même palier : ses trois états sont une régression interdite
+(impasse, double défilement, destructif nu).
