@@ -250,6 +250,25 @@ La feuille devient un objet posé, qu'on regarde de près ou de loin.
 **Reste sur #41** : la progression **chiffrée** des exports d'archive. Les archives mesurées tournent autour d'une seconde ; tant qu'une opération peut dépasser ce seuil sur une grosse collection, l'écho ne suffit pas à satisfaire le critère. Ticket laissé ouvert.
 
 
+## Correctif — l'écart entre étiquettes ne rétrécit plus l'étiquette · 22 novembre 2026
+
+Signalé en revue : « en mode planche, l'écart entre étiquettes crée une marge autour du QR Code et efface progressivement le texte ».
+
+**Cause mesurée.** L'écart ne servait pas qu'à espacer : il **réduisait les cotes de l'étiquette**. À 3 × 4 sur A4, l'étiquette passait de **63,5 × 69,1 mm à 57,7 × 69,1 mm** quand l'écart horizontal montait de 1,25 à 10 mm. Le QR Code, calculé sur le plus petit côté, gardait sa proportion — d'où la marge apparente —, et le texte, lui, perdait des lignes jusqu'à disparaître.
+
+**Correctif.** En mode manuel, les cotes viennent de la disposition et **ne bougent plus** ; c'est la **grille** qui cède : moins de colonnes ou de rangées si l'écart grandit, avec l'explication sous l'indice (« L'écart ou la marge a ramené la grille à 2 × 4 : la taille des étiquettes est conservée »). La grille réduite est centrée, et les champs Colonnes/Rangées suivent ce qui s'imprime. La mise en page automatique, elle, continue de déduire les cotes du contenu.
+
+| Mesure (écart 1,25 → 10 mm) | Avant | Après |
+|---|---|---|
+| Cotes de l'étiquette | 63,5 → 57,7 mm | **63,5 × 69,1 mm, constantes** |
+| Largeur du QR Code | 66 → 60 px | **66 px** |
+| Lignes de texte dessinées | 6 → 6 (repliées, plus étroites) | **6, identiques** |
+| Grille | 3 × 4 silencieusement rétrécie | **2 × 4 annoncée, centrée** |
+| Champs Colonnes/Rangées | 3 × 4 (faux) | **2 × 4 (ce qui s'imprime)** |
+| Tests | 1 117 | **1 118** |
+
+Preuves : `.audit/captures-ecart/titre-long-ecart-1.png`, `titre-long-ecart-10.png`, `mesures-ecart2.json`.
+
 ## Dettes de finition (assumées, pour I6)
 
 Consignées au fil des revues, traitées lors de la **passe générale** avant la note 4,8 :

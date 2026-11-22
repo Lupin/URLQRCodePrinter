@@ -229,6 +229,8 @@ const EN_MESSAGES = {
   "{width} mm": "{width} mm",
   "{height} mm": "{height} mm",
   "Ajuster la grille": "Fit the grid",
+  "Taille des étiquettes : {size}, {columns} × {rows} par feuille.": "Label size: {size}, {columns} × {rows} per sheet.",
+  "L'écart ou la marge a ramené la grille à {columns} × {rows} : la taille des étiquettes est conservée.": "The gap or margin reduced the grid to {columns} × {rows}: label size is preserved.",
   "Préparation de la planche…": "Preparing the sheet…",
   "Préparation du tableau…": "Preparing the table…",
   "Préparation de l'archive des étiquettes…": "Preparing the labels archive…",

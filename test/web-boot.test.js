@@ -219,7 +219,7 @@ test('la phrase annonce la taille déduite, dès le démarrage', () => {
   // Elle doit être là **avant** le premier lien : c'est au moment où l'on règle
   // la planche qu'on a besoin de la comprendre.
   const hint = registry.get('sheet-fit-hint').textContent;
-  assert.match(hint, /déduite de ces six valeurs/, `phrase : « ${hint} »`);
+  assert.match(hint, /Taille des étiquettes :/, `phrase : « ${hint} »`);
   assert.match(hint, /par feuille/);
   assert.match(hint, /\d+,\d+ × \d+,\d+ mm/, `cotes à la française : « ${hint} »`);
   assert.equal(/Décalage appliqué/.test(hint), false, 'aucun décalage au départ');

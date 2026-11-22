@@ -3359,6 +3359,59 @@ function sheetConfig() {
     return { ...config, problem: garde.reason, gridFix: garde };
   }
 
+  // **Mode manuel : les cotes de l'étiquette ne bougent plus.**
+  //
+  // L'écart et la marge ne doivent pas rétrécir l'étiquette : c'est ce qui
+  // effaçait son texte quand on augmentait l'écart, tout en laissant une marge
+  // autour du QR Code. La disposition garde donc ses cotes, et c'est la
+  // **grille** qui cède : moins de colonnes ou de rangées si l'écart grandit.
+  // La mise en page automatique, elle, continue de déduire les cotes du
+  // contenu — c'est son rôle, et elle écrit les champs avant ce calcul.
+  const autoActif = Boolean(el.sheetAuto?.checked) && preset.group === 'generic';
+  if (!autoActif) {
+    const coteW = preset.labelWidthMm;
+    const coteH = preset.labelHeightMm;
+    const usableW = page.widthMm - 2 * demande.marginXMm;
+    const usableH = page.heightMm - 2 * demande.marginYMm;
+    const capacite = (usable, cote, gap) => (gap === 0
+      ? Math.floor(usable / cote + 1e-9)
+      : Math.floor((usable + gap) / (cote + gap) + 1e-9));
+    const maxColonnes = Math.max(1, capacite(usableW, coteW, demande.gapXMm));
+    const maxRangees = Math.max(1, capacite(usableH, coteH, demande.gapYMm));
+    const columns = Math.min(garde.columns, maxColonnes);
+    const rows = Math.min(garde.rows, maxRangees);
+    // La grille réduite est **centrée** : sans cela, elle restait collée à la
+    // marge gauche et laissait un vide à droite, ce qui se voyait dès que
+    // l'écart faisait perdre une colonne.
+    const contenuW = columns * coteW + (columns - 1) * demande.gapXMm;
+    const contenuH = rows * coteH + (rows - 1) * demande.gapYMm;
+    const reduit = columns !== garde.columns || rows !== garde.rows;
+    // Centrage **seulement** quand la grille a cédé : sinon la marge demandée
+    // reste la marge, et un refus d'en-tête continue de se voir.
+    const marginXC = reduit
+      ? Math.max(demande.marginXMm, (page.widthMm - contenuW) / 2)
+      : demande.marginXMm;
+    const marginYC = reduit
+      ? Math.max(demande.marginYMm, (page.heightMm - contenuH) / 2)
+      : demande.marginYMm;
+    return {
+      ...config,
+      columns,
+      rows,
+      labelWidthMm: coteW,
+      labelHeightMm: coteH,
+      marginXMm: marginXC,
+      marginYMm: marginYC,
+      gapXMm: demande.gapXMm,
+      gapYMm: demande.gapYMm,
+      gridFix: {
+        columns: garde.columns,
+        rows: garde.rows,
+        reduced: columns !== garde.columns || rows !== garde.rows,
+      },
+    };
+  }
+
   const grid = fitGrid({
     ...demande,
     columns: garde.columns,
@@ -3599,12 +3652,18 @@ function updateFitHint(state) {
   const size = `${decimal(layout.labelWidthMm)} × ${decimal(layout.labelHeightMm)} mm`;
 
   const parts = [
-    t('Taille des étiquettes déduite de ces six valeurs : {size}, {columns} × {rows} par feuille.', {
+    t('Taille des étiquettes : {size}, {columns} × {rows} par feuille.', {
       size,
       columns: layout.columns,
       rows: layout.rows,
     }),
   ];
+  if (state.gridFix?.reduced) {
+    parts.push(t('L\'écart ou la marge a ramené la grille à {columns} × {rows} : la taille des étiquettes est conservée.', {
+      columns: layout.columns,
+      rows: layout.rows,
+    }));
+  }
 
   if (offsetXMm !== 0 || offsetYMm !== 0) {
     const moves = [];
@@ -3901,6 +3960,18 @@ function buildSheetPages(items) {
   // six cotes, et la disposition se lit ensuite dans les champs.
   const { config, layout, pages } = planchePlacement(items);
 
+  // Un champ doit dire ce qui s'imprime : quand l'écart ramène la grille, les
+  // champs Colonnes/Rangées suivent, sinon ils annonceraient une grille que
+  // l'aperçu ne dessine pas.
+  if (config.gridFix?.reduced) {
+    if (el.sheetColumns && document.activeElement !== el.sheetColumns) {
+      el.sheetColumns.value = String(layout.columns);
+    }
+    if (el.sheetRows && document.activeElement !== el.sheetRows) {
+      el.sheetRows.value = String(layout.rows);
+    }
+  }
+
   const encoded = pages.map((page) => page.items.map(({ item, cell }) => ({
     item,
     cell,
@@ -4007,6 +4078,7 @@ function buildSheetPages(items) {
     layout,
     offsetXMm: Number(el.sheetOffsetX.value) || 0,
     offsetYMm: Number(el.sheetOffsetY.value) || 0,
+    gridFix: config.gridFix,
   });
 
   // L'en-tête de page vit dans la marge du haut : on vérifie qu'il y tient

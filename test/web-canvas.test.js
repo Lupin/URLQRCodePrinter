@@ -57,3 +57,18 @@ test('la numérotation des pages est une option, appliquée au papier et à l’
   assert.match(APP, /const pages = numeroterPages\(buildSheetPages\(items\)\)/);
   assert.match(APP, /el\.sheetPageNumbers\?\.addEventListener\('change', renderPreview\)/);
 });
+
+test('l’écart ne rétrécit plus l’étiquette : c’est la grille qui cède', () => {
+  // En mode manuel, les cotes viennent de la disposition et restent stables.
+  assert.match(APP, /if \(!autoActif\) \{/);
+  assert.match(APP, /labelWidthMm: coteW,/);
+  assert.match(APP, /const maxColonnes = Math\.max\(1, capacite\(usableW, coteW, demande\.gapXMm\)\)/);
+  assert.match(APP, /reduced: columns !== garde\.columns \|\| rows !== garde\.rows/);
+  // La grille réduite est centrée, sinon le vide tombe d'un seul côté.
+  assert.match(APP, /Math\.max\(demande\.marginXMm, \(page\.widthMm - contenuW\) \/ 2\)/);
+  // Les champs suivent la grille réduite : ils disent ce qui s'imprime.
+  assert.match(APP, /if \(el\.sheetColumns && document\.activeElement !== el\.sheetColumns\)/);
+  // Et l'indice dit la taille, puis pourquoi la grille a cédé.
+  assert.match(APP, /Taille des étiquettes : \{size\}, \{columns\} × \{rows\} par feuille\./);
+  assert.match(APP, /a ramené la grille à \{columns\} × \{rows\} : la taille des étiquettes est conservée\./);
+});
