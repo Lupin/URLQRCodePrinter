@@ -331,6 +331,25 @@ Preuves : `.audit/captures-reorder/` (`apres-reorder.png`, `mesures-reorder.json
 
 **Reste pour I6** : la passe générale de finition — curseur (#54), derniers composants « décoffrés », revue à l'œil des quatre surfaces, et vérification du barème instrumenté (#50) pour viser 4,8.
 
+## I6 — Polissage, microcopy et WCAG · 22 novembre 2026
+
+**Tag** : `checkpoint/i6` · **Tickets fermés** : #47, #48, #54 · **Note mesurée : 3,9 / 5** (cible 4,8 non tenue).
+
+| Mesure | Avant | Après | Preuve |
+|---|---|---|---|
+| Curseur | lame 10 × 20, piste 3 px | **lame 6 × 18, piste 2 px** ; même remplissage, moins de masse | `mockup/curseur-final.png` |
+| Résumé d'impression | « (A4 (210 × 297 mm)) » | **« (A4) »** | relevé I4b |
+| Accords d'export arrêté | « étiquette(s) », « QR Code(s) » | **étiquette / étiquettes**, **QR Code / QR Codes** via `tpl` | test |
+| Contraste texte (clair / sombre) | — | **18,1:1 / 16,45:1** | `mesures-i6.json` |
+| Secondaire / tertiaire | — | **10,4 / 6,69** clair · **8,86 / 6,36** sombre | idem |
+| Désactivé | 5,46 / 5,31 | **inchangé, ≥ 4,5** | idem |
+| Onglet actif | 14,2 / 11,49 | inchangé | idem |
+| Anneau de focus | — | **5,18:1** clair · **8:1** sombre | idem |
+| Tests | 1 126 | **1 126** | `npm test` vert |
+
+**Écart avec la cible 4,8.** La mesure donne **3,9**. Le plan tablait sur 4,8 après six paliers ; les paliers ont surtout corrigé la structure, la sortie et la cohérence, pas encore l'**identité** : typographie propriétaire, iconographie, mouvement, traitement des états vides, densité au pixel. Les tickets **#49** (note 4,8) et **#51** (porte 4,5) restent ouverts : les fermer sur 3,9 serait un mensonge de mesure.
+
+**Prochaine étape proposée** : une itération d'identité (I7), pas un polissage de plus — dessin typographique et iconographique, mouvement, et re-mesure du barème instrumenté.
 ## Dettes de finition (assumées, pour I6)
 
 Consignées au fil des revues, traitées lors de la **passe générale** avant la note 4,8 :

@@ -2080,7 +2080,7 @@ input[type="range"] {
 }
 
 input[type="range"]::-webkit-slider-runnable-track {
-  height: 3px;
+  height: 2px;
   background: linear-gradient(
     to right,
     var(--ink) 0 var(--slider-pct),
@@ -2088,23 +2088,23 @@ input[type="range"]::-webkit-slider-runnable-track {
   );
 }
 
-/* Une lame de fader plutôt qu'un pavé : 20 px de haut pour une piste de 3 px,
-   et une largeur de 10 px. Le rapport est lisible, la cible confortable. */
+/* Une lame fine plutôt qu'un pavé : 18 px de haut, 6 px de large, pour une
+   piste de 2 px. La masse du pouce ne domine plus la ligne. */
 input[type="range"]::-webkit-slider-thumb {
   appearance: none;
   -webkit-appearance: none;
-  width: 10px;
-  height: 20px;
-  margin-top: -8.5px;
+  width: 6px;
+  height: 18px;
+  margin-top: -8px;
   border: 0;
   border-radius: var(--radius);
   background: var(--ink);
 }
 
-input[type="range"]::-moz-range-track { height: 3px; background: var(--border-strong); }
-input[type="range"]::-moz-range-progress { height: 3px; background: var(--ink); }
+input[type="range"]::-moz-range-track { height: 2px; background: var(--border-strong); }
+input[type="range"]::-moz-range-progress { height: 2px; background: var(--ink); }
 input[type="range"]::-moz-range-thumb {
-  width: 10px; height: 20px; border: 0; border-radius: var(--radius); background: var(--ink);
+  width: 6px; height: 18px; border: 0; border-radius: var(--radius); background: var(--ink);
 }
 
 input[type="range"]:focus-visible {

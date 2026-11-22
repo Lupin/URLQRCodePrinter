@@ -45,7 +45,9 @@ test('un export long se suit, s’arrête et rend un bilan', () => {
   assert.match(APP, /let arret = false;/);
   assert.match(APP, /if \(arret\) break;/);
   assert.match(APP, /Arrêter \(\{index\}\/\{total\}\)/);
-  assert.match(APP, /Export arrêté : \{faites\} étiquette\(s\) sur \{total\}\./);
+  // Accords réels : une étiquette / des étiquettes, jamais « (s) ».
+  assert.match(APP, /'Export arrêté : \{count\} étiquette sur \{total\}\.'/);
+  assert.match(APP, /'Export arrêté : \{count\} étiquettes sur \{total\}\.'/);
   assert.match(APP, /\{count\} étiquettes exportées — \{filename\}/);
 });
 

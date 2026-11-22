@@ -6137,10 +6137,12 @@ async function exportLabelImages() {
     }
 
     if (arret) {
-      toast(t('Export arrêté : {faites} étiquette(s) sur {total}.', {
+      toast(tpl(
         faites,
-        total: planned.length,
-      }), 'info');
+        'Export arrêté : {count} étiquette sur {total}.',
+        'Export arrêté : {count} étiquettes sur {total}.',
+        { count: faites, total: planned.length },
+      ), 'info');
       return;
     }
 
@@ -6212,8 +6214,11 @@ function pagesImprimees(items) {
 function papierImprime() {
   if (mode === 'table') return PAGE_SIZES.a4?.label ?? 'A4';
   if (mode === 'sheet') {
+    // « A4 », et non « A4 (210 × 297 mm) » : le résumé d'impression écrit déjà
+    // le format entre parenthèses, et le nom de papier complet donnait
+    // « (A4 (210 × 297 mm)) ».
     const config = sheetConfig();
-    return PAGE_SIZES[config.page]?.label ?? '';
+    return (PAGE_SIZES[config.page]?.label ?? '').replace(/\s*\([^)]*\)\s*$/, '');
   }
   return previewProfile().id;
 }
@@ -7415,10 +7420,14 @@ async function exportTableArchive() {
       shouldStop: () => arret,
     });
     if (resultat.aborted) {
-      toast(t('Export arrêté : {faites} QR Code(s) sur {total}.', {
-        faites: resultat.done ?? faits,
-        total: resultat.total ?? total,
-      }), 'info');
+      const faites = resultat.done ?? faits;
+      const total = resultat.total ?? 0;
+      toast(tpl(
+        faites,
+        'Export arrêté : {count} QR Code sur {total}.',
+        'Export arrêté : {count} QR Codes sur {total}.',
+        { count: faites, total },
+      ), 'info');
       return;
     }
     const { bytes } = resultat;

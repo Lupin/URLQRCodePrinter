@@ -231,6 +231,10 @@ const EN_MESSAGES = {
   "{width} mm": "{width} mm",
   "{height} mm": "{height} mm",
   "Ajuster la grille": "Fit the grid",
+  "Export arrêté : {count} étiquette sur {total}.": "Export stopped: {count} of {total} labels.",
+  "Export arrêté : {count} étiquettes sur {total}.": "Export stopped: {count} of {total} labels.",
+  "Export arrêté : {count} QR Code sur {total}.": "Export stopped: {count} of {total} QR Codes.",
+  "Export arrêté : {count} QR Codes sur {total}.": "Export stopped: {count} of {total} QR Codes.",
   "Taille des étiquettes : {size}, {columns} × {rows} par feuille.": "Label size: {size}, {columns} × {rows} per sheet.",
   "L'écart ou la marge a ramené la grille à {columns} × {rows} : la taille des étiquettes est conservée.": "The gap or margin reduced the grid to {columns} × {rows}: label size is preserved.",
   "Préparation de la planche…": "Preparing the sheet…",
@@ -244,8 +248,6 @@ const EN_MESSAGES = {
   "Encoder l'adresse courte": "Encode the short address",
   "Changer d'étiquette": "Change label",
   "Arrêter ({index}/{total})": "Stop ({index}/{total})",
-  "Export arrêté : {faites} étiquette(s) sur {total}.": "Export stopped: {faites} of {total} labels.",
-  "Export arrêté : {faites} QR Code(s) sur {total}.": "Export stopped: {faites} of {total} QR Codes.",
   "{count} étiquette exportée — {filename}": "{count} label exported — {filename}",
   "{count} étiquettes exportées — {filename}": "{count} labels exported — {filename}",
   "Exporter, importer et vider": "Export, import and clear",
@@ -19088,10 +19090,12 @@ async function exportLabelImages() {
     }
 
     if (arret) {
-      toast(t('Export arrêté : {faites} étiquette(s) sur {total}.', {
+      toast(tpl(
         faites,
-        total: planned.length,
-      }), 'info');
+        'Export arrêté : {count} étiquette sur {total}.',
+        'Export arrêté : {count} étiquettes sur {total}.',
+        { count: faites, total: planned.length },
+      ), 'info');
       return;
     }
 
@@ -19163,8 +19167,11 @@ function pagesImprimees(items) {
 function papierImprime() {
   if (mode === 'table') return PAGE_SIZES.a4?.label ?? 'A4';
   if (mode === 'sheet') {
+    // « A4 », et non « A4 (210 × 297 mm) » : le résumé d'impression écrit déjà
+    // le format entre parenthèses, et le nom de papier complet donnait
+    // « (A4 (210 × 297 mm)) ».
     const config = sheetConfig();
-    return PAGE_SIZES[config.page]?.label ?? '';
+    return (PAGE_SIZES[config.page]?.label ?? '').replace(/\s*\([^)]*\)\s*$/, '');
   }
   return previewProfile().id;
 }
@@ -20366,10 +20373,14 @@ async function exportTableArchive() {
       shouldStop: () => arret,
     });
     if (resultat.aborted) {
-      toast(t('Export arrêté : {faites} QR Code(s) sur {total}.', {
-        faites: resultat.done ?? faits,
-        total: resultat.total ?? total,
-      }), 'info');
+      const faites = resultat.done ?? faits;
+      const total = resultat.total ?? 0;
+      toast(tpl(
+        faites,
+        'Export arrêté : {count} QR Code sur {total}.',
+        'Export arrêté : {count} QR Codes sur {total}.',
+        { count: faites, total },
+      ), 'info');
       return;
     }
     const { bytes } = resultat;
