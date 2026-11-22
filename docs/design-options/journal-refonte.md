@@ -109,12 +109,37 @@ Le socle qui fait tenir l'écran : des échelles nommées, des contrôles à tro
 
 ---
 
+## I2b — Variantes, composants natifs, thème sombre · 22 novembre 2026
+
+**Tag** : `checkpoint/i2b` · **Tickets fermés** : #29, #30, #31, #32, #33 · **Note mesurée** : **3,3 / 5** (cible du plan : 3,7).
+
+Le dernier étage du système : les paddings, les variantes, les contrôles natifs et le thème sombre.
+
+| Mesure | Avant I2b | Après I2b | Preuve |
+|---|---|---|---|
+| Paddings en pixels hors échelle | 20 déclarations | **0** (clamp et mm exceptés) | test `design-scale` |
+| Variantes de bouton | une classe `btn--outline` employée mais **non définie** | table fermée de 8 variantes, testée | test |
+| Cases à cocher | natives (bleu système) | **habillées** : bordure encre, coche SVG, focus visible | capture Tableau |
+| Curseur (taille du QR Code) | natif | **piste 2 px, pouce carré encre** | capture Tableau |
+| Barres de défilement | par défaut | fines, encre, transparentes | règle + captures |
+| Thème sombre — texte | non re-mesuré | **16,5:1** (texte), 8,9:1 (secondaire), 6,4:1 (tertiaire) | calcul sur jetons |
+| Thème sombre — désactivé | 5,31:1 | **5,31:1** (≥ 4,5) | calcul |
+| Thème sombre — primaire | 10,5:1 | **10,5:1** | calcul |
+| Thème sombre — onglet actif | 1,10:1 avant I2a | **11,49:1** | calcul + capture |
+| Tests | 1 096 | **1 099** | `npm test` vert |
+
+**Écart avec la cible du plan (3,7)** : la mesure donne **3,3**. L'estimation de 3,7 était trop optimiste — elle supposait que le système suffirait à lui seul. Les points restants sont dans I3 (liste, sélection, détail, recherche, import) et I4 (canvas, zoom, progression, sorties), pas dans des jetons supplémentaires. Je préfère le dire maintenant que l'ajuster après coup.
+
+**Flake connu** : le test de l'encart de consentement (minuterie `settle()`) échoue environ une fois sur trois sous charge, puis repasse. Il est indépendant de la refonte ; à stabiliser séparément.
+
+---
+
 ## Prochains paliers
 
 | Palier | Note visée | Porte de sortie |
 |---|---|---|
 | I1 Structure (I1a + I1b) | 3,0 mesuré | aperçu visible sans défiler (0 px), 1 primaire, < 40 contrôles |
-| I2 Système (I2a fait, I2b à venir) | 3,7 | 0 valeur hors échelle, onglet actif ≥ 3:1 |
+| I2 Système (I2a + I2b) | 3,3 mesuré (cible 3,7 non tenue) | 0 valeur hors échelle, onglet actif ≥ 3:1 |
 | I3 Liste & flux | 4,1 | liste dense, sélection contextuelle, import guidé |
 | I4 Canvas & sortie | 4,45 | planche encadrée, zoom, progression |
 | I5 Marque & site | 4,65 | direction tenue, site avec preuve visuelle |

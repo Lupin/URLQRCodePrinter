@@ -65,3 +65,30 @@ test('les gaps suivent l’échelle (les millimètres du papier exceptés)', () 
     .filter((v) => /\d+(\.\d+)?px/.test(v));
   assert.deepEqual(hors, [], 'gaps en pixels : ' + hors.join(' | '));
 });
+
+test('les paddings suivent l’échelle (clamp et millimètres exceptés)', () => {
+  const hors = [...cssEcran().matchAll(/padding:\s*([^;]+);/g)]
+    .map((m) => m[1].trim())
+    .filter((v) => /\d+(\.\d+)?px/.test(v) && !/clamp\(/.test(v));
+  assert.deepEqual(hors, [], 'paddings en pixels : ' + hors.join(' | '));
+});
+
+test('les variantes de bouton employées existent toutes dans la feuille', () => {
+  const html = readFileSync(new URL('src/web/index.html', ROOT), 'utf8');
+  const utilisees = new Set([...html.matchAll(/btn--[a-z-]+/g)].map((m) => m[0]));
+  const permises = new Set([
+    'btn--primary', 'btn--ghost', 'btn--outline', 'btn--danger',
+    'btn--fill', 'btn--small', 'btn--wide', 'btn--arrow',
+  ]);
+  for (const classe of utilisees) {
+    assert.ok(permises.has(classe), `variante hors table : ${classe}`);
+    assert.match(CSS, new RegExp(`\\.${classe}\\b`), `règle absente : ${classe}`);
+  }
+});
+
+test('les contrôles natifs sont habillés comme le reste du système', () => {
+  assert.match(CSS, /input\[type="checkbox"\][^{]*\{[^}]*appearance:\s*none/);
+  assert.match(CSS, /input\[type="range"\][^{]*\{[^}]*appearance:\s*none/);
+  assert.match(CSS, /::-webkit-slider-thumb/);
+  assert.match(CSS, /scrollbar-width:\s*thin/);
+});
