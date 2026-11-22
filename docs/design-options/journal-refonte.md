@@ -130,6 +130,8 @@ Le dernier étage du système : les paddings, les variantes, les contrôles nati
 
 **Écart avec la cible du plan (3,7)** : la mesure donne **3,3**. L'estimation de 3,7 était trop optimiste — elle supposait que le système suffirait à lui seul. Les points restants sont dans I3 (liste, sélection, détail, recherche, import) et I4 (canvas, zoom, progression, sorties), pas dans des jetons supplémentaires. Je préfère le dire maintenant que l'ajuster après coup.
 
+**Correctif après revue (même jour)** : le curseur « Taille du QR Code » porte la classe `.input` pour sa largeur, et héritait donc du filet, du fond de focus et de l'anneau intérieur d'encre des champs — un cadre noir épais au clic. Remise à zéro ciblée (`border: 0`, fond et `box-shadow` neutralisés) ; le focus clavier garde son anneau d'accent de 2 px. Test de garde ajouté (`design-scale`), comparaison visuelle : `mockup/curseur-avant-apres.png`.
+
 **Flake connu** : le test de l'encart de consentement (minuterie `settle()`) échoue environ une fois sur trois sous charge, puis repasse. Il est indépendant de la refonte ; à stabiliser séparément.
 
 ---

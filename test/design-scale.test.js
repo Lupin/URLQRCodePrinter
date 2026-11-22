@@ -92,3 +92,12 @@ test('les contrôles natifs sont habillés comme le reste du système', () => {
   assert.match(CSS, /::-webkit-slider-thumb/);
   assert.match(CSS, /scrollbar-width:\s*thin/);
 });
+
+test('le curseur ne reprend pas le cadre des champs texte', () => {
+  const regle = CSS.match(/^\.input\[type="range"\] \{([\s\S]*?)\}/m);
+  assert.ok(regle, 'aucune remise à zéro du curseur');
+  assert.match(regle[1], /border:\s*0/);
+  const focus = CSS.match(/^\.input\[type="range"\]:focus,[\s\S]*?\}/m);
+  assert.ok(focus, 'focus du curseur non neutralisé');
+  assert.match(focus[0], /box-shadow:\s*none/);
+});

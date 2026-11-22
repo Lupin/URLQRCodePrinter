@@ -2018,3 +2018,20 @@ input[type="range"]:focus-visible {
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M3.2 8.6l3.1 3.1 6.5-6.6' fill='none' stroke='%23f4f4f4' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
   }
 }
+
+/* Un curseur n'est pas un champ texte, même s'il porte `.input` pour sa
+   largeur. Sans cette remise à zéro, il héritait du filet, du fond de focus et
+   de l'anneau intérieur d'encre des champs — un cadre noir épais autour de la
+   piste au moindre clic. Le focus clavier garde son anneau d'accent, plus bas. */
+.input[type="range"] {
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.input[type="range"]:focus,
+.input[type="range"]:focus-visible {
+  background: transparent;
+  box-shadow: none;
+}
