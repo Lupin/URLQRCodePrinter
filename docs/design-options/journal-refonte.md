@@ -231,6 +231,21 @@ La feuille devient un objet posé, qu'on regarde de près ou de loin.
 
 ---
 
+## I4c (en cours) — Numérotation des pages · 22 novembre 2026
+
+Demandé en revue : « en multiplanches, quand on veut imprimer, on n'a pas de pagination ».
+
+| Mesure | Résultat |
+|---|---|
+| Option de mise en page | case **« Numéroter les pages »**, dans le groupe Page, **cochée par défaut**, avec son explication |
+| Où le numéro apparaît | **« Page 1 / 4 »** dans la marge basse, à l'aperçu **et** sur le papier |
+| Pages numérotées | seulement les liasses (> 1 page) ; une planche d'une page reste inchangée |
+| Impact sur la grille | **aucun** : le numéro est en position absolue, hors du calcul des cotes |
+| Coche décochée | aucun numéro (relevé : 0 élément), aperçu redessiné |
+| Marge basse mesurée | 3 mm au papier ; 6 px à l'écran à 54 % |
+
+Preuves : `.audit/captures-i4c/` (`app-1440-numerotation.png`, `app-1440-sans-numerotation.png`, `mesures-numerotation.json`).
+
 ## Dettes de finition (assumées, pour I6)
 
 Consignées au fil des revues, traitées lors de la **passe générale** avant la note 4,8 :

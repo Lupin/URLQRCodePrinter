@@ -1519,6 +1519,18 @@ textarea.input { padding: var(--space-2) var(--space-3); }
 /* L'ombre d'une feuille posée sur le bureau, à l'écran seulement. */
 .print-page--screen { box-shadow: var(--shadow-sheet); }
 
+/* Le numéro de page vit dans la marge basse, hors de la grille d'étiquettes :
+   il n'entre pas dans le calcul de la planche et ne décale rien. */
+.print-page__number {
+  position: absolute;
+  right: 0;
+  bottom: 3mm;
+  left: 0;
+  text-align: center;
+  color: #555;
+  font: 8pt/1 var(--font);
+}
+
 .print-cell {
   position: absolute;
   display: flex;

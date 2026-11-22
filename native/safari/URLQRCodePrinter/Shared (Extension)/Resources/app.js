@@ -223,6 +223,9 @@ const EN_MESSAGES = {
   "Zoom avant": "Zoom in",
   "Zoom arrière": "Zoom out",
   "Aperçu à {percent} % de la taille réelle.": "Preview at {percent}% of actual size.",
+  "Numéroter les pages": "Number pages",
+  "Ajoute « Page 1 / 4 » dans la marge basse, sur l'aperçu comme sur le papier.": "Adds “Page 1 / 4” in the bottom margin, in the preview and on paper.",
+  "Page {index} / {total}": "Page {index} / {total}",
   "Imprimer {count} lien": "Print {count} link",
   "Imprimer {count} liens": "Print {count} links",
   "sur {count} page": "on {count} page",
@@ -3274,6 +3277,7 @@ const ELEMENT_IDS = Object.freeze([
   'sheet-date-hint',
   'sheet-fit-hint',
   'sheet-auto',
+  'sheet-page-numbers',
   'sheet-auto-hint',
   'sheet-columns',
   'sheet-rows',
@@ -17964,7 +17968,7 @@ function renderPreview() {
   // Planche : on affiche les deux premières pages, à l'échelle. La légende dit
   // le nombre de feuilles, le format et l'échelle absolue — les trois faits
   // qu'on ne peut pas deviner avant d'imprimer.
-  const pages = buildSheetPages(items);
+  const pages = numeroterPages(buildSheetPages(items));
   for (const page of pages.slice(0, 2)) {
     el.preview.appendChild(scaleForScreen(page));
   }
@@ -18016,6 +18020,28 @@ function previewViewportWidth() {
  * @param {HTMLElement} page
  * @returns {HTMLElement}
  */
+/**
+ * Ajoute « Page i / n » dans la marge basse des feuilles.
+ *
+ * La numérotation n'a de sens que sur une liasse : une planche d'une page reste
+ * telle quelle. L'élément est **hors grille** (position absolue), donc il ne
+ * change ni les cotes ni le nombre d'étiquettes par feuille.
+ *
+ * @param {HTMLElement[]} pages
+ * @returns {HTMLElement[]}
+ */
+function numeroterPages(pages) {
+  const actif = el.sheetPageNumbers ? el.sheetPageNumbers.checked : true;
+  if (!actif || pages.length < 2) return pages;
+  pages.forEach((page, index) => {
+    const numero = document.createElement('span');
+    numero.className = 'print-page__number';
+    numero.textContent = t('Page {index} / {total}', { index: index + 1, total: pages.length });
+    page.appendChild(numero);
+  });
+  return pages;
+}
+
 function scaleForScreen(page) {
   const widthMm = Number.parseFloat(page.style.width);
   const heightMm = Number.parseFloat(page.style.height);
@@ -19034,6 +19060,9 @@ function demanderImpression() {
     return;
   }
   panneau.hidden = false;
+  // Une seule action primaire à l'écran : le bouton du pied s'efface le temps
+  // de la confirmation, sinon deux « Imprimer » se disputent le clic.
+  el.print.hidden = true;
   document.getElementById('print-confirm-go')?.focus();
 }
 
@@ -19042,6 +19071,7 @@ function annulerImpression() {
   const panneau = document.getElementById('print-confirm');
   if (!panneau || panneau.hidden) return;
   panneau.hidden = true;
+  el.print.hidden = !(mode === 'sheet' || mode === 'table');
   el.print.focus();
 }
 
@@ -19064,7 +19094,7 @@ function printSelection() {
     applyPrintPageSize(config.widthMm, config.heightMm);
     for (const page of buildTablePages(items)) el.printRoot.appendChild(page);
   } else {
-    for (const page of buildSheetPages(items)) el.printRoot.appendChild(page);
+    for (const page of numeroterPages(buildSheetPages(items))) el.printRoot.appendChild(page);
   }
   modeRacineImpression = mode;
 
@@ -19765,7 +19795,10 @@ function switchMode(next) {
   const scene = document.querySelectorAll('.stage')[0];
   if (scene) scene.dataset.mode = next;
   const confirmation = document.getElementById('print-confirm');
-  if (confirmation) confirmation.hidden = true;
+  if (confirmation && !confirmation.hidden) {
+    confirmation.hidden = true;
+    el.print.hidden = !(next === 'sheet' || next === 'table');
+  }
   rendreZoom();
 
   // Les actions du pied de l'inspecteur suivent le mode : une seule sortie
@@ -20731,11 +20764,14 @@ el.labelMargin.addEventListener('input', renderPreview);
 el.labelFont.addEventListener('input', renderPreview);
 el.labelCut.addEventListener('change', renderPreview);
 el.exportLabels.addEventListener('click', exportLabelImages);
+el.sheetPageNumbers?.addEventListener('change', renderPreview);
+
 el.print.addEventListener('click', demanderImpression);
 document.getElementById('print-confirm-cancel')?.addEventListener('click', annulerImpression);
 document.getElementById('print-confirm-go')?.addEventListener('click', () => {
   const panneau = document.getElementById('print-confirm');
   if (panneau) panneau.hidden = true;
+  el.print.hidden = !(mode === 'sheet' || mode === 'table');
   printSelection();
 });
 document.addEventListener('keydown', (event) => {

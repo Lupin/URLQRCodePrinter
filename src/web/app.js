@@ -5033,7 +5033,7 @@ function renderPreview() {
   // Planche : on affiche les deux premières pages, à l'échelle. La légende dit
   // le nombre de feuilles, le format et l'échelle absolue — les trois faits
   // qu'on ne peut pas deviner avant d'imprimer.
-  const pages = buildSheetPages(items);
+  const pages = numeroterPages(buildSheetPages(items));
   for (const page of pages.slice(0, 2)) {
     el.preview.appendChild(scaleForScreen(page));
   }
@@ -5085,6 +5085,28 @@ function previewViewportWidth() {
  * @param {HTMLElement} page
  * @returns {HTMLElement}
  */
+/**
+ * Ajoute « Page i / n » dans la marge basse des feuilles.
+ *
+ * La numérotation n'a de sens que sur une liasse : une planche d'une page reste
+ * telle quelle. L'élément est **hors grille** (position absolue), donc il ne
+ * change ni les cotes ni le nombre d'étiquettes par feuille.
+ *
+ * @param {HTMLElement[]} pages
+ * @returns {HTMLElement[]}
+ */
+function numeroterPages(pages) {
+  const actif = el.sheetPageNumbers ? el.sheetPageNumbers.checked : true;
+  if (!actif || pages.length < 2) return pages;
+  pages.forEach((page, index) => {
+    const numero = document.createElement('span');
+    numero.className = 'print-page__number';
+    numero.textContent = t('Page {index} / {total}', { index: index + 1, total: pages.length });
+    page.appendChild(numero);
+  });
+  return pages;
+}
+
 function scaleForScreen(page) {
   const widthMm = Number.parseFloat(page.style.width);
   const heightMm = Number.parseFloat(page.style.height);
@@ -6137,7 +6159,7 @@ function printSelection() {
     applyPrintPageSize(config.widthMm, config.heightMm);
     for (const page of buildTablePages(items)) el.printRoot.appendChild(page);
   } else {
-    for (const page of buildSheetPages(items)) el.printRoot.appendChild(page);
+    for (const page of numeroterPages(buildSheetPages(items))) el.printRoot.appendChild(page);
   }
   modeRacineImpression = mode;
 
@@ -7807,6 +7829,8 @@ el.labelMargin.addEventListener('input', renderPreview);
 el.labelFont.addEventListener('input', renderPreview);
 el.labelCut.addEventListener('change', renderPreview);
 el.exportLabels.addEventListener('click', exportLabelImages);
+el.sheetPageNumbers?.addEventListener('change', renderPreview);
+
 el.print.addEventListener('click', demanderImpression);
 document.getElementById('print-confirm-cancel')?.addEventListener('click', annulerImpression);
 document.getElementById('print-confirm-go')?.addEventListener('click', () => {

@@ -77,6 +77,7 @@ export const ELEMENT_IDS = Object.freeze([
   'sheet-date-hint',
   'sheet-fit-hint',
   'sheet-auto',
+  'sheet-page-numbers',
   'sheet-auto-hint',
   'sheet-columns',
   'sheet-rows',

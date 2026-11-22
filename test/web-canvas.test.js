@@ -44,3 +44,16 @@ test('le zoom est montré seulement là où il y a des pages', () => {
   assert.match(APP, /box\.hidden = !\(mode === 'sheet' \|\| mode === 'table'\)/);
   assert.match(APP, /rendreZoom\(\);/);
 });
+
+test('la numérotation des pages est une option, appliquée au papier et à l’aperçu', () => {
+  assert.match(HTML, /id="sheet-page-numbers" type="checkbox" checked/);
+  assert.match(APP, /function numeroterPages\(/);
+  // Une seule page n'a pas besoin d'être numérotée.
+  assert.match(APP, /if \(!actif \|\| pages\.length < 2\) return pages/);
+  // Le numéro vit hors grille : position absolue dans la marge.
+  assert.match(CSS, /^\.print-page__number \{[\s\S]*?position:\s*absolute/m);
+  // Il est posé à l'impression comme à l'aperçu.
+  assert.match(APP, /for \(const page of numeroterPages\(buildSheetPages\(items\)\)\) el\.printRoot/);
+  assert.match(APP, /const pages = numeroterPages\(buildSheetPages\(items\)\)/);
+  assert.match(APP, /el\.sheetPageNumbers\?\.addEventListener\('change', renderPreview\)/);
+});
