@@ -50,6 +50,7 @@ const EN_MESSAGES = {
   "Terminer le rangement": "Finish reordering",
   "Le rangement déplace un lien dans la collection, et le tableau imprimé suit cet ordre. Un tri le renumérote.":
     "Reordering moves a link within the collection, and the printed table follows that order. Sorting renumbers it instead.",
+  "Rangement en cours : faites glisser une ligne, ou utilisez les flèches. Échap pour terminer.": "Reordering: drag a row, or use the arrows. Esc to finish.",
   "Faites glisser une ligne par sa poignée, ou servez-vous des flèches. Échap referme le rangement.":
     "Drag a row by its handle, or use the arrows. Escape closes reordering.",
   "Ordre manuel": "Manual order",
@@ -13704,6 +13705,7 @@ function renderList() {
   el.reorder.setAttribute('aria-pressed', reorderMode ? 'true' : 'false');
   el.reorder.textContent = reorderMode ? t('Terminer le rangement') : t('Réorganiser');
   el.list.classList.toggle('links--reorder', reorderMode);
+  if (teteListe) teteListe.classList.toggle('list-head--mode', reorderMode);
   // Trois états distincts, chacun avec sa sortie : la collection vide propose
   // d'ajouter ou d'importer ; une recherche sans résultat propose de l'effacer.
   const aucunLien = links.length === 0;
@@ -14232,6 +14234,11 @@ function renderLink(link) {
   // Le rangement n'existe qu'en **mode** réorganisation, et il se pose à gauche
   // de la ligne. Deux flèches permanentes sur chaque ligne encombraient la liste
   // pour une action qu'on fait une fois, puis qu'on quitte.
+  // Le glissement est branché **pour les deux branches** : il était sous le
+  // `return` du mode rangement, si bien que la poignée et les flèches
+  // existaient, mais que faire glisser une ligne ne faisait rien.
+  wireDrag(item);
+
   if (reorderMode) {
     item.append(moveControls(link), checkHit, rank, body, remove, linkEditor(link));
     return item;
@@ -14281,7 +14288,6 @@ function moveControls(link) {
   down.disabled = position <= 0 || position >= links.length;
 
   bloc.append(grip, up, down);
-  wireDrag(grip);
   return bloc;
 }
 
@@ -14296,10 +14302,12 @@ function moveControls(link) {
  *
  * @param {HTMLElement} grip
  */
-function wireDrag(grip) {
-  grip.addEventListener('pointerdown', (event) => {
-    if (event.button !== 0) return;
-    const ligne = grip.closest('.link');
+function wireDrag(ligne) {
+  ligne.addEventListener('pointerdown', (event) => {
+    if (!reorderMode || event.button !== 0) return;
+    // Les flèches et les champs restent des contrôles : le geste part du
+    // reste de la ligne, y compris du titre.
+    if (event.target.closest('button, input, label')) return;
     if (!ligne || !el.list.contains(ligne)) return;
     // Sans cela, le navigateur commence une sélection de texte et le geste
     // n'atteint jamais la ligne suivante.
@@ -14387,8 +14395,9 @@ function updateSortHint() {
     return;
   }
   el.sortHint.textContent = reorderMode
-    ? t('Faites glisser une ligne par sa poignée, ou servez-vous des flèches. Échap referme le rangement.')
+    ? t('Rangement en cours : faites glisser une ligne, ou utilisez les flèches. Échap pour terminer.')
     : t("Le rangement déplace un lien dans la collection, et le tableau imprimé suit cet ordre. Un tri le renumérote.");
+  el.sortHint.classList.toggle('hint--mode', reorderMode);
 }
 
 /** Ouvre ou referme le mode réorganisation, et dit ce qu'il en est. */

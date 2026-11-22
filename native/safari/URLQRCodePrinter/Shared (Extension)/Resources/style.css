@@ -2292,3 +2292,80 @@ input[type="range"]:focus-visible {
   gap: var(--space-1);
   margin: var(--space-1) 0 0;
 }
+
+/* ==========================================================================
+   Mode rangement
+   --------------------------------------------------------------------------
+   Le mode existait, mais ses commandes ressemblaient à du texte : deux
+   triangles de 24 px, une poignée discrète, et les cases à cocher au milieu.
+   On ne savait pas si le bouton avait agi. Le mode se voit maintenant : la
+   liste prend un cadre, les cases disparaissent, la poignée et les flèches
+   deviennent des cibles visibles, et toute la ligne se saisit.
+   ========================================================================== */
+
+.links--reorder {
+  margin-top: var(--space-1);
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
+}
+
+.links--reorder .link {
+  padding: var(--space-1) var(--space-2);
+  border-bottom: 1px solid var(--border-line);
+}
+
+.links--reorder .link:hover { background: var(--surface-2); }
+
+/* La sélection n'est pas la tâche : ses cases quittent le mode, y compris
+   la case maîtresse de la ligne d'outils. */
+.list-head--mode .list-head__box,
+.list-head--mode .list-head__hint { display: none; }
+
+.links--reorder .link__check-hit,
+.links--reorder .link__remove,
+.links--reorder .link__editor { display: none; }
+
+.links--reorder .link__index { color: var(--text); font-weight: 620; }
+
+.links--reorder .link__rank {
+  display: flex;
+  align-items: center;
+  gap: var(--space-05);
+}
+
+.links--reorder .link__grip {
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--border-strong);
+  background: var(--bg);
+  color: var(--text-2);
+  font-size: var(--type-sm);
+  cursor: grab;
+}
+
+.links--reorder .link__grip:hover { border-color: var(--ink); color: var(--ink); }
+
+.links--reorder .link__move {
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--border-strong);
+  background: var(--bg);
+  color: var(--text);
+  font-size: var(--type-2xs);
+}
+
+.links--reorder .link__move:not(:disabled):hover {
+  border-color: var(--ink);
+  background: var(--bg);
+  color: var(--ink);
+}
+
+.links--reorder .link__move:disabled { color: var(--text-3); border-color: var(--border-line); }
+
+/* L'indice devient une bannière de mode, et non une phrase parmi d'autres. */
+.hint--mode {
+  padding: var(--space-1) var(--space-2);
+  border-left: 2px solid var(--ink);
+  background: var(--surface-2);
+  color: var(--text);
+}

@@ -50,6 +50,7 @@ const EN_MESSAGES = {
   "Terminer le rangement": "Finish reordering",
   "Le rangement déplace un lien dans la collection, et le tableau imprimé suit cet ordre. Un tri le renumérote.":
     "Reordering moves a link within the collection, and the printed table follows that order. Sorting renumbers it instead.",
+  "Rangement en cours : faites glisser une ligne, ou utilisez les flèches. Échap pour terminer.": "Reordering: drag a row, or use the arrows. Esc to finish.",
   "Faites glisser une ligne par sa poignée, ou servez-vous des flèches. Échap referme le rangement.":
     "Drag a row by its handle, or use the arrows. Escape closes reordering.",
   "Ordre manuel": "Manual order",

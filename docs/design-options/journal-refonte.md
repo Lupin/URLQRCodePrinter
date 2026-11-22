@@ -286,6 +286,30 @@ Preuves : `.audit/captures-ecart/titre-long-ecart-1.png`, `titre-long-ecart-10.p
 
 **I4 est complet** : #39 canvas, #40 cotation, #41 progression, #42 avertissements, #43 retour d'impression, #55 numérotation, #56 écart des étiquettes.
 
+## Correctif — le mode rangement · 22 novembre 2026
+
+Signalé : « le bouton Réorganiser ne fonctionne plus, ou c'est le graphisme qui est confus ». Les deux, en fait.
+
+**Le bug.** En mode rangement, `renderLink` prenait une branche dédiée et **retournait avant d'attacher le glissement** (`wireDrag`). La poignée et les flèches existaient, les flèches déplaçaient et enregistraient bien l'ordre — vérifié, il survit au rechargement —, mais **faire glisser une ligne ne faisait rien**. Le geste est désormais branché avant la bifurcation, sur **toute la ligne** et non plus seulement la poignée ; les liens ne naviguent plus pendant le rangement.
+
+**La confusion.** Le mode ressemblait à du texte : deux triangles de 24 px sans surface, une poignée discrète, et les cases à cocher au milieu. Il se voit maintenant :
+
+- liste encadrée, lignes sur fond alterné ;
+- cases à cocher retirées (y compris la case maîtresse) : ce n'est pas la tâche ;
+- poignée et flèches **de 28 px, avec bordure et fond**, cibles visibles ;
+- bannière « Rangement en cours : faites glisser une ligne, ou utilisez les flèches. Échap pour terminer. » ;
+- glissement **par la ligne entière**, y compris le titre.
+
+| Mesure | Avant | Après |
+|---|---|---|
+| Glissement | sans effet | déplace, écrit `order`, survit au rechargement |
+| Cibles visibles | glyphes de 24 px | boutons de **28 px** bordés |
+| Cases à cocher en mode | visibles | **0** |
+| Repère de mode | phrase parmi d'autres | **bannière** + liste encadrée |
+| Tests | 1 119 | **1 122** |
+
+Preuves : `.audit/captures-reorder/` (`apres-reorder.png`, `mesures-reorder.json` avec ordre et `order` stockés).
+
 ## Dettes de finition (assumées, pour I6)
 
 Consignées au fil des revues, traitées lors de la **passe générale** avant la note 4,8 :
