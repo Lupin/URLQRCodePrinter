@@ -138,6 +138,17 @@ Le dernier étage du système : les paddings, les variantes, les contrôles nati
 
 ---
 
+## Dettes de finition (assumées, pour I6)
+
+Consignées au fil des revues, traitées lors de la **passe générale** avant la note 4,8 :
+
+1. **Curseur** : acceptable en l'état (piste 3 px remplie, lame 10 × 20), mais encore « un peu brut ». Arbitrer le dessin final (pouce 8 × 16 ou 10 × 24, liseré interne, masse du remplissage) — ticket #54.
+2. Compléter l'inventaire à chaque revue visuelle (cases, onglets, champs, densité, alignements optiques).
+
+Rien de cette liste ne bloque I3–I5 : ce sont des points de finition, pas de structure.
+
+---
+
 ## Prochains paliers
 
 | Palier | Note visée | Porte de sortie |
