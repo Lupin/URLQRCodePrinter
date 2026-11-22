@@ -43,3 +43,6 @@ native/niimbot-kit/.build/
 # Profils de navigateur des captures et vérifications
 .shot-profile/
 .store-shots/
+
+# Dossier de travail de l'audit UI/UX : captures, relevés, brouillons.
+.audit/
