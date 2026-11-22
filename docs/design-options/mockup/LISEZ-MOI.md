@@ -30,6 +30,8 @@ seront maquettés au moment de leur palier.
 
 ## Les six décisions à valider (recommandation entre parenthèses)
 
+Elles se tranchent dans le ticket GitHub **#12** (`[Cadrage] Valider la maquette des deux écrans`).
+
 1. **La feuille au centre, l'inspecteur à droite** — et non deux colonnes de
    formulaires. (Recommandé : oui, c'est le point focal du produit.)
 2. **Un seul bouton primaire, en bas de l'inspecteur** — « Imprimer », à côté de

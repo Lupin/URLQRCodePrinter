@@ -252,6 +252,7 @@ Sept paliers : un passage de correctifs bloquants, puis six itérations. Chacune
 - Captures et mesures : `.audit/captures/`, `.audit/mesures.json` (dossier ignoré par Git, local).
 - Détail source par source : `.audit/forensics-app.md` (application), `.audit/forensics-popup.md` (fenêtre, site, confidentialité), `.audit/benchmark.md` (référentiel externe).
 - Barème réutilisable : [barre-qualite-ui.md](barre-qualite-ui.md).
+- Jalons GitHub : milestones **#4 à #11** (Cadrage, I0 à I6), 38 tickets **#12 à #49**. Chaque ticket porte ses critères d'acceptation et une section « Preuve de travail » ; la convention est décrite dans le ticket #13. Le code reste local : seuls les jalons et les tickets existent sur GitHub.
 
 ## Annexe A — Inventaire des captures
 
