@@ -217,6 +217,8 @@ const EN_MESSAGES = {
   "{count} résultats": "{count} results",
   "Tout désélectionner": "Clear selection",
   "Sélection": "Selection",
+  "Retour à la collection": "Back to collection",
+  "Détail du lien": "Link details",
   "Exporter, importer et vider": "Export, import and clear",
   "Nom, numéro et note": "Name, number and note",
   "Cible et raccourcissement": "Target and shortening",
@@ -13771,6 +13773,34 @@ function linkAnchor(url, className, label = url) {
  * @param {import('./core/link.js').LinkRecord} link
  * @returns {HTMLElement}
  */
+let detailRetour = null;
+
+/** Ouvre le volet de détail, qui prend la place de la collection. */
+function afficherDetail(link, retour) {
+  const panneau = document.getElementById('detail-panel');
+  if (!panneau) return;
+  const titre = document.getElementById('detail-title');
+  if (titre) titre.textContent = link.title || hostOf(link.url) || link.url;
+  detailRetour = retour ?? null;
+  panneau.hidden = false;
+  const rail = document.querySelectorAll('.rail')[0];
+  if (rail) rail.classList.add('rail--detail');
+}
+
+/** Referme le volet et rend le focus au crayon qui l'a ouvert. */
+function fermerDetail() {
+  const panneau = document.getElementById('detail-panel');
+  if (!panneau || panneau.hidden) return;
+  panneau.hidden = true;
+  const body = document.getElementById('detail-body');
+  if (body) body.textContent = '';
+  const rail = document.querySelectorAll('.rail')[0];
+  if (rail) rail.classList.remove('rail--detail');
+  const retour = detailRetour;
+  detailRetour = null;
+  if (retour && retour.isConnected) retour.focus();
+}
+
 function linkEditor(link) {
   const wrap = document.createElement('div');
   wrap.className = 'link__editor';
@@ -13913,6 +13943,7 @@ function linkEditor(link) {
       }
 
       settled = true;
+      fermerDetail();
 
       if (updated) {
         const changed = updated.url !== link.url
@@ -13963,7 +13994,16 @@ function linkEditor(link) {
     });
 
     wrap.textContent = '';
-    wrap.appendChild(form);
+    // Le crayon reste sur la ligne ; le formulaire part dans le volet.
+    wrap.appendChild(open);
+    const hote = document.getElementById('detail-body');
+    if (hote) {
+      hote.textContent = '';
+      hote.appendChild(form);
+      afficherDetail(link, open);
+    } else {
+      wrap.appendChild(form);
+    }
 
     // Le curseur revient au champ qui le portait, et à la fin de sa valeur :
     // c'est là qu'on écrivait. On ne replace pas le caret au caractère près —
@@ -15679,9 +15719,22 @@ function importCollectionHint(collection) {
 
 /** Referme le choix du rangement, sans rien importer. */
 function closeImportMenu() {
+  const etaitOuvert = !el.importMenu.hidden;
   el.importMenu.hidden = true;
   importEnAttente = null;
+  // Le focus revient au bouton qui a ouvert la question : le perdre au milieu
+  // du volet laisserait le clavier au début du document.
+  if (etaitOuvert && el.import.isConnected) el.import.focus();
 }
+
+// Échap referme la question de l'import, comme les autres panneaux.
+document.addEventListener('keydown', (event) => {
+  if (event.key !== 'Escape') return;
+  if (el.importMenu && !el.importMenu.hidden) {
+    event.preventDefault();
+    closeImportMenu();
+  }
+});
 
 /**
  * Range l'import en attente selon l'issue choisie.
@@ -20146,6 +20199,8 @@ el.exportMd.addEventListener('click', () => exportAs('md'));
 el.exportJson.addEventListener('click', () => exportAs('json'));
 el.exportTable.addEventListener('click', exportTableArchive);
 el.exportSheet.addEventListener('click', exportSheetArchive);
+
+document.getElementById('detail-back')?.addEventListener('click', () => fermerDetail());
 
 el.import.addEventListener('click', () => el.importFile.click());
 el.importFile.addEventListener('change', async () => {

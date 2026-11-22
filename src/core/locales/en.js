@@ -210,6 +210,8 @@ export const EN_MESSAGES = {
   "{count} résultats": "{count} results",
   "Tout désélectionner": "Clear selection",
   "Sélection": "Selection",
+  "Retour à la collection": "Back to collection",
+  "Détail du lien": "Link details",
   "Exporter, importer et vider": "Export, import and clear",
   "Nom, numéro et note": "Name, number and note",
   "Cible et raccourcissement": "Target and shortening",

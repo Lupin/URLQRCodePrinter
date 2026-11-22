@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>URLQRCodePrinter</title>
-  <link rel="stylesheet" href="style.css?v=259686be4ecd">
+  <link rel="stylesheet" href="style.css?v=fef4dc5df446">
   <link rel="icon" type="image/png" href="icons/icon-32.png">
 </head>
 <body>
@@ -296,16 +296,29 @@
            qui vient d'être utilisé, sans rien recouvrir, et se referme dès
            qu'un choix est fait ou qu'on annule. Ses libellés sont posés par
            `app.js`, parce qu'ils nomment les collections concernées. -->
-      <div id="import-menu" class="import-menu" role="group" aria-labelledby="import-menu-title" hidden>
+      <div id="import-menu" class="import-menu" role="dialog" aria-modal="false"
+           aria-labelledby="import-menu-title" aria-describedby="import-menu-hint" hidden>
         <p id="import-menu-title" class="import-menu__title"></p>
         <p id="import-menu-hint" class="hint hint--tight"></p>
         <div class="import-menu__choices">
           <button id="import-merge" class="btn btn--ghost" type="button"></button>
-          <button id="import-replace" class="btn btn--ghost" type="button"></button>
+          <button id="import-replace" class="btn btn--ghost btn--danger" type="button"></button>
           <button id="import-add" class="btn btn--ghost" type="button" hidden></button>
           <button id="import-cancel" class="btn btn--ghost btn--small" type="button" data-i18n="Annuler">Annuler</button>
         </div>
       </div>
+
+      <!-- Le détail d'un lien remplace la collection dans le volet, au lieu de
+           pousser la liste : on édite sans perdre l'endroit où l'on était, et
+           aucune ligne ne change de hauteur. -->
+      <section id="detail-panel" class="detail" aria-labelledby="detail-title" hidden>
+        <div class="detail__head">
+          <button id="detail-back" class="btn btn--ghost btn--small" type="button"
+                  data-i18n="Retour à la collection">← Retour à la collection</button>
+        </div>
+        <h2 id="detail-title" class="detail__title" data-i18n="Détail du lien">Détail du lien</h2>
+        <div id="detail-body" class="detail__body"></div>
+      </section>
     </section>
 
     <!-- ---------------------------------------------------------------- -->
@@ -1005,6 +1018,6 @@
 
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
-  <script type="module" src="app.js?v=9fd1c71dc4b2"></script>
+  <script type="module" src="app.js?v=adeab900aa8c"></script>
 </body>
 </html>

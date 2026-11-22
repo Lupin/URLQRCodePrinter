@@ -2138,3 +2138,35 @@ input[type="range"]:focus-visible {
 
 .search-field__clear:hover { color: var(--ink); }
 .search-field__clear:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
+
+/* --- Volet de détail ---
+ *
+ * Le volet remplace la collection au lieu de s'ajouter à elle : la liste garde
+ * sa place et sa densité, et l'édition ne la pousse plus. Tout ce qui n'est pas
+ * le détail est retiré du flux, sans changer le HTML de la collection.
+ */
+.rail--detail > *:not(.detail) { display: none; }
+
+.detail {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+.detail__head { display: flex; align-items: center; }
+
+.detail__title {
+  margin: 0;
+  padding: var(--space-1) 0 var(--space-2);
+  border-bottom: 1px solid var(--border-line);
+  font-size: var(--type-sm);
+  font-weight: 620;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.detail__body { display: flex; flex-direction: column; gap: var(--space-3); }

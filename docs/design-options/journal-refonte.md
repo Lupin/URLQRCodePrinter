@@ -161,6 +161,32 @@ La liste devient ce qu'on parcourt, pas ce qu'on subit.
 
 ---
 
+## I3b — Volet de détail et import guidé · 22 novembre 2026
+
+**Tag** : `checkpoint/i3b` · **Tickets fermés** : #36, #38 · **Note provisoire** : **3,5 / 5**.
+
+L'édition quitte la ligne. Le volet de collection cède sa place au détail, au lieu de grandir.
+
+| Mesure | Avant I3b | Après I3b | Preuve |
+|---|---|---|---|
+| Édition d'un lien | formulaire dans la ligne : la liste se replie, la ligne grandit | **volet de détail** qui remplace la collection ; la liste ne bouge pas | capture + mesure |
+| Largeur des champs | 364 px intrinsèques, débordement historique | **303 px**, dans le volet | mesure |
+| Focus à l'ouverture | — | **champ Titre** | mesure |
+| Focus à la fermeture | — | **le crayon qui a ouvert** (`link__edit`) | mesure |
+| Sorties de l'édition | Entrée / Échap | Entrée, Échap, **Annuler**, **Enregistrer**, **← Retour** — tous par `fermerDetail()` | test |
+| Import : nature | `role="group"` | **`role="dialog"`**, `aria-describedby` sur l'hint | test |
+| Import : destructif | « Remplacer » en fantôme neutre | **variante danger** | test |
+| Import : Échap | sans effet | **referme et rend le focus** au bouton d'import | test |
+| Tests | 1 100 | **1 104** | `npm test` vert |
+
+**Ce qui n'a pas été fait, et pourquoi** : l'import n'a pas été transformé en assistant multi-étapes. La question posée est déjà unique (fusionner, remplacer, créer), avec le nom de la collection et l'avertissement destructif. Y ajouter des étapes aurait ajouté des clics sans retirer une décision. Les critères #38 — Échap, focus rendu, destructif annoncé — sont tenus.
+
+**Écart avec la cible du plan (4,1)** : la mesure donne **3,5**. Les deux paliers I3 ont surtout retiré de la friction ; les points de « qualité perçue » restants sont dans I4 (canvas, zoom, progression, sortie) et I5 (marque, site).
+
+**Dette de finition** : le curseur, toujours noté (#54).
+
+---
+
 ## Dettes de finition (assumées, pour I6)
 
 Consignées au fil des revues, traitées lors de la **passe générale** avant la note 4,8 :
