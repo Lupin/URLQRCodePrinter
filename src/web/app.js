@@ -6608,6 +6608,29 @@ function switchMode(next) {
   renderPreview();
 }
 
+/**
+ * Pose le pourcentage rempli de chaque curseur.
+ *
+ * Le CSS ne sait pas lire la valeur d'un `input[type="range"]` : la partie
+ * utile de la piste est donc peinte à partir d'une variable, mise à jour à
+ * chaque geste et au démarrage.
+ */
+function wireRangeProgress() {
+  for (const range of document.querySelectorAll('input[type="range"]')) {
+    const maj = () => {
+      const min = Number(range.min || 0);
+      const max = Number(range.max || 100);
+      const valeur = Number(range.value || min);
+      const pct = max > min ? ((valeur - min) / (max - min)) * 100 : 0;
+      range.style.setProperty('--slider-pct', `${pct}%`);
+    };
+    maj();
+    range.addEventListener('input', maj);
+  }
+}
+
+wireRangeProgress();
+
 el.addForm.addEventListener('submit', (event) => {
   event.preventDefault();
   addFromInput();

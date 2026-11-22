@@ -132,6 +132,8 @@ Le dernier étage du système : les paddings, les variantes, les contrôles nati
 
 **Correctif après revue (même jour)** : le curseur « Taille du QR Code » porte la classe `.input` pour sa largeur, et héritait donc du filet, du fond de focus et de l'anneau intérieur d'encre des champs — un cadre noir épais au clic. Remise à zéro ciblée (`border: 0`, fond et `box-shadow` neutralisés) ; le focus clavier garde son anneau d'accent de 2 px. Test de garde ajouté (`design-scale`), comparaison visuelle : `mockup/curseur-avant-apres.png`.
 
+**Deuxième passe, après revue** : le curseur restait brut et disproportionné (pavé de 14 px sur une piste de 2 px). Redessiné en **lame de fader** : piste de **3 px** dont la partie utile est remplie d'encre (variable `--slider-pct` posée par `app.js` à chaque geste), pouce de **10 × 20 px**. Le rapport 3:10 remplace 2:14, et la valeur se lit sans lire le nombre.
+
 **Flake connu** : le test de l'encart de consentement (minuterie `settle()`) échoue environ une fois sur trois sous charge, puis repasse. Il est indépendant de la refonte ; à stabiliser séparément.
 
 ---

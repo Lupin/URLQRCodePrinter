@@ -1978,27 +1978,38 @@ input[type="range"] {
   height: var(--control-sm);
   background: transparent;
   cursor: pointer;
+  /* Remplissage : `--slider-pct` est posé par `app.js` à chaque changement. La
+     piste se lit ainsi d'un coup d'œil — la partie utile est en encre, le
+     reste en filet. */
+  --slider-pct: 0%;
 }
 
 input[type="range"]::-webkit-slider-runnable-track {
-  height: 2px;
-  background: var(--border-strong);
+  height: 3px;
+  background: linear-gradient(
+    to right,
+    var(--ink) 0 var(--slider-pct),
+    var(--border-strong) var(--slider-pct) 100%
+  );
 }
 
+/* Une lame de fader plutôt qu'un pavé : 20 px de haut pour une piste de 3 px,
+   et une largeur de 10 px. Le rapport est lisible, la cible confortable. */
 input[type="range"]::-webkit-slider-thumb {
   appearance: none;
   -webkit-appearance: none;
-  width: 14px;
-  height: 14px;
-  margin-top: -6px;
+  width: 10px;
+  height: 20px;
+  margin-top: -8.5px;
   border: 0;
   border-radius: var(--radius);
   background: var(--ink);
 }
 
-input[type="range"]::-moz-range-track { height: 2px; background: var(--border-strong); }
+input[type="range"]::-moz-range-track { height: 3px; background: var(--border-strong); }
+input[type="range"]::-moz-range-progress { height: 3px; background: var(--ink); }
 input[type="range"]::-moz-range-thumb {
-  width: 14px; height: 14px; border: 0; border-radius: var(--radius); background: var(--ink);
+  width: 10px; height: 20px; border: 0; border-radius: var(--radius); background: var(--ink);
 }
 
 input[type="range"]:focus-visible {
