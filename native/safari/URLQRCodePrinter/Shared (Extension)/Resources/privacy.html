@@ -2,8 +2,9 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title data-i18n="Confidentialité — URLQRCodePrinter">Confidentialité — URLQRCodePrinter</title>
-  <link rel="stylesheet" href="privacy.css?v=f6f66db612ef">
+  <link rel="stylesheet" href="privacy.css?v=3ae19db1fca6">
 </head>
 <body>
   <!-- La mention doit être présentée **dans l'interface du produit**, avant
@@ -18,7 +19,18 @@
       Avant de commencer, voici exactement ce qu'il lit.
     </p>
 
-    <section class="block">
+    <nav class="sheet__toc" aria-label="Sommaire" data-i18n-aria-label="Sommaire">
+      <ol>
+        <li><a href="#lire" data-i18n="Ce que l'extension lit">Ce que l'extension lit</a></li>
+        <li><a href="#ne-fait-pas" data-i18n="Ce que l'extension ne fait pas">Ce que l'extension ne fait pas</a></li>
+        <li><a href="#ou-vont" data-i18n="Où vont vos liens">Où vont vos liens</a></li>
+        <li><a href="#raccourcir" data-i18n="Raccourcir un lien (facultatif)">Raccourcir un lien (facultatif)</a></li>
+        <li><a href="#navigation-privee" data-i18n="Navigation privée">Navigation privée</a></li>
+        <li><a href="#accord" data-i18n="Votre accord">Votre accord</a></li>
+      </ol>
+    </nav>
+
+    <section id="lire" class="block">
       <h2 class="block__title" data-i18n="Ce que l'extension lit">Ce que l'extension lit</h2>
       <p data-i18n="L'adresse et le titre de la page sur laquelle vous agissez — celle du clic droit, ou celle de l'onglet courant quand vous cliquez sur le bouton. Uniquement à ce moment-là.">
         L'adresse et le titre de la page sur laquelle vous agissez — celle du clic
@@ -27,7 +39,7 @@
       </p>
     </section>
 
-    <section class="block">
+    <section id="ne-fait-pas" class="block">
       <h2 class="block__title" data-i18n="Ce que l'extension ne fait pas">Ce que l'extension ne fait pas</h2>
       <ul class="block__list">
         <li data-i18n="Aucun accès à votre historique de navigation.">Aucun accès à votre historique de navigation.</li>
@@ -38,7 +50,7 @@
       </ul>
     </section>
 
-    <section class="block">
+    <section id="ou-vont" class="block">
       <h2 class="block__title" data-i18n="Où vont vos liens">Où vont vos liens</h2>
       <p data-i18n="Ils restent sur votre appareil, dans le stockage local du navigateur. Une seule action envoie quelque chose sur le réseau : si vous demandez le raccourcissement d'un lien, cette adresse est transmise au service que vous avez choisi (T.LY, TinyURL, is.gd, v.gd ou spoo.me).">
         Ils restent sur votre appareil, dans le stockage local du navigateur. Une
@@ -52,7 +64,7 @@
          a donc son propre bloc, et le premier mot en est « facultatif ». Le
          service proposé d'emblée est nommé, ainsi que ce qu'il ne fait pas —
          l'extension ne crée aucun compte et ne lit aucune statistique. -->
-    <section class="block">
+    <section id="raccourcir" class="block">
       <h2 class="block__title" data-i18n="Raccourcir un lien (facultatif)">Raccourcir un lien (facultatif)</h2>
       <p data-i18n="Le raccourcissement est facultatif : rien n'est raccourci tant que vous ne le demandez pas, et le QR Code encode l'adresse d'origine. Si vous le demandez, l'adresse part uniquement vers le service choisi. T.LY est proposé par défaut. TinyURL, is.gd, v.gd et spoo.me restent disponibles, ainsi que l'impression de l'adresse d'origine.">
         Le raccourcissement est facultatif : rien n'est raccourci tant que vous ne
@@ -76,7 +88,7 @@
     <!-- La collection de navigation privée : ce que devient un lien enregistré
          depuis une fenêtre privée, dit au moment où l'utilisateur donne son
          accord, et non seulement dans la fenêtre de l'extension. -->
-    <section class="block">
+    <section id="navigation-privee" class="block">
       <h2 class="block__title" data-i18n="Navigation privée">Navigation privée</h2>
       <p data-i18n="Depuis une fenêtre privée, l'extension propose une collection qui n'existe qu'à cet endroit. Ses liens vivent en mémoire, pour la durée de la session : ils ne sont pas écrits sur le disque et disparaissent à la fermeture du navigateur. Les autres collections, elles, restent sur votre appareil.">
         Depuis une fenêtre privée, l'extension propose une collection qui n'existe
@@ -86,7 +98,7 @@
       </p>
     </section>
 
-    <section class="consent" aria-labelledby="consent-title">
+    <section id="accord" class="consent" aria-labelledby="consent-title">
       <h2 id="consent-title" class="block__title" data-i18n="Votre accord">Votre accord</h2>
 
       <p id="state" class="consent__state" role="status" aria-live="polite"></p>
@@ -106,7 +118,7 @@
       </p>
     </section>
 
-    <section class="block">
+    <section id="en-savoir-plus" class="block">
       <h2 class="block__title" data-i18n="En savoir plus">En savoir plus</h2>
       <p data-i18n="La politique de confidentialité complète est publiée avec le code source du projet.">
         La politique de confidentialité complète est publiée avec le code source
@@ -115,6 +127,6 @@
     </section>
   </main>
 
-  <script type="module" src="privacy.js?v=8d7a182c6c69"></script>
+  <script type="module" src="privacy.js?v=5f85d5359346"></script>
 </body>
 </html>

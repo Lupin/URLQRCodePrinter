@@ -77,3 +77,14 @@ test('un export d’archive répond avant de travailler', () => {
   assert.match(APP, /Préparation de la planche…/);
   assert.match(APP, /Préparation du tableau…/);
 });
+
+test('la légende du mode Images donne des millimètres, pas des tirets', () => {
+  // `decimal()` recevait une chaîne `toFixed()` : la légende affichait
+  // « (— × — mm) ». Les dimensions sont désormais passées en nombres.
+  assert.match(APP, /const largeurMm = options\.format\.widthMm;/);
+  assert.match(APP, /const hauteurMm = pxToMm\(plan\.heightPx, options\.format\.dpi\);/);
+  assert.doesNotMatch(APP, /options\.format\.widthMm\.toFixed\(1\)/);
+  // Et le cadre n'est ajouté qu'une fois.
+  const zone = APP.slice(APP.indexOf('function renderImagePreview'), APP.indexOf('async function exportLabelImages'));
+  assert.equal((zone.match(/el\.preview\.appendChild\(frame\)/g) ?? []).length, 1);
+});

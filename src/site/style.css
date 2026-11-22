@@ -20,6 +20,9 @@
   --border: #e2e2e6;
   --accent: #c2410c;
   --accent-fg: #ffffff;
+  /* Même direction que le produit : angles vifs, un seul pas de mouvement. */
+  --radius: 0;
+  --motion: 120ms;
 
   /* Jetons employés par la FAQ et par les liens : ils étaient utilisés sans
      être déclarés, donc invalides — filets absents et anneau de focus inexistant,
@@ -76,7 +79,7 @@ a {
 .hero__mark {
   width: 88px;
   height: 88px;
-  border-radius: 20px;
+  border-radius: var(--radius);
   display: block;
   margin-bottom: 1.5rem;
 }
@@ -105,7 +108,7 @@ a {
   display: inline-block;
   padding: 0.7rem 1.3rem;
   border: 1px solid var(--border);
-  border-radius: 0.6rem;
+  border-radius: var(--radius);
   text-decoration: none;
   font-weight: 600;
   color: inherit;
@@ -154,7 +157,7 @@ h2 {
 .feature {
   padding: 1.25rem;
   border: 1px solid var(--border);
-  border-radius: 0.75rem;
+  border-radius: var(--radius);
   background: var(--surface);
 }
 
@@ -173,7 +176,7 @@ h2 {
   padding: 1.25rem;
   border: 1px solid var(--border);
   border-left: 4px solid var(--accent);
-  border-radius: 0.5rem;
+  border-radius: var(--radius);
   background: var(--surface);
 }
 
@@ -325,3 +328,41 @@ footer p {
     scroll-behavior: auto !important;
   }
 }
+
+/* --- Visuels du produit ---
+ *
+ * Trois captures réelles, posées comme des documents : un filet, pas d'ombre,
+ * une légende qui dit ce qu'on regarde.
+ */
+.shots-section { border-bottom: 1px solid var(--border); }
+
+.shots__lead { max-width: 60ch; color: var(--muted); }
+
+.shots {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 1.5rem;
+  margin-top: 1.5rem;
+}
+
+.shot:first-child { grid-column: 1 / -1; }
+
+.shot {
+  margin: 0;
+  border: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.shot img { display: block; width: 100%; height: auto; }
+
+.shot figcaption {
+  padding: 0.625rem 0.75rem;
+  border-top: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+
+/* La prose reste lisible : au-delà de ~68 caractères, l'œil perd la ligne. */
+main .wrap > p,
+main .wrap > ul:not(.features),
+main .wrap > ol { max-width: 57ch; }

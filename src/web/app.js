@@ -6044,8 +6044,10 @@ function renderImagePreview(link) {
   shown.style.imageRendering = scale < 1 ? 'auto' : 'pixelated';
   frame.appendChild(shown);
 
-  const largeurMm = options.format.widthMm.toFixed(1);
-  const hauteurMm = pxToMm(plan.heightPx, options.format.dpi).toFixed(1);
+  // Nombres, et non chaînes : `decimal()` attend un nombre. Lui passer un
+  // `toFixed()` produisait « — × — mm » dans la légende.
+  const largeurMm = options.format.widthMm;
+  const hauteurMm = pxToMm(plan.heightPx, options.format.dpi);
   const echelleNote = echelle.multiple > 1.05
     ? t('Aperçu à {multiple} × la taille réelle ({width} × {height} mm).', {
       multiple: decimal(echelle.multiple),
@@ -6082,8 +6084,6 @@ function renderImagePreview(link) {
   // cadre qui figure ce qui sera imprimé.
   el.preview.appendChild(frame);
   el.preview.appendChild(caption);
-
-  el.preview.appendChild(frame);
 }
 
 /** Exporte le dossier d'images prêt à imprimer. */

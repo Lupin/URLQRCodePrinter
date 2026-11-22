@@ -213,6 +213,7 @@ export const EN_MESSAGES = {
   "Sélection": "Selection",
   "Retour à la collection": "Back to collection",
   "Détail du lien": "Link details",
+  "Sommaire": "Contents",
   "Ajuster": "Fit",
   "Zoom avant": "Zoom in",
   "Zoom arrière": "Zoom out",

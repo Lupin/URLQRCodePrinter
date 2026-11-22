@@ -48,7 +48,7 @@ body {
 }
 
 .sheet {
-  max-width: 42rem;
+  max-width: 58ch;
   margin: 0 auto;
 }
 
@@ -152,4 +152,23 @@ body {
 .btn:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
+}
+
+/* Sommaire : une page de texte long doit dire où elle va. */
+.sheet__toc {
+  margin: 0 0 2rem;
+  padding: 0.75rem 1rem;
+  border-left: 2px solid var(--rule, #c2410c);
+  background: var(--surface-2, #f7f7f8);
+}
+
+.sheet__toc ol { margin: 0; padding-left: 1.1rem; }
+.sheet__toc li { margin: 0.25rem 0; }
+.sheet__toc a { color: inherit; }
+
+.block { scroll-margin-top: 1rem; }
+.block p, .block li { line-height: 1.65; }
+
+@media (max-width: 480px) {
+  .sheet { padding-left: 1rem; padding-right: 1rem; }
 }

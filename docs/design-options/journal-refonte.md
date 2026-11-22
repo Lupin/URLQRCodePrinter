@@ -310,6 +310,27 @@ Signalé : « le bouton Réorganiser ne fonctionne plus, ou c'est le graphisme q
 
 Preuves : `.audit/captures-reorder/` (`apres-reorder.png`, `mesures-reorder.json` avec ordre et `order` stockés).
 
+## I5 — Marque et site · 22 novembre 2026
+
+**Tag** : `checkpoint/i5` · **Tickets fermés** : #44, #45, #46 · **Note provisoire** : **3,9 / 5**.
+
+| Mesure | Avant | Après | Preuve |
+|---|---|---|---|
+| Héros du site | 78 mots, 8 lignes | **4 lignes** à 1440 px | `mesures-i5.json` |
+| Visuels réels du produit | 0 | **3 captures** (planche, étiquette cotée, tableau) | site + `.audit/captures-i5/` |
+| FAQ | 9 questions avec `<details>` | conservée, focus visible (déjà en I0) | mesure |
+| Largeur de prose du site | ~125 car./ligne | **72** (57 ch) | mesure |
+| Page de confidentialité | 93 car./ligne, **sans `viewport`** | **72 car./ligne**, `viewport`, **sommaire de 6 entrées**, mobile sans débordement | mesure |
+| Rayons | site arrondi (20 px, 0.75 rem…) | **0 partout**, `--radius: 0` sur les trois surfaces | test |
+| Mouvement | 120 ms en dur (web), 140 ms (fenêtre), site sans jeton | **`--motion`** partagé, réduction sur les trois surfaces | test `design-direction` |
+| Ombres | une seule côté web | une seule, **aucune** sur le site | test |
+| Captures des quatre modes | dispersées | **`mockup/quatre-modes.png`** | preuve |
+| Tests | 1 119 | **1 126** | `npm test` vert |
+
+**Défaut trouvé en relevant les quatre modes** : en mode Images, la légende affichait « (— × — mm) ». `decimal()` recevait une chaîne déjà passée par `toFixed()` ; les dimensions sont désormais passées en nombres, et le cadre n'est ajouté qu'une fois. Test de garde ajouté.
+
+**Reste pour I6** : la passe générale de finition — curseur (#54), derniers composants « décoffrés », revue à l'œil des quatre surfaces, et vérification du barème instrumenté (#50) pour viser 4,8.
+
 ## Dettes de finition (assumées, pour I6)
 
 Consignées au fil des revues, traitées lors de la **passe générale** avant la note 4,8 :
