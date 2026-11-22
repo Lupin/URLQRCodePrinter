@@ -103,6 +103,8 @@ Le socle qui fait tenir l'écran : des échelles nommées, des contrôles à tro
 
 **Correctif systémique trouvé en chemin** : depuis que des composants déclarent leur `display`, l'attribut `hidden` ne gagnait plus. Les trois actions primaires des trois modes s'affichaient simultanément dans le pied de l'inspecteur. Une règle globale `[hidden]` a été ajoutée ; les mesures de primaires et de contrôles redeviennent justes.
 
+**Méthode de mesure** : une fenêtre hors écran ne joue aucune frame d'animation ; `getComputedStyle` renvoie alors la valeur de départ des transitions, pas l'état final. Les captures de thème sont donc prises avec le thème posé **avant chargement** et les transitions neutralisées (`* { transition: none }`). C'est ce qui avait produit le faux constat de I0 sur les boutons désactivés.
+
 **Reste pour I2b** : les `padding` en pixels (la dernière série hors échelle), la table unique de variantes (boutons désactivés, champs étirés), les composants natifs (cases, curseur, barres de défilement), et la re-mesure complète du thème sombre au-delà de l'onglet actif.
 
 ---
