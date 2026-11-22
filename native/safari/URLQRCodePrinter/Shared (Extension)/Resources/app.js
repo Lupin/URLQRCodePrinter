@@ -203,6 +203,9 @@ const EN_MESSAGES = {
   "Lien supprimé": "Link deleted",
   "Lien restauré": "Link restored",
   "Vider": "Clear",
+  "Aucune donnée envoyée": "No data sent",
+  "Nom, numéro et note": "Name, number and note",
+  "Cible et raccourcissement": "Target and shortening",
   "Vider la collection ? Cette action retire {combien}, sans retour possible.": "Clear the collection? This removes {combien}, with no way back.",
   "Rien à enregistrer sur cette page": "Nothing to save on this page",
   "Déjà enregistré": "Already saved",
@@ -17726,9 +17729,8 @@ function renderPreview() {
   // ses propres réglages, et c'est là qu'ils vivent.
   el.exportSheet.hidden = mode !== 'sheet';
   el.exportSheet.disabled = items.length === 0;
-  // Niimbot et Étiquette (divers) ont leur propre bouton dans le panneau : la
-  // rangée commune disparaît, sans laisser un blanc entre le mode et l'aperçu.
-  el.panelActions.hidden = mode === 'single' || mode === 'images';
+  // Niimbot et Étiquette (divers) ont leur propre bouton, dans le même pied :
+  // ils sont masqués par `switchMode`, pas en masquant la rangée entière.
 
   if (mode === 'single') {
     el.print.hidden = true;
@@ -19472,6 +19474,23 @@ function switchMode(next) {
   for (const panel of document.querySelectorAll('[data-mode-panel]')) {
     panel.hidden = panel.dataset.modePanel !== next;
   }
+
+  // Le titre de la scène suit l'onglet : c'est ce qui est en train d'être
+  // regardé, sans avoir à le déduire du panneau de droite.
+  const libelle = [...document.querySelectorAll('.tab')]
+    .find((onglet) => onglet.dataset.mode === next);
+  const titreScene = document.getElementById('stage-title');
+  if (titreScene && libelle) titreScene.textContent = libelle.textContent.trim();
+
+  const scene = document.querySelectorAll('.stage')[0];
+  if (scene) scene.dataset.mode = next;
+
+  // Les actions du pied de l'inspecteur suivent le mode : une seule sortie
+  // primaire par vue.
+  for (const bouton of document.querySelectorAll('[data-action-mode]')) {
+    bouton.hidden = !bouton.dataset.actionMode.split(' ').includes(next);
+  }
+
   renderPreview();
 }
 

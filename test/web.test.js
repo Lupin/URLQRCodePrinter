@@ -961,16 +961,23 @@ test('un seul filet autour des champs : le champ, pas son contenant', () => {
 // quel bouton.
 // ---------------------------------------------------------------------------
 
-test("l'onglet Niimbot n'a plus qu'un sélecteur, un compteur et un bouton", () => {
+test("l'onglet Niimbot n'a plus qu'un sélecteur, un compteur et une sortie", () => {
   const panneau = html.slice(
     html.indexOf('data-mode-panel="single"'),
     html.indexOf('data-mode-panel="images"'),
   );
 
-  // Ce qui doit exister.
+  // Ce qui doit exister dans le panneau : les deux réglages, rien de plus.
   assert.match(panneau, /<select id="label-link"/);
   assert.match(panneau, /<input id="copies"/);
-  assert.match(panneau, /<button id="print-label"/);
+
+  // La sortie vit dans le pied de l'inspecteur, avec les autres modes : c'est
+  // ce qui garantit une seule action primaire visible par vue (I1).
+  assert.doesNotMatch(panneau, /id="print-label"/);
+  const sortie = html.match(/<button id="print-label"[^>]*>/);
+  assert.ok(sortie, 'la sortie Niimbot doit exister');
+  assert.match(sortie[0], /data-action-mode="single"/);
+  assert.match(html, /id="panel-actions"[^>]*inspector__foot/);
 
   // Ce qui ne doit plus : les doublons de la série.
   for (const disparu of ['print-scope', 'print-copies', 'print-all-labels']) {

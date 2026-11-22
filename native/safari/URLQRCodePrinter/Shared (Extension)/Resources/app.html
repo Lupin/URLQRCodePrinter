@@ -4,10 +4,22 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>URLQRCodePrinter</title>
-  <link rel="stylesheet" href="style.css?v=2c8f26e31825">
+  <link rel="stylesheet" href="style.css?v=ea93c5c6b5b3">
   <link rel="icon" type="image/png" href="icons/icon-32.png">
 </head>
 <body>
+
+    <!-- Affiché seulement si la feuille de style appliquée n'est pas celle du
+       build : le navigateur a gardé l'ancienne, et la mise en page serait
+       trompeuse sans que rien ne le dise. -->
+  <div id="stale-style" class="banner banner--error" role="alert" hidden>
+    <strong data-i18n="Feuille de style obsolète.">Feuille de style obsolète.</strong>
+    <span data-i18n="Le navigateur utilise une ancienne version du style : l'aperçu de la planche ne reflète pas ce qui sera imprimé.">Le navigateur utilise une ancienne version du style : l'aperçu de la planche ne reflète pas ce qui sera imprimé.</span>
+    <span data-i18n="Rechargez l'extension (↻ dans brave://extensions), puis rouvrez cette page. Si cela persiste, videz le cache du navigateur.">Rechargez l'extension (↻ dans brave://extensions), puis rouvrez cette page. Si cela persiste, videz le cache du navigateur.</span>
+  </div>
+
+<div class="shell">
+
   <header class="topbar">
     <div class="topbar__brand">
       <!-- La marque est l'icône du produit : le même fichier que l'extension,
@@ -29,20 +41,11 @@
       <span id="count" class="pill" aria-live="polite">0 lien</span>
   </header>
 
-  <!-- Affiché seulement si la feuille de style appliquée n'est pas celle du
-       build : le navigateur a gardé l'ancienne, et la mise en page serait
-       trompeuse sans que rien ne le dise. -->
-  <div id="stale-style" class="banner banner--error" role="alert" hidden>
-    <strong data-i18n="Feuille de style obsolète.">Feuille de style obsolète.</strong>
-    <span data-i18n="Le navigateur utilise une ancienne version du style : l'aperçu de la planche ne reflète pas ce qui sera imprimé.">Le navigateur utilise une ancienne version du style : l'aperçu de la planche ne reflète pas ce qui sera imprimé.</span>
-    <span data-i18n="Rechargez l'extension (↻ dans brave://extensions), puis rouvrez cette page. Si cela persiste, videz le cache du navigateur.">Rechargez l'extension (↻ dans brave://extensions), puis rouvrez cette page. Si cela persiste, videz le cache du navigateur.</span>
-  </div>
-
-  <main class="layout">
+  <main class="app">
     <!-- ---------------------------------------------------------------- -->
     <!-- Colonne de gauche : la collection                                 -->
     <!-- ---------------------------------------------------------------- -->
-    <section class="panel" aria-labelledby="collection-title">
+    <section class="panel rail" aria-labelledby="collection-title">
       <h2 id="collection-title" class="panel__title" data-i18n="Ma collection">Ma collection</h2>
 
       <!-- Le choix de la collection vient avant son nom : on choisit de quoi
@@ -100,6 +103,11 @@
                   data-i18n="Supprimer">Supprimer</button>
         </div>
       </div>
+      <!-- Les réglages qui décrivent la collection — nom, numéro, note — sont
+           utiles une fois, pas à chaque lien. Ils restent accessibles, mais
+           derrière un dépliant : le volet redevient une liste. -->
+      <details class="rail__advanced">
+        <summary data-i18n="Nom, numéro et note">Nom, numéro et note</summary>
       <!-- Ce que la suppression emporte, ce qu'une collection de navigation
            privée devient, et ce qu'un nom en attente attend : trois choses
            qu'on ne devine pas. `aria-live` parce que l'aide change sans que le
@@ -165,12 +173,13 @@
                   placeholder="De quoi parle cette collection…" data-i18n-placeholder="De quoi parle cette collection…"
                   spellcheck="false"></textarea>
       </label>
+      </details>
 
       <form id="add-form" class="add-form">
         <label class="sr-only" for="url-input" data-i18n="URL à ajouter">URL à ajouter</label>
         <input id="url-input" class="input" type="text" name="url"
                placeholder="https://exemple.com/page" data-i18n-placeholder="https://exemple.com/page" autocomplete="off" spellcheck="false">
-        <button class="btn btn--primary" type="submit" data-i18n="Ajouter">Ajouter</button>
+        <button class="btn btn--outline" type="submit" data-i18n="Ajouter">Ajouter</button>
       </form>
       <p id="add-error" class="field-error" role="alert" hidden></p>
 
@@ -286,49 +295,26 @@
     </section>
 
     <!-- ---------------------------------------------------------------- -->
-    <!-- Colonne de droite : la mise en forme et l'impression              -->
+    <!-- Scène : l'aperçu de ce qui sera imprimé                          -->
     <!-- ---------------------------------------------------------------- -->
-    <section class="panel" aria-labelledby="layout-title">
-      <h2 id="layout-title" class="panel__title" data-i18n="Mise en forme">Mise en forme</h2>
-
-      <label class="field field--compact">
-        <span class="field__label" data-i18n="Le QR Code pointe vers">Le QR Code pointe vers</span>
-        <select id="qr-target" class="input input--compact"></select>
-      </label>
-      <p id="target-hint" class="hint hint--tight"></p>
-
-      <!-- La date se coche désormais dans chaque onglet : un réglage global
-           pour quatre mises en forme obligeait à le changer en passant de l'une
-           à l'autre, et la case de l'étiquette semblait sans effet tant qu'on
-           n'y avait pas touché. -->
-
-      <!-- Le raccourcissement vit ici, avec la mise en forme, et non en tête de
-           la collection : c'est une décision de **sortie** — ce que le QR Code
-           encodera — au même titre que la taille ou la cible. Il occupait le
-           haut du panneau de collection, encombrant la hiérarchie pour une
-           fonction facultative.
-
-           Le titre porte l'action, le libellé du champ porte le réglage : ils
-           étaient confondus, et on lisait le choix d'un tiers comme le nom du
-           bouton. Chaque service annonce ce qu'il change pour un usage
-           ordinaire, et T.LY — le choix proposé d'emblée — se dit
-           « (défaut) ». -->
-      <div class="shortener">
-        <p class="shortener__title"><span data-i18n="Raccourcir les liens">Raccourcir les liens</span> <em data-i18n="(option)">(option)</em></p>
-        <div class="shortener__row">
-          <label class="field field--compact">
-            <span class="field__label" data-i18n="Service">Service</span>
-            <select id="shortener" class="input input--compact"></select>
-          </label>
-          <button id="shorten" class="btn btn--ghost" type="button" data-i18n="Raccourcir">Raccourcir</button>
-          <button id="shorten-clear" class="btn btn--ghost" type="button" hidden data-i18n="Retirer">Retirer</button>
+    <section class="stage" aria-labelledby="stage-title">
+      <div class="stage__bar">
+        <span id="stage-title" class="stage__title">Planche d'étiquettes</span>
+        <span id="stage-hint" class="stage__hint mono"></span>
+      </div>
+      <div class="stage__surface">
+        <div class="preview">
+          <div id="preview" class="preview__surface"></div>
         </div>
       </div>
-      <!-- Ce que le service proposé change, et ce qu'il ne fait pas : rien
-           n'est raccourci sans un clic sur « Raccourcir ». Le texte est posé
-           par `app.js`, parce qu'il dépend du service retenu. -->
-      <p id="shortener-hint" class="hint hint--tight"></p>
-      <p id="shorten-status" class="hint hint--tight" aria-live="polite"></p>
+    </section>
+
+    <!-- ---------------------------------------------------------------- -->
+    <!-- Inspecteur : la mise en forme et l'impression                     -->
+    <!-- ---------------------------------------------------------------- -->
+    <aside class="panel inspector" aria-labelledby="layout-title">
+      <h2 id="layout-title" class="panel__title" data-i18n="Mise en forme">Mise en forme</h2>
+
 
       <div class="tabs" role="tablist" aria-labelledby="layout-title">
         <button id="tab-sheet" class="tab tab--active" role="tab" data-mode="sheet"
@@ -803,17 +789,6 @@
         <p id="supply-hint" class="hint hint--tight"></p>
         <p id="profile-hint" class="hint hint--tight"></p>
         <p id="ble-support" class="hint" hidden></p>
-        <button id="print-label" class="btn btn--primary btn--wide" type="button" disabled data-i18n="Imprimer">
-          Imprimer
-        </button>
-        <!-- Les mêmes étiquettes, sans imprimante : le produit ne doit pas
-             devenir inutilisable faute de matériel. La composition est celle de
-             cet onglet — profil, consommable, orientation, contenu — et non
-             celle de l'onglet « Étiquette (divers) », qui a ses propres
-             réglages. -->
-        <button id="export-niimbot" class="btn btn--ghost btn--wide" type="button" disabled data-i18n="Exporter ces étiquettes (ZIP)">
-          Exporter ces étiquettes (ZIP)
-        </button>
 
         <!-- Un seul bouton. Son libellé dit exactement ce qui va sortir —
              nombre d'étiquettes et nombre d'exemplaires — pour qu'aucun clic ne
@@ -890,37 +865,82 @@
           </label>
         </fieldset>
         <p class="hint" data-i18n="Un dossier d'images prêtes à imprimer, avec une planche HTML et un CSV. Fonctionne avec n'importe quelle étiqueteuse, ou sur papier.">Un dossier d'images prêtes à imprimer, avec une planche HTML et un CSV. Fonctionne avec n'importe quelle étiqueteuse, ou sur papier.</p>
-        <button id="export-labels" class="btn btn--primary btn--wide" type="button" disabled data-i18n="Exporter les images (ZIP)">
-          Exporter les images (ZIP)
-        </button>
       </div>
 
       <!-- Actions, juste après les instructions du mode actif et avant
            l'aperçu : on règle, on agit, puis on regarde le résultat. -->
-      <div id="panel-actions" class="panel__actions">
-        <!-- Visible dans le seul onglet Tableau : c'est là que ses réglages
-             vivent. À côté d'« Imprimer », les deux sorties du tableau se
-             lisent d'un même regard. -->
+      <!-- Cible et raccourcissement : deux décisions de sortie, utiles une
+           fois, qui encombraient le haut de chaque mode. -->
+      <details class="advanced">
+        <summary data-i18n="Cible et raccourcissement">Cible et raccourcissement</summary>
+      <label class="field field--compact">
+        <span class="field__label" data-i18n="Le QR Code pointe vers">Le QR Code pointe vers</span>
+        <select id="qr-target" class="input input--compact"></select>
+      </label>
+      <p id="target-hint" class="hint hint--tight"></p>
+
+      <!-- La date se coche désormais dans chaque onglet : un réglage global
+           pour quatre mises en forme obligeait à le changer en passant de l'une
+           à l'autre, et la case de l'étiquette semblait sans effet tant qu'on
+           n'y avait pas touché. -->
+
+      <!-- Le raccourcissement vit ici, avec la mise en forme, et non en tête de
+           la collection : c'est une décision de **sortie** — ce que le QR Code
+           encodera — au même titre que la taille ou la cible. Il occupait le
+           haut du panneau de collection, encombrant la hiérarchie pour une
+           fonction facultative.
+
+           Le titre porte l'action, le libellé du champ porte le réglage : ils
+           étaient confondus, et on lisait le choix d'un tiers comme le nom du
+           bouton. Chaque service annonce ce qu'il change pour un usage
+           ordinaire, et T.LY — le choix proposé d'emblée — se dit
+           « (défaut) ». -->
+      <div class="shortener">
+        <p class="shortener__title"><span data-i18n="Raccourcir les liens">Raccourcir les liens</span> <em data-i18n="(option)">(option)</em></p>
+        <div class="shortener__row">
+          <label class="field field--compact">
+            <span class="field__label" data-i18n="Service">Service</span>
+            <select id="shortener" class="input input--compact"></select>
+          </label>
+          <button id="shorten" class="btn btn--ghost" type="button" data-i18n="Raccourcir">Raccourcir</button>
+          <button id="shorten-clear" class="btn btn--ghost" type="button" hidden data-i18n="Retirer">Retirer</button>
+        </div>
+      </div>
+      <!-- Ce que le service proposé change, et ce qu'il ne fait pas : rien
+           n'est raccourci sans un clic sur « Raccourcir ». Le texte est posé
+           par `app.js`, parce qu'il dépend du service retenu. -->
+      <p id="shortener-hint" class="hint hint--tight"></p>
+      <p id="shorten-status" class="hint hint--tight" aria-live="polite"></p>
+      </details>
+
+      <!-- Une seule action primaire par vue : la sortie du mode actif. Les
+           exports secondaires restent au-dessus, en aplat neutre. -->
+      <div id="panel-actions" class="panel__actions inspector__foot">
         <button id="export-table" class="btn btn--ghost btn--fill" type="button" hidden disabled data-i18n="Exporter le tableau (ZIP)">
           Exporter le tableau (ZIP)
         </button>
-        <!-- Même logique pour la planche : elle a ses propres réglages, donc
-             sa propre sortie, à côté d'« Imprimer ». -->
         <button id="export-sheet" class="btn btn--ghost btn--fill" type="button" hidden disabled data-i18n="Exporter la planche (ZIP)">
           Exporter la planche (ZIP)
         </button>
-        <!-- Le libellé dit ce qui sera imprimé : « une sélection vide imprime
-             tout » est la règle la moins devinable de l'application. -->
-        <button id="print" class="btn btn--primary" type="button" disabled data-i18n="Imprimer">
+        <button id="print" class="btn btn--primary" type="button" disabled
+                data-action-mode="sheet table" data-i18n="Imprimer">
           Imprimer
+        </button>
+        <button id="print-label" class="btn btn--primary" type="button" disabled hidden
+                data-action-mode="single" data-i18n="Imprimer">
+          Imprimer
+        </button>
+        <button id="export-niimbot" class="btn btn--ghost" type="button" disabled hidden
+                data-action-mode="single" data-i18n="Exporter ces étiquettes (ZIP)">
+          Exporter ces étiquettes (ZIP)
+        </button>
+        <button id="export-labels" class="btn btn--primary" type="button" disabled hidden
+                data-action-mode="images" data-i18n="Exporter les images (ZIP)">
+          Exporter les images (ZIP)
         </button>
       </div>
 
-      <!-- Aperçu commun -->
-      <div class="preview">
-        <div id="preview" class="preview__surface"></div>
-      </div>
-    </section>
+    </aside>
   </main>
 
   <!-- La page d'information, tout en bas — le même lien que dans la fenêtre de
@@ -948,6 +968,7 @@
          aurait fini par mentir, et une version fausse est pire qu'absente.
          Le texte est le même dans les deux langues : un nom, un nom de licence
          et un numéro n'ont rien à traduire. -->
+    <span id="local-promise" class="app-footer__promise" data-i18n="Aucune donnée envoyée">Aucune donnée envoyée</span>
     <p class="app-footer__signature">
       © <span id="footer-year"></span> G. Abegg-Gauthey
       <span class="app-footer__sep">·</span> MIT
@@ -955,11 +976,13 @@
     </p>
   </footer>
 
+  </div>
+
   <!-- Racine d'impression : masquée à l'écran, seule visible sur papier. -->
   <div id="print-root" class="print-root" aria-hidden="true"></div>
 
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
-  <script type="module" src="app.js?v=33a41c796307"></script>
+  <script type="module" src="app.js?v=81dfa94430da"></script>
 </body>
 </html>

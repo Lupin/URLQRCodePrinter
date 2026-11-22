@@ -35,11 +35,37 @@ Réparer sans dessiner : les défauts qui coûtent une erreur ou bloquent une pa
 
 ---
 
+## I1a — Châssis et aperçu permanent · 22 novembre 2026
+
+**Tag** : `checkpoint/i1a` · **Tickets fermés** : #23, #24, #25, #28 · **Note provisoire** : **2,9 / 5** (contre 2,45 après I0).
+
+Le poste de travail devient trois zones, et l'aperçu cesse d'être un panneau de formulaire.
+
+| Mesure | Avant I1a | Après I1a | Preuve |
+|---|---|---|---|
+| Zones de l'écran | 2 colonnes de formulaires | **3 zones** : 360 / 740 / 340 px | mesures `mesures-i1a.json` |
+| Position de l'aperçu à 1440 × 900 | 1 545 px | **112 px** | l'aperçu commence sous la barre de scène |
+| Défilement de la page pour voir l'aperçu | 1 310 px | **0 px** | `scrollHeight = innerHeight` |
+| Actions primaires visibles | 2 (Ajouter + Imprimer) | **1 par vue** (Imprimer / Imprimer l'étiquette / Exporter les images) | relevé par mode |
+| Survol des boutons secondaires | 7 deviennent orange | **0** (survol neutre) | règle + test |
+| Hauteur de l'en-tête | 125,5 px (82 après I0) | **48 px** | barre de commande sur une ligne |
+| Contrôles dans l'écran | 77 | **54** | relevé géométrique |
+| Aperçu à 768 / 380 px | 2 812 / 3 614 px | **142 / 178 px**, scène en tête | ordre responsive |
+| Pied de page | liens + signature | **barre d'état** : liens, promesse « Aucune donnée envoyée », signature | captures |
+| Réglages hors usage courant | visibles | **deux dépliants** : « Cible et raccourcissement », « Nom, numéro et note » | captures |
+| Tests | 1 090 | **1 090** | `npm test` vert |
+
+**Ce qui reste pour I1b (et pourquoi la note n'est pas encore 3,1)** : le volet porte encore ses exports et son import en pied (les déplacer dans un menu), l'inspecteur garde 54 contrôles à l'écran (cible < 40), les états vides ne sont pas encore dessinés, la fenêtre n'est pas alignée sur son écran 3, et les onglets tiennent sur deux rangées. I1b s'en occupe avant I2.
+
+**Comparaison visuelle** : `mockup/comparaison-maquette-reel-i1a.png`.
+
+---
+
 ## Prochains paliers
 
 | Palier | Note visée | Porte de sortie |
 |---|---|---|
-| I1 Structure | 3,1 | aperçu visible sans défiler (0 px), 1 primaire, < 40 contrôles |
+| I1 Structure (I1a fait, I1b à venir) | 3,1 | aperçu visible sans défiler (0 px), 1 primaire, < 40 contrôles |
 | I2 Système | 3,7 | 0 valeur hors échelle, onglet actif ≥ 3:1 |
 | I3 Liste & flux | 4,1 | liste dense, sélection contextuelle, import guidé |
 | I4 Canvas & sortie | 4,45 | planche encadrée, zoom, progression |

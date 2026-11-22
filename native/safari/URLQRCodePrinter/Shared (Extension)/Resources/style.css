@@ -20,6 +20,8 @@
   --bg: #ffffff;
   --surface: #f4f4f4;
   --surface-2: #e8e8e8;
+  /* Le bureau : la surface derrière la feuille, à l'écran seulement. */
+  --desk: #eae6df;
   --text: #161616;
   --text-2: #393939;
   --text-3: #5c5c5c;
@@ -66,6 +68,7 @@
     --bg: #161616;
     --surface: #262626;
     --surface-2: #333333;
+    --desk: #1c1b19;
     --text: #f4f4f4;
     --text-2: #c6c6c6;
     --text-3: #a8a8a8;
@@ -738,9 +741,9 @@ body {
  * éclairci du thème sombre. Le jeton vaut blanc en clair et encre en sombre,
  * donc le seuil est tenu des deux côtés. */
 .btn--fill:not(:disabled):hover {
-  border-color: var(--accent);
-  background: var(--accent);
-  color: var(--accent-ink);
+  border-color: var(--border-strong);
+  background: var(--surface-2);
+  color: var(--text);
 }
 
 /* Le rouge est posé **au repos**, et non plus au survol.
@@ -809,8 +812,11 @@ body {
 /* --- Liste des liens --- */
 
 .links {
-  flex: 1;
-  max-height: 46vh;
+  /* La liste garde une hauteur utile même quand le volet défile : sinon elle
+     se réduisait à zéro sous les réglages. */
+  flex: 0 1 auto;
+  min-height: 180px;
+  max-height: 44vh;
   margin: 0;
   padding: 0;
   overflow-y: auto;
@@ -1615,3 +1621,217 @@ body {
     scroll-behavior: auto !important;
   }
 }
+
+/* ==========================================================================
+   Châssis à trois zones (palier I1)
+   --------------------------------------------------------------------------
+   Volet de collection, scène d'aperçu, inspecteur de mise en forme. La
+   hauteur est celle de la fenêtre : l'aperçu reste visible pendant qu'on
+   règle, et c'est la seule zone qui défile quand la feuille est grande.
+   ========================================================================== */
+
+.shell {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.app {
+  display: grid;
+  grid-template-columns: 360px minmax(0, 1fr) 340px;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.app > .panel, .app > .stage { min-height: 0; min-width: 0; }
+
+/* La barre de commande tient sur une ligne : marque, sous-titre, langue,
+   compteur. Le sous-titre ne passe plus sous le titre. */
+.topbar {
+  display: flex;
+  grid-template-columns: none;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+}
+
+.topbar__brand { display: flex; align-items: center; gap: 10px; }
+.marque { width: 24px; height: 24px; }
+.topbar__title { font-size: 15px; }
+.topbar__subtitle {
+  grid-column: auto;
+  margin: 0;
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.locale { grid-column: auto; grid-row: auto; margin-left: auto; }
+.pill { grid-column: auto; grid-row: auto; }
+
+/* Volet et inspecteur défilent pour eux-mêmes : la scène ne bouge pas. */
+.rail {
+  overflow-y: auto;
+  border-right: 1px solid var(--border-line);
+}
+
+.inspector {
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  border-left: 1px solid var(--border-line);
+}
+
+/* Le pied de l'inspecteur reste au bas du panneau : les actions du mode
+   actif ne se perdent pas en bas d'une longue liste de réglages. */
+.inspector__foot {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: auto;
+  padding: 12px 0 0;
+  background: var(--surface);
+  border-top: 1px solid var(--border-line);
+}
+
+.inspector__foot .btn { width: 100%; justify-content: center; }
+
+/* La scène : le bureau, et la feuille. */
+.stage {
+  display: flex;
+  flex-direction: column;
+  background: var(--desk);
+}
+
+.stage__bar {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  height: 44px;
+  padding: 0 16px;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border-line);
+}
+
+.stage__title { font-size: 13px; font-weight: 600; }
+.stage__hint { font-size: 10.5px; color: var(--text-3); letter-spacing: 0.02em; }
+
+.stage__surface {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  display: flex;
+  justify-content: center;
+  padding: 20px;
+}
+
+/* L'aperçu n'est plus un panneau du formulaire : c'est le contenu de la scène. */
+.stage .preview {
+  flex: none;
+  width: 100%;
+  min-height: 0;
+  max-height: none;
+  overflow: visible;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.stage .preview__surface { width: 100%; }
+
+/* Le pied devient une barre d'état : liens, promesse, signature. */
+.app-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  height: 32px;
+  padding: 0 16px;
+  border-top: 1px solid var(--border-line);
+  text-align: left;
+}
+
+.app-footer__links { justify-content: flex-start; gap: 4px 14px; }
+.app-footer__signature { margin: 0; font-size: 10px; }
+.app-footer__link { font-size: 10px; }
+.app-footer__promise { font-size: 10px; color: var(--text-3); }
+
+@media (max-width: 1180px) {
+  .app { grid-template-columns: 310px minmax(0, 1fr) 310px; }
+}
+
+@media (max-width: 900px) {
+  .shell { height: auto; overflow: visible; }
+  .app {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: 480px auto auto;
+    overflow: visible;
+  }
+  /* Sur une seule colonne, la scène passe en tête : l'aperçu reste la
+     première chose visible, le volet vient ensuite. */
+  .stage { order: 1; height: 480px; }
+  .rail { order: 2; overflow: visible; border-right: 0; border-top: 1px solid var(--border-line); }
+  .inspector { order: 3; overflow: visible; border-left: 0; border-top: 1px solid var(--border-line); }
+  .inspector__foot { position: static; }
+  .topbar { flex-wrap: wrap; }
+  .topbar__subtitle { flex-basis: 100%; order: 3; }
+}
+
+/* En mode Planche, la feuille est montrée à une échelle qui tient dans la
+   hauteur : c'est un aperçu, pas un zoom maximal. Les autres modes gardent
+   toute la largeur disponible. */
+.stage[data-mode="sheet"] .preview { max-width: 480px; }
+
+/* --- Dépliants de l'inspecteur et du volet ---
+ *
+ * Ce qui se règle une fois ne prend pas la place de ce qui se règle à chaque
+ * lien. Le résumé reste visible, le contenu s'ouvre à la demande.
+ */
+.advanced, .rail__advanced {
+  border-top: 1px solid var(--border-line);
+  padding-top: 8px;
+  margin-top: 2px;
+}
+
+.advanced > summary,
+.rail__advanced > summary {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 28px;
+  list-style: none;
+  cursor: pointer;
+  color: var(--text-2);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.advanced > summary::-webkit-details-marker,
+.rail__advanced > summary::-webkit-details-marker { display: none; }
+
+.advanced > summary::before,
+.rail__advanced > summary::before {
+  content: "▸";
+  color: var(--text-3);
+  font-size: 10px;
+}
+
+.advanced[open] > summary::before,
+.rail__advanced[open] > summary::before { content: "▾"; }
+
+.advanced[open] > summary,
+.rail__advanced[open] > summary { margin-bottom: 8px; }
+
+.advanced > summary:focus-visible,
+.rail__advanced > summary:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.advanced .shortener { margin-top: 8px; }

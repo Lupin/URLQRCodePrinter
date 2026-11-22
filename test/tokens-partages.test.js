@@ -345,16 +345,14 @@ test('un doublon ne se confond pas avec un échec', () => {
 // Survol des boutons d'export
 // ---------------------------------------------------------------------------
 
-test("les boutons d'export se remplissent à l'accent au survol", () => {
+test("les boutons secondaires ne prennent plus l'accent au survol", () => {
+  // L'accent désigne l'action. Un survol qui repeint sept boutons en orange
+  // faisait de la couleur d'action « ce que la souris touche » (audit M2).
   const règle = APP.match(/\.btn--fill:not\(:disabled\):hover\s*\{([\s\S]*?)\}/);
   assert.ok(règle, 'aucune règle de survol rempli');
 
-  assert.match(règle[1], /background:\s*var\(--accent\)/, 'le fond ne prend pas l\'accent');
-  assert.match(règle[1], /border-color:\s*var\(--accent\)/);
-  // Le libellé doit venir du jeton, pas d'un blanc écrit en dur : le blanc ne
-  // tient que 1,69:1 sur l'orange éclairci du thème sombre.
-  assert.match(règle[1], /color:\s*var\(--accent-ink\)/, 'le libellé ignore le jeton d\'encre');
-  assert.doesNotMatch(règle[1], /color:\s*#fff/i, 'blanc en dur sur un fond qui change de thème');
+  assert.doesNotMatch(règle[1], /var\(--accent\)/, 'le survol reprend la couleur d\'action');
+  assert.match(règle[1], /background:\s*var\(--surface-2\)/, 'le survol doit rester neutre');
 
   for (const id of ['export-xlsx', 'export-csv', 'export-md', 'export-json', 'import', 'clear']) {
     const balise = APP_HTML.match(new RegExp(`<button id="${id}"[^>]*>`));
