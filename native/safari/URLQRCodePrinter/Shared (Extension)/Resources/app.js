@@ -213,6 +213,10 @@ const EN_MESSAGES = {
   "Ajouter un lien": "Add a link",
   "Importer une archive": "Import an archive",
   "Effacer la recherche": "Clear search",
+  "{count} résultat": "{count} result",
+  "{count} résultats": "{count} results",
+  "Tout désélectionner": "Clear selection",
+  "Sélection": "Selection",
   "Exporter, importer et vider": "Export, import and clear",
   "Nom, numéro et note": "Name, number and note",
   "Cible et raccourcissement": "Target and shortening",
@@ -13635,6 +13639,22 @@ function renderList() {
 
   el.list.textContent = '';
   el.empty.hidden = visible.length > 0;
+
+  // Le compteur n'apparaît qu'en recherche : au repos, le nombre de liens est
+  // déjà dans la barre de commande. La croix efface la requête.
+  const champRecherche = document.getElementById('search');
+  const champRechercheBloc = document.querySelectorAll('.search-field')[0];
+  const compteur = document.getElementById('search-count');
+  const croix = document.getElementById('search-clear');
+  const enRecherche = query !== '';
+  if (champRechercheBloc) champRechercheBloc.classList.toggle('search-field--actif', enRecherche);
+  if (compteur) {
+    compteur.hidden = !enRecherche;
+    if (enRecherche) {
+      compteur.textContent = tpl(visible.length, '{count} résultat', '{count} résultats', { count: visible.length });
+    }
+  }
+  if (croix) croix.hidden = !enRecherche;
   // Sans lien, la rangée « tout sélectionner / réorganiser » n'a plus d'objet.
   const teteListe = document.querySelectorAll('.list-head')[0];
   if (teteListe) teteListe.hidden = links.length === 0;
@@ -14327,6 +14347,11 @@ function updateSelectionHint() {
   el.selectAllBox.checked = all;
   el.selectAllBox.indeterminate = !all && selected.size > 0;
   el.selectAllBox.disabled = links.length === 0;
+
+  // La barre n'existe que si quelque chose est coché : c'est un état, pas une
+  // rangée d'outils permanente.
+  const barre = document.getElementById('selection-bar');
+  if (barre) barre.hidden = selected.size === 0 || links.length === 0;
 
   // Réglé **avant** les sorties anticipées ci-dessous : « tout cocher » est le
   // geste le plus courant, et il sortait par la branche `all` sans jamais
@@ -19518,12 +19543,54 @@ function switchMode(next) {
   renderPreview();
 }
 
+/**
+ * Pose le pourcentage rempli de chaque curseur.
+ *
+ * Le CSS ne sait pas lire la valeur d'un `input[type="range"]` : la partie
+ * utile de la piste est donc peinte à partir d'une variable, mise à jour à
+ * chaque geste et au démarrage.
+ */
+function wireRangeProgress() {
+  for (const range of document.querySelectorAll('input[type="range"]')) {
+    const maj = () => {
+      const min = Number(range.min || 0);
+      const max = Number(range.max || 100);
+      const valeur = Number(range.value || min);
+      const pct = max > min ? ((valeur - min) / (max - min)) * 100 : 0;
+      range.style.setProperty('--slider-pct', `${pct}%`);
+    };
+    maj();
+    range.addEventListener('input', maj);
+  }
+}
+
+wireRangeProgress();
+
 el.addForm.addEventListener('submit', (event) => {
   event.preventDefault();
   addFromInput();
 });
 
 el.search.addEventListener('input', renderList);
+
+const effacerRecherche = () => {
+  if (el.search.value === '') return;
+  el.search.value = '';
+  renderList();
+  el.search.focus();
+};
+document.getElementById('search-clear')?.addEventListener('click', effacerRecherche);
+el.search.addEventListener('keydown', (event) => {
+  if (event.key === 'Escape') {
+    event.preventDefault();
+    effacerRecherche();
+  }
+});
+document.getElementById('selection-clear')?.addEventListener('click', () => {
+  selected = new Set();
+  renderList();
+  el.selectAllBox.focus();
+});
 
 el.sortMode.addEventListener('change', async () => {
   preferences = settings.save({ sortMode: el.sortMode.value });

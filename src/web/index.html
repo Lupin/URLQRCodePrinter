@@ -185,7 +185,12 @@
 
       <div class="toolbar">
         <label class="sr-only" for="search" data-i18n="Rechercher">Rechercher</label>
-        <input id="search" class="input input--compact" type="search" placeholder="Rechercher…" data-i18n-placeholder="Rechercher…">
+        <div class="search-field">
+          <input id="search" class="input input--compact" type="search" placeholder="Rechercher…" data-i18n-placeholder="Rechercher…">
+          <span id="search-count" class="search-field__count mono" aria-live="polite" hidden></span>
+          <button id="search-clear" class="search-field__clear" type="button" hidden
+                  aria-label="Effacer la recherche" data-i18n-aria-label="Effacer la recherche">×</button>
+        </div>
         <!-- Le tri est une **vue** : rien n'est écrit, et revenir à l'ordre
              manuel retrouve la collection telle qu'elle était. Il est donc à
              côté de la recherche, qui est l'autre façon de regarder la liste. -->
@@ -204,27 +209,28 @@
           <input id="select-all-box" type="checkbox">
           <span class="sr-only" data-i18n="Tout sélectionner">Tout sélectionner</span>
         </label>
-        <p id="selection-hint" class="hint hint--tight" aria-live="polite"></p>
+        <span class="list-head__hint mono" data-i18n="Sélection">Sélection</span>
         <!-- Le rangement est un **mode**, et non deux flèches posées sur chaque
              ligne : elles encombraient la liste en permanence, pour une action
              qu'on fait une fois puis qu'on quitte. Le bouton entre dans le mode,
              Échap en sort. -->
         <button id="reorder" class="btn btn--ghost btn--small" type="button"
                 aria-pressed="false" data-i18n="Réorganiser">Réorganiser</button>
+      </div>
 
-        <!-- Déplacer la sélection vers une autre collection. La commande
-             n'apparaît qu'avec une sélection, à côté du rangement : on ne
-             déplace que ce qu'on a coché, et rien n'encombre la liste au repos.
-             Le choix s'ouvre sous le bouton plutôt que dans un `<select>` :
-             un sélecteur qui agirait au changement déplacerait des liens à la
-             molette ou aux flèches du clavier, sans que personne ne l'ait
-             demandé. -->
+      <!-- La sélection est un **état**, pas une rangée permanente : la barre
+           n'existe que quand quelque chose est coché, et elle porte alors le
+           compte, le déplacement et la sortie. -->
+      <div id="selection-bar" class="selection-bar" hidden>
+        <p id="selection-hint" class="hint hint--tight" aria-live="polite"></p>
         <div id="move-group" class="move" hidden>
           <button id="move-to" class="btn btn--ghost btn--small" type="button"
                   aria-expanded="false" data-i18n="Déplacer vers…">Déplacer vers…</button>
           <div id="move-menu" class="move__menu" role="group"
                data-i18n-aria-label="Déplacer vers une collection" hidden></div>
         </div>
+        <button id="selection-clear" class="btn btn--ghost btn--small" type="button"
+                data-i18n="Tout désélectionner">Tout désélectionner</button>
       </div>
 
       <ul id="list" class="links"></ul>

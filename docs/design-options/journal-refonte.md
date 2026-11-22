@@ -138,6 +138,29 @@ Le dernier étage du système : les paddings, les variantes, les contrôles nati
 
 ---
 
+## I3a — Liste dense, sélection contextuelle, recherche comptée · 22 novembre 2026
+
+**Tag** : `checkpoint/i3a` · **Tickets fermés** : #34, #35, #37 · **Note provisoire** : **3,4 / 5**.
+
+La liste devient ce qu'on parcourt, pas ce qu'on subit.
+
+| Mesure | Avant I3a | Après I3a | Preuve |
+|---|---|---|---|
+| Hauteur d'une ligne | 76 à 103 px (moyenne 82) | **44 à 55 px** (moyenne 48) | mesure géométrique sur 10 liens |
+| Rangée permanente de sélection | case + phrase + bouton + déplacement | **une ligne de sélection** ; la barre d'état n'existe qu'avec une sélection | captures |
+| Phrase « aucun lien coché » | affichée en permanence | **hors du repos**, remplacée par le compte de sélection | mesure : barre masquée à 0 coché |
+| Recherche | champ muet | **compteur « 3 résultats »**, croix d'effacement, **Échap** | capture + mesure |
+| Ligne avec puces | passait à trois lignes | **deux lignes**, puce sur la ligne de l'adresse | capture |
+| Tests | 1 099 | **1 100** | `npm test` vert |
+
+**Deux corrections de structure** : le bouton d'édition réservait une rangée entière même fermé (`flex: 1 0 100%`) — il reste inline et l'éditeur ne prend sa ligne qu'ouvert (`:has`) ; et l'adresse, non compressible, renvoyait les puces à la ligne suivante — le corps de ligne est passé en grille `minmax(0,1fr) auto`.
+
+**Reste pour I3b** : l'édition en volet de détail (#36) et l'import guidé (#38). Ce sont deux refontes de flux, pas des ajustements.
+
+**Dette de finition** : le curseur reste « un peu brut » (accepté pour l'instant) — consigné pour la passe finale, ticket #54.
+
+---
+
 ## Dettes de finition (assumées, pour I6)
 
 Consignées au fil des revues, traitées lors de la **passe générale** avant la note 4,8 :

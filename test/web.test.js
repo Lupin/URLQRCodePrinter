@@ -629,8 +629,13 @@ test("l'éditeur d'un lien tient dans la liste, sur sa propre ligne", () => {
   const ligne = css.match(/\n\.link\s*\{([\s\S]*?)\}/)[1];
   assert.match(ligne, /flex-wrap:\s*wrap/, 'la ligne doit pouvoir se replier');
 
-  const editeur = css.match(/\.link__editor\s*\{([\s\S]*?)\}/)[1];
-  assert.match(editeur, /flex:\s*1 0 100%/, 'l\'éditeur occupe sa ligne');
+  // Fermé, l'éditeur se réduit à son crayon et reste sur la ligne ; ouvert, il
+  // prend sa propre ligne. Sans cette distinction, la liste réservait une
+  // rangée entière à un crayon et perdait sa densité.
+  const editeur = css.match(/^\.link__editor \{([\s\S]*?)\}/m)[1];
+  assert.match(editeur, /flex:\s*0 0 auto/, 'au repos, l\'éditeur reste sur la ligne');
+  const ouvert = css.match(/\.link__editor:has\(\.link__editor-form\) \{([\s\S]*?)\}/)[1];
+  assert.match(ouvert, /flex:\s*1 0 100%/, 'ouvert, l\'éditeur occupe sa ligne');
   assert.match(editeur, /min-width:\s*0/, 'et peut rétrécir sous sa largeur intrinsèque');
 
   const app = readFileSync(join(WEB, 'app.js'), 'utf8');

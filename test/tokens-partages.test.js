@@ -425,7 +425,7 @@ test("les puces de tag sont plates et sans « # »", () => {
 
   // Le bouton gardait la bordure `outset` du navigateur, qu'aucune règle ne
   // déclarait : c'est elle qui dessinait le contour autour de chaque tag.
-  const puce = APP_CODE_BEFORE_PRINT.match(/\.tag\s*\{([\s\S]*?)\}/)[1];
+  const puce = APP_CODE_BEFORE_PRINT.match(/^\.tag \{([\s\S]*?)\}/m)[1];
   assert.match(puce, /border:\s*0/, "la bordure du navigateur n'est pas annulée");
   assert.match(puce, /font-family:\s*inherit/, "la police du navigateur n'est pas annulée");
 });
