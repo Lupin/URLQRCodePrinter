@@ -236,6 +236,8 @@ Sept paliers : un passage de correctifs bloquants, puis six itérations. Chacune
 | **I5 — Marque et site** | Passage de direction artistique : un objet visuel (planche/étiquette), une matière d'aperçu, le moment de la sortie ; le site montre le produit. | Site avec ≥ 3 visuels réels du produit ; page 1440 px avec 1 point focal visible au premier écran ; profil de mouvement tokenisé. | 4,65 |
 | **I6 — Polissage** | Balayage de cohérence, microcopy, accessibilité re-mesurée, détails d'un pour cent. | Audit WCAG AA re-mesuré sans échec ; 0 incohérence de variante ; contraste ≥ 7:1 sur le texte courant ; note du barème ≥ 4,8. | **4,8** |
 
+**Maquette** : les deux écrans de I1 sont maquettés dans [`mockup/console-revisee.html`](mockup/console-revisee.html) (rendus : `mockup/ecran-1.png`, `mockup/ecran-2.png`). Ils sont à valider avant toute implémentation ; les décisions attendues et les sujets volontairement absents sont listés dans [`mockup/LISEZ-MOI.md`](mockup/LISEZ-MOI.md).
+
 **Règle d'itération** : à chaque tour, on rejoue la même matrice de captures, on remplit le barème, on compare à la note cible. Si la note n'est pas atteinte, on ne passe pas à l'itération suivante — on corrige. Les critères sont mesurables par script (géométrie, contrastes, nombre de contrôles) pour éviter l'auto-satisfaction.
 
 **Ce qu'on ne fera pas** : ajouter des illustrations décoratives, changer la direction « Console » pour une mode SaaS, introduire un cadre CSS ou une bibliothèque de composants, toucher au rendu papier tant que la structure d'écran n'est pas stable.

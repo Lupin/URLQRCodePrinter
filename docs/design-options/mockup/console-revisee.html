@@ -1,0 +1,1077 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Maquette — direction « Console révisée » — URLQRCodePrinter</title>
+<style>
+/*
+ * Maquette de validation, pas du code de production.
+ *
+ * Deux écrans à 1440 × 900, plus des spécimens d'états et les fondations.
+ * La direction est « Console révisée » : angles vifs, grille tracée, chiffres
+ * tabulaires, un seul accent (l'action), une seule ombre (la feuille posée).
+ * Tout ce qui est écrit ici est une proposition à valider, pas une décision
+ * livrée. Aucune de ces règles n'est branchée sur src/.
+ */
+
+:root {
+  /* Surfaces : la page, les panneaux, le bureau (dessous), le papier. */
+  --bg: #fbfbfa;
+  --surface: #f3f3f1;
+  --surface-2: #e8e8e4;
+  --desk: #eae6df;
+  --paper: #ffffff;
+
+  /* Encre et limites. */
+  --ink: #17171a;
+  --ink-2: #45454a;
+  --ink-3: #6f6f75;
+  --line: #dededa;
+  --line-strong: #8b8b86;
+
+  /* Accent : une seule couleur d'action. */
+  --accent: #c2410c;
+  --accent-ink: #ffffff;
+  --accent-weak: #f7e4d8;
+
+  --ok: #1c7c4a;
+
+  /* Une seule ombre dans tout le système : la feuille posée sur le bureau. */
+  --shadow-sheet: 0 1px 2px rgba(23, 23, 26, 0.10), 0 14px 34px rgba(23, 23, 26, 0.13);
+
+  --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+  --mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, monospace;
+}
+
+* { box-sizing: border-box; }
+
+html, body { margin: 0; }
+
+body {
+  background: #d9d9d5;
+  color: var(--ink);
+  font-family: var(--font);
+  font-size: 13px;
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* --- La page de revue --- */
+
+.page { width: 1440px; margin: 0 auto; padding: 48px 0 96px; }
+
+.page__head { padding: 0 32px 28px; }
+.page__kicker { font: 600 11px/1 var(--mono); letter-spacing: 0.1em; text-transform: uppercase; color: #55555a; }
+.page__title { margin: 10px 0 8px; font-size: 34px; font-weight: 650; letter-spacing: -0.02em; }
+.page__lead { margin: 0; max-width: 74ch; font-size: 14.5px; color: #35353a; }
+.page__meta { display: flex; gap: 10px; margin-top: 18px; flex-wrap: wrap; }
+.chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  height: 26px; padding: 0 10px;
+  border: 1px solid #b9b9b4; background: transparent;
+  font: 500 11.5px/1 var(--mono); color: #35353a;
+}
+.chip--accent { border-color: var(--accent); color: var(--accent); }
+
+.spec { margin-top: 40px; }
+.spec__caption {
+  display: flex; align-items: baseline; gap: 12px;
+  padding: 0 32px 12px;
+}
+.spec__num { font: 600 11px/1 var(--mono); color: #55555a; }
+.spec__title { font-size: 17px; font-weight: 620; letter-spacing: -0.01em; }
+.spec__title small { font-size: 13px; font-weight: 400; color: #55555a; }
+
+.artboard {
+  position: relative;
+  width: 1440px; height: 900px;
+  overflow: hidden;
+  background: var(--bg);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12), 0 20px 50px rgba(0, 0, 0, 0.18);
+}
+
+.notes {
+  display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px 40px;
+  padding: 18px 32px 0; margin: 0; list-style: none;
+  font-size: 12.5px; color: #35353a;
+}
+.notes li { display: flex; gap: 10px; align-items: flex-start; }
+.notes b { color: #17171a; font-weight: 600; }
+.notes__n {
+  flex: none; width: 18px; height: 18px; margin-top: 1px;
+  display: grid; place-items: center;
+  border: 1px solid #8b8b86; border-radius: 50%;
+  font: 600 10px/1 var(--mono); color: #45454a;
+}
+
+/* --- Le châssis de l'application --- */
+
+.app {
+  position: relative;
+  display: grid;
+  grid-template-columns: 340px minmax(0, 1fr) 304px;
+  grid-template-rows: 56px minmax(0, 1fr) 28px;
+  height: 900px;
+  background: var(--bg);
+}
+
+.mono { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+.muted { color: var(--ink-3); }
+
+/* Icônes : un seul jeu, trait 1,5, 16 px. */
+.i { width: 16px; height: 16px; display: block; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+.i--12 { width: 12px; height: 12px; }
+
+/* --- Barre de commande --- */
+
+.bar {
+  grid-column: 1 / -1; grid-row: 1;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 14px 0 16px;
+  background: var(--bg);
+  border-bottom: 1px solid var(--line-strong);
+}
+.bar__left, .bar__right { display: flex; align-items: center; gap: 10px; }
+.mark { width: 22px; height: 22px; display: block; }
+.brand { font-size: 13px; font-weight: 640; letter-spacing: -0.005em; }
+.bar__sep { width: 1px; height: 18px; background: var(--line); }
+.collection {
+  display: inline-flex; align-items: center; gap: 6px;
+  height: 28px; padding: 0 8px 0 9px;
+  border: 1px solid transparent; border-radius: 0;
+  background: transparent; color: var(--ink);
+  font: 500 13px/1 var(--font); cursor: pointer;
+}
+.collection:hover { border-color: var(--line-strong); }
+.count {
+  font-size: 10.5px; letter-spacing: 0.02em; color: var(--ink-3);
+  padding: 0 0 0 2px;
+}
+
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+  height: 32px; padding: 0 12px;
+  border: 1px solid transparent; border-radius: 0;
+  background: transparent; color: var(--ink);
+  font: 500 12.5px/1 var(--font); white-space: nowrap; cursor: pointer;
+}
+.btn--quiet:hover { background: var(--surface-2); }
+.btn--outline { border-color: var(--line-strong); }
+.btn--outline:hover { border-color: var(--ink); }
+.btn--primary { background: var(--accent); color: var(--accent-ink); font-weight: 600; }
+.btn--primary:hover { background: #9a3412; }
+.btn--block { width: 100%; height: 36px; justify-content: space-between; padding: 0 12px 0 14px; }
+.btn--xs { height: 24px; padding: 0 8px; font-size: 11.5px; }
+.btn kbd { font: 500 10.5px/1 var(--mono); opacity: 0.72; }
+
+.iconbtn {
+  display: grid; place-items: center;
+  width: 24px; height: 24px; padding: 0;
+  border: 1px solid transparent; border-radius: 0;
+  background: transparent; color: var(--ink-2); cursor: pointer;
+}
+.iconbtn:hover { background: var(--surface-2); color: var(--ink); }
+.iconbtn--bordered { border-color: var(--line-strong); }
+
+.lang { height: 24px; padding: 0 6px; border: 1px solid transparent; background: transparent; font-size: 10.5px; color: var(--ink-3); letter-spacing: 0.04em; }
+
+/* --- Volet collection --- */
+
+.rail {
+  grid-column: 1; grid-row: 2;
+  display: flex; flex-direction: column; min-height: 0;
+  background: var(--surface);
+  border-right: 1px solid var(--line-strong);
+}
+
+.rail__add {
+  display: flex; gap: 6px;
+  padding: 12px 12px 8px;
+}
+.input {
+  height: 32px; width: 100%; padding: 0 10px;
+  border: 1px solid var(--line-strong); border-radius: 0;
+  background: var(--bg); color: var(--ink);
+  font: 400 12.5px/1 var(--font);
+}
+.input::placeholder { color: var(--ink-3); }
+.input:focus, .input--focus { outline: 2px solid var(--ink); outline-offset: 1px; background: #fff; }
+.input.mono { font-size: 11.5px; }
+
+.rail__tools { display: flex; gap: 6px; padding: 4px 12px 10px; }
+.search { position: relative; flex: 1; display: flex; align-items: center; }
+.search .i { position: absolute; left: 9px; color: var(--ink-3); pointer-events: none; }
+.search .input { padding-left: 30px; padding-right: 34px; }
+.search kbd {
+  position: absolute; right: 8px;
+  font: 500 10px/1 var(--mono); color: var(--ink-3);
+  border: 1px solid var(--line); padding: 2px 4px; background: var(--surface);
+}
+.sort {
+  display: inline-flex; align-items: center; gap: 6px;
+  height: 32px; padding: 0 8px 0 10px;
+  border: 1px solid var(--line-strong); border-radius: 0;
+  background: transparent; color: var(--ink);
+  font: 500 11.5px/1 var(--mono); cursor: pointer;
+}
+
+.rail__headrow {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 14px 8px;
+  font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-3);
+}
+
+.rows { margin: 0; padding: 0; list-style: none; overflow: hidden; flex: 1; }
+.row {
+  position: relative;
+  display: grid; grid-template-columns: 22px 20px minmax(0, 1fr) auto;
+  align-items: center; gap: 8px;
+  height: 46px; padding: 0 8px 0 8px;
+  border-top: 1px solid var(--line);
+  cursor: default;
+}
+.row:hover { background: var(--surface-2); }
+.row.is-selected { background: var(--surface-2); box-shadow: inset 2px 0 0 var(--ink); }
+.check {
+  display: grid; place-items: center;
+  width: 18px; height: 18px; padding: 0;
+  border: 1px solid var(--line-strong); background: var(--bg); cursor: pointer;
+}
+.check .i { opacity: 0; color: var(--ink); }
+.check.is-on { border-color: var(--ink); background: var(--bg); }
+.check.is-on .i { opacity: 1; color: var(--ink); }
+.row__num { font-size: 10.5px; color: var(--ink-3); text-align: right; }
+.row__main { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.row__title {
+  font-size: 12.5px; font-weight: 500; line-height: 1.3; color: var(--ink);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.row__host { font-size: 10.5px; color: var(--ink-3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.row__acts { display: flex; gap: 2px; opacity: 0; }
+.row:hover .row__acts, .row.is-selected .row__acts, .row.is-hover .row__acts { opacity: 1; }
+.row.is-hover { background: var(--surface-2); }
+.row__acts .iconbtn { width: 24px; height: 24px; }
+
+.rail__foot {
+  display: flex; align-items: center; justify-content: space-between;
+  height: 34px; padding: 0 14px;
+  border-top: 1px solid var(--line-strong);
+  font-size: 10.5px; color: var(--ink-3);
+}
+.dot { display: inline-block; width: 6px; height: 6px; margin-right: 6px; border-radius: 50%; background: var(--ok); vertical-align: 1px; }
+
+/* --- Bureau et feuille --- */
+
+.canvas {
+  grid-column: 2; grid-row: 2;
+  display: flex; flex-direction: column; min-width: 0; min-height: 0;
+  background: var(--desk);
+  background-image:
+    linear-gradient(rgba(23, 23, 26, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(23, 23, 26, 0.035) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+.canvas__bar {
+  display: flex; align-items: center; justify-content: space-between;
+  height: 40px; padding: 0 10px 0 12px;
+  background: var(--bg);
+  border-bottom: 1px solid var(--line-strong);
+}
+.canvas__nav, .canvas__zoom { display: flex; align-items: center; gap: 6px; }
+.canvas__nav .mono, .canvas__zoom .mono { font-size: 10.5px; letter-spacing: 0.06em; color: var(--ink-2); min-width: 34px; text-align: center; }
+.canvas__zoom .mono { min-width: 42px; letter-spacing: 0.02em; }
+
+.canvas__stage {
+  flex: 1; min-height: 0;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 12px;
+}
+
+.sheet-wrap { position: relative; }
+.sheet {
+  position: relative;
+  width: 495px; height: 700px;
+  padding: 20px;
+  display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(4, 1fr);
+  gap: 3px;
+  background: var(--paper);
+  box-shadow: var(--shadow-sheet);
+}
+.label { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; padding: 5px 4px; overflow: hidden; }
+.label .qr { width: 68px; height: 68px; }
+.label__t {
+  max-width: 100%;
+  font-size: 8.5px; line-height: 1.3; font-weight: 600; color: #111;
+  text-align: center;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.label__h { font: 500 6.5px/1 var(--mono); color: #666; letter-spacing: 0.01em; }
+
+/* Traits de coupe, à l'extérieur du format, comme sur une vraie planche. */
+.crop { position: absolute; width: 10px; height: 10px; border-color: #9a9a94; border-style: solid; border-width: 0; }
+.crop--tl { top: -14px; left: -14px; border-top-width: 1px; border-left-width: 1px; }
+.crop--tr { top: -14px; right: -14px; border-top-width: 1px; border-right-width: 1px; }
+.crop--bl { bottom: -14px; left: -14px; border-bottom-width: 1px; border-left-width: 1px; }
+.crop--br { bottom: -14px; right: -14px; border-bottom-width: 1px; border-right-width: 1px; }
+
+.canvas__caption { font-size: 10.5px; color: #4b4b50; letter-spacing: 0.01em; }
+
+/* --- Étiquette (écran 2) --- */
+
+.lbl-stage { position: relative; padding: 30px 44px; }
+.lbl-card {
+  position: relative;
+  width: 308px; height: 168px;
+  display: flex; align-items: center; gap: 14px;
+  padding: 16px 18px;
+  background: var(--paper);
+  box-shadow: var(--shadow-sheet);
+}
+.lbl-card .qr { width: 112px; height: 112px; flex: none; }
+.lbl-txt { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.lbl-title {
+  font-size: 13.5px; font-weight: 640; line-height: 1.2; letter-spacing: -0.005em;
+  display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+}
+.lbl-url { font-size: 8.5px; color: var(--ink-3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lbl-num { font: 500 9.5px/1 var(--mono); color: var(--ink-3); }
+
+.dim { position: absolute; color: var(--ink-2); }
+.dim--h { top: 0; left: 44px; width: 308px; height: 22px; }
+.dim--h::before { content: ""; position: absolute; left: 0; right: 0; top: 15px; border-top: 1px solid var(--line-strong); }
+.dim--h::after { content: ""; position: absolute; left: 0; top: 10px; width: 1px; height: 11px; background: var(--line-strong); box-shadow: 308px 0 0 var(--line-strong); }
+.dim--h span { position: absolute; left: 50%; top: 3px; transform: translateX(-50%); padding: 0 6px; background: var(--desk); font: 500 10px/1 var(--mono); }
+.dim--v { top: 30px; left: 18px; height: 168px; width: 22px; }
+.dim--v::before { content: ""; position: absolute; top: 0; bottom: 0; left: 15px; border-left: 1px solid var(--line-strong); }
+.dim--v::after { content: ""; position: absolute; top: 0; left: 10px; height: 1px; width: 11px; background: var(--line-strong); box-shadow: 0 168px 0 var(--line-strong); }
+.dim--v span { position: absolute; top: 50%; left: -6px; transform: translateY(-50%); writing-mode: vertical-rl; padding: 6px 0; background: var(--desk); font: 500 10px/1 var(--mono); }
+
+/* --- Inspecteur --- */
+
+.inspector {
+  grid-column: 3; grid-row: 2;
+  display: flex; flex-direction: column; min-height: 0;
+  background: var(--surface);
+  border-left: 1px solid var(--line-strong);
+}
+.inspector__head { padding: 12px 14px 8px; }
+.eyebrow { font: 600 10px/1 var(--mono); letter-spacing: 0.1em; color: var(--ink-3); }
+
+.modes { display: grid; grid-template-columns: repeat(4, 1fr); border-bottom: 1px solid var(--line-strong); }
+.mode {
+  height: 34px; padding: 0 4px;
+  border: 0; border-bottom: 2px solid transparent; margin-bottom: -1px;
+  background: transparent; color: var(--ink-3);
+  font: 500 11px/1 var(--font); cursor: pointer;
+}
+.mode:hover { color: var(--ink); }
+.mode.is-active { color: var(--ink); border-bottom-color: var(--ink); font-weight: 640; }
+
+.inspector__body { flex: 1; min-height: 0; padding: 14px; display: flex; flex-direction: column; gap: 18px; }
+.inspector__body > .group:last-child { margin-top: auto; }
+.group { display: flex; flex-direction: column; gap: 8px; }
+.group__title { font: 600 10px/1 var(--mono); letter-spacing: 0.1em; color: var(--ink-3); }
+.field { display: flex; flex-direction: column; gap: 4px; }
+.field > span { font-size: 11.5px; color: var(--ink-2); }
+.select {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  height: 32px; width: 100%; padding: 0 8px 0 10px;
+  border: 1px solid var(--line-strong); border-radius: 0;
+  background: var(--bg); color: var(--ink); text-align: left;
+  font: 400 12px/1 var(--font); cursor: pointer;
+}
+.field--compact > span { font-size: 10.5px; color: var(--ink-3); }
+.field--compact .input { height: 28px; }
+.twocol { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+
+.check-row { display: flex; align-items: center; gap: 8px; font-size: 11.5px; color: var(--ink); }
+.check-row .check { width: 16px; height: 16px; }
+.check-row .check .i { width: 10px; height: 10px; }
+.check-row.is-off { color: var(--ink-2); }
+
+.kv { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; font-size: 11.5px; color: var(--ink-2); }
+.kv .mono { font-size: 10.5px; color: var(--ink); }
+
+.stepper__row {
+  display: grid; grid-template-columns: 28px 1fr 28px; align-items: stretch;
+  border: 1px solid var(--line-strong); background: var(--bg);
+}
+.stepper__row .iconbtn { width: 28px; height: 28px; border: 0; border-radius: 0; color: var(--ink-2); }
+.stepper__row .iconbtn:hover { background: var(--surface-2); }
+.stepper__val { display: grid; place-items: center; font-size: 12px; border-left: 1px solid var(--line); border-right: 1px solid var(--line); }
+
+.status-line { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border: 1px solid var(--line-strong); background: var(--bg); }
+.status-line .dot { width: 7px; height: 7px; margin: 0; }
+.status-line__main { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.status-line__t { font-size: 12px; font-weight: 550; }
+.status-line__s { font-size: 10.5px; color: var(--ink-3); }
+.status-line .btn { margin-left: auto; height: 24px; font-size: 11.5px; padding: 0 8px; }
+
+.disclosure {
+  display: flex; align-items: center; gap: 8px; white-space: nowrap;
+  height: 38px; padding: 0 14px;
+  border: 0; border-top: 1px solid var(--line-strong);
+  background: transparent; color: var(--ink); text-align: left;
+  font: 500 12px/1 var(--font); cursor: pointer;
+}
+.disclosure small { font-size: 10.5px; font-weight: 400; color: var(--ink-3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.disclosure .i { margin-left: auto; color: var(--ink-3); }
+
+.inspector__foot { padding: 10px 14px 12px; border-top: 1px solid var(--line-strong); }
+.foot-hint { margin-top: 6px; font-size: 10px; color: var(--ink-3); letter-spacing: 0.01em; text-align: center; }
+
+/* --- Barre d'état --- */
+
+.status {
+  grid-column: 1 / -1; grid-row: 3;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 14px;
+  background: var(--bg);
+  border-top: 1px solid var(--line-strong);
+  font-size: 10px; color: var(--ink-3); letter-spacing: 0.02em;
+}
+.status .mono { font-size: 10px; }
+
+/* --- Spécimens et fondations (hors écrans) --- */
+
+.specimens { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; padding: 18px 32px 0; }
+.card { background: var(--bg); border: 1px solid #c9c9c4; box-shadow: 0 1px 2px rgba(0,0,0,.06); }
+.card__head { padding: 10px 14px; border-bottom: 1px solid var(--line-strong); display: flex; align-items: baseline; gap: 8px; }
+.card__head b { font-size: 12.5px; font-weight: 620; }
+.card__head span { font: 500 10px/1 var(--mono); color: #55555a; letter-spacing: .06em; text-transform: uppercase; }
+.card__body { padding: 14px; }
+
+.empty { display: flex; flex-direction: column; gap: 10px; padding: 12px 4px; }
+.empty__t { font-size: 14px; font-weight: 620; }
+.empty__b { font-size: 12px; color: var(--ink-2); max-width: 34ch; }
+.empty__acts { display: flex; gap: 8px; margin-top: 2px; }
+
+.selection-bar {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 10px; background: var(--ink); color: #fff;
+}
+.selection-bar .mono { font-size: 10.5px; }
+.selection-bar .btn { height: 26px; font-size: 11px; padding: 0 8px; color: #fff; }
+.selection-bar .btn--outline { border-color: rgba(255,255,255,.5); }
+
+.progress { display: flex; flex-direction: column; gap: 8px; }
+.progress__top { display: flex; align-items: baseline; justify-content: space-between; }
+.progress__t { font-size: 12px; font-weight: 550; }
+.progress__s { font-size: 10.5px; color: var(--ink-3); }
+.bar-track { height: 4px; background: var(--surface-2); }
+.bar-fill { height: 4px; width: 50%; background: var(--ink); }
+.progress__foot { display: flex; align-items: center; justify-content: space-between; }
+.progress__foot .mono { font-size: 10px; color: var(--ink-3); }
+
+.foundations { padding: 18px 32px 0; }
+.foundations__grid { display: grid; grid-template-columns: 1.2fr 1fr 1fr; gap: 20px; }
+.swatches { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.swatch { display: flex; flex-direction: column; gap: 4px; }
+.swatch i { display: block; height: 34px; border: 1px solid rgba(0,0,0,.12); }
+.swatch span { font: 500 9px/1.3 var(--mono); color: #55555a; }
+.typescale { display: flex; flex-direction: column; gap: 6px; }
+.typescale div { display: flex; align-items: baseline; gap: 10px; }
+.typescale b { font-weight: 500; }
+.typescale span { font: 500 9px/1 var(--mono); color: #6f6f75; }
+.spacers { display: flex; align-items: flex-end; gap: 6px; height: 46px; }
+.spacers i { display: block; background: var(--ink-2); width: 6px; }
+.spacers span { font: 500 9px/1 var(--mono); color: #6f6f75; display: block; text-align: center; margin-top: 4px; }
+</style>
+</head>
+<body>
+
+<!-- Jeu d'icônes, défini une fois. -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="i-chevron" viewBox="0 0 16 16"><path d="M4 6l4 4 4-4"/></symbol>
+    <symbol id="i-search" viewBox="0 0 16 16"><circle cx="7" cy="7" r="4"/><path d="M10.2 10.2L14 14"/></symbol>
+    <symbol id="i-check" viewBox="0 0 16 16"><path d="M3 8.5l3.2 3.2L13 4.8"/></symbol>
+    <symbol id="i-edit" viewBox="0 0 16 16"><path d="M3 13h3l7-7-3-3-7 7v3z"/></symbol>
+    <symbol id="i-close" viewBox="0 0 16 16"><path d="M4 4l8 8M12 4l-8 8"/></symbol>
+    <symbol id="i-left" viewBox="0 0 16 16"><path d="M10 4L6 8l4 4"/></symbol>
+    <symbol id="i-right" viewBox="0 0 16 16"><path d="M6 4l4 4-4 4"/></symbol>
+    <symbol id="i-minus" viewBox="0 0 16 16"><path d="M4 8h8"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 16 16"><path d="M8 4v8M4 8h8"/></symbol>
+    <symbol id="i-down" viewBox="0 0 16 16"><path d="M8 3v10M4 9l4 4 4-4"/></symbol>
+    <symbol id="i-printer" viewBox="0 0 16 16"><path d="M4 6V3h8v3M4 12H3V7h10v5h-1M5 9h6v4H5z"/></symbol>
+    <symbol id="i-grip" viewBox="0 0 16 16"><circle cx="6" cy="5" r=".8"/><circle cx="10" cy="5" r=".8"/><circle cx="6" cy="8" r=".8"/><circle cx="10" cy="8" r=".8"/><circle cx="6" cy="11" r=".8"/><circle cx="10" cy="11" r=".8"/></symbol>
+  </defs>
+</svg>
+
+<div class="page">
+
+  <div class="page__head">
+    <div class="page__kicker">Maquette de validation · 22 novembre 2026 · rien n'est implémenté</div>
+    <h1 class="page__title">Direction « Console révisée » — deux écrans</h1>
+    <p class="page__lead">
+      La direction garde l'austérité du produit : angles vifs, grille tracée au filet, chiffres
+      tabulaires, une seule couleur d'action. Elle ajoute ce qui manquait : <b>un objet visuel</b>
+      (la feuille posée sur le bureau), <b>une hiérarchie</b> (un seul primaire, l'impression),
+      <b>une échelle</b> (espacements 4/8/12/16/24, texte 10/11/12,5/13/14) et <b>un état lisible</b>
+      pour chaque chose. Aucune règle de ce document n'est branchée sur <code>src/</code>.
+    </p>
+    <div class="page__meta">
+      <span class="chip chip--accent">Note actuelle 2,3 / 5</span>
+      <span class="chip">Cible de la direction 4,8 / 5</span>
+      <span class="chip">Palier I1 — Structure</span>
+      <span class="chip">1440 × 900</span>
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- ÉCRAN 1                                                      -->
+  <!-- ============================================================ -->
+  <section class="spec">
+    <div class="spec__caption">
+      <span class="spec__num">ÉCRAN 1 / 2</span>
+      <span class="spec__title">L'atelier — mode Planche <small>· la collection, la feuille, les réglages</small></span>
+    </div>
+
+    <div class="artboard" id="ecran-1">
+      <div class="app">
+
+        <header class="bar">
+          <div class="bar__left">
+            <img class="mark" src="../../../src/extension-src/icons/icon-32.png" width="22" height="22" alt="">
+            <span class="brand">URLQRCodePrinter</span>
+            <span class="bar__sep"></span>
+            <button class="collection">Mes liens <svg class="i i--12"><use href="#i-chevron"/></svg></button>
+            <span class="count mono">6 LIENS</span>
+          </div>
+          <div class="bar__right">
+            <button class="btn btn--quiet">Importer</button>
+            <button class="btn btn--quiet">Exporter <svg class="i i--12"><use href="#i-chevron"/></svg></button>
+            <span class="bar__sep"></span>
+            <button class="lang mono">FR</button>
+          </div>
+        </header>
+
+        <div class="rail">
+          <div class="rail__add">
+            <input class="input" value="" placeholder="Coller un lien…" aria-label="Coller un lien">
+            <button class="btn btn--outline">Ajouter</button>
+          </div>
+          <div class="rail__tools">
+            <div class="search">
+              <svg class="i"><use href="#i-search"/></svg>
+              <input class="input" placeholder="Rechercher" aria-label="Rechercher">
+              <kbd>⌘F</kbd>
+            </div>
+            <button class="sort">Ordre manuel <svg class="i i--12"><use href="#i-chevron"/></svg></button>
+          </div>
+          <div class="rail__headrow">
+            <span>Collection</span>
+            <span>6 sur 12</span>
+          </div>
+          <ul class="rows" id="rows-1"></ul>
+          <div class="rail__foot">
+            <span class="mono"><i class="dot"></i>Enregistré localement</span>
+            <span class="mono">v0.4.1</span>
+          </div>
+        </div>
+
+        <main class="canvas">
+          <div class="canvas__bar">
+            <div class="canvas__nav">
+              <button class="iconbtn" aria-label="Page précédente"><svg class="i i--12"><use href="#i-left"/></svg></button>
+              <span class="mono">PLANCHE 1 / 1</span>
+              <button class="iconbtn" aria-label="Page suivante"><svg class="i i--12"><use href="#i-right"/></svg></button>
+            </div>
+            <div class="canvas__zoom">
+              <button class="iconbtn" aria-label="Réduire"><svg class="i i--12"><use href="#i-minus"/></svg></button>
+              <span class="mono">43 %</span>
+              <button class="iconbtn" aria-label="Agrandir"><svg class="i i--12"><use href="#i-plus"/></svg></button>
+              <button class="btn btn--quiet btn--xs">Ajuster</button>
+            </div>
+          </div>
+          <div class="canvas__stage">
+            <div class="sheet-wrap">
+              <span class="crop crop--tl"></span><span class="crop crop--tr"></span>
+              <span class="crop crop--bl"></span><span class="crop crop--br"></span>
+              <div class="sheet" id="sheet-1"></div>
+            </div>
+            <div class="canvas__caption mono">A4 · 3 × 4 · 63,5 × 69,1 mm — 6 emplacements utilisés sur 12</div>
+          </div>
+        </main>
+
+        <aside class="inspector">
+          <div class="inspector__head"><span class="eyebrow">MISE EN PAGE</span></div>
+          <div class="modes">
+            <button class="mode is-active">Planche</button>
+            <button class="mode">Tableau</button>
+            <button class="mode">Niimbot</button>
+            <button class="mode">Images</button>
+          </div>
+          <div class="inspector__body">
+            <section class="group">
+              <div class="group__title">PAGE</div>
+              <label class="field"><span>Format</span><button class="select mono">A4 <svg class="i i--12"><use href="#i-chevron"/></svg></button></label>
+              <label class="field"><span>Disposition</span><button class="select">3 × 4 · 63,5 × 69,1 mm <svg class="i i--12"><use href="#i-chevron"/></svg></button></label>
+              <label class="check-row"><span class="check is-on"><svg class="i"><use href="#i-check"/></svg></span>Ajuster la grille à la feuille</label>
+            </section>
+            <section class="group">
+              <div class="group__title">GRILLE</div>
+              <div class="twocol">
+                <div class="stepper"><span>Colonnes</span>
+                  <div class="stepper__row">
+                    <button class="iconbtn" aria-label="Moins de colonnes"><svg class="i i--12"><use href="#i-minus"/></svg></button>
+                    <span class="stepper__val mono">3</span>
+                    <button class="iconbtn" aria-label="Plus de colonnes"><svg class="i i--12"><use href="#i-plus"/></svg></button>
+                  </div>
+                </div>
+                <div class="stepper"><span>Rangées</span>
+                  <div class="stepper__row">
+                    <button class="iconbtn" aria-label="Moins de rangées"><svg class="i i--12"><use href="#i-minus"/></svg></button>
+                    <span class="stepper__val mono">4</span>
+                    <button class="iconbtn" aria-label="Plus de rangées"><svg class="i i--12"><use href="#i-plus"/></svg></button>
+                  </div>
+                </div>
+              </div>
+              <div class="twocol">
+                <label class="field field--compact"><span>Marge H (mm)</span><input class="input mono" value="8,5"></label>
+                <label class="field field--compact"><span>Marge V (mm)</span><input class="input mono" value="8,5"></label>
+              </div>
+            </section>
+            <section class="group">
+              <div class="group__title">RÉSUMÉ</div>
+              <div class="kv"><span>Feuille</span><span class="mono">A4 · 210 × 297</span></div>
+              <div class="kv"><span>Places</span><span class="mono">12 · 6 utilisées</span></div>
+              <div class="kv"><span>Pages</span><span class="mono">1</span></div>
+            </section>
+          </div>
+          <button class="disclosure">Réglages avancés <small>écarts, repères de coupe</small><svg class="i i--12"><use href="#i-chevron"/></svg></button>
+          <div class="inspector__foot">
+            <button class="btn btn--primary btn--block">Imprimer 6 liens <kbd>⌘P</kbd></button>
+            <div class="foot-hint mono">12 emplacements libres · 1 page</div>
+          </div>
+        </aside>
+
+        <footer class="status">
+          <span class="mono"><i class="dot"></i>Enregistré · à l'instant</span>
+          <span class="mono">A4 · 3 × 4 · 63,5 × 69,1 mm · 1 page</span>
+          <span class="mono">Aucune donnée envoyée</span>
+        </footer>
+
+      </div>
+    </div>
+
+    <ol class="notes">
+      <li><span class="notes__n">1</span><span><b>Une seule action primaire.</b> « Imprimer » est orange, en bas à droite, à côté de ce qu'elle imprime. « Ajouter » devient un bouton de contour : collecter est fréquent, imprimer est décisif.</span></li>
+      <li><span class="notes__n">2</span><span><b>La feuille est sur le bureau.</b> Fond chaud, filets de coupe, ombre unique, échelle et format écrits dessous. On voit le résultat en permanence, sans défiler.</span></li>
+      <li><span class="notes__n">3</span><span><b>La collection est un volet, pas un formulaire.</b> Liste dense à 46 px, numéros tabulaires, commandes de ligne au survol et au focus seulement.</span></li>
+      <li><span class="notes__n">4</span><span><b>Les réglages sont groupés et ordonnés par fréquence.</b> Page, Grille ; les écarts et décalages passent derrière « Réglages avancés ». Neuf contrôles visibles au lieu de vingt.</span></li>
+      <li><span class="notes__n">5</span><span><b>L'onglet actif se lit.</b> Soulignement encre de 2 px et texte encre, pas un fond de la couleur du panneau.</span></li>
+      <li><span class="notes__n">6</span><span><b>Le châssis est tracé.</b> Quatre zones séparées par un filet, une barre d'état qui dit où l'on en est et ce que devient la donnée. Rien n'est décoratif.</span></li>
+    </ol>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- ÉCRAN 2                                                      -->
+  <!-- ============================================================ -->
+  <section class="spec">
+    <div class="spec__caption">
+      <span class="spec__num">ÉCRAN 2 / 2</span>
+      <span class="spec__title">L'étiquette — mode Niimbot <small>· une seule étiquette, à sa taille, avec la machine</small></span>
+    </div>
+
+    <div class="artboard" id="ecran-2">
+      <div class="app">
+
+        <header class="bar">
+          <div class="bar__left">
+            <img class="mark" src="../../../src/extension-src/icons/icon-32.png" width="22" height="22" alt="">
+            <span class="brand">URLQRCodePrinter</span>
+            <span class="bar__sep"></span>
+            <button class="collection">Mes liens <svg class="i i--12"><use href="#i-chevron"/></svg></button>
+            <span class="count mono">6 LIENS</span>
+          </div>
+          <div class="bar__right">
+            <button class="btn btn--quiet">Importer</button>
+            <button class="btn btn--quiet">Exporter <svg class="i i--12"><use href="#i-chevron"/></svg></button>
+            <span class="bar__sep"></span>
+            <button class="lang mono">FR</button>
+          </div>
+        </header>
+
+        <div class="rail">
+          <div class="rail__add">
+            <input class="input" value="" placeholder="Coller un lien…" aria-label="Coller un lien">
+            <button class="btn btn--outline">Ajouter</button>
+          </div>
+          <div class="rail__tools">
+            <div class="search">
+              <svg class="i"><use href="#i-search"/></svg>
+              <input class="input" placeholder="Rechercher" aria-label="Rechercher">
+              <kbd>⌘F</kbd>
+            </div>
+            <button class="sort">Ordre manuel <svg class="i i--12"><use href="#i-chevron"/></svg></button>
+          </div>
+          <div class="rail__headrow">
+            <span>Collection</span>
+            <span>6 sur 6</span>
+          </div>
+          <ul class="rows" id="rows-2"></ul>
+          <div class="rail__foot">
+            <span class="mono"><i class="dot"></i>Enregistré localement</span>
+            <span class="mono">v0.4.1</span>
+          </div>
+        </div>
+
+        <main class="canvas">
+          <div class="canvas__bar">
+            <div class="canvas__nav">
+              <button class="iconbtn" aria-label="Étiquette précédente"><svg class="i i--12"><use href="#i-left"/></svg></button>
+              <span class="mono">ÉTIQUETTE 1 / 6</span>
+              <button class="iconbtn" aria-label="Étiquette suivante"><svg class="i i--12"><use href="#i-right"/></svg></button>
+            </div>
+            <div class="canvas__zoom">
+              <button class="iconbtn" aria-label="Réduire"><svg class="i i--12"><use href="#i-minus"/></svg></button>
+              <span class="mono">410 %</span>
+              <button class="iconbtn" aria-label="Agrandir"><svg class="i i--12"><use href="#i-plus"/></svg></button>
+              <button class="btn btn--quiet btn--xs">Taille réelle</button>
+            </div>
+          </div>
+          <div class="canvas__stage">
+            <div class="lbl-stage">
+              <div class="dim dim--h"><span>22 mm</span></div>
+              <div class="dim dim--v"><span>12 mm</span></div>
+              <div class="lbl-card">
+                <div class="qr" data-qr="7"></div>
+                <div class="lbl-txt">
+                  <div class="lbl-num">N° 1</div>
+                  <div class="lbl-title">Un article de fond sur la question</div>
+                  <div class="lbl-url mono">exemple.fr/un-article-assez-long…</div>
+                </div>
+              </div>
+            </div>
+            <div class="canvas__caption mono">Niimbot D110 · 203 dpi · 12 × 22 mm — aperçu à 4,1 × la taille réelle</div>
+          </div>
+        </main>
+
+        <aside class="inspector">
+          <div class="inspector__head"><span class="eyebrow">MISE EN PAGE</span></div>
+          <div class="modes">
+            <button class="mode">Planche</button>
+            <button class="mode">Tableau</button>
+            <button class="mode is-active">Niimbot</button>
+            <button class="mode">Images</button>
+          </div>
+          <div class="inspector__body">
+            <section class="group">
+              <div class="group__title">ÉTIQUETEUSE</div>
+              <div class="status-line">
+                <i class="dot"></i>
+                <span class="status-line__main">
+                  <span class="status-line__t">Connectée</span>
+                  <span class="status-line__s">Niimbot D110 · Bluetooth</span>
+                </span>
+                <button class="btn btn--quiet">Gérer</button>
+              </div>
+            </section>
+            <section class="group">
+              <div class="group__title">ÉTIQUETTE</div>
+              <label class="field"><span>Format</span><button class="select mono">12 × 22 mm <svg class="i i--12"><use href="#i-chevron"/></svg></button></label>
+              <div class="twocol">
+                <div class="stepper"><span>Densité</span>
+                  <div class="stepper__row">
+                    <button class="iconbtn" aria-label="Densité moindre"><svg class="i i--12"><use href="#i-minus"/></svg></button>
+                    <span class="stepper__val mono">2</span>
+                    <button class="iconbtn" aria-label="Densité plus forte"><svg class="i i--12"><use href="#i-plus"/></svg></button>
+                  </div>
+                </div>
+                <div class="stepper"><span>Copies</span>
+                  <div class="stepper__row">
+                    <button class="iconbtn" aria-label="Moins de copies"><svg class="i i--12"><use href="#i-minus"/></svg></button>
+                    <span class="stepper__val mono">1</span>
+                    <button class="iconbtn" aria-label="Plus de copies"><svg class="i i--12"><use href="#i-plus"/></svg></button>
+                  </div>
+                </div>
+              </div>
+              <label class="check-row"><span class="check is-on"><svg class="i"><use href="#i-check"/></svg></span>Aperçu à la taille réelle</label>
+            </section>
+            <section class="group">
+              <div class="group__title">CONTENU</div>
+              <div class="twocol">
+                <label class="check-row is-off"><span class="check"></span>N° du lien</label>
+                <label class="check-row"><span class="check is-on"><svg class="i"><use href="#i-check"/></svg></span>Titre</label>
+                <label class="check-row"><span class="check is-on"><svg class="i"><use href="#i-check"/></svg></span>URL</label>
+                <label class="check-row is-off"><span class="check"></span>Domaine seul</label>
+              </div>
+            </section>
+            <section class="group">
+              <div class="group__title">RÉSUMÉ</div>
+              <div class="kv"><span>Série</span><span class="mono">6 étiquettes</span></div>
+              <div class="kv"><span>Rouleau</span><span class="mono">22 mm · 1,2 m</span></div>
+              <div class="kv"><span>Durée estimée</span><span class="mono">~24 s</span></div>
+            </section>
+          </div>
+          <button class="disclosure">Réglages avancés <small>alignement, police, date</small><svg class="i i--12"><use href="#i-chevron"/></svg></button>
+          <div class="inspector__foot">
+            <button class="btn btn--primary btn--block">Imprimer 6 étiquettes <kbd>⌘P</kbd></button>
+            <div class="foot-hint mono">Série de 6 · environ 24 s</div>
+          </div>
+        </aside>
+
+        <footer class="status">
+          <span class="mono"><i class="dot"></i>Étiqueteuse connectée</span>
+          <span class="mono">Niimbot D110 · 12 × 22 mm · 203 dpi</span>
+          <span class="mono">Aucune donnée envoyée</span>
+        </footer>
+
+      </div>
+    </div>
+
+    <ol class="notes">
+      <li><span class="notes__n">1</span><span><b>Le mode change le bureau, pas la structure.</b> Même châssis, même volet, même barre : seule la surface centrale et l'inspecteur changent. On ne réapprend rien.</span></li>
+      <li><span class="notes__n">2</span><span><b>L'étiquette est montrée à son échelle, cotée.</b> 22 mm et 12 mm sont écrits avec des cotes, et le facteur d'agrandissement est dit. C'est ce qui manque aujourd'hui pour juger un rendu.</span></li>
+      <li><span class="notes__n">3</span><span><b>La machine est un état, pas un bouton perdu.</b> « Connectée » en tête de l'inspecteur, avec le modèle et le lien « Gérer ». L'état déconnecté prend la même place.</span></li>
+      <li><span class="notes__n">4</span><span><b>Le contenu de l'étiquette est une liste courte.</b> Quatre cases en deux colonnes, pas six lignes de contrôles. Le reste passe derrière « Réglages avancés ».</span></li>
+      <li><span class="notes__n">5</span><span><b>Le primaire reste l'impression.</b> Même place, même couleur dans les deux écrans. Le raccourci est affiché dans le bouton, pas dans une aide.</span></li>
+      <li><span class="notes__n">6</span><span><b>La barre d'état porte la promesse produit.</b> « Aucune donnée envoyée » est visible en permanence, sans page à ouvrir.</span></li>
+    </ol>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- SPÉCIMENS D'ÉTATS                                            -->
+  <!-- ============================================================ -->
+  <section class="spec">
+    <div class="spec__caption">
+      <span class="spec__num">SPÉCIMENS</span>
+      <span class="spec__title">Trois états que la maquette doit rendre évidents <small>· hors écrans, pour valider le système</small></span>
+    </div>
+    <div class="specimens">
+
+      <div class="card">
+        <div class="card__head"><span>État 1</span><b>Collection vide</b></div>
+        <div class="card__body">
+          <div class="empty">
+            <div class="empty__t">Commencez par un lien</div>
+            <div class="empty__b">Collez une adresse ci-dessus, importez une archive, ou utilisez l'extension sur la page que vous lisez.</div>
+            <div class="empty__acts">
+              <button class="btn btn--primary" style="height:30px">Ajouter un lien</button>
+              <button class="btn btn--outline" style="height:30px">Importer…</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card__head"><span>État 2</span><b>Sélection active</b></div>
+        <div class="card__body" style="padding:0">
+          <ul style="margin:0;padding:0;list-style:none">
+            <li class="row is-selected" style="height:42px">
+              <span class="check is-on"><svg class="i"><use href="#i-check"/></svg></span>
+              <span class="row__num mono">1</span>
+              <span class="row__main"><span class="row__title">Un article de fond</span><span class="row__host mono">exemple.fr</span></span>
+            </li>
+            <li class="row is-selected" style="height:42px">
+              <span class="check is-on"><svg class="i"><use href="#i-check"/></svg></span>
+              <span class="row__num mono">2</span>
+              <span class="row__main"><span class="row__title">Documentation</span><span class="row__host mono">exemple.fr</span></span>
+            </li>
+          </ul>
+          <div class="selection-bar">
+            <span class="mono">2 SÉLECTIONNÉS</span>
+            <button class="btn btn--outline">Déplacer</button>
+            <button class="btn">Imprimer</button>
+            <button class="btn btn--quiet" style="margin-left:auto">Tout sélectionner</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card__head"><span>État 3</span><b>Série en cours</b></div>
+        <div class="card__body">
+          <div class="progress">
+            <div class="progress__top">
+              <span class="progress__t">Étiquette 3 sur 6</span>
+              <span class="progress__s mono">~12 s restantes</span>
+            </div>
+            <div class="bar-track"><div class="bar-fill"></div></div>
+            <div class="progress__foot">
+              <span class="mono">UN ARTICLE DE FOND…</span>
+              <button class="btn btn--outline" style="height:26px;font-size:11px">Arrêter</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- FONDATIONS                                                   -->
+  <!-- ============================================================ -->
+  <section class="spec">
+    <div class="spec__caption">
+      <span class="spec__num">FONDATIONS</span>
+      <span class="spec__title">Ce que les deux écrans partagent <small>· à valider avant I1</small></span>
+    </div>
+    <div class="foundations">
+      <div class="cards" style="display:grid;grid-template-columns:1.15fr 1fr 1fr;gap:20px">
+
+        <div class="card">
+          <div class="card__head"><span>Rôles</span><b>Couleur</b></div>
+          <div class="card__body">
+            <div class="swatches">
+              <div class="swatch"><i style="background:#17171a"></i><span>encre<br>#17171a</span></div>
+              <div class="swatch"><i style="background:#6f6f75"></i><span>encre 3<br>#6f6f75</span></div>
+              <div class="swatch"><i style="background:#c2410c"></i><span>action<br>#c2410c</span></div>
+              <div class="swatch"><i style="background:#1c7c4a"></i><span>état ok<br>#1c7c4a</span></div>
+              <div class="swatch"><i style="background:#fbfbfa"></i><span>page<br>#fbfbfa</span></div>
+              <div class="swatch"><i style="background:#f3f3f1"></i><span>panneau<br>#f3f3f1</span></div>
+              <div class="swatch"><i style="background:#eae6df"></i><span>bureau<br>#eae6df</span></div>
+              <div class="swatch"><i style="background:#ffffff"></i><span>papier<br>#ffffff</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card__head"><span>Échelle</span><b>Texte</b></div>
+          <div class="card__body">
+            <div class="typescale">
+              <div><b style="font-size:16px;font-weight:640">Titre d'écran</b><span>16 / 640</span></div>
+              <div><b style="font-size:14px">Titre de section</b><span>14 / 500</span></div>
+              <div><b style="font-size:13px">Corps et ligne de liste</b><span>13 / 400</span></div>
+              <div><b style="font-size:11.5px;color:#45454a">Libellé de champ</b><span>11,5 / 400</span></div>
+              <div><b style="font-size:10.5px;color:#6f6f75" class="mono">MÉTA · 10,5 MONO</b><span>10,5 / mono</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card__head"><span>Rythme</span><b>Espacement</b></div>
+          <div class="card__body">
+            <div class="spacers">
+              <div><i style="height:4px"></i><span>4</span></div>
+              <div><i style="height:8px"></i><span>8</span></div>
+              <div><i style="height:12px"></i><span>12</span></div>
+              <div><i style="height:16px"></i><span>16</span></div>
+              <div><i style="height:24px"></i><span>24</span></div>
+              <div><i style="height:32px"></i><span>32</span></div>
+            </div>
+            <div class="mono" style="margin-top:14px;font-size:10px;color:#6f6f75;line-height:1.7">
+              contrôles : 28 / 32 / 36<br>
+              rayon : 0 partout<br>
+              ombre : une seule (la feuille)
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+/**
+ * QR factices : la maquette n'a pas besoin d'un vrai encodeur, elle a besoin
+ * d'une texture crédible. On dessine 25 × 25 modules avec les trois motifs de
+ * repérage et les lignes de synchronisation, puis du bruit déterministe.
+ */
+function qrSvg(seed, size) {
+  const n = 25;
+  const rand = mulberry(seed);
+  const inFinder = (x, y) =>
+    (x < 8 && y < 8) || (x > n - 9 && y < 8) || (x < 8 && y > n - 9);
+  let d = '';
+  const add = (x, y) => { d += `M${x} ${y}h1v1h-1z`; };
+
+  // Modules de données.
+  for (let y = 0; y < n; y += 1) {
+    for (let x = 0; x < n; x += 1) {
+      if (inFinder(x, y)) continue;
+      if (x === 6 || y === 6) { if ((x + y) % 2 === 0) add(x, y); continue; }
+      if (rand() < 0.47) add(x, y);
+    }
+  }
+
+  // Motifs de repérage : anneau 7 × 7, blanc 5 × 5, cœur 3 × 3.
+  const finder = (ox, oy) => {
+    d += `M${ox} ${oy}h7v7h-7z`;
+    d += `M${ox + 1} ${oy + 1}h5v5h-5z`;
+    d += `M${ox + 2} ${oy + 2}h3v3h-3z`;
+    d += `M${ox + 1} ${oy + 1}h5v5h-5z`;
+  };
+  // Trou blanc : on retire les modules déjà posés dans les zones de repérage
+  // en redessinant le fond blanc du SVG, puis on pose les anneaux.
+  const rings = [[0, 0], [n - 7, 0], [0, n - 7]]
+    .map(([x, y]) => `<rect x="${x}" y="${y}" width="7" height="7" fill="#fff"/>`).join('');
+
+  return `<svg viewBox="-2 -2 ${n + 4} ${n + 4}" width="100%" height="100%" aria-hidden="true" shape-rendering="crispEdges">
+    ${rings}
+    <path d="${d}" fill="#111"/>
+    <rect x="0" y="0" width="7" height="7" fill="#111"/><rect x="1" y="1" width="5" height="5" fill="#fff"/><rect x="2" y="2" width="3" height="3" fill="#111"/>
+    <rect x="${n - 7}" y="0" width="7" height="7" fill="#111"/><rect x="${n - 6}" y="1" width="5" height="5" fill="#fff"/><rect x="${n - 5}" y="2" width="3" height="3" fill="#111"/>
+    <rect x="0" y="${n - 7}" width="7" height="7" fill="#111"/><rect x="1" y="${n - 6}" width="5" height="5" fill="#fff"/><rect x="2" y="${n - 5}" width="3" height="3" fill="#111"/>
+  </svg>`;
+}
+
+function mulberry(a) {
+  return function () {
+    a |= 0; a = (a + 0x6D2B79F5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+const LIENS = [
+  ['Un article de fond sur la question', 'exemple.fr'],
+  ['Recette du dimanche', 'exemple.fr'],
+  ['Documentation — mise en page', 'exemple.fr'],
+  ['Projet maison', 'exemple.fr'],
+  ['Une adresse très longue', 'exemple.fr'],
+  ['Idée de lecture', 'exemple.fr'],
+  ['Carnet de notes', 'exemple.fr'],
+  ['À trier plus tard', 'exemple.fr'],
+];
+
+function rendreListe(id, n, selection) {
+  const ul = document.getElementById(id);
+  if (!ul) return;
+  ul.innerHTML = LIENS.slice(0, n).map(([titre, host], i) => `
+    <li class="row${selection && i === 0 ? ' is-selected' : ''}${i === 2 ? ' is-hover' : ''}">
+      <span class="check${selection && i === 0 ? ' is-on' : ''}">${selection && i === 0 ? '<svg class="i"><use href="#i-check"/></svg>' : ''}</span>
+      <span class="row__num mono">${i + 1}</span>
+      <span class="row__main">
+        <span class="row__title">${titre}</span>
+        <span class="row__host mono">${host}</span>
+      </span>
+      <span class="row__acts">
+        <button class="iconbtn" aria-label="Modifier"><svg class="i i--12"><use href="#i-edit"/></svg></button>
+        <button class="iconbtn" aria-label="Retirer"><svg class="i i--12"><use href="#i-close"/></svg></button>
+      </span>
+    </li>`).join('');
+}
+
+function rendreFeuille() {
+  const sheet = document.getElementById('sheet-1');
+  if (!sheet) return;
+  const cellules = [];
+  for (let i = 0; i < 12; i += 1) {
+    if (i < 6) {
+      const [titre, host] = LIENS[i];
+      cellules.push(`<div class="label">
+        <div class="qr">${qrSvg(i + 3)}</div>
+        <div class="label__t">${titre}</div>
+        <div class="label__h">${host}</div>
+      </div>`);
+    } else {
+      cellules.push('<div class="label"></div>');
+    }
+  }
+  sheet.innerHTML = cellules.join('');
+}
+
+rendreListe('rows-1', 6, false);
+rendreListe('rows-2', 6, false);
+rendreFeuille();
+document.querySelectorAll('.qr[data-qr]').forEach((el) => {
+  el.innerHTML = qrSvg(Number(el.dataset.qr) * 97 + 11);
+});
+</script>
+</body>
+</html>
