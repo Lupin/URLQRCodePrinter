@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>URLQRCodePrinter</title>
-  <link rel="stylesheet" href="style.css?v=ea93c5c6b5b3">
+  <link rel="stylesheet" href="style.css?v=6b9875630828">
   <link rel="icon" type="image/png" href="icons/icon-32.png">
 </head>
 <body>
@@ -228,15 +228,23 @@
       </div>
 
       <ul id="list" class="links"></ul>
-      <p id="empty" class="empty">
-        <span data-i18n="Aucun lien.">Aucun lien.</span><br>
-        <span data-i18n="Ajoutez-en un ci-dessus, importez une archive, ou utilisez l'extension navigateur pour les collecter au clic droit.">Ajoutez-en un ci-dessus, importez une archive, ou utilisez l'extension navigateur pour les collecter au clic droit.</span>
-      </p>
+      <!-- Trois états vides distincts : collection vide, recherche sans
+           résultat, et le même avec une action de sortie. Une phrase seule
+           laissait l'utilisateur sans prochain geste. -->
+      <p id="empty" class="empty">Aucun lien pour l'instant. Collez une adresse ci-dessus, ou importez une archive.</p>
+      <div id="empty-actions" class="empty__actions" hidden>
+        <button id="empty-add" class="btn btn--primary btn--small" type="button"
+                data-i18n="Ajouter un lien">Ajouter un lien</button>
+        <button id="empty-import" class="btn btn--ghost btn--small" type="button"
+                data-i18n="Importer une archive">Importer une archive</button>
+        <button id="empty-search-clear" class="btn btn--ghost btn--small" type="button" hidden
+                data-i18n="Effacer la recherche">Effacer la recherche</button>
+      </div>
 
-      <!-- Trois préoccupations distinctes, séparées : exporter, importer,
-           effacer. Elles étaient mêlées sur deux lignes, avec « Tableur + QR Code »
-           en avant — une hiérarchie que rien ne justifiait. -->
-      <div class="panel__footer">
+      <!-- Exporter, importer, vider : trois gestes de gestion, pas de
+           production. Ils prennent une ligne, et s'ouvrent à la demande. -->
+      <details class="panel__footer rail__transfer">
+        <summary data-i18n="Exporter, importer et vider">Exporter, importer et vider</summary>
         <!-- `btn--fill` : au survol, le contour devient un aplat d'accent. Le
              modificateur est explicite plutôt que déduit du conteneur — un
              `.actions` englobe aussi le groupe de droite, et une règle fondée
@@ -258,7 +266,6 @@
           <input id="import-file" class="sr-only" type="file"
                  accept=".json,.csv,.zip,application/json,text/csv,application/zip">
         </div>
-      </div>
 
       <!-- Vider la collection est le geste le plus destructeur du produit : il
            demandait confirmation nulle part, alors que supprimer une collection
@@ -273,7 +280,8 @@
                   data-i18n="Vider">Vider</button>
         </div>
       </div>
-      <p class="hint hint--tight" data-i18n="Importer relit l'Archive, le .zip d'étiquettes ou un CSV, puis demande s'il faut fusionner, remplacer ou créer une collection ; les liens déjà présents sont ignorés.">Importer relit l'Archive, le .zip d'étiquettes ou un CSV, puis demande s'il faut fusionner, remplacer ou créer une collection ; les liens déjà présents sont ignorés.</p>
+      <p class="hint hint--tight rail__transfer-hint" data-i18n="Importer relit l'Archive, le .zip d'étiquettes ou un CSV, puis demande s'il faut fusionner, remplacer ou créer une collection ; les liens déjà présents sont ignorés.">Importer relit l'Archive, le .zip d'étiquettes ou un CSV, puis demande s'il faut fusionner, remplacer ou créer une collection ; les liens déjà présents sont ignorés.</p>
+      </details>
 
       <!-- Le rangement d'un import, demandé au moment où il se fait.
            Trois issues, aucune devinable : ajouter à ce qui est affiché,
@@ -319,16 +327,24 @@
       <div class="tabs" role="tablist" aria-labelledby="layout-title">
         <button id="tab-sheet" class="tab tab--active" role="tab" data-mode="sheet"
                 aria-selected="true" aria-controls="mode-sheet" tabindex="0"
-                data-i18n="Planche d'étiquettes">Planche d'étiquettes</button>
+                aria-label="Planche d'étiquettes" data-i18n-aria-label="Planche d'étiquettes"
+                title="Planche d'étiquettes" data-i18n-title="Planche d'étiquettes">
+          <span data-i18n="Planche">Planche</span></button>
         <button id="tab-table" class="tab" role="tab" data-mode="table"
                 aria-selected="false" aria-controls="mode-table" tabindex="-1"
-                data-i18n="Tableau">Tableau</button>
+                aria-label="Tableau" data-i18n-aria-label="Tableau"
+                title="Tableau" data-i18n-title="Tableau">
+          <span data-i18n="Tableau">Tableau</span></button>
         <button id="tab-single" class="tab" role="tab" data-mode="single"
                 aria-selected="false" aria-controls="mode-single" tabindex="-1"
-                data-i18n="Étiquette Niimbot">Étiquette Niimbot</button>
+                aria-label="Étiquette Niimbot" data-i18n-aria-label="Étiquette Niimbot"
+                title="Étiquette Niimbot" data-i18n-title="Étiquette Niimbot">
+          <span data-i18n="Niimbot">Niimbot</span></button>
         <button id="tab-images" class="tab" role="tab" data-mode="images"
                 aria-selected="false" aria-controls="mode-images" tabindex="-1"
-                data-i18n="Étiquette (divers)">Étiquette (divers)</button>
+                aria-label="Étiquette (divers)" data-i18n-aria-label="Étiquette (divers)"
+                title="Étiquette (divers)" data-i18n-title="Étiquette (divers)">
+          <span data-i18n="Divers">Divers</span></button>
       </div>
 
       <!-- Planche : deux groupes, la page puis l'étiquette.
@@ -983,6 +999,6 @@
 
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
-  <script type="module" src="app.js?v=81dfa94430da"></script>
+  <script type="module" src="app.js?v=753ef6c05d54"></script>
 </body>
 </html>

@@ -61,11 +61,35 @@ Le poste de travail devient trois zones, et l'aperçu cesse d'être un panneau d
 
 ---
 
+## I1b — Volet allégé, état vide, fenêtre · 22 novembre 2026
+
+**Tag** : `checkpoint/i1b` · **Tickets fermés** : #26, #27, #52 · **Note provisoire** : **3,0 / 5** (contre 2,9 après I1a).
+
+Le détail qui reste entre une structure juste et un outil utilisable.
+
+| Mesure | Avant I1b | Après I1b | Preuve |
+|---|---|---|---|
+| Contrôles à l'écran (1440 × 900) | 54 | **32** (cible < 40) | `checkVisibility` + intersection viewport |
+| Actions de ligne visibles au repos | 16 | **0** (au survol et au focus) | capture + mesure |
+| Gestes de gestion du volet | 6 boutons visibles | **1 dépliant** (« Exporter, importer et vider ») | capture |
+| Onglets de mode | 2 rangées | **1 rangée** de 4 | hauteur 35 px |
+| État vide | une phrase | **3 états** avec action : collection vide (Ajouter / Importer), recherche sans résultat (Effacer) | captures |
+| Rangée de sélection sur collection vide | case orpheline + bouton | **masquée** | capture |
+| Fenêtre : issue de secours | « Ouvrir l'application » désactivé à vide | **toujours actif**, en secondaire de contour | relevé |
+| Fenêtre : barre horizontale dans la liste | présente | **absente** ; document 380 × 560 | relevé |
+| Tests | 1 090 | **1 090** | `npm test` vert |
+
+**Note provisoire : 3,0.** La cible du palier (3,1) sera vérifiée après I2 : il reste les échelles (11 tailles de texte, 27 paddings), les variantes de bouton, l'onglet actif à 1,10:1, les composants natifs et le thème sombre. C'est le programme d'I2, et c'est lui qui doit faire monter la note, pas un arrondi.
+
+**Comparaison visuelle** : `mockup/comparaison-maquette-reel-i1a.png` (structure) ; captures détaillées : `.audit/captures-i1b/`.
+
+---
+
 ## Prochains paliers
 
 | Palier | Note visée | Porte de sortie |
 |---|---|---|
-| I1 Structure (I1a fait, I1b à venir) | 3,1 | aperçu visible sans défiler (0 px), 1 primaire, < 40 contrôles |
+| I1 Structure (I1a + I1b) | 3,0 mesuré | aperçu visible sans défiler (0 px), 1 primaire, < 40 contrôles |
 | I2 Système | 3,7 | 0 valeur hors échelle, onglet actif ≥ 3:1 |
 | I3 Liste & flux | 4,1 | liste dense, sélection contextuelle, import guidé |
 | I4 Canvas & sortie | 4,45 | planche encadrée, zoom, progression |

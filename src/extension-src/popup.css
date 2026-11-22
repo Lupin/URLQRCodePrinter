@@ -388,6 +388,9 @@ body {
   gap: 4px;
   padding: 0 0 8px;
   overflow-y: auto;
+  /* Une liste verticale ne défile pas horizontalement : les cartes sont
+     bornées par la fenêtre, et une barre transversale n'a rien à y faire. */
+  overflow-x: hidden;
   list-style: none;
 }
 

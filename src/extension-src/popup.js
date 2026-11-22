@@ -365,7 +365,7 @@ async function render() {
 
   const hasLinks = links.length > 0;
   el.empty.hidden = hasLinks;
-  el.openApp.disabled = !hasLinks;
+  // L'application reste joignable même sans lien : c'est la sortie de secours.
   el.exportCsv.disabled = !hasLinks;
   el.exportMd.disabled = !hasLinks;
   el.clear.disabled = !hasLinks;

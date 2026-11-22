@@ -725,6 +725,9 @@ function renderList() {
 
   el.list.textContent = '';
   el.empty.hidden = visible.length > 0;
+  // Sans lien, la rangée « tout sélectionner / réorganiser » n'a plus d'objet.
+  const teteListe = document.querySelectorAll('.list-head')[0];
+  if (teteListe) teteListe.hidden = links.length === 0;
 
   // Ranger n'a de sens qu'en ordre manuel : sous un tri, un déplacement serait
   // annulé au rendu suivant. Le bouton le dit en étant inactif, et l'explication
@@ -736,9 +739,20 @@ function renderList() {
   el.reorder.setAttribute('aria-pressed', reorderMode ? 'true' : 'false');
   el.reorder.textContent = reorderMode ? t('Terminer le rangement') : t('Réorganiser');
   el.list.classList.toggle('links--reorder', reorderMode);
-  el.empty.textContent = links.length === 0
-    ? t('Aucun lien. Ajoutez-en un ci-dessus, importez une archive, ou utilisez l\'extension navigateur.')
+  // Trois états distincts, chacun avec sa sortie : la collection vide propose
+  // d'ajouter ou d'importer ; une recherche sans résultat propose de l'effacer.
+  const aucunLien = links.length === 0;
+  el.empty.textContent = aucunLien
+    ? t('Aucun lien pour l\'instant. Collez une adresse ci-dessus, ou importez une archive.')
     : t('Aucun lien ne correspond à la recherche.');
+  const actionsVides = document.getElementById('empty-actions');
+  const boutonAjouter = document.getElementById('empty-add');
+  const boutonImporter = document.getElementById('empty-import');
+  const boutonEffacer = document.getElementById('empty-search-clear');
+  if (actionsVides) actionsVides.hidden = visible.length > 0;
+  if (boutonAjouter) boutonAjouter.hidden = !aucunLien;
+  if (boutonImporter) boutonImporter.hidden = !aucunLien;
+  if (boutonEffacer) boutonEffacer.hidden = aucunLien;
 
   el.count.textContent = tpl(links.length, '{count} lien', '{count} liens');
 
@@ -7195,6 +7209,14 @@ function openClearConfirm() {
   clearConfirm.hidden = false;
   clearConfirmCancel?.focus();
 }
+
+document.getElementById('empty-add')?.addEventListener('click', () => el.urlInput.focus());
+document.getElementById('empty-import')?.addEventListener('click', () => el.import.click());
+document.getElementById('empty-search-clear')?.addEventListener('click', () => {
+  el.search.value = '';
+  renderList();
+  el.search.focus();
+});
 
 el.clear.addEventListener('click', openClearConfirm);
 clearConfirmCancel?.addEventListener('click', () => closeClearConfirm());
