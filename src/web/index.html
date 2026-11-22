@@ -9,14 +9,15 @@
 </head>
 <body>
   <header class="topbar">
+    <div class="topbar__brand">
       <!-- La marque est l'icône du produit : le même fichier que l'extension,
            la fiche du magasin et le site. Un dessin distinct pour l'application
            aurait fait deux marques à tenir d'accord. `aria-hidden` : le <h1> qui
            suit porte déjà le nom — un texte de remplacement le ferait annoncer
            deux fois. -->
       <img class="marque" src="icons/icon-32.png" width="30" height="30" alt="" aria-hidden="true">
-        <h1 class="topbar__title">URLQRCodePrinter</h1>
-      </div>
+      <h1 class="topbar__title">URLQRCodePrinter</h1>
+    </div>
     <p class="topbar__subtitle" data-i18n="Collectez vos liens, imprimez-les en QR Codes.">Collectez vos liens, imprimez-les en QR Codes.</p>
     <label class="locale">
         <span class="sr-only" data-i18n="Langue">Langue</span>
@@ -249,6 +250,20 @@
                  accept=".json,.csv,.zip,application/json,text/csv,application/zip">
         </div>
       </div>
+
+      <!-- Vider la collection est le geste le plus destructeur du produit : il
+           demandait confirmation nulle part, alors que supprimer une collection
+           en demandait une. Le panneau reste dans le flux, sous les commandes. -->
+      <div id="clear-confirm" class="clear-confirm" role="alertdialog"
+           aria-labelledby="clear-confirm-text" hidden>
+        <p id="clear-confirm-text" class="clear-confirm__text"></p>
+        <div class="clear-confirm__actions">
+          <button id="clear-confirm-cancel" class="btn btn--ghost" type="button"
+                  data-i18n="Annuler">Annuler</button>
+          <button id="clear-confirm-yes" class="btn btn--ghost btn--danger" type="button"
+                  data-i18n="Vider">Vider</button>
+        </div>
+      </div>
       <p class="hint hint--tight" data-i18n="Importer relit l'Archive, le .zip d'étiquettes ou un CSV, puis demande s'il faut fusionner, remplacer ou créer une collection ; les liens déjà présents sont ignorés.">Importer relit l'Archive, le .zip d'étiquettes ou un CSV, puis demande s'il faut fusionner, remplacer ou créer une collection ; les liens déjà présents sont ignorés.</p>
 
       <!-- Le rangement d'un import, demandé au moment où il se fait.
@@ -315,11 +330,19 @@
       <p id="shortener-hint" class="hint hint--tight"></p>
       <p id="shorten-status" class="hint hint--tight" aria-live="polite"></p>
 
-      <div class="tabs" role="tablist">
-        <button class="tab tab--active" role="tab" data-mode="sheet" aria-selected="true" data-i18n="Planche d'étiquettes">Planche d'étiquettes</button>
-        <button class="tab" role="tab" data-mode="table" aria-selected="false" data-i18n="Tableau">Tableau</button>
-        <button class="tab" role="tab" data-mode="single" aria-selected="false" data-i18n="Étiquette Niimbot">Étiquette Niimbot</button>
-        <button class="tab" role="tab" data-mode="images" aria-selected="false" data-i18n="Étiquette (divers)">Étiquette (divers)</button>
+      <div class="tabs" role="tablist" aria-labelledby="layout-title">
+        <button id="tab-sheet" class="tab tab--active" role="tab" data-mode="sheet"
+                aria-selected="true" aria-controls="mode-sheet" tabindex="0"
+                data-i18n="Planche d'étiquettes">Planche d'étiquettes</button>
+        <button id="tab-table" class="tab" role="tab" data-mode="table"
+                aria-selected="false" aria-controls="mode-table" tabindex="-1"
+                data-i18n="Tableau">Tableau</button>
+        <button id="tab-single" class="tab" role="tab" data-mode="single"
+                aria-selected="false" aria-controls="mode-single" tabindex="-1"
+                data-i18n="Étiquette Niimbot">Étiquette Niimbot</button>
+        <button id="tab-images" class="tab" role="tab" data-mode="images"
+                aria-selected="false" aria-controls="mode-images" tabindex="-1"
+                data-i18n="Étiquette (divers)">Étiquette (divers)</button>
       </div>
 
       <!-- Planche : deux groupes, la page puis l'étiquette.
@@ -329,7 +352,7 @@
            **feuille** de ce qui décrit **l'étiquette**. Les deux groupes le
            disent, et l'ordre suit le calcul : la taille des étiquettes découle
            de la grille et des marges, donc la page vient d'abord. -->
-      <div class="mode" data-mode-panel="sheet">
+      <div class="mode" id="mode-sheet" role="tabpanel" aria-labelledby="tab-sheet" data-mode-panel="sheet">
         <fieldset class="sheet-group" aria-labelledby="sheet-group-page">
           <!-- Un titre ordinaire, et non une `<legend>` : dans une boîte
                flexible, la légende garde son rendu spécial — elle se pose **sur**
@@ -538,7 +561,7 @@
       </div>
 
       <!-- Tableau -->
-      <div class="mode" data-mode-panel="table" hidden>
+      <div class="mode" id="mode-table" role="tabpanel" aria-labelledby="tab-table" data-mode-panel="table" hidden>
         <div class="fields">
           <label class="field">
             <span class="field__label" data-i18n="Taille du QR Code">Taille du QR Code</span>
@@ -639,7 +662,7 @@
       </div>
 
       <!-- Étiquette Niimbot -->
-      <div class="mode" data-mode-panel="single" hidden>
+      <div class="mode" id="mode-single" role="tabpanel" aria-labelledby="tab-single" data-mode-panel="single" hidden>
         <!-- Quatre champs par ligne au maximum : au-delà, les colonnes se
              chevauchent — chaque champ réclame 120 px de large au minimum. -->
         <div class="fields">
@@ -801,7 +824,7 @@
 
 
       <!-- Export d'images : indépendant de toute imprimante -->
-      <div class="mode" data-mode-panel="images" hidden>
+      <div class="mode" id="mode-images" role="tabpanel" aria-labelledby="tab-images" data-mode-panel="images" hidden>
         <div class="fields">
           <label class="field">
             <span class="field__label" data-i18n="Format d'étiquette">Format d'étiquette</span>
@@ -908,8 +931,16 @@
        Le texte reste à l'encre secondaire : l'accent est réservé aux actions,
        et ce lien n'en est pas une. -->
   <footer class="app-footer">
+    <div class="app-footer__links">
     <a id="site-link" class="app-footer__link" target="_blank" rel="noopener noreferrer"
        data-i18n="Page d'information">Page d'information</a>
+    <!-- La mention de confidentialité d'abord joignable seulement dans le
+         bandeau de consentement : accepté, elle devenait introuvable, alors
+         qu'elle promet qu'on peut changer d'avis. Le lien n'existe que dans
+         l'extension, où privacy.html est voisin de la page. -->
+    <a id="privacy-link" class="app-footer__link" href="privacy.html" target="_blank"
+       rel="noopener noreferrer" data-i18n="Confidentialité" hidden>Confidentialité</a>
+    </div>
     <!-- La signature : nom, licence, version. L'**année** est posée par
          `app.js` — elle doit être celle du jour, pas celle de la construction —
          et la **version** vient du paquet : `__APP_VERSION__` est remplacé à la

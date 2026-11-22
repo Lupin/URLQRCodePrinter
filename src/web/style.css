@@ -117,8 +117,8 @@ body {
   /* Marque et sous-titre, sélecteur de langue, compteur. */
   grid-template-columns: 1fr auto auto;
   align-items: baseline;
-  gap: 4px 12px;
-  padding: 22px clamp(16px, 4vw, 40px) 14px;
+  gap: 2px 12px;
+  padding: 16px clamp(16px, 4vw, 40px) 12px;
   /* Même signal que l'en-tête de la fenêtre : un filet d'encre, pas l'accent.
      L'accent est réservé aux actions. */
   border-bottom: 2px solid var(--ink);
@@ -168,6 +168,7 @@ body {
 .locale__select {
   font: inherit;
   font-size: 12px;
+  min-height: 24px;
   padding: 2px 6px;
   border: 1px solid var(--border-strong);
   border-radius: var(--radius);
@@ -362,6 +363,10 @@ body {
 .input:focus,
 .input:focus-visible {
   background: var(--focus-fill);
+  /* Le fond teinté (--focus-fill) ne contraste qu'à 1,42:1 avec le blanc :
+     sous le seuil de 3:1 de WCAG 2.4.11. L'anneau intérieur porte
+     l'indicateur, et couvre le filet existant au lieu d'en ajouter un second. */
+  box-shadow: inset 0 0 0 2px var(--ink);
   outline: none;
 }
 
@@ -456,6 +461,25 @@ body {
 .collection-confirm__text { margin: 0; font-size: 13px; }
 
 .collection-confirm__actions { display: flex; gap: 6px; }
+
+/* --- Confirmation de vidage de la collection --- */
+
+.clear-confirm {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+  padding: 10px;
+  border: 1px solid var(--border-line);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+}
+
+.clear-confirm[hidden] { display: none; }
+
+.clear-confirm__text { margin: 0; font-size: 13px; }
+
+.clear-confirm__actions { display: flex; gap: 6px; }
 
 /* --- Ordre des collections --- */
 
@@ -566,7 +590,7 @@ body {
   border-bottom: 1px solid var(--border-line);
 }
 
-.list-head__box { display: flex; flex: none; align-items: center; min-height: 24px; }
+.list-head__box { display: flex; flex: none; align-items: center; justify-content: center; min-width: 24px; min-height: 24px; }
 .list-head .hint { flex: 1; }
 
 /* Déplacer la sélection : le bouton et le choix de la collection d'arrivée.
@@ -813,7 +837,17 @@ body {
 
 .link:last-child { border-bottom: 0; }
 
-.link__check { flex: none; margin-top: 4px; }
+.link__check-hit {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  margin-top: 2px;
+  cursor: pointer;
+}
+
+.link__check { width: 14px; height: 14px; margin: 0; }
 .link__body { flex: 1; min-width: 0; }
 
 .link__title {
@@ -849,7 +883,10 @@ body {
  * Le libellé a perdu son « # » : c'est une syntaxe de saisie, que
  * `normalizeTags` accepte et retire. Le tag est stocké sans lui. */
 .tag {
-  padding: 1px 6px;
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 0 6px;
   border: 0;
   border-radius: var(--radius);
   background: var(--surface-2);
@@ -863,7 +900,11 @@ body {
 
 .link__remove {
   flex: none;
-  padding: 2px 6px;
+  display: grid;
+  place-items: center;
+  min-width: 24px;
+  min-height: 24px;
+  padding: 0;
   border: 0;
   border-radius: var(--radius);
   background: transparent;
@@ -1087,7 +1128,11 @@ body {
 
 .link__edit {
   flex: none;
-  padding: 2px 6px;
+  display: grid;
+  place-items: center;
+  min-width: 24px;
+  min-height: 24px;
+  padding: 0;
   border: 1px solid transparent;
   border-radius: var(--radius);
   background: none;
@@ -1266,6 +1311,8 @@ body {
   text-align: center;
 }
 
+.app-footer__links { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 16px; }
+
 /* La signature : plus discrète que le lien, et sur sa propre ligne. L'encre
    tertiaire est la plus claire de la charte qui tienne encore 4,5:1 sur le
    fond — c'est une mention, pas une information à lire en premier. */
@@ -1278,11 +1325,16 @@ body {
 .app-footer__sep { padding: 0 2px; }
 
 .app-footer__link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
   color: var(--text-2);
   font-size: 12px;
   text-decoration: underline;
   text-underline-offset: 2px;
 }
+
+.app-footer__link[hidden] { display: none; }
 
 .app-footer__link:focus-visible {
   outline: 2px solid var(--focus);
@@ -1295,6 +1347,9 @@ body {
   position: fixed;
   right: 20px;
   bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
   max-width: min(420px, calc(100vw - 40px));
   padding: 10px 14px;
   border-radius: var(--radius);
@@ -1309,6 +1364,23 @@ body {
 
 .toast--visible { opacity: 1; transform: translateY(0); }
 .toast--error { background: var(--danger); color: var(--bg); }
+
+/* Une action dans le message : « Annuler » après une suppression. Le libellé
+   garde la couleur du message et se souligne ; le focus reste visible. */
+.toast__action {
+  flex: none;
+  padding: 2px 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
+.toast__action:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
 
 /* ==========================================================================
    Planche d'étiquettes : écran et papier
@@ -1525,5 +1597,21 @@ body {
   .print-page:last-child {
     page-break-after: auto;
     break-after: auto;
+  }
+}
+
+/* --- Mouvement réduit ---
+ *
+ * L'application anime des panneaux, des messages et des changements d'état.
+ * Une préférence système existe pour les troubles vestibulaires ; elle est
+ * respectée ici comme dans la fenêtre de l'extension.
+ */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    transition-duration: 0.01ms !important;
+    transition-delay: 0ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
   }
 }

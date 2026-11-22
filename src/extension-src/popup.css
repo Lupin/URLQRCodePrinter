@@ -380,6 +380,10 @@ body {
   flex: 1;
   min-height: 0;
   display: flex;
+  /* Sans ancêtre positionné, les textes `.sr-only` des lignes se plaçaient par
+     rapport au bloc initial : ils échappaient au rognage de la liste et
+     étiraient le document à 2 436 px, avec deux barres et un pied rogné. */
+  position: relative;
   flex-direction: column;
   gap: 4px;
   padding: 0 0 8px;
@@ -525,13 +529,16 @@ body {
 
 .app-footer__row { display: flex; gap: 6px; }
 
+.app-footer__links { display: flex; flex-wrap: wrap; gap: 4px 14px; align-items: center; }
+
 /* Le lien vers la page d'information ferme la fenêtre, sous les commandes.
    À l'encre secondaire et souligné : c'est un lien, il doit se voir comme tel,
    mais l'accent reste réservé aux actions. Il n'est pas un bouton — il n'a ni
    bordure ni fond — parce qu'il ne modifie rien dans la collection. */
 .site-link {
-  align-self: flex-start;
-  margin-top: 2px;
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
   color: var(--text-2);
   font-size: var(--type-xs);
   text-decoration: underline;

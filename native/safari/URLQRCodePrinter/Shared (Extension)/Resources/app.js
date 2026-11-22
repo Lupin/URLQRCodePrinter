@@ -201,6 +201,9 @@ const EN_MESSAGES = {
   "Chargement…": "Loading…",
   "Cette page ne peut pas être enregistrée.": "This page cannot be saved.",
   "Lien supprimé": "Link deleted",
+  "Lien restauré": "Link restored",
+  "Vider": "Clear",
+  "Vider la collection ? Cette action retire {combien}, sans retour possible.": "Clear the collection? This removes {combien}, with no way back.",
   "Rien à enregistrer sur cette page": "Nothing to save on this page",
   "Déjà enregistré": "Already saved",
   "Page ajoutée": "Page added",
@@ -13416,12 +13419,37 @@ function stylesheetIsCurrent() {
  * @param {string} message
  * @param {'info'|'error'} [kind]
  */
-function toast(message, kind = 'info') {
-  el.toast.textContent = message;
+function toast(message, kind = 'info', action = null) {
+  if (action) {
+    el.toast.textContent = '';
+    const texte = document.createElement('span');
+    texte.textContent = message;
+    el.toast.append(texte);
+
+    // Un message qui propose une action reste plus longtemps : le temps de lire
+    // et de décider. Sans action, le comportement ne change pas.
+    const bouton = document.createElement('button');
+    bouton.type = 'button';
+    bouton.className = 'toast__action';
+    bouton.textContent = action.label;
+    bouton.addEventListener('click', () => {
+      clearTimeout(toastTimer);
+      el.toast.classList.remove('toast--visible');
+      el.toast.textContent = '';
+      action.run();
+    });
+    el.toast.append(bouton);
+  } else {
+    el.toast.textContent = message;
+  }
+
   el.toast.classList.toggle('toast--error', kind === 'error');
   el.toast.classList.add('toast--visible');
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => el.toast.classList.remove('toast--visible'), 2800);
+  toastTimer = setTimeout(() => {
+    el.toast.classList.remove('toast--visible');
+    el.toast.textContent = '';
+  }, action ? 6000 : 2800);
 }
 
 /**
@@ -13955,6 +13983,12 @@ function renderLink(link) {
     renderPreview();
   });
 
+  // La cible tactile de la case fait 24 × 24 px, sa case visible 14 × 14 :
+  // sans ce label, la cible mesurée tombait à 13 × 13 (WCAG 2.5.8).
+  const checkHit = document.createElement('label');
+  checkHit.className = 'link__check-hit';
+  checkHit.append(check);
+
   const body = document.createElement('div');
   body.className = 'link__body';
 
@@ -14048,10 +14082,20 @@ function renderLink(link) {
   }
 
   const remove = button('×', 'link__remove', async () => {
+    const snapshot = { ...link };
     await store.remove(link.id);
     selected.delete(link.id);
     await refresh();
-    toast(t('Lien supprimé'));
+    // Une suppression d'un clic n'est pas rattrapable autrement : le message
+    // porte l'annulation, et garde l'enregistrement complet (rang compris).
+    toast(t('Lien supprimé'), 'info', {
+      label: t('Annuler'),
+      run: async () => {
+        await store.put(snapshot);
+        await refresh();
+        toast(t('Lien restauré'));
+      },
+    });
   });
   remove.setAttribute('aria-label', t('Supprimer {title}', { title: link.title || link.url }));
 
@@ -14069,13 +14113,13 @@ function renderLink(link) {
   // de la ligne. Deux flèches permanentes sur chaque ligne encombraient la liste
   // pour une action qu'on fait une fois, puis qu'on quitte.
   if (reorderMode) {
-    item.append(moveControls(link), check, rank, body, remove, linkEditor(link));
+    item.append(moveControls(link), checkHit, rank, body, remove, linkEditor(link));
     return item;
   }
 
   // L'éditeur vient **après** la croix : il se replie sur sa propre ligne, et
   // la croix reste ainsi sur celle du titre, où on la cherche.
-  item.append(check, rank, body, remove, linkEditor(link));
+  item.append(checkHit, rank, body, remove, linkEditor(link));
   return item;
 }
 
@@ -19421,6 +19465,9 @@ function switchMode(next) {
     const active = tab.dataset.mode === next;
     tab.classList.toggle('tab--active', active);
     tab.setAttribute('aria-selected', String(active));
+    // Un seul onglet entre dans l'ordre de tabulation : les flèches circulent
+    // dans la bande, la tabulation en sort. C'est le motif attendu d'un tablist.
+    tab.tabIndex = active ? 0 : -1;
   }
   for (const panel of document.querySelectorAll('[data-mode-panel]')) {
     panel.hidden = panel.dataset.modePanel !== next;
@@ -20004,11 +20051,68 @@ el.importReplace.addEventListener('click', () => applyImport('replace').catch(()
 el.importAdd.addEventListener('click', () => applyImport('add').catch(() => {}));
 el.importCancel.addEventListener('click', closeImportMenu);
 
-el.clear.addEventListener('click', async () => {
+// Vider la collection est le geste le plus destructeur ; il ne s'exécute plus
+// au premier clic. Le panneau reste dans le flux, sous les commandes, et
+// « Annuler » est le premier bouton — le geste destructeur ne doit pas être
+// sous le doigt qui vient d'ouvrir la question.
+const clearConfirm = document.getElementById('clear-confirm');
+const clearConfirmText = document.getElementById('clear-confirm-text');
+const clearConfirmYes = document.getElementById('clear-confirm-yes');
+const clearConfirmCancel = document.getElementById('clear-confirm-cancel');
+
+function closeClearConfirm({ rendFocus = true } = {}) {
+  if (!clearConfirm || clearConfirm.hidden) return;
+  clearConfirm.hidden = true;
+  if (rendFocus) el.clear.focus();
+}
+
+function openClearConfirm() {
+  if (!clearConfirm || !clearConfirmText || links.length === 0) return;
+  const combien = tpl(links.length, '{count} lien', '{count} liens', { count: links.length });
+  clearConfirmText.textContent = t(
+    'Vider la collection ? Cette action retire {combien}, sans retour possible.',
+    { combien },
+  );
+  clearConfirm.hidden = false;
+  clearConfirmCancel?.focus();
+}
+
+el.clear.addEventListener('click', openClearConfirm);
+clearConfirmCancel?.addEventListener('click', () => closeClearConfirm());
+clearConfirmYes?.addEventListener('click', async () => {
   await store.clear();
   selected = new Set();
+  closeClearConfirm({ rendFocus: false });
   await refresh();
   toast(t('Collection vidée'));
+  el.urlInput?.focus();
+});
+clearConfirm?.addEventListener('keydown', (event) => {
+  if (event.key === 'Escape') {
+    event.preventDefault();
+    closeClearConfirm();
+  }
+});
+
+// Motif APG du tablist : une seule tabulation entre dans la bande, les flèches
+// y circulent, Home et End vont aux extrémités. Sans cela, quatre onglets
+// annoncés « onglet » ne commandaient aucun panneau et ne répondaient pas aux
+// flèches.
+const tabsList = document.querySelectorAll('.tabs')[0];
+tabsList?.addEventListener('keydown', (event) => {
+  const onglets = [...tabsList.querySelectorAll('.tab')];
+  const courant = event.target.closest?.('.tab');
+  if (!courant) return;
+  const index = onglets.indexOf(courant);
+  let cible = null;
+  if (event.key === 'ArrowRight') cible = onglets[(index + 1) % onglets.length];
+  else if (event.key === 'ArrowLeft') cible = onglets[(index - 1 + onglets.length) % onglets.length];
+  else if (event.key === 'Home') cible = onglets[0];
+  else if (event.key === 'End') cible = onglets[onglets.length - 1];
+  if (!cible) return;
+  event.preventDefault();
+  switchMode(cible.dataset.mode);
+  cible.focus();
 });
 
 for (const tab of document.querySelectorAll('.tab')) {
@@ -20354,6 +20458,23 @@ window.addEventListener('beforeprint', () => {
  * Le changement de langue recharge la page : l'adresse n'a pas à être recalculée
  * à chaud.
  */
+/**
+ * Affiche la mention de confidentialité quand elle est livrée avec la page.
+ *
+ * Dans l'extension, `privacy.html` est voisin de l'application : le lien y mène.
+ * Sur l'application web autonome, la page n'existe pas — le lien resterait mort,
+ * donc il reste masqué. C'est le seul endroit d'où l'accord peut être retiré
+ * sans désinstaller l'extension.
+ */
+function wirePrivacyLink() {
+  const lien = document.getElementById('privacy-link');
+  if (!lien) return;
+  const url = extensionApi?.runtime?.getURL?.('privacy.html');
+  if (!url) { lien.hidden = true; return; }
+  lien.href = url;
+  lien.hidden = false;
+}
+
 function wireSiteLink() {
   const link = el.siteLink;
   if (!link) return;
@@ -20402,6 +20523,7 @@ await initI18n();
 applyTranslations(document);
 wireLocaleSwitcher();
 wireSiteLink();
+wirePrivacyLink();
 
 fillPresets();
 fillLabelForm();

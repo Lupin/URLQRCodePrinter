@@ -152,8 +152,15 @@
          enverrait un francophone sur la page anglaise.
          Le texte reste à l'encre secondaire : l'accent est réservé aux actions,
          et ce lien n'en est pas une. -->
-    <a id="site-link" class="site-link" target="_blank" rel="noopener noreferrer"
-       data-i18n="Page d'information">Page d'information</a>
+    <div class="app-footer__links">
+      <a id="site-link" class="site-link" target="_blank" rel="noopener noreferrer"
+         data-i18n="Page d'information">Page d'information</a>
+      <!-- La mention de confidentialité reste joignable à chaque état : acceptée,
+           l'accord se retire depuis cette page, sinon il faudrait désinstaller
+           l'extension — ce que la page promet de ne pas imposer. -->
+      <a id="privacy-link" class="site-link" href="privacy.html" target="_blank"
+         rel="noopener noreferrer" data-i18n="Confidentialité">Confidentialité</a>
+    </div>
   </footer>
 
   <script type="module" src="popup.js"></script>

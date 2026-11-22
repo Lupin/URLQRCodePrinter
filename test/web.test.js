@@ -555,7 +555,7 @@ test('la collection offre un bouton de rangement, inactif par défaut', () => {
 test('les flèches n\'existent qu\'en mode rangement, et à gauche de la ligne', () => {
   const app = readFileSync(join(WEB, 'app.js'), 'utf8');
   // Le seul appel qui ajoute le bloc de rangement est gardé par le mode.
-  assert.match(app, /if \(reorderMode\) \{\s*\n\s*item\.append\(moveControls\(link\), check, rank/);
+  assert.match(app, /if \(reorderMode\) \{\s*\n\s*item\.append\(moveControls\(link\), checkHit, rank/);
   assert.doesNotMatch(app, /item\.append\(check, rank, body, linkEditor\(link\), remove, moveControls/);
 });
 
@@ -635,7 +635,7 @@ test("l'éditeur d'un lien tient dans la liste, sur sa propre ligne", () => {
 
   const app = readFileSync(join(WEB, 'app.js'), 'utf8');
   // La croix reste sur la ligne du titre : l'éditeur vient après elle.
-  assert.match(app, /item\.append\(check, rank, body, remove, linkEditor\(link\)\)/);
+  assert.match(app, /item\.append\(checkHit, rank, body, remove, linkEditor\(link\)\)/);
 });
 
 test("l'onglet des images offre le même aperçu que celui des étiquettes", () => {

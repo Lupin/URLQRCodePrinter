@@ -20,6 +20,13 @@
   --border: #e2e2e6;
   --accent: #c2410c;
   --accent-fg: #ffffff;
+
+  /* Jetons employés par la FAQ et par les liens : ils étaient utilisés sans
+     être déclarés, donc invalides — filets absents et anneau de focus inexistant,
+     y compris dans le CSS publié. */
+  --text-2: #45454a;
+  --border-line: #e2e2e6;
+  --focus: var(--accent);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -31,6 +38,10 @@
     --border: #2e2e34;
     --accent: #fb923c;
     --accent-fg: #131316;
+
+    --text-2: #c6c6c6;
+    --border-line: #2e2e34;
+    --focus: var(--accent);
   }
 }
 
@@ -299,3 +310,18 @@ footer p {
 }
 
 .site-footer__signature span { padding: 0 2px; }
+
+/* --- Mouvement réduit ---
+ *
+ * Le site n'anime presque rien, mais la règle vaut engagement : une préférence
+ * système se respecte sur toutes les surfaces du produit.
+ */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    transition-duration: 0.01ms !important;
+    transition-delay: 0ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+  }
+}
