@@ -708,7 +708,7 @@ test('les commandes de rangement atteignent la cible de 24 px', () => {
     assert.match(regle[1], /height:\s*24px/, `${selecteur} : hauteur`);
   }
   const bloc = css.match(/\.link__rank\s*\{([\s\S]*?)\}/)[1];
-  assert.match(bloc, /gap:\s*2px/, 'les deux flèches forment un objet, pas deux commandes séparées');
+  assert.match(bloc, /gap:\s*var\(--space-05\)/, 'les deux flèches forment un objet, pas deux commandes séparées');
 });
 
 // ---------------------------------------------------------------------------

@@ -57,6 +57,33 @@
   --radius: 0;
   --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
 
+  /* Échelles : espacement, typographie, hauteurs de contrôle. Un pas commun
+     remplace les valeurs ad hoc — c'est ce qui donne un rythme lisible, et ce
+     qu'un test vérifie désormais. Les tailles en points restent réservées au
+     papier, où l'échelle est physique. */
+  --space-05: 2px;
+  --space-1: 4px;
+  --space-15: 6px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+
+  --type-2xs: 11px;
+  --type-xs: 12px;
+  --type-sm: 13px;
+  --type-base: 14px;
+  --type-lg: 16px;
+  --type-xl: 20px;
+
+  --control-sm: 28px;
+  --control: 32px;
+  --control-lg: 36px;
+
+  /* Une seule ombre dans tout le système : la feuille posée sur le bureau. */
+  --shadow-sheet: 0 1px 6px rgba(0, 0, 0, 0.12);
+
   /* Cases à cocher, boutons radio et curseurs : sans cela le navigateur les
      peint avec le bleu du système, seule touche froide d'une interface qui n'en
      a aucune. */
@@ -93,13 +120,19 @@
 
 * { box-sizing: border-box; }
 
+/* L'attribut `hidden` doit gagner. Depuis que des composants déclarent leur
+   `display` (boutons, pied de fenêtre…), la règle du navigateur perdait la
+   bataille : trois actions primaires de modes différents restaient visibles,
+   et les panneaux masqués reprenaient leur place. */
+[hidden] { display: none !important; }
+
 body {
   margin: 0;
   min-height: 100vh;
   background: var(--bg);
   color: var(--text);
   font-family: var(--font);
-  font-size: 14px;
+  font-size: var(--type-base);
   line-height: 1.5;
   color-scheme: light dark;
 }
@@ -120,7 +153,7 @@ body {
   /* Marque et sous-titre, sélecteur de langue, compteur. */
   grid-template-columns: 1fr auto auto;
   align-items: baseline;
-  gap: 2px 12px;
+  gap: var(--space-05) var(--space-3);
   padding: 16px clamp(16px, 4vw, 40px) 12px;
   /* Même signal que l'en-tête de la fenêtre : un filet d'encre, pas l'accent.
      L'accent est réservé aux actions. */
@@ -133,7 +166,7 @@ body {
 .topbar__brand {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--space-3);
   min-width: 0;
 }
 
@@ -148,7 +181,7 @@ body {
 
 .topbar__title {
   margin: 0;
-  font-size: 20px;
+  font-size: var(--type-xl);
   font-weight: 650;
   letter-spacing: -0.02em;
 }
@@ -157,7 +190,7 @@ body {
   grid-column: 1;
   margin: 0;
   color: var(--text-2);
-  font-size: 13px;
+  font-size: var(--type-sm);
 }
 
 /* Le sélecteur de langue est aligné verticalement avec le bloc de marque :
@@ -170,9 +203,9 @@ body {
 
 .locale__select {
   font: inherit;
-  font-size: 12px;
-  min-height: 24px;
-  padding: 2px 6px;
+  font-size: var(--type-xs);
+  min-height: var(--control-sm);
+  padding: 0 6px;
   border: 1px solid var(--border-strong);
   border-radius: var(--radius);
   background: var(--bg);
@@ -196,7 +229,7 @@ body {
   border-radius: var(--radius);
   background: var(--ink);
   color: var(--ink-ink);
-  font-size: 12px;
+  font-size: var(--type-xs);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
@@ -206,7 +239,7 @@ body {
 .layout {
   display: grid;
   grid-template-columns: minmax(320px, 420px) minmax(0, 1fr);
-  gap: 16px;
+  gap: var(--space-4);
   align-items: start;
   padding: 16px clamp(16px, 4vw, 40px) 40px;
 }
@@ -235,7 +268,7 @@ body {
      panneau refuse de descendre sous la largeur de son contenu le plus large,
      et la grille déborde avec lui. */
   min-width: 0;
-  gap: 12px;
+  gap: var(--space-3);
   padding: 16px;
   /* Retiré explicitement, et non laissé absent : un `fieldset` sans règle de
      bordure reprend le contour par défaut du navigateur — 2 px, mesurés dans
@@ -247,7 +280,7 @@ body {
 
 .panel__title {
   margin: 0;
-  font-size: 13px;
+  font-size: var(--type-sm);
   font-weight: 650;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -267,7 +300,7 @@ body {
 .panel__footer {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--space-3);
   padding-top: 10px;
   border-top: 1px solid var(--border-line);
 }
@@ -278,7 +311,7 @@ body {
    enfant direct — pas de pied de panneau ici. */
 .panel__actions {
   display: flex;
-  gap: 6px;
+  gap: var(--space-15);
 }
 
 .panel__actions .btn {
@@ -302,7 +335,7 @@ body {
      refusait de descendre sous 338 px et débordait de 6 px une fenêtre de
      380 px — le dernier reste d'un débordement de 83 px. */
   min-width: 0;
-  gap: 12px;
+  gap: var(--space-3);
   margin: 0;
   padding: 12px;
   /* Retiré explicitement, et non laissé absent : un `fieldset` sans règle de
@@ -323,7 +356,7 @@ body {
 .sheet-group__title {
   margin: 0;
   color: var(--text-2);
-  font-size: 12px;
+  font-size: var(--type-xs);
   font-weight: 650;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -335,7 +368,7 @@ body {
 
 /* --- Formulaires --- */
 
-.add-form { display: flex; gap: 6px; }
+.add-form { display: flex; gap: var(--space-15); }
 
 /* **Un seul trait, et rien derrière.** Le champ portait un cadre *et* un fond
    blanc : dans un panneau gris, cela faisait une boîte dans une boîte — deux
@@ -345,13 +378,14 @@ body {
    WCAG 1.4.11 pour la limite d'un composant. */
 .input {
   width: 100%;
-  padding: 8px 10px;
+  min-height: var(--control);
+  padding: 0 10px;
   border: 1px solid var(--border-strong);
   border-radius: var(--radius);
   background: transparent;
   color: var(--text);
   font-family: inherit;
-  font-size: 13px;
+  font-size: var(--type-sm);
 }
 
 /* **Le focus se dit par le fond, pas par un contour.** L'anneau ajoutait une
@@ -373,7 +407,8 @@ body {
   outline: none;
 }
 
-.input--compact { padding: 6px 9px; }
+.input--compact { min-height: var(--control-sm); padding: 0 8px; }
+textarea.input { padding: 8px 10px; }
 
 /* `flex-basis` fixe la largeur de reference de chaque champ. Sans elle, un
    libelle long — « Format d'etiquette » — elargissait sa colonne et faisait
@@ -381,7 +416,7 @@ body {
 .field {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-1);
   min-width: 0;
 }
 
@@ -408,15 +443,15 @@ body {
    resterait visible. */
 .field[hidden] { display: none; }
 
-.field--inline { flex-direction: row; align-items: center; gap: 6px; }
+.field--inline { flex-direction: row; align-items: center; gap: var(--space-15); }
 
 /* Un champ et son bouton accolé : le bouton ne doit pas être étiré par la
    largeur du champ, il reste à sa taille naturelle. */
-.field__row { display: flex; align-items: stretch; gap: 6px; }
+.field__row { display: flex; align-items: stretch; gap: var(--space-15); }
 .field__row .input { flex: 1; min-width: 0; }
 .field__row .btn { flex: none; }
-.field__label { color: var(--text-2); font-size: 12px; }
-.fields { display: flex; flex-wrap: wrap; gap: 12px; }
+.field__label { color: var(--text-2); font-size: var(--type-xs); }
+.fields { display: flex; flex-wrap: wrap; gap: var(--space-3); }
 
 /* Le nom prend la ligne entière : il porte deux commandes à sa droite —
    « Enregistrer » et « Nouvelle » —, qui ne tiendraient pas à côté du numéro.
@@ -433,9 +468,9 @@ body {
    côte. Toutes deux en `btn--small` : « Supprimer » seul à côté du sélecteur
    était plus haut que « Réorganiser » placé dessous, et les deux gestes ne se
    lisaient pas comme une seule rangée. */
-.collection-picker { display: flex; flex-direction: column; gap: 6px; }
+.collection-picker { display: flex; flex-direction: column; gap: var(--space-15); }
 .collection-picker .field--grow { flex: none; }
-.collection-picker__actions { display: flex; align-items: center; gap: 6px; }
+.collection-picker__actions { display: flex; align-items: center; gap: var(--space-15); }
 .collection-picker__actions .btn { flex: none; }
 
 /* La ligne entière se masque hors de l'extension — c'est le cas de la page web
@@ -452,7 +487,7 @@ body {
 .collection-confirm {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-2);
   padding: 10px;
   border: 1px solid var(--border-line);
   border-radius: var(--radius);
@@ -461,16 +496,16 @@ body {
 
 .collection-confirm[hidden] { display: none; }
 
-.collection-confirm__text { margin: 0; font-size: 13px; }
+.collection-confirm__text { margin: 0; font-size: var(--type-sm); }
 
-.collection-confirm__actions { display: flex; gap: 6px; }
+.collection-confirm__actions { display: flex; gap: var(--space-15); }
 
 /* --- Confirmation de vidage de la collection --- */
 
 .clear-confirm {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-2);
   margin-top: 8px;
   padding: 10px;
   border: 1px solid var(--border-line);
@@ -480,9 +515,9 @@ body {
 
 .clear-confirm[hidden] { display: none; }
 
-.clear-confirm__text { margin: 0; font-size: 13px; }
+.clear-confirm__text { margin: 0; font-size: var(--type-sm); }
 
-.clear-confirm__actions { display: flex; gap: 6px; }
+.clear-confirm__actions { display: flex; gap: var(--space-15); }
 
 /* --- Ordre des collections --- */
 
@@ -492,7 +527,7 @@ body {
 .collection-order {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-2);
   margin-top: 6px;
   padding: 10px;
   border: 1px solid var(--border-line);
@@ -502,13 +537,13 @@ body {
 
 .collection-order[hidden] { display: none; }
 
-.collection-order__title { margin: 0; font-size: 13px; font-weight: 650; }
+.collection-order__title { margin: 0; font-size: var(--type-sm); font-weight: 650; }
 
-.collection-order__hint { margin: 0; font-size: 12px; color: var(--text-2); }
+.collection-order__hint { margin: 0; font-size: var(--type-xs); color: var(--text-2); }
 
-.collection-order__list { display: flex; flex-direction: column; gap: 6px; }
+.collection-order__list { display: flex; flex-direction: column; gap: var(--space-15); }
 
-.collection-order__row { display: flex; align-items: center; gap: 6px; }
+.collection-order__row { display: flex; align-items: center; gap: var(--space-15); }
 
 /* Le nom prend la place, les deux flèches gardent la leur : un nom long se
    termine par une ellipse plutôt que de pousser les commandes hors du panneau. */
@@ -537,7 +572,7 @@ body {
 .import-menu {
   display: flex;
   flex-direction: column;
-  gap: 7px;
+  gap: var(--space-2);
   padding: 10px 12px;
   border: 1px solid var(--border-strong);
   border-radius: var(--radius);
@@ -550,11 +585,11 @@ body {
    capture — le substitut de DOM des tests, lui, ne peint rien. */
 .import-menu[hidden] { display: none; }
 
-.import-menu__title { margin: 0; font-size: 13px; font-weight: 650; }
+.import-menu__title { margin: 0; font-size: var(--type-sm); font-weight: 650; }
 
 /* Une issue par ligne, à toute la largeur : les libellés portent un nom de
    collection, et un nom long se replie au lieu d'être coupé. */
-.import-menu__choices { display: flex; flex-direction: column; gap: 6px; }
+.import-menu__choices { display: flex; flex-direction: column; gap: var(--space-15); }
 
 .import-menu__choices .btn {
   display: flex;
@@ -573,9 +608,9 @@ body {
    commande resterait visible là où il n'y a qu'une collection. */
 .import-menu [hidden] { display: none; }
 
-.field-error { margin: 0; color: var(--danger); font-size: 12px; }
+.field-error { margin: 0; color: var(--danger); font-size: var(--type-xs); }
 
-.toolbar { display: flex; align-items: flex-end; gap: 6px; }
+.toolbar { display: flex; align-items: flex-end; gap: var(--space-15); }
 /* La recherche prend la place, le tri garde la sienne : un tri comprimé
    afficherait « Titre, A → … » et ne dirait plus lequel. */
 .toolbar .input[type="search"] { flex: 1; min-width: 0; }
@@ -586,7 +621,7 @@ body {
 .list-head {
   display: flex;
   align-items: center;
-  gap: 7px;
+  gap: var(--space-2);
   min-height: 20px;
   margin-top: 10px;
   padding-bottom: 6px;
@@ -608,7 +643,7 @@ body {
   z-index: 5;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--space-05);
   min-width: 190px;
   max-height: 240px;
   overflow-y: auto;
@@ -634,7 +669,7 @@ body {
   margin: 0 0 14px;
   padding: 10px 14px;
   border-radius: var(--radius);
-  font-size: 13px;
+  font-size: var(--type-sm);
   line-height: 1.45;
 }
 
@@ -649,7 +684,7 @@ body {
   padding: 1px 4px;
   border-radius: var(--radius);
   background: var(--surface-2);
-  font-size: 12px;
+  font-size: var(--type-xs);
 }
 
 .banner[hidden] { display: none; }
@@ -660,7 +695,7 @@ body {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-15);
 }
 
 /* Aligné à gauche, sous les exports : c'est le pied de panneau qui les empile
@@ -678,7 +713,7 @@ body {
   flex: 0 0 100%;
   margin-right: 0;
   color: var(--text-2);
-  font-size: 11px;
+  font-size: var(--type-2xs);
   /* En gras : c'est un intitulé de groupe, pas une légende. */
   font-weight: 700;
   text-transform: uppercase;
@@ -688,14 +723,18 @@ body {
 /* --- Boutons --- */
 
 .btn {
-  padding: 8px 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--control);
+  padding: 0 var(--space-3);
   border: 1px solid transparent;
   border-radius: var(--radius);
   background: transparent;
   color: var(--text);
   cursor: pointer;
   font-family: inherit;
-  font-size: 13px;
+  font-size: var(--type-sm);
   white-space: nowrap;
   transition: background 120ms ease, border-color 120ms ease, color 120ms ease;
 }
@@ -717,7 +756,7 @@ body {
 
 /* Un bouton de barre d'outils : même cible de 24 px de haut, moins de largeur
    perdue. Il reste au-dessus du minimum de 24 × 24 px, qui est ce qui compte. */
-.btn--small { min-height: 26px; padding: 3px 9px; font-size: 12px; }
+.btn--small { min-height: var(--control-sm); padding: 0 var(--space-2); font-size: var(--type-xs); }
 
 /* Les flèches de parcours. Elles encadrent un sélecteur qui prend la place, et
    gardent une cible carrée de 26 px — au-dessus du minimum de 24 px, sans quoi
@@ -727,7 +766,7 @@ body {
   width: 26px;
   min-height: 26px;
   padding: 0;
-  font-size: 10px;
+  font-size: var(--type-2xs);
   line-height: 1;
 }
 
@@ -773,7 +812,7 @@ body {
 
 .tabs {
   display: flex;
-  gap: 2px;
+  gap: var(--space-05);
   padding: 3px;
   border-radius: var(--radius);
   background: var(--bg);
@@ -791,22 +830,27 @@ body {
   /* `auto` et non `1` : chaque onglet réclame au moins la largeur de son
      libellé, au lieu d'un quart de la bande quelle que soit sa longueur. */
   flex: 1 1 auto;
-  padding: 7px 8px;
+  height: var(--control);
+  padding: 0 3px;
   border: 0;
+  border-bottom: 2px solid transparent;
   border-radius: var(--radius);
   background: transparent;
   color: var(--text-2);
   cursor: pointer;
   font-family: inherit;
-  font-size: 12.5px;
+  font-size: var(--type-xs);
   white-space: nowrap;
 }
 
 .tab--active {
-  background: var(--surface);
-  color: var(--text);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
-  font-weight: 550;
+  /* L'onglet actif se lisait à 1,10:1 : fond presque identique au panneau et
+     ombre de 1 px. Il porte maintenant un soulignement d'encre de 2 px et un
+     texte d'encre — l'indicateur dépasse 3:1, sans ajouter d'ombre. */
+  background: var(--surface-2);
+  color: var(--ink);
+  border-bottom-color: var(--ink);
+  font-weight: 600;
 }
 
 /* --- Liste des liens --- */
@@ -836,7 +880,7 @@ body {
    * fenêtre ne réparait rien, le défilement restant où il était. */
   flex-wrap: wrap;
   align-items: baseline;
-  gap: 8px;
+  gap: var(--space-2);
   padding: 8px 0;
   border-bottom: 1px solid var(--border-line);
 }
@@ -868,12 +912,12 @@ body {
   display: block;
   overflow: hidden;
   color: var(--text-2);
-  font-size: 11.5px;
+  font-size: var(--type-xs);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.link__tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 3px; }
+.link__tags { display: flex; flex-wrap: wrap; gap: var(--space-1); margin-top: 3px; }
 
 /* La cible du QR Code, propre à ce lien. Elle n'apparaît que lorsqu'un raccourci
    existe : sans lui, il n'y a rien à choisir. Discrète — c'est un réglage de
@@ -898,7 +942,7 @@ body {
   background: var(--surface-2);
   color: var(--text-2);
   font-family: inherit;
-  font-size: 10.5px;
+  font-size: var(--type-2xs);
   cursor: pointer;
 }
 
@@ -916,7 +960,7 @@ body {
   background: transparent;
   color: var(--text-2);
   cursor: pointer;
-  font-size: 15px;
+  font-size: var(--type-base);
   line-height: 1;
 }
 
@@ -935,7 +979,7 @@ body {
   flex: none;
   display: flex;
   align-items: center;
-  gap: 2px;
+  gap: var(--space-05);
 }
 
 .link__move {
@@ -948,7 +992,7 @@ body {
   background: transparent;
   color: var(--text-2);
   cursor: pointer;
-  font-size: 9px;
+  font-size: var(--type-2xs);
   line-height: 1;
 }
 
@@ -968,7 +1012,7 @@ body {
   background: transparent;
   color: var(--text-3);
   cursor: grab;
-  font-size: 13px;
+  font-size: var(--type-sm);
   line-height: 1;
   touch-action: none;
 }
@@ -984,7 +1028,7 @@ body {
   z-index: 1;
   border-radius: var(--radius);
   background: var(--surface-2);
-  box-shadow: 0 2px 10px rgb(0 0 0 / 18%);
+  box-shadow: var(--shadow-sheet);
   opacity: 0.92;
 }
 
@@ -997,13 +1041,13 @@ body {
   margin: 8px 0;
   padding: 14px 6px;
   color: var(--text-2);
-  font-size: 12.5px;
+  font-size: var(--type-xs);
   line-height: 1.6;
   text-align: center;
 }
 
 .empty__actions {
-  display: flex; flex-wrap: wrap; justify-content: center; gap: 6px;
+  display: flex; flex-wrap: wrap; justify-content: center; gap: var(--space-15);
   margin: -2px 0 8px;
 }
 .empty__actions[hidden] { display: none; }
@@ -1012,7 +1056,7 @@ body {
    disparaît au lieu de laisser une case orpheline au-dessus de « Réorganiser ». */
 .list-head[hidden] { display: none; }
 
-.hint { margin: 0; color: var(--text-2); font-size: 12px; }
+.hint { margin: 0; color: var(--text-2); font-size: var(--type-xs); }
 .hint--tight { margin-top: 4px; }
 
 /* --- Raccourcissement d'URL --- */
@@ -1027,7 +1071,7 @@ body {
 .shortener__title {
   margin: 0 0 4px;
   color: var(--text-2);
-  font-size: 12px;
+  font-size: var(--type-xs);
 }
 
 .shortener__title em { font-style: normal; color: var(--text-3); }
@@ -1035,7 +1079,7 @@ body {
 .shortener__row {
   display: flex;
   align-items: flex-end;
-  gap: 6px;
+  gap: var(--space-15);
 }
 
 .shortener__row .field { flex: 1; min-width: 0; }
@@ -1053,12 +1097,12 @@ body {
 .link__short {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--space-1);
   max-width: 100%;
   margin-top: 2px;
   overflow: hidden;
   color: var(--text-2);
-  font-size: 11px;
+  font-size: var(--type-2xs);
   white-space: nowrap;
   cursor: pointer;
 }
@@ -1085,7 +1129,7 @@ body {
 .columns {
   display: flex;
   flex-wrap: wrap;
-  gap: 4px 14px;
+  gap: var(--space-1) var(--space-4);
   margin: 10px 0 0;
   padding: 8px 10px;
   /* Retiré explicitement, et non laissé absent : un `fieldset` sans règle de
@@ -1098,14 +1142,14 @@ body {
 .columns__legend {
   padding: 0 4px;
   color: var(--text-2);
-  font-size: 12px;
+  font-size: var(--type-xs);
 }
 
 .columns__item {
   display: flex;
   flex-direction: row;
   align-items: center;
-  gap: 5px;
+  gap: var(--space-15);
   /* 2.5.8 : la cible est le libellé entier, pas la case seule. Encore
      faut-il qu'il atteigne 24 px de haut. */
   min-height: 24px;
@@ -1125,7 +1169,7 @@ body {
   flex: none;
   min-width: 1.6em;
   color: var(--text-2);
-  font-size: 11px;
+  font-size: var(--type-2xs);
   font-variant-numeric: tabular-nums;
   text-align: right;
 }
@@ -1136,7 +1180,7 @@ body {
   margin-top: 3px;
   overflow: hidden;
   color: var(--text-2);
-  font-size: 11px;
+  font-size: var(--type-2xs);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -1154,7 +1198,7 @@ body {
   border-radius: var(--radius);
   background: none;
   color: var(--text-2);
-  font-size: 13px;
+  font-size: var(--type-sm);
   line-height: 1;
   cursor: pointer;
 }
@@ -1178,7 +1222,7 @@ body {
 .link__editor-form {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--space-15);
   margin-top: 8px;
   padding: 10px;
   /* Retiré explicitement, et non laissé absent : un `fieldset` sans règle de
@@ -1192,10 +1236,10 @@ body {
 .link__editor-field {
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: var(--space-1);
 }
 
-.link__editor-label { color: var(--text-2); font-size: 11px; }
+.link__editor-label { color: var(--text-2); font-size: var(--type-2xs); }
 
 /* Enregistrer et Annuler, sous les champs.
  *
@@ -1208,7 +1252,7 @@ body {
 .link__editor-actions {
   display: flex;
   justify-content: flex-end;
-  gap: 6px;
+  gap: var(--space-15);
 }
 
 .link__editor-actions .btn { flex: none; }
@@ -1232,7 +1276,7 @@ body {
 .preview__caption {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--space-05);
   margin: 8px 0 0;
   text-align: left;
 }
@@ -1245,15 +1289,15 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
+  gap: var(--space-3);
   padding: 10px;
   border: 1px solid var(--border-line);
   border-radius: var(--radius);
   background: var(--bg);
 }
 
-.printer__status { display: flex; align-items: center; gap: 8px; min-width: 0; }
-.printer__actions { display: flex; gap: 6px; }
+.printer__status { display: flex; align-items: center; gap: var(--space-2); min-width: 0; }
+.printer__actions { display: flex; gap: var(--space-15); }
 
 /* L'impression en série : portée, quantité et le bouton qui les applique,
    réunis dans un même cadre pour qu'on lise d'un coup d'œil ce qui va sortir.
@@ -1261,7 +1305,7 @@ body {
 .series {
   display: flex;
   align-items: flex-end;
-  gap: 12px;
+  gap: var(--space-3);
   margin: 0;
   padding: 10px;
   /* Retiré explicitement, et non laissé absent : un `fieldset` sans règle de
@@ -1275,7 +1319,7 @@ body {
 .series legend {
   padding: 0 4px;
   color: var(--text-2);
-  font-size: 12px;
+  font-size: var(--type-xs);
 }
 
 .series .field { flex: 1; min-width: 120px; }
@@ -1308,12 +1352,12 @@ body {
   background: var(--bg);
 }
 
-.preview__surface { display: flex; flex-direction: column; align-items: center; gap: 14px; }
+.preview__surface { display: flex; flex-direction: column; align-items: center; gap: var(--space-4); }
 
 .preview__page {
   padding: 8px;
   background: #ffffff;
-  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.12);
+  box-shadow: var(--shadow-sheet);
 }
 
 /* --- Pied de page --- */
@@ -1328,7 +1372,7 @@ body {
   text-align: center;
 }
 
-.app-footer__links { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 16px; }
+.app-footer__links { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--space-1) var(--space-4); }
 
 /* La signature : plus discrète que le lien, et sur sa propre ligne. L'encre
    tertiaire est la plus claire de la charte qui tienne encore 4,5:1 sur le
@@ -1336,7 +1380,7 @@ body {
 .app-footer__signature {
   margin: 6px 0 0;
   color: var(--text-3);
-  font-size: 12px;
+  font-size: var(--type-xs);
 }
 
 .app-footer__sep { padding: 0 2px; }
@@ -1346,7 +1390,7 @@ body {
   align-items: center;
   min-height: 24px;
   color: var(--text-2);
-  font-size: 12px;
+  font-size: var(--type-xs);
   text-decoration: underline;
   text-underline-offset: 2px;
 }
@@ -1366,13 +1410,13 @@ body {
   bottom: 20px;
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--space-3);
   max-width: min(420px, calc(100vw - 40px));
   padding: 10px 14px;
   border-radius: var(--radius);
   background: var(--text);
   color: var(--bg);
-  font-size: 13px;
+  font-size: var(--type-sm);
   opacity: 0;
   pointer-events: none;
   transform: translateY(8px);
@@ -1422,7 +1466,7 @@ body {
 }
 
 /* L'ombre d'une feuille posée sur le bureau, à l'écran seulement. */
-.print-page--screen { box-shadow: 0 1px 6px rgba(0, 0, 0, 0.12); }
+.print-page--screen { box-shadow: var(--shadow-sheet); }
 
 .print-cell {
   position: absolute;
@@ -1664,17 +1708,17 @@ body {
   display: flex;
   grid-template-columns: none;
   align-items: center;
-  gap: 12px;
+  gap: var(--space-3);
   padding: 10px 16px;
 }
 
-.topbar__brand { display: flex; align-items: center; gap: 10px; }
+.topbar__brand { display: flex; align-items: center; gap: var(--space-3); }
 .marque { width: 24px; height: 24px; }
-.topbar__title { font-size: 15px; }
+.topbar__title { font-size: var(--type-base); }
 .topbar__subtitle {
   grid-column: auto;
   margin: 0;
-  font-size: 12px;
+  font-size: var(--type-xs);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1702,14 +1746,14 @@ body {
   bottom: 0;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-2);
   margin-top: auto;
   padding: 12px 0 0;
   background: var(--surface);
   border-top: 1px solid var(--border-line);
 }
 
-.inspector__foot .btn { width: 100%; justify-content: center; }
+.inspector__foot .btn { width: 100%; justify-content: center; min-height: var(--control-lg); }
 
 /* La scène : le bureau, et la feuille. */
 .stage {
@@ -1723,15 +1767,15 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: var(--space-3);
   height: 44px;
   padding: 0 16px;
   background: var(--bg);
   border-bottom: 1px solid var(--border-line);
 }
 
-.stage__title { font-size: 13px; font-weight: 600; }
-.stage__hint { font-size: 10.5px; color: var(--text-3); letter-spacing: 0.02em; }
+.stage__title { font-size: var(--type-sm); font-weight: 600; }
+.stage__hint { font-size: var(--type-2xs); color: var(--text-3); letter-spacing: 0.02em; }
 
 .stage__surface {
   flex: 1;
@@ -1761,17 +1805,17 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
+  gap: var(--space-4);
   height: 32px;
   padding: 0 16px;
   border-top: 1px solid var(--border-line);
   text-align: left;
 }
 
-.app-footer__links { justify-content: flex-start; gap: 4px 14px; }
-.app-footer__signature { margin: 0; font-size: 10px; }
-.app-footer__link { font-size: 10px; }
-.app-footer__promise { font-size: 10px; color: var(--text-3); }
+.app-footer__links { justify-content: flex-start; gap: var(--space-1) var(--space-4); }
+.app-footer__signature { margin: 0; font-size: var(--type-2xs); }
+.app-footer__link { font-size: var(--type-2xs); }
+.app-footer__promise { font-size: var(--type-2xs); color: var(--text-3); }
 
 @media (max-width: 1180px) {
   .app { grid-template-columns: 310px minmax(0, 1fr) 310px; }
@@ -1814,12 +1858,12 @@ body {
 .rail__advanced > summary {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-15);
   min-height: 28px;
   list-style: none;
   cursor: pointer;
   color: var(--text-2);
-  font-size: 12px;
+  font-size: var(--type-xs);
   font-weight: 600;
 }
 
@@ -1830,7 +1874,7 @@ body {
 .rail__advanced > summary::before {
   content: "▸";
   color: var(--text-3);
-  font-size: 10px;
+  font-size: var(--type-2xs);
 }
 
 .advanced[open] > summary::before,
@@ -1850,12 +1894,12 @@ body {
 /* --- Volet : un seul dépliant pour les gestes de gestion --- */
 .rail__transfer { padding-top: 8px; }
 .rail__transfer > summary {
-  display: flex; align-items: center; gap: 6px;
+  display: flex; align-items: center; gap: var(--space-15);
   min-height: 28px; list-style: none; cursor: pointer;
-  color: var(--text-2); font-size: 11.5px; font-weight: 600;
+  color: var(--text-2); font-size: var(--type-xs); font-weight: 600;
 }
 .rail__transfer > summary::-webkit-details-marker { display: none; }
-.rail__transfer > summary::before { content: "▸"; color: var(--text-3); font-size: 10px; }
+.rail__transfer > summary::before { content: "▸"; color: var(--text-3); font-size: var(--type-2xs); }
 .rail__transfer[open] > summary::before { content: "▾"; }
 .rail__transfer[open] > summary { margin-bottom: 8px; }
 .rail__transfer > summary:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }

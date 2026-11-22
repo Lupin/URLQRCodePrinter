@@ -85,12 +85,34 @@ Le détail qui reste entre une structure juste et un outil utilisable.
 
 ---
 
+## I2a — Échelles, hauteurs et onglet actif · 22 novembre 2026
+
+**Tag** : `checkpoint/i2a` · **Note provisoire** : **3,1 / 5**.
+
+Le socle qui fait tenir l'écran : des échelles nommées, des contrôles à trois hauteurs, un état actif lisible.
+
+| Mesure | Avant I2a | Après I2a | Preuve |
+|---|---|---|---|
+| Tailles de texte d'écran distinctes | 11 | **5** (11 / 12 / 13 / 14 / 20 px) | 5 jetons `--type-*`, test `design-scale` |
+| `gap` en pixels hors échelle | 11 valeurs | **0** (55 écarts tokenisés, 2 en mm pour le papier) | test |
+| Hauteurs de contrôle | 26 / 32 / 33 px selon les boutons | **28 / 32 / 36** (jetons) | mesure : petit 28, champ 32, pied 36 |
+| Onglet actif | 1,10:1, ombre de 1 px | **14,2:1** (texte), **17,4:1** (soulignement) en clair ; **11,5:1 / 16,5:1** en sombre | mesure des styles calculés |
+| Ombres | 3 valeurs | **1** jeton (`--shadow-sheet`) | test |
+| Trois primaires visibles en même temps | 3 (les `[hidden]` étaient battus par `display`) | **1** par vue | `[hidden] { display:none !important }` + mesure |
+| Tests | 1 095 | **1 096** | `npm test` vert |
+
+**Correctif systémique trouvé en chemin** : depuis que des composants déclarent leur `display`, l'attribut `hidden` ne gagnait plus. Les trois actions primaires des trois modes s'affichaient simultanément dans le pied de l'inspecteur. Une règle globale `[hidden]` a été ajoutée ; les mesures de primaires et de contrôles redeviennent justes.
+
+**Reste pour I2b** : les `padding` en pixels (la dernière série hors échelle), la table unique de variantes (boutons désactivés, champs étirés), les composants natifs (cases, curseur, barres de défilement), et la re-mesure complète du thème sombre au-delà de l'onglet actif.
+
+---
+
 ## Prochains paliers
 
 | Palier | Note visée | Porte de sortie |
 |---|---|---|
 | I1 Structure (I1a + I1b) | 3,0 mesuré | aperçu visible sans défiler (0 px), 1 primaire, < 40 contrôles |
-| I2 Système | 3,7 | 0 valeur hors échelle, onglet actif ≥ 3:1 |
+| I2 Système (I2a fait, I2b à venir) | 3,7 | 0 valeur hors échelle, onglet actif ≥ 3:1 |
 | I3 Liste & flux | 4,1 | liste dense, sélection contextuelle, import guidé |
 | I4 Canvas & sortie | 4,45 | planche encadrée, zoom, progression |
 | I5 Marque & site | 4,65 | direction tenue, site avec preuve visuelle |

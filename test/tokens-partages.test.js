@@ -401,8 +401,8 @@ test("le pied de panneau empile ses deux groupes et les aligne à gauche", () =>
   const pied = APP_CODE_BEFORE_PRINT.match(/\.panel__footer\s*\{([\s\S]*?)\}/);
   assert.ok(pied, 'règle .panel__footer absente');
   assert.match(pied[1], /flex-direction:\s*column/, 'les groupes ne sont pas empilés');
-  const ecart = Number(pied[1].match(/gap:\s*(\d+)px/)?.[1] ?? 0);
-  assert.ok(ecart >= 10, `espace insuffisant entre les deux groupes : ${ecart}px`);
+  // L'écart suit désormais l'échelle : --space-3 (12 px) entre les groupes.
+  assert.match(pied[1], /gap:\s*var\(--space-3\)/, 'les groupes ne sont pas espacés à l\'échelle');
 
   // Le groupe de droite ne doit plus être repoussé : c'est ce décalage qui
   // cassait l'alignement.
