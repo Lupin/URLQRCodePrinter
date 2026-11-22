@@ -103,6 +103,7 @@ Retrouver et organiser
 - Titre, tags et note libres sur chaque lien, par le bouton crayon de la ligne.
 - Les tags s'affichent en pastilles : un clic filtre la collection.
 - Nom de la collection, repris dans les exports et dans le nom des fichiers.
+- Réorganisation manuelle des collections : un ordre à soi, suivi par le sélecteur et la fenêtre de l'extension.
 - Titres et adresses cliquables : ils ouvrent l'onglet.
 - Date de collecte conservée pour chaque lien, imprimable avec ou sans l'heure.
 
@@ -187,6 +188,7 @@ Find and organise
 - A free title, tags and a note on every link, through the pencil button on the row.
 - Tags appear as chips: one click filters the collection.
 - A collection name, reused in the exports and in the file names.
+- Manual reordering of collections: an order of your own, followed by the selector and the extension window.
 - Titles and addresses are clickable and open in a tab.
 - A collection date on every link, printable with or without the time.
 
@@ -416,7 +418,39 @@ l'envoi, et son message ne nomme aucun fichier. D'où l'ordre ci-dessous.
 | Console | <https://chrome.google.com/webstore/devconsole> |
 | Fiche publique | <https://chromewebstore.google.com/detail/urlqrcodeprinter/fmfbpjekpbopeijaobdffbhhnfgjjbmi> |
 
+### État de la soumission 0.4.0 — 22 novembre 2026
+
+**Ce que la 0.4.0 change.** Le **réordonnancement des collections** — commande
+« Réorganiser », panneau d'ordre avec flèches, bouton « Terminé » — et, la 0.3.2
+n'ayant pas été déposée, la nouvelle marque préparée en 0.3.2 (icône, en-tête de
+l'application, site vitrine). Aucune permission nouvelle, aucun réseau nouveau.
+
+| Élément | État mesuré |
+|---|---|
+| Version à déposer | **0.4.0** (publiée : 0.3.1 — strictement supérieure) |
+| Archive | `dist/url-qrcode-printer-chrome.zip` — **21 fichiers, 1436 Kio**, manifeste MV3, 4 permissions, **aucun hôte** |
+| Tests du produit | `npm test` → **1088 JavaScript + 104 Swift**, tous verts |
+| Tests de la fiche | `test/publication.test.js` → **15/15** |
+| Relevé navigateur | `npm run verify:chrome` → **167/167** constats satisfaits (second passage ; un premier avait échoué sur le badge « + », non reproduit — instabilité suivie par l'issue #6) |
+| Captures d'écran | **10** fichiers (`01` à `05`, `-fr` et `-en`), 1280 × 800, inchangés depuis la 0.3.2 — aucune ne montre encore le panneau d'ordre |
+| Icône de la fiche | `src/extension-src/icons/icon-128.png` — nouvelle marque de la 0.3.2 |
+| Visuels promotionnels | `store/promo/promo-440x280.jpg` et `store/promo/marquee-1400x560.jpg` — inchangés |
+| Note de version | Lue dans `CHANGELOG.md` / `CHANGELOG.fr.md`, entrée `0.4.0` |
+
+**Champs de fiche à recoller** : la description gagne la puce « Réorganisation
+manuelle des collections » dans les deux langues ; le reste de la fiche
+(`store/listing.json`) est inchangé, y compris le résumé et les justifications de
+permissions.
+
+**À faire à la main** : charger `dist/extension` et éprouver le parcours de
+mention au premier lancement, déposer l'archive dans l'onglet « Package », puis
+soumettre. C'est le même élément : on remplace le paquet, on n'en crée pas un
+second.
+
 ### État de la soumission 0.3.2 — 8 novembre 2026
+
+> La 0.3.2 n'a pas été déposée : la 0.4.0 la remplace et inclut sa nouvelle
+> marque.
 
 **Ce que la 0.3.2 change.** La marque du produit, et rien de son comportement :
 la nouvelle **icône** — tuile orange, étiquette QR Code sortant d'une imprimante —

@@ -21,7 +21,11 @@ Deux conventions, pour que le fichier reste lisible par une machine :
 La plus ancienne version ne porte pas de date : elle n'a pas été consignée à
 l'époque, et elle n'est pas inventée ici.
 
-## [Non publié]
+## [0.4.0] - 2026-11-22
+
+Cette mise à jour apporte le réordonnancement des collections, et elle inclut la
+nouvelle marque préparée en 0.3.2, qui n'avait pas été déposée : la 0.4.0 la
+remplace et la porte au magasin.
 
 ### Ajouté
 
@@ -34,6 +38,18 @@ l'époque, et elle n'est pas inventée ici.
   arrive en fin de liste, et la collection de navigation privée n'apparaît pas
   dans le panneau. Rien n'est à valider : chaque flèche enregistre aussitôt, et
   le bouton « Terminé » referme le panneau.
+
+### Modifié
+
+- **Nouvelle icône et nouvelle marque**, préparées en 0.3.2 : la tuile orange et
+  l'étiquette QR Code sortant d'une imprimante remplacent le tracé monochrome.
+  Aucune fonction ne change de ce fait.
+
+### Ce qui ne change pas
+
+Aucun compte, aucun serveur de l'éditeur, aucune permission nouvelle : le
+réordonnancement reste entièrement local, et la collection de navigation privée
+n'est jamais écrite sur le disque.
 
 ## [0.3.2] - 2026-11-08
 

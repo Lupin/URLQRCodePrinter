@@ -21,7 +21,10 @@ Two conventions, so the file stays machine-readable:
 The oldest version carries no date: it was not recorded at the time. It is not
 invented here either.
 
-## [Unreleased]
+## [0.4.0] - 2026-11-22
+
+This update brings collection reordering, and it includes the new brand prepared
+in 0.3.2, which was never filed: 0.4.0 replaces it and carries it to the store.
 
 ### Added
 
@@ -34,6 +37,17 @@ invented here either.
   arrives at the end of the list, and the private-browsing collection does not
   appear in the panel. There is nothing to validate: every arrow saves at once,
   and the "Done" button closes the panel.
+
+### Changed
+
+- **New icon and new brand**, prepared in 0.3.2: the orange tile and the QR Code
+  label coming out of a printer replace the monochrome line drawing. No feature
+  changes because of it.
+
+### What does not change
+
+No account, no server run by the publisher, no new permission: reordering stays
+entirely local, and the private-browsing collection is never written to disk.
 
 ## [0.3.2] - 2026-11-08
 
