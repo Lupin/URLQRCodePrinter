@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>URLQRCodePrinter</title>
-  <link rel="stylesheet" href="style.css?v=1d11bfa5c64f">
+  <link rel="stylesheet" href="style.css?v=de2f918bd4f4">
   <link rel="icon" type="image/png" href="icons/icon-32.png">
 </head>
 <body>
@@ -505,6 +505,10 @@
           </div>
           <p class="hint hint--tight" data-i18n="Imprimez d'abord sur papier ordinaire, superposez la feuille obtenue à votre planche : si le texte est trop haut ou trop à gauche, corrigez ici.">Imprimez d'abord sur papier ordinaire, superposez la feuille obtenue à votre planche : si le texte est trop haut ou trop à gauche, corrigez ici.</p>
           <p id="sheet-fit-hint" class="hint hint--tight"></p>
+          <!-- Ce qui ferait disparaître l'avertissement de mise en page, à
+               côté de lui : agrandir la grille, ou laisser l'application la
+               déduire du contenu. -->
+          <div id="sheet-advice" class="hint-actions" hidden></div>
 
           <!-- L'en-tête de page, comme en mode tableau : le nom de la
                collection, et la date d'impression si on la demande. Il vit
@@ -1053,6 +1057,6 @@
 
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
-  <script type="module" src="app.js?v=2a4bb67629c9"></script>
+  <script type="module" src="app.js?v=396570f4222d"></script>
 </body>
 </html>

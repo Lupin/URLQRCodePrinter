@@ -48,3 +48,32 @@ test('un export long se suit, s’arrête et rend un bilan', () => {
   assert.match(APP, /Export arrêté : \{faites\} étiquette\(s\) sur \{total\}\./);
   assert.match(APP, /\{count\} étiquettes exportées — \{filename\}/);
 });
+
+test('l’étiquette est cotée, et la taille réelle est disponible', () => {
+  // Deux cotes en millimètres autour de l'aperçu, dans le format français.
+  assert.match(APP, /className = 'label-cote'/);
+  assert.match(APP, /label-cote__w/);
+  assert.match(APP, /label-cote__h/);
+  assert.match(APP, /coteLargeur\.textContent = t\('\{width\} mm', \{ width: decimal\(largeurMm\) \}\)/);
+  // La bascule de taille réelle existait déjà : elle s'applique à l'aperçu seul.
+  assert.match(HTML, /id="label-real-size" type="checkbox"/);
+  assert.match(APP, /realSize: el\.labelRealSize\.checked/);
+  // Le facteur d'agrandissement reste écrit dans la légende.
+  assert.match(APP, /Aperçu à \{multiple\} × la taille réelle/);
+});
+
+test('l’avertissement de planche propose ses gestes', () => {
+  assert.match(HTML, /id="sheet-advice"[^>]*hidden/);
+  assert.match(APP, /function majConseilsPlanche\(/);
+  assert.match(APP, /el\.sheetAuto\.checked = true/);
+  assert.match(APP, /el\.sheetFit\.click\(\)/);
+  assert.match(APP, /Ajuster la grille/);
+});
+
+test('un export d’archive répond avant de travailler', () => {
+  // L'écho est peint avant le travail : une frame passe avant la construction.
+  assert.match(APP, /const lancerExport = \(message, travail\) => \{/);
+  assert.match(APP, /requestAnimationFrame\(\(\) => setTimeout\(travail, 0\)\)/);
+  assert.match(APP, /Préparation de la planche…/);
+  assert.match(APP, /Préparation du tableau…/);
+});

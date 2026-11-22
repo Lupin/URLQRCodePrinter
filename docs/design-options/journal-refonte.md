@@ -231,20 +231,24 @@ La feuille devient un objet posé, qu'on regarde de près ou de loin.
 
 ---
 
-## I4c (en cours) — Numérotation des pages · 22 novembre 2026
+## I4c — Cotation, conseils et écho des exports · 22 novembre 2026
 
-Demandé en revue : « en multiplanches, quand on veut imprimer, on n'a pas de pagination ».
+**Tag** : `checkpoint/i4c` · **Tickets fermés** : #40, #42 · **Ticket avancé** : #41 · **Note provisoire** : **3,8 / 5**.
 
-| Mesure | Résultat |
-|---|---|
-| Option de mise en page | case **« Numéroter les pages »**, dans le groupe Page, **cochée par défaut**, avec son explication |
-| Où le numéro apparaît | **« Page 1 / 4 »** dans la marge basse, à l'aperçu **et** sur le papier |
-| Pages numérotées | seulement les liasses (> 1 page) ; une planche d'une page reste inchangée |
-| Impact sur la grille | **aucun** : le numéro est en position absolue, hors du calcul des cotes |
-| Coche décochée | aucun numéro (relevé : 0 élément), aperçu redessiné |
-| Marge basse mesurée | 3 mm au papier ; 6 px à l'écran à 54 % |
+| Mesure | Avant I4c | Après I4c | Preuve |
+|---|---|---|---|
+| Cotes d'étiquette | dans la légende seulement | **12 mm** sous l'étiquette, **22 mm** à sa droite (lignes de cote) | capture |
+| Cotation et orientation | millimètres de la géométrie | cotes de ce qui est **affiché** (rotation comprise) | code |
+| Taille réelle | case existante | vérifiée : canvas **182 → 45 px** de large à 12 mm, légende « à la taille réelle » | mesure |
+| Avertissement de planche | indice seul | **action** « Mise en page automatique » / « Ajuster la grille » sous l'indice | mesure |
+| Export d'archive | clic muet pendant ~1 s | **écho** « Préparation… » peint **avant** le travail (une frame est laissée passer) | capture + code |
+| Numérotation (demande de revue) | absente | option **« Numéroter les pages »**, « Page 1 / 4 » dans la marge | #55 |
+| Tests | 1 114 | **1 117** | `npm test` vert |
 
-Preuves : `.audit/captures-i4c/` (`app-1440-numerotation.png`, `app-1440-sans-numerotation.png`, `mesures-numerotation.json`).
+**Trois corrections de justesse** : les cotes suivent l'orientation affichée et non la géométrie brute ; les décimales passent par `decimal()` (virgule française) ; l'écho d'export est différé d'une frame, sinon le navigateur ne le peint qu'après la fin du travail — constaté à la mesure.
+
+**Reste sur #41** : la progression **chiffrée** des exports d'archive. Les archives mesurées tournent autour d'une seconde ; tant qu'une opération peut dépasser ce seuil sur une grosse collection, l'écho ne suffit pas à satisfaire le critère. Ticket laissé ouvert.
+
 
 ## Dettes de finition (assumées, pour I6)
 

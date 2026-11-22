@@ -2245,3 +2245,50 @@ input[type="range"]:focus-visible {
   gap: var(--space-2);
   margin-top: var(--space-1);
 }
+
+/* --- Cotation de l'étiquette ---
+ *
+ * Deux cotes, en millimètres, autour de l'aperçu : la largeur sous l'étiquette,
+ * la hauteur à sa droite. Elles se lisent sans être déduites d'un facteur.
+ */
+.label-cote {
+  display: grid;
+  grid-template-columns: auto auto;
+  grid-template-rows: auto auto;
+  align-items: center;
+  justify-items: center;
+  gap: var(--space-1) var(--space-2);
+}
+
+.label-cote .preview__page { grid-column: 1; grid-row: 1; }
+
+.label-cote__w {
+  grid-column: 1;
+  grid-row: 2;
+  align-self: start;
+  padding-top: var(--space-1);
+  border-top: 1px solid var(--text-3);
+  color: var(--text-3);
+  font-size: var(--type-2xs);
+  white-space: nowrap;
+}
+
+.label-cote__h {
+  grid-column: 2;
+  grid-row: 1;
+  justify-self: start;
+  padding-left: var(--space-1);
+  border-left: 1px solid var(--text-3);
+  color: var(--text-3);
+  font-size: var(--type-2xs);
+  white-space: nowrap;
+  writing-mode: vertical-rl;
+}
+
+/* Conseils de mise en page : une rangée d'actions sous l'indice. */
+.hint-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  margin: var(--space-1) 0 0;
+}

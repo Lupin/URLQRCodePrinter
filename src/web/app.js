@@ -3573,6 +3573,27 @@ function defaultSheetFontPt(preset, grid) {
  *
  * @param {{ layout: object, offsetXMm: number, offsetYMm: number }} state
  */
+/** Les gestes qui font disparaître l'avertissement de mise en page. */
+function majConseilsPlanche() {
+  const boite = document.getElementById('sheet-advice');
+  if (!boite) return;
+  boite.textContent = '';
+  const preset = SHEET_PRESETS[el.preset.value] ?? SHEET_PRESETS[DEFAULT_SHEET_PRESET];
+  const actions = [];
+  if (el.sheetAuto && !el.sheetAuto.checked && preset.group === 'generic') {
+    actions.push(button(t('Mise en page automatique'), 'btn btn--ghost btn--small', () => {
+      el.sheetAuto.checked = true;
+      el.sheetAuto.dispatchEvent(new Event('change'));
+    }));
+  }
+  if (el.sheetFit && !el.sheetFit.hidden && !el.sheetFit.disabled) {
+    actions.push(button(t('Ajuster la grille'), 'btn btn--ghost btn--small', () => el.sheetFit.click()));
+  }
+  if (actions.length === 0) { boite.hidden = true; return; }
+  boite.append(...actions);
+  boite.hidden = false;
+}
+
 function updateFitHint(state) {
   const { layout, offsetXMm, offsetYMm } = state;
   const size = `${decimal(layout.labelWidthMm)} × ${decimal(layout.labelHeightMm)} mm`;
@@ -3603,6 +3624,7 @@ function updateFitHint(state) {
   }
 
   el.sheetFitHint.textContent = parts.join(' ');
+  majConseilsPlanche();
 }
 
 /**
@@ -5374,17 +5396,17 @@ function renderSingleLabel(link) {
     : (turns === 0 ? '' : t('Orientation : {label}', { label: t(labelRotation().label) }));
   // L'échelle est **dite**. C'est le défaut d'origine : l'aperçu agrandissait
   // huit fois et demi sans l'annoncer, et rien ne permettait de s'en apercevoir.
-  const largeurMm = pxToMm(geometry.width, profile.dpi).toFixed(1);
-  const hauteurMm = pxToMm(geometry.height, profile.dpi).toFixed(1);
+  const largeurMm = pxToMm(shown.width, profile.dpi);
+  const hauteurMm = pxToMm(shown.height, profile.dpi);
   const echelleNote = echelle.multiple > 1.05
     ? t('Aperçu à {multiple} × la taille réelle ({width} × {height} mm).', {
-      multiple: echelle.multiple.toFixed(1),
-      width: largeurMm,
-      height: hauteurMm,
+      multiple: decimal(echelle.multiple),
+      width: decimal(largeurMm),
+      height: decimal(hauteurMm),
     })
     : t('Aperçu à la taille réelle ({width} × {height} mm).', {
-      width: largeurMm,
-      height: hauteurMm,
+      width: decimal(largeurMm),
+      height: decimal(hauteurMm),
     });
 
   // Un verdict porte toujours sur **une** étiquette : quand la portée en couvre
@@ -5437,7 +5459,17 @@ function renderSingleLabel(link) {
   // blanc bordé qui figure l'étiquette : elle semblait faire partie de ce qui
   // sera imprimé, et le cadre semblait la contenir. C'est une information
   // **sur** l'aperçu, alors elle vit à côté de lui.
-  el.preview.appendChild(frame);
+  // Cotation : deux cotes en millimètres autour de l'étiquette.
+  const cote = document.createElement('div');
+  cote.className = 'label-cote';
+  const coteLargeur = document.createElement('span');
+  coteLargeur.className = 'label-cote__w';
+  coteLargeur.textContent = t('{width} mm', { width: decimal(largeurMm) });
+  const coteHauteur = document.createElement('span');
+  coteHauteur.className = 'label-cote__h';
+  coteHauteur.textContent = t('{height} mm', { height: decimal(hauteurMm) });
+  cote.append(frame, coteLargeur, coteHauteur);
+  el.preview.appendChild(cote);
   el.preview.appendChild(caption);
 
   // Un refus sans remède oblige à deviner. Les deux gestes qui le font taire
@@ -5936,13 +5968,13 @@ function renderImagePreview(link) {
   const hauteurMm = pxToMm(plan.heightPx, options.format.dpi).toFixed(1);
   const echelleNote = echelle.multiple > 1.05
     ? t('Aperçu à {multiple} × la taille réelle ({width} × {height} mm).', {
-      multiple: echelle.multiple.toFixed(1),
-      width: largeurMm,
-      height: hauteurMm,
+      multiple: decimal(echelle.multiple),
+      width: decimal(largeurMm),
+      height: decimal(hauteurMm),
     })
     : t('Aperçu à la taille réelle ({width} × {height} mm).', {
-      width: largeurMm,
-      height: hauteurMm,
+      width: decimal(largeurMm),
+      height: decimal(hauteurMm),
     });
 
   // Même légende que l'onglet Niimbot : **une information par ligne**, sous
@@ -7476,8 +7508,17 @@ el.exportXlsx.addEventListener('click', exportSpreadsheet);
 el.exportCsv.addEventListener('click', () => exportAs('csv'));
 el.exportMd.addEventListener('click', () => exportAs('md'));
 el.exportJson.addEventListener('click', () => exportAs('json'));
-el.exportTable.addEventListener('click', exportTableArchive);
-el.exportSheet.addEventListener('click', exportSheetArchive);
+// Écho immédiat : une archive qui prend du temps ne doit pas laisser le clic
+// sans réponse. Le bilan, lui, vient de l'export lui-même.
+// L'écho doit être peint **avant** le travail : lancé dans la même tâche, le
+// message attendrait la fin de l'export et ne serait jamais vu. On laisse donc
+// passer une frame avant de construire l'archive.
+const lancerExport = (message, travail) => {
+  toast(message);
+  requestAnimationFrame(() => setTimeout(travail, 0));
+};
+el.exportTable.addEventListener('click', () => lancerExport(t('Préparation du tableau…'), exportTableArchive));
+el.exportSheet.addEventListener('click', () => lancerExport(t('Préparation de la planche…'), exportSheetArchive));
 
 document.getElementById('detail-back')?.addEventListener('click', () => fermerDetail());
 
@@ -7850,9 +7891,12 @@ document.addEventListener('keydown', (event) => {
 el.connect.addEventListener('click', connectPrinter);
 el.disconnect.addEventListener('click', disconnectPrinter);
 el.exportNiimbot.addEventListener('click', () => {
-  exportPrinterLabels().catch((error) => {
-    toast(error.message ?? t('Export impossible'), 'error');
-  });
+  toast(t("Préparation de l'archive des étiquettes…"));
+  requestAnimationFrame(() => setTimeout(() => {
+    exportPrinterLabels().catch((error) => {
+      toast(error.message ?? t('Export impossible'), 'error');
+    });
+  }, 0));
 });
 el.printLabel.addEventListener('click', () => {
   // Pendant une série, le même bouton arrête : on ne peut pas en lancer une

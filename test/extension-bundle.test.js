@@ -612,10 +612,13 @@ test('sans consentement, la fenêtre n\'enregistre rien et ouvre la mention', as
   // un suffirait à contourner la mention.
   const state = installChrome();
   await loadFresh('popup.js');
-  // La fenêtre doit être **prête** avant le clic : sous charge, deux tours de
-  // boucle ne suffisaient pas, et le clic partait avant que le gestionnaire
-  // soit branché.
-  await waitFor(() => dom.element('consent-notice')?.hidden === false);
+  // La fenêtre doit être **prête** avant le clic. L'encart est visible dès le
+  // HTML : l'attendre ne prouve rien. Ce qui prouve le démarrage, c'est le
+  // contenu de l'onglet courant, que seul le script renseigne.
+  await waitFor(() => {
+    const texte = dom.element('current-tab')?.textContent ?? '';
+    return texte !== '' && texte !== 'Chargement…';
+  });
 
   await dom.fire('add-current', 'click');
   await waitFor(() => state.tabsCreated.some((url) => url.endsWith('privacy.html')));
@@ -632,7 +635,10 @@ test('l\'encart de confidentialité est visible tant que rien n\'est accepté', 
   // ouvrirait un onglet sans raison apparente.
   installChrome();
   await loadFresh('popup.js');
-  await waitFor(() => dom.element('consent-notice')?.hidden === false);
+  await waitFor(() => {
+    const texte = dom.element('current-tab')?.textContent ?? '';
+    return texte !== '' && texte !== 'Chargement…';
+  });
 
   assert.equal(dom.element('consent-notice').hidden, false);
 });
