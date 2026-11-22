@@ -51,7 +51,7 @@ retrouve et se partage facilement.
 | Socle natif Swift (protocole, session, CoreBluetooth) | fait, testé |
 | Application iOS qui utilise ce socle | à faire |
 
-**1183 tests, tous verts** — 1079 en JavaScript et 104 en Swift — dont :
+**1192 tests, tous verts** — 1088 en JavaScript et 104 en Swift — dont :
 
 - la validation **octet à octet** des trames Niimbot contre les relevés
   documentés, **dans les deux langages** : deux implémentations indépendantes
@@ -208,6 +208,21 @@ fonctionner, sans en réécrire un seul. La liste des collections vit dans
 magasin borné à une collection (`withCollection`) : aucune liste ne peut donc en
 mélanger deux par inadvertance.
 
+**L'ordre des collections se règle à la main.** La commande **« Réorganiser »**,
+sous le sélecteur de collection, ouvre un panneau qui liste les collections
+ordinaires une par ligne, avec deux flèches ▲▼ : elles montent ou descendent la
+collection d'un cran. Chaque geste est enregistré aussitôt — l'ordre vit dans
+`url-qr-code-printer/collections`, sous le champ `order` de chaque collection
+(document version 2) — et c'est lui qui fait foi : le sélecteur de collection et
+la fenêtre de l'extension le suivent. Tant que personne n'a réordonné, la
+collection par défaut reste en tête, puis viennent les autres par date de
+création ; une fois l'ordre réordonné, elle n'est plus forcée en tête et garde la
+place qu'on lui a donnée. Une collection créée ensuite n'a pas encore de rang :
+elle arrive en fin de liste. La collection de navigation privée ne figure jamais
+dans ce panneau — elle est synthétisée, jamais écrite, et son rang n'aurait nulle
+part où être enregistré. La fenêtre de l'extension, elle, ne fait que parcourir
+cet ordre : ses deux flèches passent d'une collection à l'autre sans le modifier.
+
 **Chaque collection a son premier numéro.** La numérotation sert à continuer une
 série — un lot de cartons numérotés 101 à 120, effacés, puis 121 la fois
 suivante — et ce geste appartient à la collection qu'on range, pas à
@@ -285,7 +300,7 @@ afficher. Un nom vide est un nom : il s'affiche et s'exporte sous le libellé
 intégré, « Mes liens », traduit au moment de l'affichage et jamais écrit.
 
 Ces gestes — frappe, Entrée, Échap, « Enregistrer », « Nouvelle », changement de
-collection, panneau de suppression — sont exécutés par
+collection, panneau de suppression, panneau d'ordre — sont exécutés par
 `test/web-collections.test.js`, qui lance l'application réelle dans son contexte
 d'extension.
 
@@ -932,6 +947,11 @@ construit échoue avec un message explicite.
   et Brave.
 - [docs/safari-extension-verification.md](docs/safari-extension-verification.md)
   — ce qui a été vérifié dans le Safari réel, et ce qui ne peut pas l'être.
+- [docs/faisabilite-partage-collection.fr.md](docs/faisabilite-partage-collection.fr.md)
+  — partager une collection vers une autre machine ou vers un tiers, et en
+  déplacer une : ce qui existe déjà, les voies possibles sans serveur, le format
+  de transfert proposé, les contraintes de confidentialité et de magasins, les
+  défauts à corriger dans l'import, et le coût de chaque option.
 - [docs/README.md](docs/README.md) — index de toute la documentation.
 
 ## Incertitudes assumées
@@ -1010,7 +1030,7 @@ pull request :
 
 ```bash
 npm install
-npm run test:all   # 1079 tests JavaScript + 104 tests Swift
+npm run test:all   # 1088 tests JavaScript + 104 tests Swift
 ```
 
 Les conventions du dépôt — cœur sans DOM ni réseau implicite, zéro dépendance,

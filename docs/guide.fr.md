@@ -309,12 +309,14 @@ collection courante est encadré de deux flèches : elles passent à la précéd
 dans **celle qui est affichée**, sans rien demander : c'est le geste courant, et il
 ne doit pas coûter un choix.
 
-La fenêtre ne fait que parcourir : elle ne crée, ne renomme et ne supprime rien.
-C'est délibéré — ces gestes demandent un nom, une note, et la place de les relire,
-ce qu'une colonne de 380 px n'offre pas. Tout se fait donc dans l'application, où
-le sélecteur **« Collection affichée »** fait la même chose que les flèches, et où
-**« Supprimer »** le suit ; **« Nouvelle »** est avec **« Enregistrer »**, sous le
-nom du champ :
+La fenêtre ne fait que parcourir : elle ne crée, ne renomme, ne supprime et ne
+réordonne rien — ses flèches suivent l'ordre enregistré, elles ne le changent
+pas. C'est délibéré — ces gestes demandent un nom, une note, et la place de les
+relire, ce qu'une colonne de 380 px n'offre pas. Tout se fait donc dans
+l'application, où le sélecteur **« Collection affichée »** fait la même chose que
+les flèches, où **« Supprimer »** le suit et où **« Réorganiser »** règle l'ordre
+des collections (voir « Réordonner les collections », ci-dessous) ;
+**« Nouvelle »** est avec **« Enregistrer »**, sous le nom du champ :
 
 - **Nouvelle** est le compagnon d'**Enregistrer**, sous le nom : le nom saisi
   nomme la collection qu'on crée. Sans nom en attente, la proposition reste
@@ -349,6 +351,37 @@ Une même adresse peut figurer dans deux collections : c'est le sens du rangemen
 En revanche, dans une collection donnée, un doublon reste un doublon — un clic
 droit sur une page déjà enregistrée y met à jour le titre, il n'ajoute pas une
 seconde ligne.
+
+### Réordonner les collections
+
+Dans l'application, la commande **« Réorganiser »** se trouve sous le sélecteur
+**« Collection affichée »**. Elle n'apparaît qu'à partir de **deux collections
+ordinaires** : avec une seule, il n'y aurait rien à déplacer. Son nom accessible
+est « Réorganiser les collections », pour ne pas la confondre avec le
+**« Réorganiser »** de la liste des liens : celui-ci range les liens d'une
+collection, celle-ci règle l'ordre des collections.
+
+Elle ouvre un panneau qui liste les collections ordinaires, une par ligne, avec
+deux flèches **▲ ▼**. **▲** remonte la collection d'un cran, **▼** la descend
+d'un cran ; aux extrémités, la flèche correspondante est inactive — la première
+ne peut pas monter, la dernière ne peut pas descendre. Chaque geste est
+enregistré aussitôt : c'est l'ordre que le sélecteur de collection et la fenêtre
+de l'extension suivent, et on le retrouve à la réouverture. **Il n'y a donc rien
+à valider** ; le bouton **« Terminé »**, sous la liste, referme simplement le
+panneau. Un second clic sur la commande, ou **Échap**, le referme aussi.
+
+Tant que personne n'a réordonné, la collection par défaut reste en tête, puis
+viennent les autres par date de création. Une fois l'ordre réordonné, c'est lui
+qui fait foi : la collection par défaut n'est plus forcée en tête et garde la
+place que vous lui avez donnée. Une collection créée ensuite n'a pas encore de
+rang : elle arrive en **fin de liste**.
+
+Déplacer une collection **ne déplace pas ses liens** : elle change de place dans
+la liste, et les liens restent dans leur collection, avec leur rang.
+
+La collection de **navigation privée** ne figure pas dans le panneau : elle est
+synthétisée, jamais écrite, et son rang n'aurait nulle part où être enregistré.
+Elle reste affichée en dernier dans le sélecteur.
 
 ### Déplacer des liens d'une collection à l'autre
 

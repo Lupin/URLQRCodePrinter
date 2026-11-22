@@ -23,6 +23,18 @@ invented here either.
 
 ## [Unreleased]
 
+### Added
+
+- **Reordering collections.** The "Reorder" (« Réorganiser ») command, under the
+  collection selector, opens a panel listing the
+  ordinary collections with two ▲ ▼ arrows per line. Each gesture moves a
+  collection by one place, and the order is saved at once — each collection's
+  `order` field in `url-qr-code-printer/collections`, document version 2: the
+  selector and the extension window follow it. A collection created afterwards
+  arrives at the end of the list, and the private-browsing collection does not
+  appear in the panel. There is nothing to validate: every arrow saves at once,
+  and the "Done" button closes the panel.
+
 ## [0.3.2] - 2026-11-08
 
 This update changes the product's mark, and nothing about what it does. The new

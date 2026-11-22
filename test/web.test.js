@@ -1103,14 +1103,20 @@ test('les colonnes de la mise en page peuvent rétrécir', () => {
 // ---------------------------------------------------------------------------
 
 test('le panneau de collection offre le choix, la création et la suppression', () => {
-  // Le sélecteur et sa suppression forment une ligne : on choisit de quoi on
-  // parle, puis on peut s'en débarrasser. « Nouvelle » est avec « Enregistrer »,
-  // sous le nom — créer une collection, c'est d'abord lui donner un nom.
+  // Le sélecteur prend sa ligne ; ses deux commandes — réordonner, supprimer —
+  // sont dessous, alignées et à la même hauteur. « Nouvelle » est avec
+  // « Enregistrer », sous le nom — créer une collection, c'est d'abord lui
+  // donner un nom.
   assert.match(html, /id="collection-picker"/);
   assert.match(html, /<select id="collection-select"/);
   assert.match(html, /id="collection-delete"[^>]*type="button"/);
   assert.match(html, /id="collection-hint"/);
   assert.match(html, /id="collection-name-save"[\s\S]{0,600}?id="collection-add"[^>]*data-i18n="Nouvelle"/);
+
+  // Les deux commandes de la collection partagent leur rangée et leur hauteur.
+  assert.match(html, /class="collection-picker__actions"[\s\S]{0,500}?id="collection-reorder"[\s\S]{0,500}?id="collection-delete"/);
+  assert.match(html, /id="collection-reorder"[^>]*btn--small/);
+  assert.match(html, /id="collection-delete"[^>]*btn--small/);
 
   // La suppression a son panneau de confirmation, avec deux issues.
   assert.match(html, /id="collection-delete-confirm"[^>]*hidden/);
@@ -1153,7 +1159,7 @@ test('ce que l\'application masque est réellement masqué', () => {
   // commis deux fois — le sélecteur de collection sur la page autonome, puis le
   // panneau du choix d'import, dont « Annuler » ne fermait rien. Le substitut de
   // DOM des tests ne peint pas : seule une capture pouvait le montrer.
-  for (const selecteur of ['.field', '.banner', '.move__menu', '.collection-picker', '.collection-confirm', '.import-menu']) {
+  for (const selecteur of ['.field', '.banner', '.move__menu', '.collection-picker', '.collection-confirm', '.collection-order', '.import-menu']) {
     assert.ok(
       css.includes(`${selecteur}[hidden] { display: none; }`),
       `${selecteur} porte un display qui l'emporterait sur l'attribut hidden`,

@@ -303,13 +303,15 @@ Whatever you save — by the button or by right-click — goes into **the one on
 screen**, with nothing to choose: that is the everyday gesture, and it should not
 cost a decision.
 
-The window only browses: it creates, renames and deletes nothing. That is
-deliberate — those gestures need a name, a note, and the room to read them back,
-which a 380 px column does not offer. Everything therefore happens in the
-application, where the **"Displayed collection"** (« Collection affichée »)
-selector does what the arrows do, and **"Delete"** (« Supprimer ») follows it;
-**"New"** (« Nouvelle ») sits with **"Save"** (« Enregistrer »), under the name
-field:
+The window only browses: it creates, renames, deletes and reorders nothing — its
+arrows follow the saved order, they do not change it. That is deliberate — those
+gestures need a name, a note, and the room to read them back, which a 380 px
+column does not offer. Everything therefore happens in the application, where the
+**"Displayed collection"** (« Collection affichée ») selector does what the arrows
+do, where **"Delete"** (« Supprimer ») follows it and where **"Reorder"**
+(« Réorganiser ») sets the order of the collections (see "Reordering
+collections", below); **"New"** (« Nouvelle ») sits with **"Save"**
+(« Enregistrer »), under the name field:
 
 - **New** is the companion of **Save**, under the name: the name you type names
   the collection you create. With no pending name, the proposal stays "New
@@ -343,6 +345,38 @@ own.
 The same address may appear in two collections: that is what filing means. Inside
 one collection, though, a duplicate is still a duplicate — right-clicking an
 already-saved page updates its title there rather than adding a second line.
+
+### Reordering collections
+
+In the application, the **"Reorder"** (« Réorganiser ») command sits under the
+**"Displayed collection"** (« Collection affichée ») selector. It appears only
+when there are **two ordinary collections or more**: with one, there would be
+nothing to move. Its accessible name is "Reorder collections", so it is not
+confused with the **"Reorder"** (« Réorganiser ») button above the links list:
+that one arranges the links inside one collection, this one sets the order of
+the collections.
+
+It opens a panel listing the ordinary collections, one per line, with two arrows
+**▲ ▼**. **▲** moves the collection up one place, **▼** moves it down one; at the
+ends, the matching arrow is inactive — the first cannot move up, the last cannot
+move down. Every gesture is saved at once: that is the order the collection
+selector and the extension window follow, and it is there again when you reopen.
+**There is therefore nothing to validate**; the **"Done"** button under the list
+simply closes the panel. A second click on the command, or **Escape**, closes it
+too.
+
+Until someone reorders, the default collection stays first, then the others
+follow their creation date. Once the order has been reordered, that saved order is
+what counts: the default collection is no longer forced to the top and keeps the
+place you gave it. A collection created afterwards has no rank yet: it arrives at
+the **end of the list**.
+
+Moving a collection **does not move its links**: it changes place in the list, and
+the links stay in their collection, with their rank.
+
+The **private-browsing** collection does not appear in the panel: it is
+synthesised, never written, and its rank would have nowhere to be stored. It stays
+displayed last in the selector.
 
 ### Moving links from one collection to another
 

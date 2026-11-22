@@ -156,6 +156,15 @@ const EN_MESSAGES = {
   "Créer une collection nommée « {name} »": "Create a collection named “{name}”",
   "Collection supprimée": "Collection deleted",
   "Collection affichée": "Displayed collection",
+  "Réorganiser les collections": "Reorder collections",
+  "Ordre des collections": "Collection order",
+  "Les flèches changent l'ordre des collections ; chaque geste est enregistré aussitôt, et « Terminé » referme ce panneau. Le sélecteur et la fenêtre de l'extension suivent cet ordre. La collection de navigation privée n'y figure pas.":
+    "The arrows change the order of the collections; each gesture is saved at once, and “Done” closes this panel. The selector and the extension window follow that order. The private-browsing collection is not listed here.",
+  "Terminé": "Done",
+  "Déplacer la collection « {name} » vers le haut": "Move the collection “{name}” up",
+  "Déplacer la collection « {name} » vers le bas": "Move the collection “{name}” down",
+  "« {name} » est maintenant en position {position}": "“{name}” is now in position {position}",
+  "Réorganisation impossible": "Could not reorder the collections",
   "Nouvelle": "New",
   "Déplacer vers…": "Move to…",
   "Déplacer vers une collection": "Move to a collection",
@@ -1749,8 +1758,15 @@ const COLLECTIONS_KEY = 'url-qr-code-printer/collections';
 /** Clé de la collection courante, mémorisée séparément du document. */
 const ACTIVE_COLLECTION_KEY = 'url-qr-code-printer/active-collection';
 
-/** Version du document écrit. À incrémenter si sa forme change. */
-const COLLECTIONS_VERSION = 1;
+/**
+ * Version du document écrit. À incrémenter si sa forme change.
+ *
+ * Version 2 : chaque collection peut porter un `order` explicite, écrit quand
+ * l'utilisateur réordonne la liste. Le champ est **facultatif**, et son absence
+ * garde exactement le comportement d'avant — la collection par défaut en tête,
+ * puis la date de création —, si bien qu'un document v1 se lit sans migration.
+ */
+const COLLECTIONS_VERSION = 2;
 
 /** Identifiant de la collection par défaut : celle de qui n'en crée aucune. */
 const DEFAULT_COLLECTION_ID = 'default';
@@ -1894,6 +1910,28 @@ function nameKey(value) {
 }
 
 /**
+ * Rang manuel d'une collection, ou `null` s'il n'y en a pas.
+ *
+ * Le rang n'est pas une donnée que l'utilisateur saisit : il est attribué par
+ * le réordonnancement, qui renumérote toute la liste. Une valeur illisible ou
+ * négative est donc écartée plutôt que réparée — il vaut mieux une collection
+ * qui retombe dans le tri par défaut qu'un rang inventé qui la mettrait
+ * n'importe où.
+ *
+ * L'absence est un état de plein droit : un document écrit avant que ce champ
+ * existe n'en porte pas, et c'est ce qui permet de le lire sans migration.
+ *
+ * @param {unknown} value
+ * @returns {number|null}
+ */
+function cleanCollectionOrder(value) {
+  if (value === '' || value === null || value === undefined) return null;
+  const brut = Number(value);
+  if (!Number.isFinite(brut)) return null;
+  return Math.max(0, Math.trunc(brut));
+}
+
+/**
  * Construit une collection normale validée.
  *
  * Le premier numéro est **borné, pas refusé** : une valeur hors bornes est
@@ -1901,15 +1939,23 @@ function nameKey(value) {
  * longue, pas une erreur — et un nombre à virgule est tronqué, puisqu'on
  * numérote des objets et non des mesures.
  *
- * @param {{ id?: unknown, name?: unknown, note?: unknown, startIndex?: unknown, createdAt?: unknown }} [input]
+ * Le rang manuel, lui, est **conservé tel quel** quand il est lisible, et
+ * **absent** quand il ne l'est pas. Un champ ajouté que cette fonction ne
+ * recopierait pas serait perdu à chaque lecture : c'est elle qui décide de la
+ * forme d'une collection, et l'assainissement passe par elle.
+ *
+ * @param {{ id?: unknown, name?: unknown, note?: unknown, startIndex?: unknown,
+ *   createdAt?: unknown, order?: unknown }} [input]
  * @param {{ now?: number }} [options]
- * @returns {{ id: string, name: string, note: string, startIndex: number, createdAt: number }}
+ * @returns {{ id: string, name: string, note: string, startIndex: number,
+ *   createdAt: number, order?: number }}
  */
 function createCollection(input = {}, options = {}) {
   const now = Number.isFinite(options.now) ? options.now : Date.now();
   const id = typeof input.id === 'string' && input.id.trim() !== '' && input.id !== PRIVATE_COLLECTION_ID
     ? input.id.trim()
     : newId();
+  const order = cleanCollectionOrder(input.order);
 
   return {
     id,
@@ -1917,6 +1963,7 @@ function createCollection(input = {}, options = {}) {
     note: typeof input.note === 'string' ? input.note.trim().slice(0, COLLECTION_NOTE_MAX) : '',
     startIndex: cleanStartIndex(input.startIndex),
     createdAt: Number.isFinite(input.createdAt) ? input.createdAt : now,
+    ...(order === null ? {} : { order }),
   };
 }
 
@@ -1967,18 +2014,36 @@ function privateCollection(translate = t) {
 }
 
 /**
- * Range les collections : la collection par défaut d'abord, puis par date.
+ * Range les collections : le rang manuel s'il existe, sinon la règle d'avant.
  *
- * L'ordre est stable et volontairement pauvre — pas de rang manuel à
- * entretenir pour un objet qu'on crée rarement, et une place fixe pour la
- * collection par défaut, qui est celle où atterrissent les liens de qui n'a
- * rien créé.
+ * Deux groupes, dans cet ordre :
+ *
+ * 1. les collections qui portent un `order` explicite, par rang croissant —
+ *    c'est la liste que l'utilisateur a réordonnée, et elle fait foi ;
+ * 2. les autres, par la règle d'origine : la collection par défaut en tête,
+ *    puis la date de création.
+ *
+ * Le second groupe n'existe que tant que personne n'a réordonné — une
+ * collection créée après un réordonnancement n'a pas encore de rang et vient
+ * donc à la fin, ce qui est l'endroit où on l'attend. Aucune migration n'est
+ * nécessaire : un document sans `order` retombe entièrement dans la règle
+ * d'origine, à l'identique.
  *
  * @param {Array<object>} items
  * @returns {Array<object>}
  */
 function orderCollections(items) {
   return [...items].sort((a, b) => {
+    const rangA = Number.isFinite(a.order) ? a.order : null;
+    const rangB = Number.isFinite(b.order) ? b.order : null;
+
+    if (rangA !== null || rangB !== null) {
+      if (rangA === null) return 1;
+      if (rangB === null) return -1;
+      if (rangA !== rangB) return rangA - rangB;
+      return a.createdAt - b.createdAt;
+    }
+
     if (a.id === DEFAULT_COLLECTION_ID) return -1;
     if (b.id === DEFAULT_COLLECTION_ID) return 1;
     return a.createdAt - b.createdAt;
@@ -2155,6 +2220,7 @@ function freeCollectionName(desired, items = [], translate = t) {
  *   rename: (id: string, name: string) => Promise<object>,
  *   setNote: (id: string, note: string) => Promise<object>,
  *   setStartIndex: (id: string, value: unknown) => Promise<object>,
+ *   applyOrder: (ids: string[]) => Promise<Array<object>>,
  *   remove: (id: string) => Promise<boolean>,
  *   getActive: (isPrivate?: boolean) => Promise<string>,
  *   setActive: (id: string, isPrivate?: boolean) => Promise<string>,
@@ -2393,6 +2459,57 @@ function createCollectionStore(options = {}) {
         };
       });
       return updated;
+    },
+
+    /**
+     * Réordonne les collections, puis renumérote tout le document.
+     *
+     * Les identifiants sont pris dans cet ordre ; une collection absente de la
+     * liste — parce qu'elle a été créée entre-temps, par exemple — est ajoutée
+     * à la suite dans son ordre actuel. **Toutes** les collections ordinaires
+     * reçoivent alors un rang de 0 à n-1 : sans cela, un rang laissé libre
+     * ferait s'intercaler une collection nouvelle à une place que personne n'a
+     * choisie.
+     *
+     * La collection privée est hors sujet : elle n'est jamais écrite, et un
+     * identifiant inconnu est ignoré plutôt que refusé. L'appelant vient de
+     * relire la liste, et une liste qui a changé entre-temps ne doit pas faire
+     * échouer le geste.
+     *
+     * @param {string[]} ids
+     * @returns {Promise<Array<object>>}
+     */
+    async applyOrder(ids) {
+      const demandes = [];
+      const vus = new Set();
+      for (const id of Array.isArray(ids) ? ids : []) {
+        if (typeof id !== 'string') continue;
+        const propre = id.trim();
+        if (propre === '' || propre === PRIVATE_COLLECTION_ID || vus.has(propre)) continue;
+        vus.add(propre);
+        demandes.push(propre);
+      }
+      if (demandes.length === 0) return (await load()).document.items;
+
+      const document = await update((current) => {
+        const parId = new Map(current.items.map((item) => [item.id, item]));
+        const suite = [];
+        const places = new Set();
+        for (const id of demandes) {
+          const item = parId.get(id);
+          if (!item) continue;
+          suite.push(item);
+          places.add(item.id);
+        }
+        for (const item of current.items) {
+          if (!places.has(item.id)) suite.push(item);
+        }
+        return {
+          ...current,
+          items: suite.map((item, rang) => ({ ...item, order: rang })),
+        };
+      });
+      return document.items;
     },
 
     async remove(id) {

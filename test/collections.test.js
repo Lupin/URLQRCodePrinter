@@ -33,6 +33,7 @@ import {
   PRIVATE_COLLECTION_ID,
   START_INDEX_MAX,
   START_INDEX_MIN,
+  cleanCollectionOrder,
   cleanStartIndex,
   collectionDisplayName,
   collectionOf,
@@ -227,6 +228,34 @@ test('la collection par défaut se place en tête, puis l\'ordre de création', 
   assert.deepEqual(document.items.map(idDe), [DEFAULT_COLLECTION_ID, 'a', 'b', 'c']);
   // `migratedAt` est une donnée du document, pas une collection : elle survit.
   assert.equal(sanitizeCollections({ migratedAt: 1234 }).migratedAt, 1234);
+});
+
+test('un rang manuel l\'emporte sur la règle par défaut, et ne s\'invente pas', () => {
+  // Le rang n'est écrit que par le réordonnancement : une valeur lisible est
+  // conservée, une valeur douteuse écartée, et l'absence reste une absence —
+  // c'est elle qui permet de lire un document écrit avant ce champ.
+  const document = sanitizeCollections({
+    items: [
+      { id: 'c', createdAt: 300, order: 2 },
+      { id: 'a', createdAt: 100, order: 0 },
+      { id: DEFAULT_COLLECTION_ID, createdAt: 999, order: 1 },
+      { id: 'b', createdAt: 200 },
+    ],
+  });
+  // Les collections rangées viennent d'abord, dans leur ordre ; celles qui n'ont
+  // pas de rang suivent la règle d'origine.
+  assert.deepEqual(document.items.map(idDe), ['a', DEFAULT_COLLECTION_ID, 'c', 'b']);
+  // La collection privée reste dernière, quel que soit l'ordre des autres.
+  assert.equal(visibleCollections(document.items, { isPrivate: true }).at(-1).id, PRIVATE_COLLECTION_ID);
+
+  assert.equal(cleanCollectionOrder(2), 2);
+  assert.equal(cleanCollectionOrder('3.9'), 3);
+  assert.equal(cleanCollectionOrder(-4), 0, 'un rang négatif est ramené à zéro');
+  assert.equal(cleanCollectionOrder(''), null, 'une chaîne vide est une absence');
+  assert.equal(cleanCollectionOrder('abc'), null);
+  assert.equal('order' in createCollection({ name: 'Veille' }), false);
+  assert.equal('order' in createCollection({ name: 'Veille', order: '' }), false);
+  assert.equal(createCollection({ name: 'Veille', order: 5 }).order, 5);
 });
 
 test('la collection courante se mémorise par contexte', () => {
@@ -511,4 +540,53 @@ test('la migration se marque une fois, et se retient', async () => {
   assert.equal(await magasin.needsMigration(), false);
   assert.equal(await magasin.markMigrated(), false, 'la seconde fois, il n\'y a plus rien à faire');
   assert.equal(area.data[COLLECTIONS_KEY].migratedAt, 777);
+});
+
+test('applyOrder renumérote les collections, et la nouvelle arrive en fin', async () => {
+  const area = zone();
+  const magasin = createCollectionStore({ area, now: () => 1000 });
+  const a = await magasin.create('A');
+  const b = await magasin.create('B');
+  await magasin.setActive(a.id);
+
+  const ordonnees = await magasin.applyOrder([b.id, DEFAULT_COLLECTION_ID, a.id]);
+  assert.deepEqual(ordonnees.map(idDe), [b.id, DEFAULT_COLLECTION_ID, a.id]);
+  assert.deepEqual(ordonnees.map((collection) => collection.order), [0, 1, 2]);
+  assert.equal(area.data[COLLECTIONS_KEY].version, COLLECTIONS_VERSION);
+
+  // Relu du stockage, l'ordre est le même : c'est lui qui fait foi.
+  assert.deepEqual((await magasin.list()).map(idDe), [b.id, DEFAULT_COLLECTION_ID, a.id]);
+  // Réordonner ne change pas la collection affichée.
+  assert.equal(await magasin.getActive(), a.id);
+
+  // Une collection créée après coup n'a pas encore de rang : elle vient à la
+  // fin, là où on l'attend.
+  const c = await magasin.create('C');
+  assert.deepEqual((await magasin.list()).map(idDe), [b.id, DEFAULT_COLLECTION_ID, a.id, c.id]);
+});
+
+test('applyOrder ignore la collection privée, les doublons et les inconnues', async () => {
+  const area = zone();
+  const magasin = createCollectionStore({ area, now: () => 1000 });
+  const a = await magasin.create('A');
+  const b = await magasin.create('B');
+
+  const ordonnees = await magasin.applyOrder([
+    PRIVATE_COLLECTION_ID, b.id, b.id, 'disparue', a.id,
+  ]);
+  assert.deepEqual(ordonnees.map(idDe), [b.id, a.id, DEFAULT_COLLECTION_ID]);
+  assert.deepEqual(ordonnees.map((collection) => collection.order), [0, 1, 2]);
+
+  // Rien n'a été écrit au nom de la collection privée : elle n'existe pas dans
+  // le document, et aucun chemin ne doit l'y faire entrer.
+  assert.equal(
+    area.data[COLLECTIONS_KEY].items.some((item) => item.id === PRIVATE_COLLECTION_ID),
+    false,
+  );
+
+  // Une liste vide ne réordonne rien et rend simplement l'ordre courant.
+  assert.deepEqual(
+    (await magasin.applyOrder([])).map(idDe),
+    [b.id, a.id, DEFAULT_COLLECTION_ID],
+  );
 });

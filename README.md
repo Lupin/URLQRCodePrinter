@@ -49,7 +49,7 @@ share.
 | Native Swift core (protocol, session, CoreBluetooth) | done, tested |
 | iOS app that uses that core | to do |
 
-**1183 tests, all green** — 1079 in JavaScript and 104 in Swift — including:
+**1192 tests, all green** — 1088 in JavaScript and 104 in Swift — including:
 
 - **byte-for-byte** validation of the Niimbot frames against the documented
   records, **in both languages**: two independent implementations that
@@ -202,6 +202,22 @@ list of collections lives in `url-qr-code-printer/collections`, and each surface
 works through a store bounded to one collection (`withCollection`), so no list
 can mix two of them by oversight.
 
+**The order of the collections is set by hand.** The **"Reorder"**
+(« Réorganiser ») command, under the collection selector (its accessible name is
+"Reorder collections"), opens a panel
+listing the ordinary collections one per line, each with two ▲▼ arrows: they move
+the collection up or down by one place. Every gesture is saved at once — the
+order lives in `url-qr-code-printer/collections`, under each collection's `order`
+field (document version 2) — and that saved order is what counts: the collection
+selector and the extension window follow it. Until someone reorders, the default
+collection stays first, then the others by creation date; once the order has been
+reordered, it is no longer forced to the top and keeps the place it was given. A
+collection created afterwards has no rank yet: it arrives at the end of the list.
+The private-browsing collection never appears in that panel — it is synthesised,
+never written, and its rank would have nowhere to be stored. The extension window
+only browses that order: its two arrows move from one collection to the next
+without changing it.
+
 **Each collection has its own first number.** Numbering continues a series — a
 batch of boxes numbered 101 to 120, cleared, then 121 next time — and that
 gesture belongs to the collection being filed, not to the application: several
@@ -278,8 +294,8 @@ display. An empty name is a name: it is displayed and exported as the built-in
 label, "My links", translated at display time and never written.
 
 These gestures — typing, Enter, Escape, Save, New, switching collection, the
-delete panel — are executed by `test/web-collections.test.js`, which runs the
-real application in its extension context.
+delete panel, the reorder panel — are executed by `test/web-collections.test.js`,
+which runs the real application in its extension context.
 
 ## Usage
 
@@ -913,6 +929,11 @@ built fails with an explicit message.
   Brave.
 - [docs/safari-extension-verification.md](docs/safari-extension-verification.md)
   — what was verified in the real Safari, and what cannot be.
+- [docs/faisabilite-partage-collection.fr.md](docs/faisabilite-partage-collection.fr.md)
+  — sharing a collection with another machine or a third party, and moving or
+  reordering one: what already exists, the routes that need no server, the
+  proposed transfer format, the privacy and store constraints, the defects to
+  fix in the import, and the cost of each option.
 - [docs/README.md](docs/README.md) — index of all the documentation.
 
 ## Acknowledged uncertainties
@@ -988,7 +1009,7 @@ exists in French and English. Before opening a pull request:
 
 ```bash
 npm install
-npm run test:all   # 1079 JavaScript tests + 104 Swift tests
+npm run test:all   # 1088 JavaScript tests + 104 Swift tests
 ```
 
 The repository conventions — a core with no DOM and no implicit network, zero

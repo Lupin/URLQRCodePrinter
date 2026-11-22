@@ -488,3 +488,114 @@ test('hors extension, le nom s\'enregistre aussi sur validation', async () => {
   assert.equal(registry.get('collection-name-save').disabled, true);
   assert.equal(globalThis.document.title, 'Mon classeur — URLQRCodePrinter', 'le titre suit');
 });
+
+// ---------------------------------------------------------------------------
+// Réordonner les collections
+// ---------------------------------------------------------------------------
+
+test('« Réorganiser » ouvre l\'ordre des collections, bornes comprises', async () => {
+  const app = await demarrer();
+  const commande = app.node('collection-reorder');
+  assert.equal(commande.hidden, false, 'deux collections : la commande est proposée');
+  assert.equal(app.node('collection-order').hidden, true);
+
+  await fire(commande, 'click');
+  assert.equal(app.node('collection-order').hidden, false);
+  assert.equal(commande.getAttribute('aria-expanded'), 'true');
+
+  const lignes = app.node('collection-order-list').children;
+  assert.equal(lignes.length, 2);
+  assert.equal(lignes[0].children[0].textContent, 'Mes liens');
+  assert.equal(lignes[1].children[0].textContent, 'Veille');
+
+  const [haut0, bas0] = lignes[0].children.slice(1);
+  const [haut1, bas1] = lignes[1].children.slice(1);
+  assert.equal(haut0.disabled, true, 'la première ne peut pas monter');
+  assert.equal(bas0.disabled, false);
+  assert.equal(haut1.disabled, false);
+  assert.equal(bas1.disabled, true, 'la dernière ne peut pas descendre');
+  // Le libellé accessible nomme la collection : une flèche seule ne dit rien.
+  assert.match(haut1.getAttribute('aria-label'), /Veille/);
+
+  // Un second clic sur la commande referme le panneau.
+  await fire(commande, 'click');
+  assert.equal(app.node('collection-order').hidden, true);
+  assert.equal(commande.getAttribute('aria-expanded'), 'false');
+});
+
+test('descendre une collection change l\'ordre persisté, et le sélecteur suit', async () => {
+  const app = await demarrer();
+  await fire(app.node('collection-reorder'), 'click');
+
+  const premiere = app.node('collection-order-list').children[0];
+  const descendre = premiere.children[2];
+  assert.equal(descendre.dataset.direction, 'down');
+  await fire(descendre, 'click');
+
+  // L'ordre écrit fait foi, et il est renuméroté : aucun rang libre.
+  assert.deepEqual(app.collections().map((item) => item.id), ['veille', 'default']);
+  assert.deepEqual(app.collections().map((item) => item.order), [0, 1]);
+  assert.equal(app.area.data[COLLECTIONS_KEY].version, 2);
+
+  // Le sélecteur et le panneau suivent le nouvel ordre, sans se refermer.
+  assert.deepEqual(app.options(), ['Veille', 'Mes liens']);
+  assert.equal(app.node('collection-order').hidden, false);
+  const lignes = app.node('collection-order-list').children;
+  assert.equal(lignes[0].children[0].textContent, 'Veille');
+  assert.equal(
+    app.node('collection-order-status').textContent,
+    '« Mes liens » est maintenant en position 2',
+  );
+});
+
+test('Échap referme le panneau d\'ordre', async () => {
+  const app = await demarrer();
+  await fire(app.node('collection-reorder'), 'click');
+  await fire(app.node('collection-order'), 'keydown', { key: 'Escape' });
+  assert.equal(app.node('collection-order').hidden, true);
+  assert.equal(app.node('collection-reorder').getAttribute('aria-expanded'), 'false');
+});
+
+test('« Terminé » referme le panneau, sans rien annuler', async () => {
+  const app = await demarrer();
+  await fire(app.node('collection-reorder'), 'click');
+
+  // Un geste, puis la commande visible de sortie.
+  const premiere = app.node('collection-order-list').children[0];
+  await fire(premiere.children[2], 'click');
+  assert.deepEqual(app.collections().map((item) => item.id), ['veille', 'default']);
+
+  // La commande est présente dans le panneau, et c'est elle qu'on clique.
+  // Son libellé vient du HTML (posé aussi par la traduction), que le substitut
+  // de DOM ne lit pas : le test vérifie le geste, pas le texte.
+  const termine = app.node('collection-order-done');
+  assert.equal(termine.hidden, false);
+  await fire(termine, 'click');
+
+  assert.equal(app.node('collection-order').hidden, true);
+  assert.equal(app.node('collection-reorder').getAttribute('aria-expanded'), 'false');
+  // L'ordre était déjà enregistré : « Terminé » referme, il n'annule rien.
+  assert.deepEqual(app.collections().map((item) => item.id), ['veille', 'default']);
+});
+
+test('la collection de navigation privée n\'entre pas dans l\'ordre', async () => {
+  const app = await demarrer({ prive: true });
+  await fire(app.node('collection-reorder'), 'click');
+
+  const lignes = app.node('collection-order-list').children;
+  assert.deepEqual(
+    lignes.map((ligne) => ligne.children[0].textContent),
+    ['Mes liens', 'Veille'],
+  );
+  // Le sélecteur la montre toujours : elle reste visible, simplement pas
+  // déplaçable — un rang n'aurait nulle part où être écrit.
+  assert.deepEqual(app.options(), ['Mes liens', 'Veille', 'Navigation privée']);
+});
+
+test('avec une seule collection, la commande d\'ordre est absente', async () => {
+  const app = await demarrer({
+    collections: [{ id: 'default', name: '', note: '', startIndex: 1, createdAt: 0 }],
+  });
+  assert.equal(app.node('collection-reorder').hidden, true);
+  assert.equal(app.node('collection-order').hidden, true);
+});

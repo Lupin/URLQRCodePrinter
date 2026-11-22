@@ -1629,6 +1629,8 @@ function applyCollectionName() {
 let activeCollectionId = DEFAULT_COLLECTION_ID;
 /** @type {Array<{id: string, name: string, note: string, private?: boolean}>} */
 let visibleCollectionsList = [];
+/** Le panneau d'ordre des collections est-il ouvert ? */
+let collectionOrderOpen = false;
 
 /**
  * La source des collections : le stockage de l'extension, ou un adaptateur.
@@ -1849,6 +1851,21 @@ function fillCollections() {
   // derrière elle, et la laisser ouverte plus tard nommerait peut-être une autre.
   closeDeleteConfirm();
 
+  // Réordonner n'a de sens qu'avec au moins deux collections ordinaires. La
+  // commande est masquée plutôt que laissée inactive : avec une seule
+  // collection, elle n'aurait qu'une ligne à montrer.
+  const reorganisable = canReorderCollections();
+  el.collectionReorder.hidden = !reorganisable;
+  if (!reorganisable) closeCollectionOrder();
+  else if (collectionOrderOpen) renderCollectionOrder();
+  // Un panneau fermé l'est aussi dans le document : l'attribut `hidden` écrit
+  // dans le HTML ne suffit pas quand c'est le script qui décide de l'état (et
+  // le substitut de DOM des tests ne lit pas le HTML).
+  if (!collectionOrderOpen) {
+    el.collectionOrder.hidden = true;
+    el.collectionReorder.setAttribute('aria-expanded', 'false');
+  }
+
   updateCollectionHint();
   updateCollectionNameControls();
 }
@@ -1870,6 +1887,185 @@ function deletableCollection(collection) {
 }
 
 /**
+ * Peut-on réordonner les collections dans ce contexte ?
+ *
+ * Il faut au moins deux collections ordinaires : avec une seule, il n'y a rien
+ * à déplacer, et une commande qui n'ouvrirait qu'une liste d'une ligne serait un
+ * piège. La page web autonome n'a qu'une collection et n'expose pas la commande
+ * du tout.
+ *
+ * @returns {boolean}
+ */
+function canReorderCollections() {
+  return Boolean(collections.available) && ordinaryCollectionCount() > 1;
+}
+
+/**
+ * Peint le panneau d'ordre : une ligne par collection ordinaire.
+ *
+ * La collection de navigation privée n'y figure jamais : elle est synthétisée,
+ * jamais écrite, et un rang n'aurait nulle part où être enregistré. Elle reste
+ * de toute façon affichée en dernier par `visibleCollections`.
+ */
+function renderCollectionOrder() {
+  const ordinaires = visibleCollectionsList.filter((collection) => !isPrivateCollection(collection));
+  el.collectionOrderList.textContent = '';
+
+  ordinaires.forEach((collection, rang) => {
+    const ligne = document.createElement('div');
+    ligne.className = 'collection-order__row';
+    ligne.dataset.id = collection.id;
+
+    const nom = document.createElement('span');
+    nom.className = 'collection-order__name';
+    nom.textContent = collectionDisplayName(collection);
+
+    ligne.append(
+      nom,
+      collectionOrderButton(collection, -1, rang, ordinaires.length),
+      collectionOrderButton(collection, 1, rang, ordinaires.length),
+    );
+    el.collectionOrderList.appendChild(ligne);
+  });
+}
+
+/**
+ * Une flèche du panneau d'ordre.
+ *
+ * Le libellé accessible nomme la collection et le sens : « ▲ » seul ne dit rien
+ * à un lecteur d'écran. Le bouton désactivé aux extrémités est un état, pas une
+ * absence — il montre qu'on a atteint le bord.
+ *
+ * @param {object} collection
+ * @param {-1|1} direction
+ * @param {number} rang
+ * @param {number} total
+ * @returns {object}
+ */
+function collectionOrderButton(collection, direction, rang, total) {
+  const bouton = document.createElement('button');
+  bouton.type = 'button';
+  bouton.className = 'btn btn--ghost btn--small collection-order__move';
+  bouton.textContent = direction === -1 ? '▲' : '▼';
+  bouton.dataset.direction = direction === -1 ? 'up' : 'down';
+
+  const nom = collectionDisplayName(collection);
+  const libelle = direction === -1
+    ? t('Déplacer la collection « {name} » vers le haut', { name: nom })
+    : t('Déplacer la collection « {name} » vers le bas', { name: nom });
+  bouton.setAttribute('aria-label', libelle);
+  bouton.title = direction === -1 ? t('Monter') : t('Descendre');
+  bouton.disabled = direction === -1 ? rang <= 0 : rang >= total - 1;
+  bouton.addEventListener('click', () => moveCollection(collection.id, direction));
+  return bouton;
+}
+
+/** Ouvre le panneau d'ordre, et y entre au clavier. */
+function openCollectionOrder() {
+  if (!canReorderCollections()) return;
+  // La question de suppression nomme une collection que le réordonnancement
+  // peut déplacer : les deux gestes ne se superposent pas.
+  closeDeleteConfirm();
+  collectionOrderOpen = true;
+  el.collectionOrder.hidden = false;
+  el.collectionReorder.setAttribute('aria-expanded', 'true');
+  el.collectionOrderStatus.textContent = '';
+  renderCollectionOrder();
+  focusFirstCollectionOrderControl();
+}
+
+/**
+ * Referme le panneau d'ordre, sans rien changer.
+ * @param {{ focus?: boolean }} [options] `focus: true` rend le focus à la
+ *   commande qui l'a ouvert — le geste a été annulé, pas déplacé.
+ */
+function closeCollectionOrder({ focus = false } = {}) {
+  if (!collectionOrderOpen) return;
+  collectionOrderOpen = false;
+  el.collectionOrder.hidden = true;
+  el.collectionReorder.setAttribute('aria-expanded', 'false');
+  el.collectionOrderStatus.textContent = '';
+  if (focus) el.collectionReorder.focus();
+}
+
+/** Met le focus sur la première flèche utilisable du panneau. */
+function focusFirstCollectionOrderControl() {
+  for (const ligne of el.collectionOrderList.children) {
+    for (const enfant of ligne.children) {
+      if (enfant.tagName === 'BUTTON' && !enfant.disabled) {
+        enfant.focus();
+        return;
+      }
+    }
+  }
+}
+
+/**
+ * Rend le focus à la flèche qui vient de servir, ou à la première utilisable.
+ *
+ * Le panneau est reconstruit après chaque geste — l'ordre a changé —, donc le
+ * bouton pressé n'existe plus. On le retrouve par la collection et le sens,
+ * sans quoi le focus retomberait sur le document.
+ *
+ * @param {string} id
+ * @param {-1|1} direction
+ */
+function focusCollectionOrderButton(id, direction) {
+  for (const ligne of el.collectionOrderList.children) {
+    if (ligne.dataset.id !== id) continue;
+    const boutons = [...ligne.children].filter((enfant) => enfant.tagName === 'BUTTON');
+    const voulu = boutons.find(
+      (bouton) => bouton.dataset.direction === (direction === -1 ? 'up' : 'down'),
+    );
+    const repli = boutons.find((bouton) => !bouton.disabled);
+    const cible = voulu && !voulu.disabled ? voulu : (repli ?? voulu);
+    cible?.focus();
+    return;
+  }
+}
+
+/**
+ * Déplace une collection d'un cran, et enregistre l'ordre obtenu.
+ *
+ * Le déplacement n'est pas une écriture partielle : `applyOrder` renumérote
+ * toutes les collections ordinaires de 0 à n-1, ce qui laisse un ordre total et
+ * stable, sans rang libre où une collection future s'intercalerait.
+ *
+ * @param {string} id
+ * @param {-1|1} direction
+ * @returns {Promise<void>}
+ */
+async function moveCollection(id, direction) {
+  if (!canReorderCollections()) return;
+
+  const ordinaires = visibleCollectionsList.filter((collection) => !isPrivateCollection(collection));
+  const rang = ordinaires.findIndex((collection) => collection.id === id);
+  const cible = rang + direction;
+  if (rang === -1 || cible < 0 || cible >= ordinaires.length) return;
+
+  const ordre = ordinaires.map((collection) => collection.id);
+  [ordre[rang], ordre[cible]] = [ordre[cible], ordre[rang]];
+
+  try {
+    await collections.applyOrder(ordre);
+  } catch (error) {
+    toast(error?.message ?? t('Réorganisation impossible'), 'error');
+    return;
+  }
+
+  // C'est la collection **déplacée** qui est annoncée, avec sa nouvelle place :
+  // `ordinaires` garde l'ordre d'avant le geste, et la collection y est toujours
+  // à son ancien rang.
+  const deplacee = ordinaires[rang];
+  await reloadCollections();
+  el.collectionOrderStatus.textContent = t(
+    '« {name} » est maintenant en position {position}',
+    { name: collectionDisplayName(deplacee), position: cible + 1 },
+  );
+  focusCollectionOrderButton(id, direction);
+}
+
+/**
  * Ouvre la confirmation de suppression de la collection affichée.
  *
  * La question nomme la collection et annonce **ce qu'elle emporte** : ses liens.
@@ -1879,6 +2075,10 @@ function deletableCollection(collection) {
 function openDeleteConfirm() {
   const collection = activeCollection();
   if (!deletableCollection(collection)) return;
+
+  // La question nomme une collection que le panneau d'ordre peut déplacer :
+  // les deux gestes ne se superposent pas, et celui qui s'ouvre referme l'autre.
+  closeCollectionOrder();
 
   el.collectionDeleteConfirmText.textContent = tpl(
     links.length,
@@ -6608,6 +6808,25 @@ el.collectionDeleteConfirm.addEventListener('keydown', (event) => {
   event.preventDefault();
   closeDeleteConfirm({ focus: true });
 });
+
+// Le panneau d'ordre s'ouvre et se ferme par la même commande, comme la
+// question de suppression. Échap le referme et rend le focus à la commande,
+// plutôt que de laisser le curseur dans un panneau qui vient de disparaître.
+el.collectionReorder.addEventListener('click', () => {
+  if (collectionOrderOpen) closeCollectionOrder({ focus: true });
+  else openCollectionOrder();
+});
+
+el.collectionOrder.addEventListener('keydown', (event) => {
+  if (event.key !== 'Escape') return;
+  event.preventDefault();
+  closeCollectionOrder({ focus: true });
+});
+
+// « Terminé » referme le panneau : l'ordre est déjà écrit à chaque flèche, donc
+// il n'y a rien à valider — mais un panneau sans commande de sortie visible
+// laissait croire le contraire, et il fallait deviner le second clic ou Échap.
+el.collectionOrderDone.addEventListener('click', () => closeCollectionOrder({ focus: true }));
 
 el.selectAllBox.addEventListener('change', () => {
   // Une case indéterminée devient cochée au clic : la cocher sélectionne tout,

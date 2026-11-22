@@ -23,6 +23,18 @@ l'époque, et elle n'est pas inventée ici.
 
 ## [Non publié]
 
+### Ajouté
+
+- **Réorganiser les collections.** La commande « Réorganiser », sous le sélecteur
+  de collection, ouvre un panneau qui liste les collections
+  ordinaires avec deux flèches ▲ ▼ par ligne. Chaque geste déplace la collection
+  d'un cran et l'ordre est enregistré aussitôt — champ `order` de chaque
+  collection dans `url-qr-code-printer/collections`, document version 2 : le
+  sélecteur et la fenêtre de l'extension le suivent. Une collection créée ensuite
+  arrive en fin de liste, et la collection de navigation privée n'apparaît pas
+  dans le panneau. Rien n'est à valider : chaque flèche enregistre aussitôt, et
+  le bouton « Terminé » referme le panneau.
+
 ## [0.3.2] - 2026-11-08
 
 Cette mise à jour change la marque du produit, et rien de ce qu'il fait. La

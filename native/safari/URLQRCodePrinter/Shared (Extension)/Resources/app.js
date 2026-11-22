@@ -156,6 +156,15 @@ const EN_MESSAGES = {
   "Créer une collection nommée « {name} »": "Create a collection named “{name}”",
   "Collection supprimée": "Collection deleted",
   "Collection affichée": "Displayed collection",
+  "Réorganiser les collections": "Reorder collections",
+  "Ordre des collections": "Collection order",
+  "Les flèches changent l'ordre des collections ; chaque geste est enregistré aussitôt, et « Terminé » referme ce panneau. Le sélecteur et la fenêtre de l'extension suivent cet ordre. La collection de navigation privée n'y figure pas.":
+    "The arrows change the order of the collections; each gesture is saved at once, and “Done” closes this panel. The selector and the extension window follow that order. The private-browsing collection is not listed here.",
+  "Terminé": "Done",
+  "Déplacer la collection « {name} » vers le haut": "Move the collection “{name}” up",
+  "Déplacer la collection « {name} » vers le bas": "Move the collection “{name}” down",
+  "« {name} » est maintenant en position {position}": "“{name}” is now in position {position}",
+  "Réorganisation impossible": "Could not reorder the collections",
   "Nouvelle": "New",
   "Déplacer vers…": "Move to…",
   "Déplacer vers une collection": "Move to a collection",
@@ -1749,8 +1758,15 @@ const COLLECTIONS_KEY = 'url-qr-code-printer/collections';
 /** Clé de la collection courante, mémorisée séparément du document. */
 const ACTIVE_COLLECTION_KEY = 'url-qr-code-printer/active-collection';
 
-/** Version du document écrit. À incrémenter si sa forme change. */
-const COLLECTIONS_VERSION = 1;
+/**
+ * Version du document écrit. À incrémenter si sa forme change.
+ *
+ * Version 2 : chaque collection peut porter un `order` explicite, écrit quand
+ * l'utilisateur réordonne la liste. Le champ est **facultatif**, et son absence
+ * garde exactement le comportement d'avant — la collection par défaut en tête,
+ * puis la date de création —, si bien qu'un document v1 se lit sans migration.
+ */
+const COLLECTIONS_VERSION = 2;
 
 /** Identifiant de la collection par défaut : celle de qui n'en crée aucune. */
 const DEFAULT_COLLECTION_ID = 'default';
@@ -1894,6 +1910,28 @@ function nameKey(value) {
 }
 
 /**
+ * Rang manuel d'une collection, ou `null` s'il n'y en a pas.
+ *
+ * Le rang n'est pas une donnée que l'utilisateur saisit : il est attribué par
+ * le réordonnancement, qui renumérote toute la liste. Une valeur illisible ou
+ * négative est donc écartée plutôt que réparée — il vaut mieux une collection
+ * qui retombe dans le tri par défaut qu'un rang inventé qui la mettrait
+ * n'importe où.
+ *
+ * L'absence est un état de plein droit : un document écrit avant que ce champ
+ * existe n'en porte pas, et c'est ce qui permet de le lire sans migration.
+ *
+ * @param {unknown} value
+ * @returns {number|null}
+ */
+function cleanCollectionOrder(value) {
+  if (value === '' || value === null || value === undefined) return null;
+  const brut = Number(value);
+  if (!Number.isFinite(brut)) return null;
+  return Math.max(0, Math.trunc(brut));
+}
+
+/**
  * Construit une collection normale validée.
  *
  * Le premier numéro est **borné, pas refusé** : une valeur hors bornes est
@@ -1901,15 +1939,23 @@ function nameKey(value) {
  * longue, pas une erreur — et un nombre à virgule est tronqué, puisqu'on
  * numérote des objets et non des mesures.
  *
- * @param {{ id?: unknown, name?: unknown, note?: unknown, startIndex?: unknown, createdAt?: unknown }} [input]
+ * Le rang manuel, lui, est **conservé tel quel** quand il est lisible, et
+ * **absent** quand il ne l'est pas. Un champ ajouté que cette fonction ne
+ * recopierait pas serait perdu à chaque lecture : c'est elle qui décide de la
+ * forme d'une collection, et l'assainissement passe par elle.
+ *
+ * @param {{ id?: unknown, name?: unknown, note?: unknown, startIndex?: unknown,
+ *   createdAt?: unknown, order?: unknown }} [input]
  * @param {{ now?: number }} [options]
- * @returns {{ id: string, name: string, note: string, startIndex: number, createdAt: number }}
+ * @returns {{ id: string, name: string, note: string, startIndex: number,
+ *   createdAt: number, order?: number }}
  */
 function createCollection(input = {}, options = {}) {
   const now = Number.isFinite(options.now) ? options.now : Date.now();
   const id = typeof input.id === 'string' && input.id.trim() !== '' && input.id !== PRIVATE_COLLECTION_ID
     ? input.id.trim()
     : newId();
+  const order = cleanCollectionOrder(input.order);
 
   return {
     id,
@@ -1917,6 +1963,7 @@ function createCollection(input = {}, options = {}) {
     note: typeof input.note === 'string' ? input.note.trim().slice(0, COLLECTION_NOTE_MAX) : '',
     startIndex: cleanStartIndex(input.startIndex),
     createdAt: Number.isFinite(input.createdAt) ? input.createdAt : now,
+    ...(order === null ? {} : { order }),
   };
 }
 
@@ -1967,18 +2014,36 @@ function privateCollection(translate = t) {
 }
 
 /**
- * Range les collections : la collection par défaut d'abord, puis par date.
+ * Range les collections : le rang manuel s'il existe, sinon la règle d'avant.
  *
- * L'ordre est stable et volontairement pauvre — pas de rang manuel à
- * entretenir pour un objet qu'on crée rarement, et une place fixe pour la
- * collection par défaut, qui est celle où atterrissent les liens de qui n'a
- * rien créé.
+ * Deux groupes, dans cet ordre :
+ *
+ * 1. les collections qui portent un `order` explicite, par rang croissant —
+ *    c'est la liste que l'utilisateur a réordonnée, et elle fait foi ;
+ * 2. les autres, par la règle d'origine : la collection par défaut en tête,
+ *    puis la date de création.
+ *
+ * Le second groupe n'existe que tant que personne n'a réordonné — une
+ * collection créée après un réordonnancement n'a pas encore de rang et vient
+ * donc à la fin, ce qui est l'endroit où on l'attend. Aucune migration n'est
+ * nécessaire : un document sans `order` retombe entièrement dans la règle
+ * d'origine, à l'identique.
  *
  * @param {Array<object>} items
  * @returns {Array<object>}
  */
 function orderCollections(items) {
   return [...items].sort((a, b) => {
+    const rangA = Number.isFinite(a.order) ? a.order : null;
+    const rangB = Number.isFinite(b.order) ? b.order : null;
+
+    if (rangA !== null || rangB !== null) {
+      if (rangA === null) return 1;
+      if (rangB === null) return -1;
+      if (rangA !== rangB) return rangA - rangB;
+      return a.createdAt - b.createdAt;
+    }
+
     if (a.id === DEFAULT_COLLECTION_ID) return -1;
     if (b.id === DEFAULT_COLLECTION_ID) return 1;
     return a.createdAt - b.createdAt;
@@ -2155,6 +2220,7 @@ function freeCollectionName(desired, items = [], translate = t) {
  *   rename: (id: string, name: string) => Promise<object>,
  *   setNote: (id: string, note: string) => Promise<object>,
  *   setStartIndex: (id: string, value: unknown) => Promise<object>,
+ *   applyOrder: (ids: string[]) => Promise<Array<object>>,
  *   remove: (id: string) => Promise<boolean>,
  *   getActive: (isPrivate?: boolean) => Promise<string>,
  *   setActive: (id: string, isPrivate?: boolean) => Promise<string>,
@@ -2393,6 +2459,57 @@ function createCollectionStore(options = {}) {
         };
       });
       return updated;
+    },
+
+    /**
+     * Réordonne les collections, puis renumérote tout le document.
+     *
+     * Les identifiants sont pris dans cet ordre ; une collection absente de la
+     * liste — parce qu'elle a été créée entre-temps, par exemple — est ajoutée
+     * à la suite dans son ordre actuel. **Toutes** les collections ordinaires
+     * reçoivent alors un rang de 0 à n-1 : sans cela, un rang laissé libre
+     * ferait s'intercaler une collection nouvelle à une place que personne n'a
+     * choisie.
+     *
+     * La collection privée est hors sujet : elle n'est jamais écrite, et un
+     * identifiant inconnu est ignoré plutôt que refusé. L'appelant vient de
+     * relire la liste, et une liste qui a changé entre-temps ne doit pas faire
+     * échouer le geste.
+     *
+     * @param {string[]} ids
+     * @returns {Promise<Array<object>>}
+     */
+    async applyOrder(ids) {
+      const demandes = [];
+      const vus = new Set();
+      for (const id of Array.isArray(ids) ? ids : []) {
+        if (typeof id !== 'string') continue;
+        const propre = id.trim();
+        if (propre === '' || propre === PRIVATE_COLLECTION_ID || vus.has(propre)) continue;
+        vus.add(propre);
+        demandes.push(propre);
+      }
+      if (demandes.length === 0) return (await load()).document.items;
+
+      const document = await update((current) => {
+        const parId = new Map(current.items.map((item) => [item.id, item]));
+        const suite = [];
+        const places = new Set();
+        for (const id of demandes) {
+          const item = parId.get(id);
+          if (!item) continue;
+          suite.push(item);
+          places.add(item.id);
+        }
+        for (const item of current.items) {
+          if (!places.has(item.id)) suite.push(item);
+        }
+        return {
+          ...current,
+          items: suite.map((item, rang) => ({ ...item, order: rang })),
+        };
+      });
+      return document.items;
     },
 
     async remove(id) {
@@ -3061,6 +3178,11 @@ const ELEMENT_IDS = Object.freeze([
   'collection-delete-confirm-text',
   'collection-delete-confirm-yes',
   'collection-delete-cancel',
+  'collection-reorder',
+  'collection-order',
+  'collection-order-list',
+  'collection-order-status',
+  'collection-order-done',
   'collection-hint',
   'collection-name',
   'collection-name-save',
@@ -14401,6 +14523,8 @@ function applyCollectionName() {
 let activeCollectionId = DEFAULT_COLLECTION_ID;
 /** @type {Array<{id: string, name: string, note: string, private?: boolean}>} */
 let visibleCollectionsList = [];
+/** Le panneau d'ordre des collections est-il ouvert ? */
+let collectionOrderOpen = false;
 
 /**
  * La source des collections : le stockage de l'extension, ou un adaptateur.
@@ -14621,6 +14745,21 @@ function fillCollections() {
   // derrière elle, et la laisser ouverte plus tard nommerait peut-être une autre.
   closeDeleteConfirm();
 
+  // Réordonner n'a de sens qu'avec au moins deux collections ordinaires. La
+  // commande est masquée plutôt que laissée inactive : avec une seule
+  // collection, elle n'aurait qu'une ligne à montrer.
+  const reorganisable = canReorderCollections();
+  el.collectionReorder.hidden = !reorganisable;
+  if (!reorganisable) closeCollectionOrder();
+  else if (collectionOrderOpen) renderCollectionOrder();
+  // Un panneau fermé l'est aussi dans le document : l'attribut `hidden` écrit
+  // dans le HTML ne suffit pas quand c'est le script qui décide de l'état (et
+  // le substitut de DOM des tests ne lit pas le HTML).
+  if (!collectionOrderOpen) {
+    el.collectionOrder.hidden = true;
+    el.collectionReorder.setAttribute('aria-expanded', 'false');
+  }
+
   updateCollectionHint();
   updateCollectionNameControls();
 }
@@ -14642,6 +14781,185 @@ function deletableCollection(collection) {
 }
 
 /**
+ * Peut-on réordonner les collections dans ce contexte ?
+ *
+ * Il faut au moins deux collections ordinaires : avec une seule, il n'y a rien
+ * à déplacer, et une commande qui n'ouvrirait qu'une liste d'une ligne serait un
+ * piège. La page web autonome n'a qu'une collection et n'expose pas la commande
+ * du tout.
+ *
+ * @returns {boolean}
+ */
+function canReorderCollections() {
+  return Boolean(collections.available) && ordinaryCollectionCount() > 1;
+}
+
+/**
+ * Peint le panneau d'ordre : une ligne par collection ordinaire.
+ *
+ * La collection de navigation privée n'y figure jamais : elle est synthétisée,
+ * jamais écrite, et un rang n'aurait nulle part où être enregistré. Elle reste
+ * de toute façon affichée en dernier par `visibleCollections`.
+ */
+function renderCollectionOrder() {
+  const ordinaires = visibleCollectionsList.filter((collection) => !isPrivateCollection(collection));
+  el.collectionOrderList.textContent = '';
+
+  ordinaires.forEach((collection, rang) => {
+    const ligne = document.createElement('div');
+    ligne.className = 'collection-order__row';
+    ligne.dataset.id = collection.id;
+
+    const nom = document.createElement('span');
+    nom.className = 'collection-order__name';
+    nom.textContent = collectionDisplayName(collection);
+
+    ligne.append(
+      nom,
+      collectionOrderButton(collection, -1, rang, ordinaires.length),
+      collectionOrderButton(collection, 1, rang, ordinaires.length),
+    );
+    el.collectionOrderList.appendChild(ligne);
+  });
+}
+
+/**
+ * Une flèche du panneau d'ordre.
+ *
+ * Le libellé accessible nomme la collection et le sens : « ▲ » seul ne dit rien
+ * à un lecteur d'écran. Le bouton désactivé aux extrémités est un état, pas une
+ * absence — il montre qu'on a atteint le bord.
+ *
+ * @param {object} collection
+ * @param {-1|1} direction
+ * @param {number} rang
+ * @param {number} total
+ * @returns {object}
+ */
+function collectionOrderButton(collection, direction, rang, total) {
+  const bouton = document.createElement('button');
+  bouton.type = 'button';
+  bouton.className = 'btn btn--ghost btn--small collection-order__move';
+  bouton.textContent = direction === -1 ? '▲' : '▼';
+  bouton.dataset.direction = direction === -1 ? 'up' : 'down';
+
+  const nom = collectionDisplayName(collection);
+  const libelle = direction === -1
+    ? t('Déplacer la collection « {name} » vers le haut', { name: nom })
+    : t('Déplacer la collection « {name} » vers le bas', { name: nom });
+  bouton.setAttribute('aria-label', libelle);
+  bouton.title = direction === -1 ? t('Monter') : t('Descendre');
+  bouton.disabled = direction === -1 ? rang <= 0 : rang >= total - 1;
+  bouton.addEventListener('click', () => moveCollection(collection.id, direction));
+  return bouton;
+}
+
+/** Ouvre le panneau d'ordre, et y entre au clavier. */
+function openCollectionOrder() {
+  if (!canReorderCollections()) return;
+  // La question de suppression nomme une collection que le réordonnancement
+  // peut déplacer : les deux gestes ne se superposent pas.
+  closeDeleteConfirm();
+  collectionOrderOpen = true;
+  el.collectionOrder.hidden = false;
+  el.collectionReorder.setAttribute('aria-expanded', 'true');
+  el.collectionOrderStatus.textContent = '';
+  renderCollectionOrder();
+  focusFirstCollectionOrderControl();
+}
+
+/**
+ * Referme le panneau d'ordre, sans rien changer.
+ * @param {{ focus?: boolean }} [options] `focus: true` rend le focus à la
+ *   commande qui l'a ouvert — le geste a été annulé, pas déplacé.
+ */
+function closeCollectionOrder({ focus = false } = {}) {
+  if (!collectionOrderOpen) return;
+  collectionOrderOpen = false;
+  el.collectionOrder.hidden = true;
+  el.collectionReorder.setAttribute('aria-expanded', 'false');
+  el.collectionOrderStatus.textContent = '';
+  if (focus) el.collectionReorder.focus();
+}
+
+/** Met le focus sur la première flèche utilisable du panneau. */
+function focusFirstCollectionOrderControl() {
+  for (const ligne of el.collectionOrderList.children) {
+    for (const enfant of ligne.children) {
+      if (enfant.tagName === 'BUTTON' && !enfant.disabled) {
+        enfant.focus();
+        return;
+      }
+    }
+  }
+}
+
+/**
+ * Rend le focus à la flèche qui vient de servir, ou à la première utilisable.
+ *
+ * Le panneau est reconstruit après chaque geste — l'ordre a changé —, donc le
+ * bouton pressé n'existe plus. On le retrouve par la collection et le sens,
+ * sans quoi le focus retomberait sur le document.
+ *
+ * @param {string} id
+ * @param {-1|1} direction
+ */
+function focusCollectionOrderButton(id, direction) {
+  for (const ligne of el.collectionOrderList.children) {
+    if (ligne.dataset.id !== id) continue;
+    const boutons = [...ligne.children].filter((enfant) => enfant.tagName === 'BUTTON');
+    const voulu = boutons.find(
+      (bouton) => bouton.dataset.direction === (direction === -1 ? 'up' : 'down'),
+    );
+    const repli = boutons.find((bouton) => !bouton.disabled);
+    const cible = voulu && !voulu.disabled ? voulu : (repli ?? voulu);
+    cible?.focus();
+    return;
+  }
+}
+
+/**
+ * Déplace une collection d'un cran, et enregistre l'ordre obtenu.
+ *
+ * Le déplacement n'est pas une écriture partielle : `applyOrder` renumérote
+ * toutes les collections ordinaires de 0 à n-1, ce qui laisse un ordre total et
+ * stable, sans rang libre où une collection future s'intercalerait.
+ *
+ * @param {string} id
+ * @param {-1|1} direction
+ * @returns {Promise<void>}
+ */
+async function moveCollection(id, direction) {
+  if (!canReorderCollections()) return;
+
+  const ordinaires = visibleCollectionsList.filter((collection) => !isPrivateCollection(collection));
+  const rang = ordinaires.findIndex((collection) => collection.id === id);
+  const cible = rang + direction;
+  if (rang === -1 || cible < 0 || cible >= ordinaires.length) return;
+
+  const ordre = ordinaires.map((collection) => collection.id);
+  [ordre[rang], ordre[cible]] = [ordre[cible], ordre[rang]];
+
+  try {
+    await collections.applyOrder(ordre);
+  } catch (error) {
+    toast(error?.message ?? t('Réorganisation impossible'), 'error');
+    return;
+  }
+
+  // C'est la collection **déplacée** qui est annoncée, avec sa nouvelle place :
+  // `ordinaires` garde l'ordre d'avant le geste, et la collection y est toujours
+  // à son ancien rang.
+  const deplacee = ordinaires[rang];
+  await reloadCollections();
+  el.collectionOrderStatus.textContent = t(
+    '« {name} » est maintenant en position {position}',
+    { name: collectionDisplayName(deplacee), position: cible + 1 },
+  );
+  focusCollectionOrderButton(id, direction);
+}
+
+/**
  * Ouvre la confirmation de suppression de la collection affichée.
  *
  * La question nomme la collection et annonce **ce qu'elle emporte** : ses liens.
@@ -14651,6 +14969,10 @@ function deletableCollection(collection) {
 function openDeleteConfirm() {
   const collection = activeCollection();
   if (!deletableCollection(collection)) return;
+
+  // La question nomme une collection que le panneau d'ordre peut déplacer :
+  // les deux gestes ne se superposent pas, et celui qui s'ouvre referme l'autre.
+  closeCollectionOrder();
 
   el.collectionDeleteConfirmText.textContent = tpl(
     links.length,
@@ -19380,6 +19702,25 @@ el.collectionDeleteConfirm.addEventListener('keydown', (event) => {
   event.preventDefault();
   closeDeleteConfirm({ focus: true });
 });
+
+// Le panneau d'ordre s'ouvre et se ferme par la même commande, comme la
+// question de suppression. Échap le referme et rend le focus à la commande,
+// plutôt que de laisser le curseur dans un panneau qui vient de disparaître.
+el.collectionReorder.addEventListener('click', () => {
+  if (collectionOrderOpen) closeCollectionOrder({ focus: true });
+  else openCollectionOrder();
+});
+
+el.collectionOrder.addEventListener('keydown', (event) => {
+  if (event.key !== 'Escape') return;
+  event.preventDefault();
+  closeCollectionOrder({ focus: true });
+});
+
+// « Terminé » referme le panneau : l'ordre est déjà écrit à chaque flèche, donc
+// il n'y a rien à valider — mais un panneau sans commande de sortie visible
+// laissait croire le contraire, et il fallait deviner le second clic ou Échap.
+el.collectionOrderDone.addEventListener('click', () => closeCollectionOrder({ focus: true }));
 
 el.selectAllBox.addEventListener('change', () => {
   // Une case indéterminée devient cochée au clic : la cocher sélectionne tout,
