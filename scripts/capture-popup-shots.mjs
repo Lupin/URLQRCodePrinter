@@ -27,6 +27,7 @@ import {
   ACTIVE_COLLECTION_KEY, COLLECTION_LINKS_KEY, COLLECTIONS_KEY, COLLECTIONS_VERSION,
   DEFAULT_COLLECTION_ID,
 } from '../src/core/collections.js';
+import { CONSENT_KEY, DISCLOSURE_VERSION } from '../src/core/privacy.js';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const CHROME = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
@@ -124,6 +125,15 @@ function contenu(langue) {
     },
     [ACTIVE_COLLECTION_KEY]: { normal: DEFAULT_COLLECTION_ID, private: '' },
     locale: langue,
+    // La capture montre la fenêtre d'un utilisateur qui a déjà lu la mention :
+    // sans cela, le bandeau de consentement recouvre la moitié de la liste — et
+    // la page 04 montre déjà la mention elle-même. La décision est écrite telle
+    // qu'elle le serait après acceptation, avec la version courante du texte.
+    [CONSENT_KEY]: {
+      version: DISCLOSURE_VERSION,
+      decision: 'accepted',
+      at: 1758400000000,
+    },
   };
 }
 

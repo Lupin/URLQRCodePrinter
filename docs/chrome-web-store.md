@@ -432,7 +432,7 @@ l'application, site vitrine). Aucune permission nouvelle, aucun réseau nouveau.
 | Tests du produit | `npm test` → **1088 JavaScript + 104 Swift**, tous verts |
 | Tests de la fiche | `test/publication.test.js` → **15/15** |
 | Relevé navigateur | `npm run verify:chrome` → **167/167** constats satisfaits (second passage ; un premier avait échoué sur le badge « + », non reproduit — instabilité suivie par l'issue #6) |
-| Captures d'écran | **10** fichiers (`01` à `05`, `-fr` et `-en`), 1280 × 800, inchangés depuis la 0.3.2 — aucune ne montre encore le panneau d'ordre |
+| Captures d'écran | **10** fichiers (`01` à `05`, `-fr` et `-en`), 1280 × 800, **régénérés le 22 novembre 2026 pour la 0.4.0** — `05` montre les commandes de collection alignées ; `01` est prise avec la mention déjà acceptée pour que le bandeau ne recouvre pas la liste. Aucune ne montre le panneau d'ordre lui-même |
 | Icône de la fiche | `src/extension-src/icons/icon-128.png` — nouvelle marque de la 0.3.2 |
 | Visuels promotionnels | `store/promo/promo-440x280.jpg` et `store/promo/marquee-1400x560.jpg` — inchangés |
 | Note de version | Lue dans `CHANGELOG.md` / `CHANGELOG.fr.md`, entrée `0.4.0` |

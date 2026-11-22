@@ -8,7 +8,7 @@ Les captures déposées ici partent sur la fiche du Chrome Web Store.
 
 ## Ce qui est en place
 
-Neuf captures, toutes en **1280 × 800**, toutes en RGB sans transparence — le
+Dix captures, toutes en **1280 × 800**, toutes en RGB sans transparence — le
 magasin en accepte cinq au maximum **par langue**, et la documentation
 recommande de les remplir :
 
@@ -60,12 +60,18 @@ Une ancienne `01-fenetre-popup-fr.jpg` (1280 × 800, capture d'écran manuelle d
 un bouton « Tout effacer », et un autre qui n'existe plus — que la version
 déposée n'a plus.
 
+Les deux `01` ont été **régénérées pour la 0.4.0**, le 22 novembre 2026. Le
+stockage d'exemple porte désormais la mention **acceptée**, avec la version
+courante du texte : c'est l'état d'un utilisateur qui l'a déjà lue, et sans cela
+le bandeau de consentement recouvrait la moitié de la liste. La capture `04`
+montre la mention elle-même ; `01` montre la fenêtre ensuite.
+
 `02`, `03`, `04` et `05` sont produites par `scripts/capture-store-shots.mjs` sur
 un **contenu d'exemple** : elles montrent donc la collection d'exemple, avec ses
 tags, ses notes et son nom — et non trois fois la même adresse. Elles ont été
-**régénérées pour la soumission 0.3.2**, après le déplacement d'« Enregistrer »
-et « Nouvelle » sous le nom de collection, la validation explicite du nom et le
-panneau de confirmation de suppression : les captures montrent donc l'interface
+**régénérées pour la soumission 0.4.0**, le 22 novembre 2026 : la barre de
+collection montre les commandes alignées « Réorganiser » et « Supprimer », et le
+panneau de suppression s'ouvre sous elles. Les captures montrent donc l'interface
 réellement déposée.
 
 **Deux contenus, un par langue.** La fiche française se sert de
@@ -77,8 +83,9 @@ française au milieu d'une interface anglaise. Les adresses du fichier anglais
 sont des équivalents anglais ou internationaux (Wikipédia anglais, IKEA UK,
 Europa, Thomann international…), relevés le 4 novembre 2026.
 
-`05` est nouvelle. Sa mise en scène est celle de la 0.3.0, et elle est réelle :
-le script **tape** un nom, vérifie que l'aide d'attente dit ce qu'elle doit dire
+`05` est nouvelle. Sa mise en scène est celle de la 0.3.0, rejouée pour la
+0.4.0, et elle est réelle : le script **tape** un nom, vérifie que l'aide
+d'attente dit ce qu'elle doit dire
 (« Nom en attente… » ou « Pending name… », selon la langue), clique
 « Enregistrer » (il refuse de continuer si le bouton est resté inactif), puis
 ouvre le panneau de suppression de la collection qui vient d'être renommée. Pour
@@ -131,8 +138,8 @@ maquette, pas d'écran inventé.
 Pour ce projet, cinq captures qui se répondent :
 
 1. La fenêtre de l'extension, avec quelques liens déjà collectés. — **en place**
-   (`01`), mais prise sur une interface antérieure : **à refaire** si un emplacement
-   se libère, ce qui n'est plus le cas
+   (`01`), régénérée pour la 0.4.0 ; la mention y est acceptée, comme chez un
+   utilisateur qui l'a lue, pour que le bandeau ne recouvre pas la liste.
 2. La collection dans l'application — son nom, sa note, ses tags, ses liens — puis
    la planche qu'on en tire. — **en place** (`02` pour la collection et la mise en
    forme, `03` pour l'étiquette composée : la page entière ne tient pas dans une
@@ -143,7 +150,8 @@ Pour ce projet, cinq captures qui se répondent :
    la montrer appuie la déclaration faite dans les champs de confidentialité. — **en place** (`04`)
 5. La gestion des collections : le sélecteur, le nom saisi puis enregistré, et le
    panneau de confirmation qui nomme la collection et compte les liens perdus. —
-   **en place** (`05`, nouvelle). C'était le sujet de la 0.3.0, et elle remplace le
+   **en place** (`05`, régénérée pour la 0.4.0). La barre de collection y montre
+   les deux commandes alignées, « Réorganiser » et « Supprimer ». Elle remplace le
    menu contextuel prévu au plan : celui-ci est natif, donc impossible à capturer
    depuis le contenu web, et l'emplacement était le cinquième et dernier.
 
