@@ -2,7 +2,7 @@
 
 **But** : transformer « c'est mieux » en une note reproductible sur 5, itération après itération, jusqu'à **4,8**. Le barème ne juge pas le goût : il juge ce qui se mesure, et laisse au jugement ce qui ne se mesure pas — en le bornant par des critères explicites.
 
-**Version auditée** : 0.4.0, branche `extension-layout-improvement` — **2,3 / 5** (détail dans [audit-ui-ux-2026-11-22.md](audit-ui-ux-2026-11-22.md)).
+**Version auditée** : 0.4.0, branche `extension-layout-improvement` — **2,3 / 5** (détail dans [audit-ui-ux-2026-11-22.md](audit-ui-ux-2026-11-22.md)). **Plan de sortie vers > 4,5** : [atteindre-4-5.md](atteindre-4-5.md).
 
 ---
 
