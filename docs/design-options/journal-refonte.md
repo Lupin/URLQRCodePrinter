@@ -211,6 +211,26 @@ La feuille devient un objet posé, qu'on regarde de près ou de loin.
 
 ---
 
+## I4b — Sortie : dire ce qui va sortir, et quoi faire quand ça bloque · 22 novembre 2026
+
+**Tag** : `checkpoint/i4b` · **Tickets fermés** : #43 · **Tickets avancés** : #41, #42 · **Note provisoire** : **3,7 / 5**.
+
+| Mesure | Avant I4b | Après I4b | Preuve |
+|---|---|---|---|
+| Avant impression | clic → boîte système, sans rien dire | **résumé** « Imprimer 10 liens sur 1 page (A4 (210 × 297 mm)). » + Annuler / Imprimer | capture + `mesures-i4b.json` |
+| Après impression | rien | **« Impression terminée ou annulée. »** — sans prétendre que le papier est sorti | code |
+| Primaires pendant la confirmation | — | **1** : le bouton du pied s'efface, celui du résumé prend la place | capture |
+| Accord des pages | « sur 1 pages » | **deux accords indépendants** : 10 liens, 1 page | mesure du texte |
+| Refus de longueur (Niimbot) | constat seul | **action** « Changer d'étiquette » (+ « Encoder l'adresse courte » quand un raccourci existe) | capture |
+| Export d'images long | libellé chiffré, sans sortie | **« Arrêter (3/40) »**, arrêt effectif, bilan « Export arrêté : 3 étiquette(s) sur 40. » ou « 40 étiquettes exportées — fichier » | code + test |
+| Tests | 1 109 | **1 113** | `npm test` vert |
+
+**Ce qui reste sur I4** : #40 (cotation et taille réelle), #41 (progression des exports ZIP et de la préparation papier), #42 (avertissements de la planche et du tableau, pas seulement de l'étiquette). C'est le programme d'I4c.
+
+**Écart avec la cible du plan (4,45)** : la mesure donne **3,7**. Les deux paliers I4 ont surtout rendu la sortie **explicite** ; la note de finition viendra de la passe générale (I6).
+
+---
+
 ## Dettes de finition (assumées, pour I6)
 
 Consignées au fil des revues, traitées lors de la **passe générale** avant la note 4,8 :

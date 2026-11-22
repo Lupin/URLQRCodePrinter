@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>URLQRCodePrinter</title>
-  <link rel="stylesheet" href="style.css?v=3451372b274e">
+  <link rel="stylesheet" href="style.css?v=729608de399e">
   <link rel="icon" type="image/png" href="icons/icon-32.png">
 </head>
 <body>
@@ -963,6 +963,18 @@
       <!-- Une seule action primaire par vue : la sortie du mode actif. Les
            exports secondaires restent au-dessus, en aplat neutre. -->
       <div id="panel-actions" class="panel__actions inspector__foot">
+        <!-- Résumé avant impression : portée, pages, format. La boîte système
+             ne dit que « imprimer » ; ce qui va sortir se décide ici. -->
+        <div id="print-confirm" class="print-confirm" role="group"
+             aria-labelledby="print-confirm-text" hidden>
+          <p id="print-confirm-text" class="print-confirm__text"></p>
+          <div class="print-confirm__actions">
+            <button id="print-confirm-cancel" class="btn btn--ghost btn--small" type="button"
+                    data-i18n="Annuler">Annuler</button>
+            <button id="print-confirm-go" class="btn btn--primary btn--small" type="button"
+                    data-i18n="Imprimer">Imprimer</button>
+          </div>
+        </div>
         <button id="export-table" class="btn btn--ghost btn--fill" type="button" hidden disabled data-i18n="Exporter le tableau (ZIP)">
           Exporter le tableau (ZIP)
         </button>
@@ -982,9 +994,11 @@
           Exporter ces étiquettes (ZIP)
         </button>
         <button id="export-labels" class="btn btn--primary" type="button" disabled hidden
-                data-action-mode="images" data-i18n="Exporter les images (ZIP)">
+                data-action-mode="images" aria-live="polite" data-i18n="Exporter les images (ZIP)">
           Exporter les images (ZIP)
         </button>
+        <button id="export-stop" class="btn btn--ghost btn--small" type="button" hidden
+                data-i18n="Arrêter">Arrêter</button>
       </div>
 
     </aside>
@@ -1030,6 +1044,6 @@
 
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
-  <script type="module" src="app.js?v=57943b38f246"></script>
+  <script type="module" src="app.js?v=d8a9e260ea15"></script>
 </body>
 </html>

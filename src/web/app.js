@@ -5417,6 +5417,24 @@ function renderSingleLabel(link) {
   // **sur** l'aperçu, alors elle vit à côté de lui.
   el.preview.appendChild(frame);
   el.preview.appendChild(caption);
+
+  // Un refus sans remède oblige à deviner. Les deux gestes qui le font taire
+  // sont ici : encoder le raccourci déjà présent, ou changer d'étiquette.
+  if (!verdict.ok) {
+    const actions = document.createElement('div');
+    actions.className = 'preview__actions';
+    if (hasShortUrl(link) && el.qrTarget.value !== 'short') {
+      actions.append(button(t("Encoder l'adresse courte"), 'btn btn--primary btn--small', () => {
+        el.qrTarget.value = 'short';
+        el.qrTarget.dispatchEvent(new Event('change'));
+        renderPreview();
+      }));
+    }
+    actions.append(button(t("Changer d'étiquette"), 'btn btn--ghost btn--small', () => {
+      document.getElementById('label-format')?.focus();
+    }));
+    el.preview.appendChild(actions);
+  }
   updateProfileHint();
 }
 
@@ -5941,6 +5959,14 @@ async function exportLabelImages() {
 
   const options = readLabelOptions();
   el.exportLabels.disabled = true;
+  const stop = document.getElementById('export-stop');
+  let arret = false;
+  let faites = 0;
+  if (stop) {
+    stop.hidden = false;
+    stop.disabled = false;
+    stop.addEventListener('click', () => { arret = true; stop.disabled = true; }, { once: true });
+  }
 
   try {
     const planned = planLabels(items, {
@@ -5963,12 +5989,25 @@ async function exportLabelImages() {
 
     const images = new Map();
     for (const [index, entry] of planned.entries()) {
+      if (arret) break;
       el.exportLabels.textContent = t('Étiquette {index}/{total}…', {
         index: index + 1,
         total: planned.length,
       });
+      if (stop) {
+        stop.textContent = t('Arrêter ({index}/{total})', { index: index + 1, total: planned.length });
+      }
       const { png } = await renderLabelPng(entry.link, options);
       images.set(entry.fileName, png);
+      faites += 1;
+    }
+
+    if (arret) {
+      toast(t('Export arrêté : {faites} étiquette(s) sur {total}.', {
+        faites,
+        total: planned.length,
+      }), 'info');
+      return;
     }
 
     el.exportLabels.textContent = t('Assemblage…');
@@ -5985,8 +6024,8 @@ async function exportLabelImages() {
       ok
         ? tpl(
           planned.length,
-          '{count} étiquette — {filename} enregistré',
-          '{count} étiquettes — {filename} enregistré',
+          '{count} étiquette exportée — {filename}',
+          '{count} étiquettes exportées — {filename}',
           { filename },
         )
         : t('Téléchargement impossible'),
@@ -5999,6 +6038,7 @@ async function exportLabelImages() {
     // nombre restent ceux de la collection au moment où l'on regarde.
     el.exportLabels.textContent = exportImagesLabel(items.length);
     el.exportLabels.disabled = items.length === 0;
+    if (stop) { stop.hidden = true; stop.textContent = t('Arrêter'); }
   }
 }
 
@@ -6018,6 +6058,65 @@ async function exportLabelImages() {
  * @type {string|null}
  */
 let modeRacineImpression = null;
+
+/**
+ * Combien de pages la vue courante va sortir.
+ *
+ * Le nombre est celui du rendu réel, pas une estimation : la boîte système ne
+ * dit rien avant d'imprimer, et c'est exactement ce qu'on veut savoir.
+ *
+ * @param {object[]} items
+ * @returns {number}
+ */
+function pagesImprimees(items) {
+  if (mode === 'table') return buildTablePages(items, { preview: true }).length;
+  if (mode === 'sheet') return buildSheetPages(items).length;
+  return 1;
+}
+
+/** Le papier de la vue courante, dit comme dans la légende. */
+function papierImprime() {
+  if (mode === 'table') return PAGE_SIZES.a4?.label ?? 'A4';
+  if (mode === 'sheet') {
+    const config = sheetConfig();
+    return PAGE_SIZES[config.page]?.label ?? '';
+  }
+  return previewProfile().id;
+}
+
+/** Demande confirmation, en disant ce qui va sortir. */
+function demanderImpression() {
+  const items = printableLinks();
+  if (items.length === 0) return;
+  const texte = document.getElementById('print-confirm-text');
+  if (texte) {
+    // Deux accords indépendants : le nombre de liens et celui des pages ne
+    // varient pas ensemble (10 liens tiennent sur 1 page).
+    const portee = tpl(items.length, 'Imprimer {count} lien', 'Imprimer {count} liens', { count: items.length });
+    const pages = pagesImprimees(items);
+    const feuilles = tpl(pages, 'sur {count} page', 'sur {count} pages', { count: pages });
+    texte.textContent = `${portee} ${feuilles} (${papierImprime()}).`;
+  }
+  const panneau = document.getElementById('print-confirm');
+  if (!panneau) {
+    printSelection();
+    return;
+  }
+  panneau.hidden = false;
+  // Une seule action primaire à l'écran : le bouton du pied s'efface le temps
+  // de la confirmation, sinon deux « Imprimer » se disputent le clic.
+  el.print.hidden = true;
+  document.getElementById('print-confirm-go')?.focus();
+}
+
+/** Referme la confirmation sans imprimer, et rend le focus au bouton. */
+function annulerImpression() {
+  const panneau = document.getElementById('print-confirm');
+  if (!panneau || panneau.hidden) return;
+  panneau.hidden = true;
+  el.print.hidden = !(mode === 'sheet' || mode === 'table');
+  el.print.focus();
+}
 
 /** Prépare la racine d'impression puis ouvre la boîte de dialogue système. */
 function printSelection() {
@@ -6048,6 +6147,9 @@ function printSelection() {
     el.printRoot.textContent = '';
     modeRacineImpression = null;
     window.removeEventListener('afterprint', cleanup);
+    // La boîte système ne rend pas de verdict : on dit simplement qu'elle est
+    // refermée, sans prétendre que le papier est sorti.
+    toast(t('Impression terminée ou annulée.'));
   };
   window.addEventListener('afterprint', cleanup);
 
@@ -6735,6 +6837,11 @@ function switchMode(next) {
 
   const scene = document.querySelectorAll('.stage')[0];
   if (scene) scene.dataset.mode = next;
+  const confirmation = document.getElementById('print-confirm');
+  if (confirmation && !confirmation.hidden) {
+    confirmation.hidden = true;
+    el.print.hidden = !(next === 'sheet' || next === 'table');
+  }
   rendreZoom();
 
   // Les actions du pied de l'inspecteur suivent le mode : une seule sortie
@@ -7700,7 +7807,22 @@ el.labelMargin.addEventListener('input', renderPreview);
 el.labelFont.addEventListener('input', renderPreview);
 el.labelCut.addEventListener('change', renderPreview);
 el.exportLabels.addEventListener('click', exportLabelImages);
-el.print.addEventListener('click', printSelection);
+el.print.addEventListener('click', demanderImpression);
+document.getElementById('print-confirm-cancel')?.addEventListener('click', annulerImpression);
+document.getElementById('print-confirm-go')?.addEventListener('click', () => {
+  const panneau = document.getElementById('print-confirm');
+  if (panneau) panneau.hidden = true;
+  el.print.hidden = !(mode === 'sheet' || mode === 'table');
+  printSelection();
+});
+document.addEventListener('keydown', (event) => {
+  if (event.key !== 'Escape') return;
+  const panneau = document.getElementById('print-confirm');
+  if (panneau && !panneau.hidden) {
+    event.preventDefault();
+    annulerImpression();
+  }
+});
 el.connect.addEventListener('click', connectPrinter);
 el.disconnect.addEventListener('click', disconnectPrinter);
 el.exportNiimbot.addEventListener('click', () => {
