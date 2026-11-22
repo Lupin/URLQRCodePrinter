@@ -1048,7 +1048,10 @@ test("l'aperçu prend la place offerte, sans dépasser la taille réelle", () =>
   const app = readFileSync(join(WEB, 'app.js'), 'utf8');
   // Le plafond de 0,6 faisait qu'une A4 n'occupait jamais plus de 476 px.
   assert.doesNotMatch(app, /Math\.min\(0\.6,/);
-  assert.match(app, /const scale = Math\.min\(1, available \/ tailleReelle\)/);
+  // Le plafond reste la taille réelle **à l'ajustement** (zoom 1) ; au-delà,
+  // c'est le zoom demandé par l'utilisateur qui fait foi.
+  assert.match(app, /const scale = Math\.min\(zoomApercu, available \/ tailleReelle\)/);
+  assert.match(app, /let zoomApercu = 1;/);
   // Et les trois rendus qui mettent à l'échelle partagent la même mesure.
   const usages = [...app.matchAll(/largeurUtileApercu\(\)/g)].length;
   assert.ok(usages >= 3, `seulement ${usages} usage(s) de la largeur utile`);

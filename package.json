@@ -18,7 +18,7 @@
   },
   "scripts": {
     "pretest": "node scripts/build.mjs",
-    "test": "node --test 'test/*.test.js'",
+    "test": "node --test --test-concurrency=4 'test/*.test.js'",
     "test:swift": "node scripts/test-swift.mjs",
     "test:all": "npm test && npm run test:swift",
     "build": "node scripts/build.mjs",

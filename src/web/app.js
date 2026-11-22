@@ -4897,6 +4897,48 @@ function updateHeaderNoteOptions() {
 }
 
 /** Redessine l'aperçu selon le mode actif. */
+/** Niveaux de zoom de la scène ; 1 = ajusté à la place disponible. */
+const NIVEAUX_ZOOM = [0.5, 0.67, 0.8, 1, 1.25, 1.5, 2];
+let zoomApercu = 1;
+
+/**
+ * Le zoom agit sur la largeur offerte au rendu, pas sur une transformation CSS :
+ * le QR Code reste dessiné à la bonne échelle, et les pages gardent leurs
+ * proportions. Au-delà de 1, l'utilisateur demande explicitement de dépasser
+ * l'ajustement — la scène défile alors horizontalement.
+ */
+function rendreZoom() {
+  const box = document.getElementById('stage-zoom');
+  if (box) box.hidden = !(mode === 'sheet' || mode === 'table');
+  const valeur = document.getElementById('zoom-value');
+  if (valeur) valeur.textContent = `${Math.round(zoomApercu * 100)} %`;
+  const fit = document.getElementById('zoom-fit');
+  if (fit) fit.disabled = zoomApercu === 1;
+  const sortie = document.getElementById('zoom-out');
+  if (sortie) sortie.disabled = zoomApercu <= NIVEAUX_ZOOM[0];
+  const entree = document.getElementById('zoom-in');
+  if (entree) entree.disabled = zoomApercu >= NIVEAUX_ZOOM[NIVEAUX_ZOOM.length - 1];
+}
+
+function changerZoom(direction) {
+  const index = NIVEAUX_ZOOM.findIndex((niveau) => niveau >= zoomApercu - 0.001);
+  const suivant = index === -1
+    ? NIVEAUX_ZOOM.length - 1
+    : index + direction;
+  const borne = Math.min(NIVEAUX_ZOOM.length - 1, Math.max(0, suivant));
+  if (NIVEAUX_ZOOM[borne] === zoomApercu) return;
+  zoomApercu = NIVEAUX_ZOOM[borne];
+  rendreZoom();
+  renderPreview();
+}
+
+/** Échelle absolue de la première page affichée, en pourcentage du papier. */
+function echelleAffichee() {
+  const cadre = el.preview.querySelector('.preview__frame');
+  const echelle = Number(cadre?.dataset?.scale);
+  return Number.isFinite(echelle) && echelle > 0 ? Math.round(echelle * 100) : null;
+}
+
 function renderPreview() {
   // La largeur utile de ce rendu, retenue pour que l'observateur de taille plus
   // bas sache si elle a changé.
@@ -4979,14 +5021,34 @@ function renderPreview() {
     const legende = document.createElement('div');
     legende.className = 'hint preview__caption';
     legende.appendChild(ligneDeLegende(tableauPagesFact(items.length, pagesTableau.length)));
+    const echelleTableau = echelleAffichee();
+    if (echelleTableau !== null) {
+      legende.appendChild(ligneDeLegende(t('Aperçu à {percent} % de la taille réelle.', { percent: echelleTableau })));
+    }
     el.preview.appendChild(legende);
+    rendreZoom();
     return;
   }
 
-  // Planche : on affiche les deux premières pages, à l'échelle.
-  for (const page of buildSheetPages(items).slice(0, 2)) {
+  // Planche : on affiche les deux premières pages, à l'échelle. La légende dit
+  // le nombre de feuilles, le format et l'échelle absolue — les trois faits
+  // qu'on ne peut pas deviner avant d'imprimer.
+  const pages = buildSheetPages(items);
+  for (const page of pages.slice(0, 2)) {
     el.preview.appendChild(scaleForScreen(page));
   }
+  const legende = document.createElement('div');
+  legende.className = 'hint preview__caption';
+  legende.appendChild(ligneDeLegende(tpl(pages.length, '{count} page', '{count} pages')));
+  const config = sheetConfig();
+  const papier = PAGE_SIZES[config.page];
+  if (papier) legende.appendChild(ligneDeLegende(papier.label));
+  const echellePlanche = echelleAffichee();
+  if (echellePlanche !== null) {
+    legende.appendChild(ligneDeLegende(t('Aperçu à {percent} % de la taille réelle.', { percent: echellePlanche })));
+  }
+  el.preview.appendChild(legende);
+  rendreZoom();
 }
 
 /**
@@ -5026,7 +5088,7 @@ function previewViewportWidth() {
 function scaleForScreen(page) {
   const widthMm = Number.parseFloat(page.style.width);
   const heightMm = Number.parseFloat(page.style.height);
-  const available = largeurUtileApercu();
+  const available = largeurUtileApercu() * zoomApercu;
   const tailleReelle = widthMm * PX_PER_MM;
   // **La place disponible fait l'échelle**, et le plafond est la taille réelle.
   //
@@ -5039,7 +5101,9 @@ function scaleForScreen(page) {
   // La borne haute reste 1 : l'aperçu ne grossit pas la page au-delà de sa
   // taille physique. Au-delà, il n'apprend plus rien et fait croire à un
   // document plus grand qu'il n'est.
-  const scale = Math.min(1, available / tailleReelle);
+  // La borne haute est le zoom demandé : à 100 %, l'aperçu ne dépasse pas la
+  // taille physique ; au-delà, c'est l'utilisateur qui l'a demandé.
+  const scale = Math.min(zoomApercu, available / tailleReelle);
 
   const frame = document.createElement('div');
   frame.className = 'preview__frame';
@@ -5055,6 +5119,7 @@ function scaleForScreen(page) {
   page.style.transform = `scale(${scale})`;
   page.style.transformOrigin = 'top left';
 
+  frame.dataset.scale = String(scale);
   frame.appendChild(page);
   return frame;
 }
@@ -6670,6 +6735,7 @@ function switchMode(next) {
 
   const scene = document.querySelectorAll('.stage')[0];
   if (scene) scene.dataset.mode = next;
+  rendreZoom();
 
   // Les actions du pied de l'inspecteur suivent le mode : une seule sortie
   // primaire par vue.
@@ -7285,6 +7351,15 @@ el.exportTable.addEventListener('click', exportTableArchive);
 el.exportSheet.addEventListener('click', exportSheetArchive);
 
 document.getElementById('detail-back')?.addEventListener('click', () => fermerDetail());
+
+document.getElementById('zoom-in')?.addEventListener('click', () => changerZoom(1));
+document.getElementById('zoom-out')?.addEventListener('click', () => changerZoom(-1));
+document.getElementById('zoom-fit')?.addEventListener('click', () => {
+  if (zoomApercu === 1) return;
+  zoomApercu = 1;
+  rendreZoom();
+  renderPreview();
+});
 
 el.import.addEventListener('click', () => el.importFile.click());
 el.importFile.addEventListener('change', async () => {

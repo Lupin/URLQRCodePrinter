@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>URLQRCodePrinter</title>
-  <link rel="stylesheet" href="style.css?v=fef4dc5df446">
+  <link rel="stylesheet" href="style.css?v=3451372b274e">
   <link rel="icon" type="image/png" href="icons/icon-32.png">
 </head>
 <body>
@@ -328,6 +328,18 @@
       <div class="stage__bar">
         <span id="stage-title" class="stage__title">Planche d'étiquettes</span>
         <span id="stage-hint" class="stage__hint mono"></span>
+        <!-- Zoom de la scène : 100 % = ajusté à la place disponible. La légende
+             sous la feuille donne, elle, l'échelle absolue par rapport au
+             papier. -->
+        <div id="stage-zoom" class="stage__zoom" hidden>
+          <button id="zoom-out" class="stage__zoom-btn" type="button"
+                  aria-label="Zoom arrière" data-i18n-aria-label="Zoom arrière">−</button>
+          <span id="zoom-value" class="stage__zoom-value mono" aria-live="polite">100 %</span>
+          <button id="zoom-in" class="stage__zoom-btn" type="button"
+                  aria-label="Zoom avant" data-i18n-aria-label="Zoom avant">+</button>
+          <button id="zoom-fit" class="btn btn--ghost btn--small" type="button"
+                  data-i18n="Ajuster">Ajuster</button>
+        </div>
       </div>
       <div class="stage__surface">
         <div class="preview">
@@ -1018,6 +1030,6 @@
 
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
-  <script type="module" src="app.js?v=adeab900aa8c"></script>
+  <script type="module" src="app.js?v=57943b38f246"></script>
 </body>
 </html>

@@ -187,6 +187,30 @@ L'édition quitte la ligne. Le volet de collection cède sa place au détail, au
 
 ---
 
+## I4a — La scène comme plan de travail · 22 novembre 2026
+
+**Tag** : `checkpoint/i4a` · **Ticket fermé** : #39 · **Note provisoire** : **3,6 / 5**.
+
+La feuille devient un objet posé, qu'on regarde de près ou de loin.
+
+| Mesure | Avant I4a | Après I4a | Preuve |
+|---|---|---|---|
+| Cadre de feuille | page blanche sur fond clair, sans bord | **bord de 1 px** + **ombre unique** (`--shadow-sheet`) | mesure des styles |
+| Échelle absolue | implicite | **« Aperçu à 54 % de la taille réelle »** sous la feuille | `mesures-i4a.json` |
+| Pages | deux premières affichées, sans le dire | **« 4 pages · A4 (210 × 297 mm) · 54 % »** | idem |
+| Zoom | absent | **100 % / 125 % / 150 %**, valeur affichée, ajustement à 100 % | cadre 430 → 538 → 645 px |
+| Zoom sur étiquette/image | — | **masqué** : il n'y a pas de page à régler | mesure |
+| Tests | 1 109 | **1 109**, stables sur 4 exécutions | `npm test` |
+
+**Deux défauts de méthode corrigés en chemin** :
+
+1. **La suite était instable sous charge** (un test de la fenêtre échouait une fois sur trois, un autre à chaque fois selon l'ordre). Les attentes de démarrage sont passées de « deux tours de boucle » à **l'état attendu** (`waitFor`, 10 s), et la concurrence des fichiers de test est bornée à 4 (`--test-concurrency=4`). Quatre exécutions consécutives, zéro échec.
+2. **Un test d'échelle encodait la formule** (`Math.min(1, …)`). Il vérifie maintenant le sens : à l'ajustement, l'aperçu ne dépasse pas la taille physique ; au-delà, c'est le zoom demandé qui fait foi.
+
+**Reste pour I4b** : cotation et taille réelle (#40), progression/arrêt des opérations longues (#41), avertissements actionnables (#42), retour d'impression papier (#43).
+
+---
+
 ## Dettes de finition (assumées, pour I6)
 
 Consignées au fil des revues, traitées lors de la **passe générale** avant la note 4,8 :

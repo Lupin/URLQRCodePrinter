@@ -125,7 +125,7 @@ const settle = async (turns = 5) => {
  * @param {{ timeout?: number, interval?: number }} [options]
  * @returns {Promise<boolean>}
  */
-async function waitFor(check, { timeout = 3000, interval = 10 } = {}) {
+async function waitFor(check, { timeout = 10000, interval = 10 } = {}) {
   const fin = Date.now() + timeout;
   for (;;) {
     if (check()) return true;
@@ -612,11 +612,13 @@ test('sans consentement, la fenêtre n\'enregistre rien et ouvre la mention', as
   // un suffirait à contourner la mention.
   const state = installChrome();
   await loadFresh('popup.js');
-  await settle();
-  await settle();
+  // La fenêtre doit être **prête** avant le clic : sous charge, deux tours de
+  // boucle ne suffisaient pas, et le clic partait avant que le gestionnaire
+  // soit branché.
+  await waitFor(() => dom.element('consent-notice')?.hidden === false);
 
   await dom.fire('add-current', 'click');
-  await settle();
+  await waitFor(() => state.tabsCreated.some((url) => url.endsWith('privacy.html')));
 
   assert.deepEqual(state.stored.links ?? [], [], 'aucun lien ne doit être enregistré');
   assert.ok(
@@ -630,8 +632,7 @@ test('l\'encart de confidentialité est visible tant que rien n\'est accepté', 
   // ouvrirait un onglet sans raison apparente.
   installChrome();
   await loadFresh('popup.js');
-  await settle();
-  await settle();
+  await waitFor(() => dom.element('consent-notice')?.hidden === false);
 
   assert.equal(dom.element('consent-notice').hidden, false);
 });
@@ -642,7 +643,10 @@ test('l\'encart disparaît une fois la mention acceptée', async () => {
   // On attend l'**état**, et non un délai : sous charge, un nombre fixe de tours
   // laissait le démarrage inachevé, et le test échouait sans que rien ne soit
   // cassé.
-  await waitFor(() => dom.element('consent-notice')?.hidden === true);
+  // Sous la suite complète, les fichiers tournent en parallèle : le démarrage
+  // peut dépasser trois secondes de contention. L'attente reste sur l'état, mais
+  // avec une marge qui ne dépend pas de la charge de la machine.
+  await waitFor(() => dom.element('consent-notice')?.hidden === true, { timeout: 10000 });
 
   assert.equal(dom.element('consent-notice').hidden, true);
 });
@@ -660,7 +664,7 @@ test('la fenêtre affiche une erreur plutôt que de rester muette', async () => 
   await waitFor(() => {
     const texte = dom.element('current-tab')?.textContent ?? '';
     return texte !== '' && texte !== 'Chargement…';
-  });
+  }, { timeout: 10000 });
 
   const currentTab = dom.element('current-tab');
   assert.ok(currentTab, 'la fenêtre doit avoir affiché quelque chose');
