@@ -269,6 +269,23 @@ Signalé en revue : « en mode planche, l'écart entre étiquettes crée une mar
 
 Preuves : `.audit/captures-ecart/titre-long-ecart-1.png`, `titre-long-ecart-10.png`, `mesures-ecart2.json`.
 
+## I4d — Progression et arrêt des archives · 22 novembre 2026
+
+**Tag** : `checkpoint/i4d` · **Ticket fermé** : #41 · **Note provisoire** : **3,85 / 5**.
+
+| Opération | Durée mesurée (400 liens) | Progression | Arrêt | Bilan |
+|---|---|---|---|---|
+| Archive de la planche | **148 ms** | écho « Préparation… » (peint avant le travail) | — | toast « fichier enregistré » |
+| Archive du tableau | **~1 000 ms** | **« QR Code 12/40… »** | **Arrêter (12/40)**, coopératif | **« Export arrêté : 12 QR Code(s) sur 40. »** |
+| Export d'images | boucle chiffrée | **« Étiquette 3/40… »** | oui | bilan « 40 étiquettes exportées » |
+| Série Niimbot | série existante | chiffrée | oui | bilan |
+
+**Ce qui a changé** : `buildTableArchive` accepte un **arrêt coopératif** (`shouldStop`) et rend `{ aborted, done, total }` ; l'export du tableau affiche le compte de QR Codes, un bouton Arrêter, et le bilan d'arrêt. Les opérations mesurées sous la seconde gardent l'écho seul, conformément au critère (« écho < 100 ms ; progression chiffrée au-delà d'1 s »).
+
+**Mesure** : `.audit/captures-i4d/mesures-exports.json` (planche 148 ms, tableau ~1 000 ms, compteur de QR Codes).
+
+**I4 est complet** : #39 canvas, #40 cotation, #41 progression, #42 avertissements, #43 retour d'impression, #55 numérotation, #56 écart des étiquettes.
+
 ## Dettes de finition (assumées, pour I6)
 
 Consignées au fil des revues, traitées lors de la **passe générale** avant la note 4,8 :

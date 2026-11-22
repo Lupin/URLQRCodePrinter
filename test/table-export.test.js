@@ -232,3 +232,15 @@ test('sans colonne QR Code, l\'archive ne contient aucune image', async () => {
   assert.deepEqual(model.columns, ['url']);
   assert.ok(![...readStoredZip(bytes).keys()].some((name) => name.startsWith('qr/')));
 });
+
+test('l’archive du tableau peut être arrêtée en cours de génération', async () => {
+  const { bytes, aborted, done, total } = await buildTableArchive(sample(), {
+    columns: { url: true, qr: true },
+    now: T0,
+    shouldStop: () => true,
+  });
+  assert.equal(aborted, true);
+  assert.equal(bytes, null);
+  assert.equal(done, 0);
+  assert.ok(total > 0, 'le total doit être connu pour le bilan');
+});

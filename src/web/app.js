@@ -7379,18 +7379,41 @@ async function exportTableArchive() {
   const label = el.exportTable.textContent;
   el.exportTable.disabled = true;
   el.exportTable.textContent = t('Génération…');
+  const stop = document.getElementById('export-stop');
+  let arret = false;
+  let faits = 0;
+  let total = 0;
+  if (stop) {
+    stop.hidden = false;
+    stop.disabled = false;
+    stop.addEventListener('click', () => { arret = true; stop.disabled = true; }, { once: true });
+  }
 
   try {
-    const { bytes } = await buildTableArchive(items, {
+    const resultat = await buildTableArchive(items, {
       title: collectionName(),
       columns: tableColumns(),
       dateMode: tableDateMode(),
       // Le rang de la collection, celui que porte le tableau imprimé.
       rankOf: (link, index) => linkRanks.get(link.id) ?? index + premierNumero(),
-      onProgress: (done, total) => {
-        el.exportTable.textContent = t('QR Code {done}/{total}…', { done, total });
+      onProgress: (done, compte) => {
+        faits = done;
+        total = compte;
+        el.exportTable.textContent = t('QR Code {done}/{total}…', { done, total: compte });
+        if (stop) {
+          stop.textContent = t('Arrêter ({index}/{total})', { index: done, total: compte });
+        }
       },
+      shouldStop: () => arret,
     });
+    if (resultat.aborted) {
+      toast(t('Export arrêté : {faites} QR Code(s) sur {total}.', {
+        faites: resultat.done ?? faits,
+        total: resultat.total ?? total,
+      }), 'info');
+      return;
+    }
+    const { bytes } = resultat;
     const filename = exportFilename(collectionName(), 'zip');
     const ok = downloadBytes(filename, bytes, { mime: 'application/zip' });
     toast(ok ? t('{filename} enregistré', { filename }) : t('Téléchargement impossible'), ok ? 'info' : 'error');
@@ -7399,6 +7422,7 @@ async function exportTableArchive() {
   } finally {
     el.exportTable.textContent = label;
     el.exportTable.disabled = items.length === 0 || !hasAnyTableColumn();
+    if (stop) { stop.hidden = true; stop.textContent = t('Arrêter'); }
   }
 }
 

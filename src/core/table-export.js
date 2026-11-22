@@ -312,6 +312,11 @@ export async function buildTableArchive(links, options = {}) {
   let done = 0;
   for (const row of model.rows) {
     if (!row.qr) continue;
+    // Arrêt coopératif : la génération des QR Codes est la partie longue, et
+    // elle se découpe naturellement en autant de tours que d'images.
+    if (options.shouldStop?.()) {
+      return { bytes: null, model, aborted: true, done, total: images.size };
+    }
     const image = images.get(row.qr.file);
     const png = await encodePng(rgbaFromQr(image.matrix, image.scale));
     entries.push({ name: row.qr.file, data: png });

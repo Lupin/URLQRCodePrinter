@@ -236,6 +236,7 @@ export const EN_MESSAGES = {
   "Changer d'étiquette": "Change label",
   "Arrêter ({index}/{total})": "Stop ({index}/{total})",
   "Export arrêté : {faites} étiquette(s) sur {total}.": "Export stopped: {faites} of {total} labels.",
+  "Export arrêté : {faites} QR Code(s) sur {total}.": "Export stopped: {faites} of {total} QR Codes.",
   "{count} étiquette exportée — {filename}": "{count} label exported — {filename}",
   "{count} étiquettes exportées — {filename}": "{count} labels exported — {filename}",
   "Exporter, importer et vider": "Export, import and clear",
