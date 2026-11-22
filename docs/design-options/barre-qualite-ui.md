@@ -80,7 +80,7 @@ Quatre questions, dans cet ordre, et une note argumentée en une phrase :
 | Actuel | 2,3 | Fonctionnel, fabriqué, non dessiné. On s'en sert parce qu'on en a besoin. |
 | I0 | 2,5 | Les défauts qui coûtent une erreur sont réparés ; le dessin n'a pas bougé. |
 | I1 | 3,1 | La structure tient : on voit ce qu'on fait. |
-| I2 | 3,7 | Le système tient : rien ne jure, on apprend une fois. |
+| I2 | 3,3 mesuré (cible 3,7 non tenue) | Le système tient : rien ne jure, on apprend une fois. Les points manquants sont dans la liste et la sortie (I3, I4). |
 | I3 | 4,1 | La liste est un outil : on va vite. |
 | I4 | 4,45 | La sortie est le produit : on comprend en regardant. |
 | I5 | 4,65 | Le produit a une voix et une matière. |
