@@ -876,7 +876,8 @@ test('les deux groupes se voient sans être lus', () => {
   assert.ok(css.match(/\.sheet-group__title\s*\{/), 'aucun titre pour les groupes');
   assert.doesNotMatch(css, /\.sheet-group\s*>\s*legend\s*\{/, 'plus de légende dans la boîte flexible');
   // Les deux groupes se replient comme « Cible et raccourcissement ».
-  assert.match(html, /<details class="sheet-group" open>/);
+  assert.match(html, /<details class="sheet-group">/);
+  assert.doesNotMatch(html, /<details class="sheet-group" open>/);
   assert.match(html, /<summary id="sheet-group-page" class="sheet-group__title" data-i18n="Page">Page<\/summary>/);
   assert.match(html, /<summary id="sheet-group-label" class="sheet-group__title" data-i18n="Étiquette">Étiquette<\/summary>/);
   assert.equal((html.match(/class="sheet-group__body"/g) ?? []).length, 2, 'deux corps de groupe attendus');

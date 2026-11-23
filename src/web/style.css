@@ -2044,7 +2044,7 @@ textarea.input { padding: var(--space-2) var(--space-3); }
 
 .app-footer__links { justify-content: flex-start; gap: var(--space-1) var(--space-4); }
 .app-footer__signature { margin: 0; font-size: var(--type-2xs); }
-.app-footer__link { font-size: var(--type-2xs); }
+.app-footer__link { display: inline-flex; align-items: center; min-height: 24px; font-size: var(--type-2xs); }
 .app-footer__promise { font-size: var(--type-2xs); color: var(--text-3); }
 
 @media (max-width: 1180px) {

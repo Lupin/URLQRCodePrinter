@@ -548,6 +548,23 @@ Les trois écarts qui coûtent la porte : **79 contrôles visibles par défaut**
 
 Détail complet et décisions : `docs/design-options/audit-i7d-2026-11-23.md`. Mesures : `.audit/mesures-i7d/`.
 
+## I7e — Franchir la porte 4,3 · 23 novembre 2026
+
+**Tag** : `checkpoint/i7e` · **Ticket fermé** : #61 · **Note mesurée : 4,36 / 5** (contre 4,24 à I7d, +0,12).
+
+| Mesure | I7d | I7e |
+|---|---|---|
+| Contrôles visibles, 6 liens | 79 | **24** (seuil 40) |
+| Contrôles visibles, 40 liens | 181 | **58** |
+| Cibles < 24 × 24 | 2 | **0** |
+| Polices de contrôles | 13,333 px du navigateur | héritées (4 tailles UI) |
+| Aperçu visible 4 modes, 1440 et 380 | oui | **oui** |
+| 1 primaire, 0 débordement | oui | **oui** |
+
+Les deux leviers : **groupes Page et Étiquette repliés par défaut** (divulgation progressive, chevrons et noms conservés) et **finition des deux cibles** (champ fichier réellement masqué, lien de pied à 24 px). Le reste de la notation ne bouge pas : contrastes, aperçu, marque, états vides sont identiques.
+
+Détail complet : `docs/design-options/audit-i7e-2026-11-23.md`. Mesures : `.audit/mesures-i7d-6liens/` et `.audit/mesures-i7d/` (noms de dossiers de la campagne I7d, mêmes scripts). Captures : `.audit/captures-i7b/`.
+
 ## Dettes de finition (assumées, pour I6)
 
 Consignées au fil des revues, traitées lors de la **passe générale** avant la note 4,8 :
