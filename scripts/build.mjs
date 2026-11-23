@@ -34,6 +34,10 @@ const DIST = join(ROOT, 'dist');
  * une erreur bloquante alors que l'extension fonctionne. On la retire donc de
  * la variante Chromium et on la conserve pour Safari, qui en a besoin.
  */
+/* Polices embarquées : copiées dans chaque livrable (extension, web, site).
+   Elles voyagent avec l'application : aucune requête distante, CSP respectée. */
+const FONTS = join(SRC, 'fonts');
+
 const TARGETS = {
   extension: {
     from: join(SRC, 'extension-src'),
@@ -398,6 +402,9 @@ async function buildTarget(name) {
   await mkdir(outDir, { recursive: true });
 
   await cp(target.from, outDir, { recursive: true });
+
+  // Les polices vivent hors des dossiers de cible : un seul jeu, copié partout.
+  await cp(FONTS, join(outDir, 'fonts'), { recursive: true });
 
   // L'application web vit hors de l'extension : ses icônes doivent voyager avec
   // elle, sinon la marque du bandeau et le favicon manquent.

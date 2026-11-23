@@ -365,6 +365,26 @@ Le document `docs/design-options/i7-identite.md` détaille les risques (poids de
 
 **Prochaine étape** : validation des quatre décisions, puis I7a (typographie) avec preuve de poids et test « aucune requête distante ». La cible de la porte I7 est **≥ 4,3** ; 4,8 reste l'objectif après I8 si nécessaire.
 
+## I7a — Typographie et wordmark · 23 novembre 2026
+
+**Tag** : `checkpoint/i7a` · **Ticket fermé** : #58 · **Décisions validées** : option **A (IBM Plex)**, wordmark **toujours illustré** (marque + nom).
+
+| Mesure | Avant | Après | Preuve |
+|---|---|---|---|
+| Police | système (`-apple-system`…) | **IBM Plex Sans** 400/500/600 | `document.fonts.check` vrai sur app, fenêtre, site |
+| Données | police d'interface | **IBM Plex Mono** 400/500 : URL, rangs, compteurs, cotes, version | captures + jetons |
+| Polices embarquées | — | **5 fichiers woff2, 152 Ko**, licence OFL | `src/fonts/`, test de poids |
+| Requêtes distantes | — | **0** (police servie par le livrable) | test `fonts` |
+| Échelle | 11 / 12 / 13 / 14 / 20 | **11 / 12 / 13 / 15 / 20** | `--type-base: 15px` |
+| Wordmark | nom seul stylé | **marque + nom** en 600, interlettrage −0,01 em | capture + test |
+| Tests | 1 126 | **1 131** | `npm test` vert |
+
+**Intégration** : un seul jeu de polices dans `src/fonts`, copié dans l'application web, l'extension (fenêtre, confidentialité, application embarquée) et le site par les deux scripts de construction ; miroir Safari synchronisé.
+
+**Preuves** : `.audit/captures-i7a/` (`app-1440-plex.png`, `fenetre-380-plex.png`, `site-1440-plex.png`, `mesures-i7a.json`).
+
+**Suite** : I7b (#59) icônes SVG et mouvement, puis I7c (#60) états vides, I7d (#61) re-mesure.
+
 ## Dettes de finition (assumées, pour I6)
 
 Consignées au fil des revues, traitées lors de la **passe générale** avant la note 4,8 :

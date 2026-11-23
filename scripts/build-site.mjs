@@ -101,6 +101,9 @@ async function main() {
     await copy(join(SOURCE, entry.name), join(OUT, entry.name));
   }
 
+  // Même jeu de polices que l'application : le site les sert lui-même.
+  await copy(join(ROOT, 'src', 'fonts'), join(OUT, 'fonts'));
+
   await copy(APP, join(OUT, 'app'));
   console.log('  application servie sous /app/');
 
