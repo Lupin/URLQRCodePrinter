@@ -21,6 +21,42 @@ Two conventions, so the file stays machine-readable:
 The oldest version carries no date: it was not recorded at the time. It is not
 invented here either.
 
+## [0.5.0] - 2026-11-23
+
+Identity and ergonomics update: the listing, the app, the extension window and the
+website now share one visual language, and the interface asks fewer questions
+before printing.
+
+### Added
+
+- **IBM Plex Sans and Mono**, bundled in the package: no remote request, no
+  dependency on a system font.
+- **Outline icon set** for actions (edit, delete, move, zoom, chevrons); Unicode
+  glyphs are gone.
+- **Illustrated wordmark**: the mark always accompanies the name.
+- **Page numbering in the table**, as on the sheet.
+- **Explicit selection button** and always-visible row checkboxes.
+
+### Changed
+
+- **Inspector hierarchy**: collapsible groups, secondary settings behind one
+  disclosure per mode, help prose reduced and moved to the website FAQ.
+- **Print footer**: 12 mm reserved, page number 8 mm from the edge.
+- **Drawn empty states**: empty collection and empty search.
+- **Tokenised motion**: 90 / 140 / 220 ms, one curve, reduced motion respected.
+
+### Fixed
+
+- The “What we print” menu (Niimbot) did not follow checked links.
+- Selection checkboxes toggled without being visible.
+- The Niimbot preview did not refresh its caption after dimensioning.
+
+### What does not change
+
+No account, no server operated by the publisher, no analytics. Links stay in local
+storage, permissions are unchanged, and the only network call remains the
+shortening requested by the user.
+
 ## [0.4.0] - 2026-11-22
 
 This update brings collection reordering, and it includes the new brand prepared

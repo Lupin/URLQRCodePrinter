@@ -392,7 +392,7 @@ main, et de ce que le portail ne dit pas tout seul.
 | Image « marquee » 1400 × 560 | **Fait** — `store/promo/marquee-1400x560.jpg`, 1400 × 560, JPEG 24 bits sans alpha. Facultative pour publier, mais c'est elle qui sert la mise en avant |
 | Catégorie et langue | **À choisir** : la locale par défaut du manifeste est `fr` |
 | Instructions de test pour la revue | À rédiger si l'extension exige une action particulière |
-| Version publiée | Enregistrée dans `store/listing.json` (`item.publishedVersion`, aujourd'hui `0.3.1`). Le dépôt doit la **dépasser strictement** — voir section 7 |
+| Version publiée | Enregistrée dans `store/listing.json` (`item.publishedVersion`, aujourd'hui `0.4.0`). Le dépôt doit la **dépasser strictement** — voir section 7 |
 
 Les dimensions des visuels sont récapitulées dans [`store/README.md`](../store/README.md),
 avec la source officielle.
@@ -417,6 +417,25 @@ l'envoi, et son message ne nomme aucun fichier. D'où l'ordre ci-dessous.
 | Élément | `URLQRCodePrinter` — `fmfbpjekpbopeijaobdffbhhnfgjjbmi` |
 | Console | <https://chrome.google.com/webstore/devconsole> |
 | Fiche publique | <https://chromewebstore.google.com/detail/urlqrcodeprinter/fmfbpjekpbopeijaobdffbhhnfgjjbmi> |
+
+### État de la soumission 0.5.0 — 23 novembre 2026
+
+**Ce que la 0.5.0 change.** L'identité et l'ergonomie : IBM Plex embarquée,
+pictogrammes au trait, wordmark illustré, groupes repliables, prose d'aide réduite,
+états vides dessinés, numérotation des pages dans le tableau, pied de page
+d'impression réservé, sélection visible et correctifs Niimbot.
+
+| Point | Valeur |
+|---|---|
+| Version à déposer | **0.5.0** (publiée : 0.4.0 — strictement supérieure) |
+| Archive | `dist/store/url-qrcode-printer-chrome.zip`, manifeste 0.5.0 |
+| Captures d'écran | **10** fichiers (`01` à `05`, `-fr` et `-en`), 1280 × 800, **régénérés le 23 novembre 2026** pour la 0.5.0, avec le pied de version 0.5.0 visible |
+| Visuels | `promo-440x280.jpg`, `marquee-1400x560.jpg`, icône 128 |
+| Note de version | Lue dans `CHANGELOG.md` / `CHANGELOG.fr.md`, entrée `0.5.0` |
+| Dossier de dépôt | `dist/store/`, produit par `npm run store` |
+
+La page GitHub Pages a été reconstruite avec cinq captures (planche, tableau,
+étiquette, sélection, divers).
 
 ### État de la soumission 0.4.0 — 22 novembre 2026
 

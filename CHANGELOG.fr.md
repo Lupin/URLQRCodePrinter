@@ -21,6 +21,43 @@ Deux conventions, pour que le fichier reste lisible par une machine :
 La plus ancienne version ne porte pas de date : elle n'a pas été consignée à
 l'époque, et elle n'est pas inventée ici.
 
+## [0.5.0] - 2026-11-23
+
+Mise à jour d'identité et d'ergonomie : la fiche, l'application, la fenêtre et le
+site parlent désormais la même langue visuelle, et l'interface demande moins de
+décisions avant d'imprimer.
+
+### Ajouté
+
+- **Typographie IBM Plex Sans et Mono**, embarquée dans le paquet : aucune
+  requête distante, aucune dépendance à une police système.
+- **Jeu de pictogrammes au trait** pour les actions (édition, suppression,
+  déplacement, zoom, chevrons) ; les glyphes Unicode ont disparu.
+- **Wordmark illustré** : la marque accompagne toujours le nom.
+- **Numérotation des pages dans le tableau**, comme sur la planche.
+- **Bouton de sélection explicite** et cases toujours visibles dans la liste.
+
+### Modifié
+
+- **Hiérarchie du volet** : groupes repliables, réglages secondaires derrière un
+  dépliant par mode, prose d'aide réduite et déplacée vers la FAQ du site.
+- **Pied de page d'impression** : 12 mm réservés, numéro à 8 mm du bord.
+- **États vides dessinés** : collection vide et recherche sans résultat.
+- **Mouvement tokenisé** : 90 / 140 / 220 ms, une seule courbe, réduction
+  respectée.
+
+### Corrigé
+
+- Le menu « Ce qu'on imprime » (Niimbot) ne suivait pas les cases cochées.
+- Les cases de sélection se cochotaient sans être visibles.
+- L'aperçu Niimbot ne rafraîchissait pas sa légende après la cotation.
+
+### Ce qui ne change pas
+
+Aucun compte, aucun serveur de l'éditeur, aucune mesure d'audience. Les liens
+restent dans le stockage local, les permissions sont inchangées, et le seul appel
+réseau reste le raccourcissement demandé par l'utilisateur.
+
 ## [0.4.0] - 2026-11-22
 
 Cette mise à jour apporte le réordonnancement des collections, et elle inclut la
