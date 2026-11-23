@@ -156,7 +156,7 @@ async function captureSite() {
       ['tableau', "document.querySelector('.tab[data-mode=\"table\"]').click()"],
       ['etiquette', "document.querySelector('.tab[data-mode=\"single\"]').click(); document.querySelector('#list .link__check').click()"],
       ['divers', "document.querySelector('.tab[data-mode=\"images\"]').click()"],
-      ['selection', "document.querySelector('.tab[data-mode=\"sheet\"]').click(); document.querySelectorAll('#list .link__check')[0].click(); document.querySelectorAll('#list .link__check')[1].click()"],
+      ['selection', "document.querySelector('.tab[data-mode=\"sheet\"]').click(); document.getElementById('select-all-box').click()"],
     ];
 
     for (const [nom, action] of etats) {
@@ -261,6 +261,13 @@ Sources : \`store/listing.json\`, \`store/screenshots/\`, \`src/site/\`. Les cap
 }
 
 async function main() {
+  if (process.env.STORE_SITE_ONLY === '1') {
+    process.stdout.write('▸ Captures du site uniquement\n');
+    await captureSite();
+    run('Reconstruction du site avec les nouvelles images', ['scripts/build-site.mjs', '--no-build']);
+    return;
+  }
+
   run('Construction de l’extension et du site', ['scripts/build.mjs']);
   run('Synchronisation du miroir Safari', ['scripts/sync-safari-resources.mjs']);
   run('Paquet Chrome (zip)', ['scripts/package-chrome.mjs']);

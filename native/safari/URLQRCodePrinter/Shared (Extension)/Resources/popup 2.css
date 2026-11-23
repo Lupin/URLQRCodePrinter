@@ -1,0 +1,751 @@
+/* IBM Plex, embarquée (SIL OFL) — sous-ensemble latin, aucune requête
+   distante : l'extension et le site servent leurs propres fichiers. */
+@font-face {
+  font-family: "IBM Plex Sans"; font-style: normal; font-weight: 400;
+  font-display: swap; src: url("fonts/ibm-plex-sans-400.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA,
+    U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193,
+    U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "IBM Plex Sans"; font-style: normal; font-weight: 500;
+  font-display: swap; src: url("fonts/ibm-plex-sans-500.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA,
+    U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193,
+    U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "IBM Plex Sans"; font-style: normal; font-weight: 600;
+  font-display: swap; src: url("fonts/ibm-plex-sans-600.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA,
+    U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193,
+    U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "IBM Plex Mono"; font-style: normal; font-weight: 400;
+  font-display: swap; src: url("fonts/ibm-plex-mono-400.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA,
+    U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193,
+    U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "IBM Plex Mono"; font-style: normal; font-weight: 500;
+  font-display: swap; src: url("fonts/ibm-plex-mono-500.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA,
+    U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193,
+    U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+/*
+ * Fenêtre de l'extension.
+ *
+ * Direction « Console » : angles vifs, contours pleins, hiérarchie portée par
+ * des règles plutôt que par des ombres.
+ *
+ * **Deux teintes, pas trois.** L'accent est l'orange brûlé du bouton d'ajout ;
+ * le rouge signale la destruction. Rien d'autre n'est coloré : le filet
+ * d'en-tête, le compteur, l'action secondaire remplie et les bordures de survol
+ * sont à l'encre neutre (`--ink`). `craft/color.md` plafonne à deux usages
+ * visibles de l'accent par écran et rappelle que la surutilisation de l'accent
+ * est la première cause d'illisibilité des interfaces générées.
+ *
+ * **Aucun fond teinté de danger.** Un rouge très clair vire au rose — une
+ * troisième teinte chaude coincée entre l'orange et le rouge. L'orange, le rose
+ * et le rouge ne s'ordonnent plus à l'œil. Le danger est donc porté par la
+ * bordure, l'icône et le libellé, sur un fond neutre : trois signaux, aucune
+ * teinte ajoutée. C'est aussi le motif Carbon d'origine pour les messages
+ * d'erreur — bordure gauche épaisse, fond neutre.
+ *
+ * Trois règles de fabrication tenues ici, alignées sur la cible WCAG 2.2 AA :
+ *
+ * - **Aucune information portée par la seule couleur.** Chaque état (survol,
+ *   focus, inactif) change aussi une bordure, un fond ou un décalage.
+ * - **Les jetons `--border` sont sémantiques.** `--border-line` sépare (décor,
+ *   exempté de contraste) ; `--border-strong` délimite un composant et doit
+ *   tenir 3:1 sur les deux thèmes — c'est vérifié par `test/popup-a11y.test.js`.
+ * - **Rien en `px` pour la typographie.** L'échelle est en `rem` : le réglage
+ *   « taille de police » du navigateur la fait réellement varier.
+ */
+
+:root {
+  /* --- Surfaces et texte (thème clair) --- */
+  --bg: #ffffff;
+  --surface: #f4f4f4;
+  --surface-2: #e8e8e8;
+  --text: #161616;
+  --text-2: #393939;
+  --text-3: #5c5c5c;
+
+  /* --- Accent : orange brûlé. Voir l'en-tête du fichier. --- */
+  --accent: #c2410c;
+  --accent-ink: #ffffff;
+  --accent-hover: #9a3412;
+
+  /* --- Encre pleine, sans chroma --- */
+  /* Sert aux éléments qui doivent porter du poids sans ajouter une couleur :
+     le filet d'en-tête, le compteur, et l'action secondaire remplie. Deux
+     remplissages colorés différents mettraient deux accents à l'écran. */
+  --ink: #1a1a1a;
+  --ink-ink: #ffffff;
+  --ink-hover: #000000;
+
+  /* --- Sémantique --- */
+  /* Pas de `--danger-soft` : un fond teinté de rouge virait au rose, troisième
+     teinte chaude coincée entre l'orange de l'accent et le rouge de
+     destruction. La couleur du danger est portée par le texte, la bordure et
+     l'icône ; le fond reste neutre. C'est aussi le motif Carbon d'origine. */
+  --danger: #b3122b;
+
+  /* --- Limites --- */
+  --border-line: #e0e0e0;
+  --border-strong: #8d8d8d;
+  --focus: var(--accent);
+  /* Le focus d'un champ se dit par son fond : voir `.field__input:focus`. */
+  --focus-fill: #f1d3bf;
+
+  /* --- Typographie --- */
+  --font-ui: "IBM Plex Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+  --font-mono: "IBM Plex Mono", "SF Mono", Menlo, monospace;
+  --type-xs: 0.6875rem;  /* 11 px à la taille par défaut */
+  --type-sm: 0.75rem;    /* 12 px */
+  --type-base: 0.8125rem;/* 13 px */
+  --type-md: 0.875rem;   /* 14 px */
+
+  --radius: 0;
+  --motion-fast: 90ms;
+  --motion: 140ms;
+  --motion-slow: 220ms;
+  --easing: cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #161616;
+    --surface: #262626;
+    --surface-2: #333333;
+    --text: #f4f4f4;
+    --text-2: #c6c6c6;
+    --text-3: #a8a8a8;
+
+    /* L'accent s'éclaircit sur fond sombre : c'est le contraste qui commande,
+       pas la teinte. */
+    --accent: #fdba74;
+    --accent-ink: #2a1204;
+    --accent-hover: #fecda0;
+
+    /* L'encre s'inverse elle aussi : sur fond sombre, c'est le clair qui porte. */
+    --ink: #f4f4f4;
+    --ink-ink: #161616;
+    --ink-hover: #ffffff;
+
+    --danger: #ff9d94;
+
+    --border-line: #393939;
+    --border-strong: #6f6f6f;
+    --focus-fill: #4a3a2c;
+  }
+}
+
+* { box-sizing: border-box; }
+
+body {
+  width: 380px;
+  max-height: 560px;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-ui);
+  font-size: var(--type-base);
+  line-height: 1.45;
+  color-scheme: light dark;
+}
+
+/* Un composant n'hérite pas de la typographie du document hôte. Sans cela, une
+   marge de titre posée par une page qui réutiliserait ce volet décalerait tout
+   l'intérieur. `:where()` garde une spécificité nulle, sinon cette remise à zéro
+   battrait les classes du volet lui-même. */
+:where(h1, h2, h3, p, ul) { margin: 0; max-width: none; }
+
+/* --- Utilitaires --- */
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* --- En-tête --- */
+
+.app-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+  /* Filet à l'encre, pas à l'accent : `craft/color.md` plafonne à deux usages
+     visibles de l'accent par écran, et le compteur en est déjà un. */
+  border-bottom: 3px solid var(--ink);
+  background: var(--surface);
+}
+
+/* L'icône du produit, seule marque de l'en-tête. Elle est décorative au sens
+   visuel — le titre de la fenêtre porte le nom — mais son alternative le
+   répète pour qui ne la voit pas. */
+.app-header__logo {
+  flex: 0 0 auto;
+  width: 24px;
+  height: 24px;
+}
+
+/* L'icône et la collection forment la gauche de l'en-tête ; le compteur occupe
+   la droite. Le sélecteur de langue n'y est plus : la fenêtre suit la langue
+   choisie dans l'application. */
+.app-header__top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.count {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
+  padding: 3px 10px;
+  /* L'accent est porté par un **couple**, comme le demande `craft/color.md` :
+     une puce et une action principale. Il n'était porté que par l'action, si
+     bien que la fenêtre perdait toute couleur dès que « Ajouter cette page »
+     était désactivée — c'est-à-dire sur toute page non capturable, un cas
+     fréquent. Le compteur, lui, est toujours affiché. */
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-size: var(--type-xs);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.count__value { font-variant-numeric: tabular-nums; }
+
+/* U+1F517 LINK SYMBOL. Il remplace le mot « liens », et reste décoratif : le
+   libellé lu par les lecteurs d'écran dit déjà de quoi il s'agit. Une taille en
+   `em` le fait suivre celle du compteur, et `--type-xs` l'empêche de dominer le
+   chiffre qu'il accompagne. */
+.count__unit {
+  font-size: var(--type-xs);
+  line-height: 1;
+}
+
+/* --- Corps --- */
+
+.app-main {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.capture {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border-line);
+}
+
+/* Collecter puis ouvrir l'application : deux gestes du même enchaînement, sur
+   une ligne. Chacun prend une moitié, et se replie à la ligne si la place
+   manque — la fenêtre impose 380 px, mais la taille de police du navigateur
+   peut les rendre trop larges. */
+.capture__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.capture__actions .btn {
+  flex: 1 1 auto;
+  /* Les deux actions sont pleines largeur **seules** : `.btn--primary` et
+     `.btn--neutral` portent `width: 100%` pour le bouton unique qu'elles
+     étaient. Dans une rangée, cette largeur les ferait passer l'une sous
+     l'autre — chacune réclamant toute la place. On la rend donc au contenu, et
+     l'enroulement de la rangée reprend la main quand la place manque. */
+  width: auto;
+  min-width: 0;
+  white-space: nowrap;
+}
+
+/* Tronqué à l'œil, entier dans le DOM : les lecteurs d'écran lisent la totalité
+   du titre, la souris a l'infobulle, et rien n'est perdu. */
+.capture__page {
+  overflow: hidden;
+  color: var(--text-2);
+  font-size: var(--type-sm);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Le champ du titre occupe la largeur de la colonne, comme tout le reste : la
+   fenêtre n'a qu'une colonne. La borne de longueur est portée par l'attribut
+   `maxlength`, posé depuis la constante du module — pas recopiée. */
+.field {
+  display: flex;
+  flex-direction: column;
+}
+
+.field__input {
+  width: 100%;
+  min-height: 32px;
+  padding: 6px 8px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  background: var(--bg);
+  color: var(--text);
+  font-family: inherit;
+  font-size: var(--type-sm);
+}
+
+/* Désactivé par jetons, jamais par opacité : c'est la règle de toute la
+   feuille, et elle vaut aussi pour le champ. */
+.field__input:disabled {
+  border-color: var(--border-line);
+  background: var(--surface-2);
+  color: var(--text-3);
+}
+
+/* **Le focus se dit par le fond**, comme dans l'application : le champ actif se
+   teinte, et rien ne vient doubler sa bordure. `:focus` et non `:focus-visible`
+   — cliquer dans le champ doit le montrer actif, lui aussi.
+   `outline: none` explicite : sinon l'anneau par défaut du navigateur revient au
+   clavier, et le contour avec lui. */
+.field__input:focus,
+.field__input:focus-visible {
+  background: var(--focus-fill);
+  outline: none;
+}
+
+.collection {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 10px 12px 0;
+}
+
+/* Barre de collection : deux flèches et le nom, dans l'en-tête.
+ *
+ * Le nom est le titre de la liste (`aria-labelledby`), donc un `<h2>`, et le
+ * seul titre de la fenêtre : il prend la place que le nom du produit occupait,
+ * et c'est le seul qui informe. Il est en casse normale — une collection porte
+ * le nom que son propriétaire lui a donné, le crier en capitales serait lui
+ * prêter une importance qu'il n'a pas.
+ *
+ * La barre prend la place disponible entre l'icône et le sélecteur de langue,
+ * et se coupe par une ellipse plutôt que de pousser ses voisins. */
+.collection__bar {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.collection__name {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  padding: 0 2px;
+  color: var(--text);
+  font-size: var(--type-md);
+  font-weight: 680;
+  /* Un nom long se coupe par une ellipse, jamais par un retour à la ligne :
+     la barre garde une hauteur fixe, et les flèches restent à leur place. */
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* Cible de 26 px : au-dessus des 24 px exigés par 2.5.8, comme la cible de
+   suppression des lignes. */
+.collection__step {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 1px solid var(--border-line);
+  border-radius: var(--radius);
+  background: var(--bg);
+  color: var(--text-2);
+  cursor: pointer;
+}
+
+.collection__step:not(:disabled):hover {
+  border-color: var(--ink);
+  background: var(--surface-2);
+  color: var(--text);
+}
+
+/* Désactivé par jetons, jamais par opacité : une seule flèche reste active
+   quand il n'y a qu'une collection, et l'état doit rester lisible. */
+.collection__step:disabled {
+  border-color: var(--border-line);
+  background: var(--surface-2);
+  color: var(--text-3);
+  cursor: default;
+}
+
+.collection__step:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+/* Avis de navigation privée : encart discret, à l'encre et non à l'accent —
+   l'accent reste réservé à l'action principale et au compteur. La bordure
+   gauche épaisse reprend le motif des autres encarts de la fenêtre. */
+.notice--private {
+  margin: 8px 0 0;
+  padding: 8px 10px;
+  border-left-color: var(--ink);
+  color: var(--text-2);
+  font-size: var(--type-sm);
+  line-height: 1.4;
+}
+
+.list {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  /* Sans ancêtre positionné, les textes `.sr-only` des lignes se plaçaient par
+     rapport au bloc initial : ils échappaient au rognage de la liste et
+     étiraient le document à 2 436 px, avec deux barres et un pied rogné. */
+  position: relative;
+  flex-direction: column;
+  gap: 4px;
+  padding: 0 0 8px;
+  overflow-y: auto;
+  /* Une liste verticale ne défile pas horizontalement : les cartes sont
+     bornées par la fenêtre, et une barre transversale n'a rien à y faire. */
+  overflow-x: hidden;
+  list-style: none;
+}
+
+/* La liste n'est focalisable que par programme, quand la dernière ligne vient
+   d'être supprimée. Sur elle, `:focus` suffit — inutile de dépendre de
+   l'heuristique de `:focus-visible`. */
+.list:focus {
+  outline: 2px solid var(--focus);
+  outline-offset: -2px;
+}
+
+.item {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 8px;
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
+}
+
+/* Survol et focus à l'encre : un liseré orange sur chaque ligne ferait de
+   l'accent un ornement répété au lieu d'un signal. */
+.item:hover,
+.item:focus-within { border-color: var(--ink); }
+
+.item__body { flex: 1; min-width: 0; }
+
+/* Un seul lien par ligne. La ligne précédente en portait deux vers la même
+   adresse : deux arrêts de tabulation et deux annonces pour une seule action. */
+.item__title {
+  display: block;
+  overflow: hidden;
+  color: inherit;
+  font-weight: 600;
+  text-decoration: none;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.item__title:hover { text-decoration: underline; }
+
+.item__url,
+.item__short-url,
+#count,
+.privacy-link {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.item__url,
+.item__short-url {
+  display: block;
+  overflow: hidden;
+  color: var(--text-3);
+  font-size: var(--type-xs);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.item__short { display: flex; align-items: baseline; gap: 4px; min-width: 0; }
+.item__short-mark { flex: none; color: var(--text-3); }
+
+/* 28 × 28 px : au-dessus du minimum AA de 24 × 24 (2.5.8), avec une marge qui
+   absorbe les arrondis de rendu sans épaissir la ligne. */
+.item__remove {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-3);
+  cursor: pointer;
+  transition: background-color var(--motion) var(--easing), color var(--motion) var(--easing),
+    border-color var(--motion) var(--easing);
+}
+
+/* L'icône hérite de la couleur de son bouton (`fill="currentColor"`) : le
+   passage au rouge au survol ne demande donc aucune règle supplémentaire, et
+   une seule couleur pilote les deux états. */
+.icon {
+  display: block;
+  width: 16px;
+  height: 16px;
+}
+
+/* Fond neutre, et non un rose : le rouge est porté par la bordure, l'icône et
+   le libellé. Trois signaux suffisent, et aucun n'ajoute une teinte. */
+.item__remove:hover {
+  border-color: var(--danger);
+  background: var(--surface-2);
+  color: var(--danger);
+}
+
+.empty {
+  margin: 10px 0;
+  color: var(--text-3);
+  font-size: var(--type-sm);
+  text-align: center;
+}
+
+/* Message d'échec au démarrage. Il a sa propre région : auparavant il
+   s'affichait dans la zone « liste vide », sans rôle, donc sans annonce.
+   Motif Carbon d'origine : fond neutre, bordure gauche épaisse en rouge. */
+.alert {
+  margin: 10px 12px;
+  padding: 8px 10px;
+  border: 1px solid var(--border-line);
+  border-left: 4px solid var(--danger);
+  background: var(--surface);
+  color: var(--danger);
+  font-size: var(--type-sm);
+}
+
+/* Rappel de la mention de confidentialité, tant qu'elle n'a pas été acceptée.
+   Même famille visuelle que `.alert` — encart à bordure gauche épaisse — mais à
+   l'accent et non au rouge : ce n'est pas une panne, c'est une étape. Le rouge
+   reste réservé à ce qui a échoué. */
+.notice {
+  margin: 10px 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--border-line);
+  border-left: 4px solid var(--accent);
+  background: var(--surface);
+}
+
+.notice__text {
+  margin: 0 0 8px;
+  font-size: var(--type-sm);
+}
+
+/* --- Pied --- */
+
+.app-footer {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px;
+  border-top: 1px solid var(--border-line);
+  background: var(--surface);
+}
+
+.app-footer__row { display: flex; gap: 6px; }
+
+.app-footer__links { display: flex; flex-wrap: wrap; gap: 4px 14px; align-items: center; }
+
+/* Le lien vers la page d'information ferme la fenêtre, sous les commandes.
+   À l'encre secondaire et souligné : c'est un lien, il doit se voir comme tel,
+   mais l'accent reste réservé aux actions. Il n'est pas un bouton — il n'a ni
+   bordure ni fond — parce qu'il ne modifie rien dans la collection. */
+.site-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  color: var(--text-2);
+  font-size: var(--type-xs);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.site-link:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+/* --- Boutons --- */
+
+.btn {
+  min-height: 32px;
+  padding: 6px 12px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text);
+  font-family: inherit;
+  font-size: var(--type-sm);
+  cursor: pointer;
+  transition: background-color var(--motion) var(--easing), border-color var(--motion) var(--easing),
+    color var(--motion) var(--easing);
+}
+
+.btn--primary {
+  width: 100%;
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-weight: 620;
+}
+
+.btn--primary:not(:disabled):hover {
+  border-color: var(--accent-hover);
+  background: var(--accent-hover);
+}
+
+/* Action remplie, mais sans chroma. « Ouvrir l'application » garde le poids d'un
+   bouton plein sans ajouter une seconde couleur à l'écran : c'est ce qui
+   permet à l'orange de ne désigner qu'une seule chose, l'ajout de la page. */
+.btn--neutral {
+  width: 100%;
+  border-color: var(--ink);
+  background: var(--ink);
+  color: var(--ink-ink);
+  font-weight: 620;
+}
+
+.btn--neutral:not(:disabled):hover {
+  border-color: var(--ink-hover);
+  background: var(--ink-hover);
+}
+
+.btn--ghost {
+  flex: 1;
+  border-color: var(--border-strong);
+  background: var(--surface);
+}
+
+.btn--ghost:not(:disabled):hover { background: var(--surface-2); }
+
+/* Fond neutre au survol, comme la suppression d'une ligne : le rouge reste sur
+   la bordure et le libellé, et aucune teinte rose n'entre dans la palette. */
+.btn--danger:not(:disabled):hover {
+  border-color: var(--danger);
+  background: var(--surface-2);
+  color: var(--danger);
+}
+
+.btn:active:not(:disabled) { transform: translateY(1px); }
+
+/* Désactivation par jetons, jamais par opacité : `opacity: .45` rendait les
+   libellés illisibles. « Inactif » n'a jamais voulu dire « indistinct ». */
+.btn:disabled {
+  border-color: var(--border-line);
+  background: var(--surface-2);
+  color: var(--text-3);
+  cursor: default;
+}
+
+.btn:focus-visible,
+.item__remove:focus-visible,
+.item__title:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+/* Dans la liste qui défile, un anneau extérieur est rogné en haut et en bas :
+   on le rentre de 2 px pour qu'il reste entier sur la première et la dernière
+   ligne. */
+.item__remove:focus-visible,
+.item__title:focus-visible { outline-offset: -2px; }
+
+/* --- Message transitoire --- */
+
+/* Ancré au-dessus du pied plutôt qu'au bas de la fenêtre : il ne recouvre
+   jamais les boutons d'action, et sa position suit la hauteur réelle du pied
+   au lieu d'un `bottom` en pixels à maintenir à la main. */
+.toast {
+  position: absolute;
+  right: 12px;
+  bottom: 100%;
+  left: 12px;
+  margin-bottom: 8px;
+  padding: 8px 12px;
+  border: 1px solid var(--text);
+  background: var(--text);
+  color: var(--bg);
+  font-size: var(--type-sm);
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(6px);
+  transition: opacity var(--motion-slow) var(--easing), transform var(--motion-slow) var(--easing);
+}
+
+.toast--visible { opacity: 1; transform: translateY(0); }
+
+/* --- Garde-fous --- */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}
+
+@media (prefers-contrast: more) {
+  :root {
+    --text-3: var(--text-2);
+    --border-line: var(--border-strong);
+  }
+}
+
+/* En contraste forcé, les bordures colorées disparaissent : on repasse par les
+   couleurs système, seules couleurs que le mode respecte. */
+@media (forced-colors: active) {
+  .app-header,
+  .capture,
+  .app-footer,
+  .alert { border-color: CanvasText; }
+
+  .btn,
+  .item,
+  .item__remove { border-color: ButtonBorder; }
+
+  .count { background: Highlight; color: HighlightText; }
+
+  .item__remove:hover { background: Highlight; color: HighlightText; }
+
+  .toast { border: 1px solid CanvasText; background: Canvas; color: CanvasText; }
+
+  :focus-visible { outline: 3px solid Highlight; }
+}
