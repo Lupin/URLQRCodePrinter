@@ -812,7 +812,7 @@ function groupePlanche(légende) {
   assert.ok(debut !== -1, `groupe « ${légende} » introuvable`);
   // Le groupe se termine au fieldset suivant : un autre groupe, ou la fin du
   // panneau. On découpe donc sur la balise ouvrante, jamais sur un texte.
-  const suite = html.indexOf('<fieldset class="sheet-group">', debut + marqueur.length);
+  const suite = html.indexOf('<details class="sheet-group"', debut + marqueur.length);
   const finPanneau = html.indexOf('<!-- Tableau -->', debut);
   return html.slice(debut, suite === -1 ? finPanneau : Math.min(suite, finPanneau));
 }
@@ -872,13 +872,17 @@ test('les deux groupes se voient sans être lus', () => {
   assert.match(regle[1], /background:\s*var\(--bg\)/);
   assert.doesNotMatch(regle[1], /border:\s*1px solid/, 'le cadre du groupe est revenu');
   assert.match(regle[1], /flex-direction:\s*column/);
-  // Le titre est un élément ordinaire, et non une `<legend>` : dans une boîte
-  // flexible, la légende se pose sur le cadre et mord dessus.
+  // Le titre est une commande de repli, et non une `<legend>`.
   assert.ok(css.match(/\.sheet-group__title\s*\{/), 'aucun titre pour les groupes');
   assert.doesNotMatch(css, /\.sheet-group\s*>\s*legend\s*\{/, 'plus de légende dans la boîte flexible');
-  // Chaque groupe garde un nom accessible, par `aria-labelledby`.
-  assert.match(html, /<fieldset class="sheet-group" aria-labelledby="sheet-group-page">/);
-  assert.match(html, /<fieldset class="sheet-group" aria-labelledby="sheet-group-label">/);
+  // Les deux groupes se replient comme « Cible et raccourcissement ».
+  assert.match(html, /<details class="sheet-group" open>/);
+  assert.match(html, /<summary id="sheet-group-page" class="sheet-group__title" data-i18n="Page">Page<\/summary>/);
+  assert.match(html, /<summary id="sheet-group-label" class="sheet-group__title" data-i18n="Étiquette">Étiquette<\/summary>/);
+  assert.equal((html.match(/class="sheet-group__body"/g) ?? []).length, 2, 'deux corps de groupe attendus');
+  // Le chevron est encadré et pivote, comme les autres dépliants.
+  assert.match(css, /\.sheet-group__title::after[\s\S]*?width: 24px/);
+  assert.match(css, /\.sheet-group\[open\] > \.sheet-group__title::after[\s\S]*?rotate\(180deg\)/);
 });
 
 test('une planche aligne ses QR Codes et ses blocs de texte', () => {

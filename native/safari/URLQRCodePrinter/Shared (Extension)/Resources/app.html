@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>URLQRCodePrinter</title>
-  <link rel="stylesheet" href="style.css?v=c62ad1a7ad0e">
+  <link rel="stylesheet" href="style.css?v=a7c8c4e5949a">
   <link rel="icon" type="image/png" href="icons/icon-32.png">
 </head>
 <body>
@@ -386,13 +386,13 @@
            disent, et l'ordre suit le calcul : la taille des étiquettes découle
            de la grille et des marges, donc la page vient d'abord. -->
       <div class="mode" id="mode-sheet" role="tabpanel" aria-labelledby="tab-sheet" data-mode-panel="sheet">
-        <fieldset class="sheet-group" aria-labelledby="sheet-group-page">
-          <!-- Un titre ordinaire, et non une `<legend>` : dans une boîte
-               flexible, la légende garde son rendu spécial — elle se pose **sur**
-               le cadre, mord sur lui, et laisse un espace irrégulier au-dessus
-               du premier champ. Le groupe garde son nom accessible par
-               `aria-labelledby`. -->
-          <p id="sheet-group-page" class="sheet-group__title" data-i18n="Page">Page</p>
+        <details class="sheet-group" open>
+          <!-- Le groupe se replie comme « Cible et raccourcissement » : une
+               commande de 40 px, chevron à droite, la ligne entière cliquable.
+               Le corps reste dans un conteneur propre pour que l'ouverture ne
+               change pas la mise en page des champs. -->
+          <summary id="sheet-group-page" class="sheet-group__title" data-i18n="Page">Page</summary>
+          <div class="sheet-group__body">
 
           <div class="fields">
             <div class="field">
@@ -533,10 +533,12 @@
             </label>
           </fieldset>
           <p id="sheet-header-hint" class="hint hint--tight"></p>
-        </fieldset>
+          </div>
+        </details>
 
-        <fieldset class="sheet-group" aria-labelledby="sheet-group-label">
-          <p id="sheet-group-label" class="sheet-group__title" data-i18n="Étiquette">Étiquette</p>
+        <details class="sheet-group" open>
+          <summary id="sheet-group-label" class="sheet-group__title" data-i18n="Étiquette">Étiquette</summary>
+          <div class="sheet-group__body">
 
           <div class="fields">
             <label class="field">
@@ -601,7 +603,8 @@
               <span data-i18n="Tracer une bordure autour de chaque étiquette">Tracer une bordure autour de chaque étiquette</span>
             </label>
           </fieldset>
-        </fieldset>
+          </div>
+        </details>
 
         <p id="sheet-info" class="hint"></p>
       </div>

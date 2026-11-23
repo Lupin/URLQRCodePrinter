@@ -457,6 +457,23 @@ Signalé : « la marge en bas de page n'est pas assez grande, la numérotation e
 
 Preuves : `.audit/captures-print-num/`, mesures de marge (tableau : 18,6 mm ; numéro à 8 mm des deux côtés).
 
+## Correctif — groupes de l'inspecteur repliables · 23 novembre 2026
+
+Signalé : « comme Cible et raccourcissement, Étiquette et Page doivent aussi pouvoir être collapsés, surtout sur petits écrans ».
+
+| Mesure | Avant | Après |
+|---|---|---|
+| Groupe « Page » | toujours déployé | **`<details open>`** repliable, ligne-contrôle de 40 px |
+| Groupe « Étiquette » | toujours déployé | idem |
+| Affordance | aucun chevron | **boîte de 24 px**, chevron qui pivote, survol et focus |
+| Panneau de la planche (8 liens) | 1 658 px | **170 px** une fois les deux groupes repliés |
+| Écran 390 px | défilement long | aucun débordement vertical, groupes refermables |
+| Tests | 1 140 | **1 140** | `npm test` vert |
+
+Le contenu des groupes est enveloppé dans `.sheet-group__body` pour que l'ouverture ne change pas la mise en page des champs ; les identifiants restent en place, donc `app.js` n'a pas eu à changer. Les groupes restent ouverts par défaut : on peut les replier, pas les subir repliés.
+
+Preuve : `.audit/captures-collapse/` (ouverts, fermés, mobile) et `mesures-collapse.json`.
+
 ## Dettes de finition (assumées, pour I6)
 
 Consignées au fil des revues, traitées lors de la **passe générale** avant la note 4,8 :
