@@ -156,7 +156,7 @@ async function captureSite() {
       ['tableau', "document.querySelector('.tab[data-mode=\"table\"]').click()"],
       ['etiquette', "document.querySelector('.tab[data-mode=\"single\"]').click(); document.querySelector('#list .link__check').click()"],
       ['divers', "document.querySelector('.tab[data-mode=\"images\"]').click()"],
-      ['selection', "document.querySelector('.tab[data-mode=\"sheet\"]').click(); document.getElementById('list-select').click(); document.getElementById('select-all-box').click()"],
+      ['selection', "document.querySelector('.tab[data-mode=\"sheet\"]').click(); document.querySelectorAll('#list .link__check')[0].click(); document.querySelectorAll('#list .link__check')[1].click()"],
     ];
 
     for (const [nom, action] of etats) {

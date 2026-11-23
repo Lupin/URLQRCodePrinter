@@ -670,6 +670,16 @@ Signalé : cocher une entrée dans l'aperçu de la liste ne rafraîchissait pas 
 
 La cause : les cases de ligne et « Tout sélectionner » mettaient à jour la sélection et l'aperçu, mais ne reconstruisaient pas les options du sélecteur (qui portent le compte). Trois points corrigés : case de ligne, tout sélectionner/tout désélectionner, et « Tout désélectionner » de la barre. Vérifié au rendu : 0 → 1 → 2 liens cochés dans l'option, aperçu recalculé, tests **1 153**.
 
+## Correctif — cases de sélection invisibles · 23 novembre 2026
+
+Signalé : « dans la liste, les cases à cocher disparaissent et ne se cochent pas ». Reproduit au clic réel : la case se cochait bien (`checked: true`, barre de sélection affichée) mais restait à `opacity: 0` — on ne voyait ni la case ni son état.
+
+Cause : I8b les avait masquées au repos pour alléger la liste, avec révélation au survol seulement. Le bouton « Sélectionner » d'I9 devait les révéler, mais la sélection est un geste de premier plan : une case qu'on ne voit pas n'est pas une case.
+
+Retour assumé : **cases toujours visibles**, bouton « Sélectionner » retiré (il ajoutait une commande pour montrer une évidence). Vérifié : opacité 1 au repos et après clic, état coché, barre de sélection. Tests **1 153**.
+
+Conséquence : +6 contrôles visibles par mode (les cases des lignes). La charge augmente d'un cran, mais une sélection invisible était un défaut plus coûteux que six cases visibles.
+
 ## Dettes de finition (assumées, pour I6)
 
 Consignées au fil des revues, traitées lors de la **passe générale** avant la note 4,8 :

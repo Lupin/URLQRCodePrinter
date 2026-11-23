@@ -38,7 +38,6 @@ export const ELEMENT_IDS = Object.freeze([
   'select-all-box',
   'selection-hint',
   'reorder',
-  'list-select',
   'move-group',
   'move-to',
   'move-menu',

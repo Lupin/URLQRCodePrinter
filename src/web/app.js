@@ -7109,15 +7109,6 @@ el.moveGroup.addEventListener('keydown', (event) => {
   }
 });
 
-const boutonSelection = document.getElementById('list-select');
-boutonSelection?.addEventListener('click', () => {
-  // Montrer les cases au clic, pas seulement au survol : la sélection reste
-  // découvrable, et le bouton dit son état.
-  const actif = el.list.classList.toggle('links--choisir');
-  boutonSelection.setAttribute('aria-pressed', String(actif));
-  boutonSelection.textContent = actif ? t('Terminer la sélection') : t('Sélectionner');
-});
-
 el.reorder.addEventListener('click', () => {
   setReorderMode(!reorderMode);
   el.reorder.focus();

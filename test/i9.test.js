@@ -7,12 +7,12 @@ const HTML = readFileSync(new URL('src/web/index.html', ROOT), 'utf8');
 const APP = readFileSync(new URL('src/web/app.js', ROOT), 'utf8');
 const CSS = readFileSync(new URL('src/web/style.css', ROOT), 'utf8');
 
-test('la sélection s’affiche sur demande, sans dépendre du survol', () => {
-  assert.match(HTML, /id="list-select"[^>]*aria-pressed="false"/);
-  assert.match(APP, /el\.list\.classList\.toggle\('links--choisir'\)/);
-  assert.match(APP, /Terminer la sélection/);
-  assert.match(CSS, /\.links--choisir \.link__check,/);
-  assert.match(CSS, /\.link--selection \.link__check \{ opacity: 1; \}/);
+test('les cases de sélection sont visibles sans mode spécial', () => {
+  // Le bouton « Sélectionner » a été retiré : les cases étaient déjà là, il
+  // ajoutait une commande pour révéler une évidence.
+  assert.doesNotMatch(HTML, /id="list-select"/);
+  assert.doesNotMatch(APP, /links--choisir/);
+  assert.match(CSS, /\.link__check \{[\s\S]*?opacity: 1/);
 });
 
 test('la phrase de portée dit ce qui va sortir, sans télégramme', () => {

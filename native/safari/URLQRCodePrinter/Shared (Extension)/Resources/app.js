@@ -3269,7 +3269,6 @@ const ELEMENT_IDS = Object.freeze([
   'select-all-box',
   'selection-hint',
   'reorder',
-  'list-select',
   'move-group',
   'move-to',
   'move-menu',
@@ -20083,15 +20082,6 @@ el.moveGroup.addEventListener('keydown', (event) => {
     event.preventDefault();
     closeMoveMenu();
   }
-});
-
-const boutonSelection = document.getElementById('list-select');
-boutonSelection?.addEventListener('click', () => {
-  // Montrer les cases au clic, pas seulement au survol : la sélection reste
-  // découvrable, et le bouton dit son état.
-  const actif = el.list.classList.toggle('links--choisir');
-  boutonSelection.setAttribute('aria-pressed', String(actif));
-  boutonSelection.textContent = actif ? t('Terminer la sélection') : t('Sélectionner');
 });
 
 el.reorder.addEventListener('click', () => {

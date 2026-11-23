@@ -1033,20 +1033,11 @@ textarea.input { padding: var(--space-2) var(--space-3); }
 
 .link__check {
   width: 14px; height: 14px; margin: 0;
-  /* La case reste dans le flux et au clavier (focus-within la révèle), mais ne
-     se montre qu'au survol : six cases visibles en permanence, c'étaient six
-     décisions avant même de lire la liste. */
-  opacity: 0;
-  transition: opacity var(--motion-fast) var(--easing);
-}
-.link:hover .link__check,
-.link:focus-within .link__check,
-.links--choisir .link__check,
-.link--selection .link__check { opacity: 1; }
-
-/* Sans survol (tactile), une case invisible serait une case perdue. */
-@media (hover: none) {
-  .link__check { opacity: 1; }
+  /* Toujours visible. Elle avait été masquée au repos pour alléger la liste :
+     le résultat était une case qu'on ne voyait pas, qu'on cochait sans retour
+     visuel, et qu'on croyait cassée. La sélection est un geste de premier plan,
+     elle ne se cache pas. */
+  opacity: 1;
 }
 /* Deux colonnes : le titre sur toute la largeur, puis l'adresse et les puces
    sur une même ligne. La grille, contrairement au flex wrap, comprime

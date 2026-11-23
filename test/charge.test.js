@@ -16,8 +16,9 @@ test('les réglages secondaires d’un mode sont derrière un dépliant', () => 
   assert.match(HTML, /id="label-format"[\s\S]*?mode__advanced-body/);
 });
 
-test('les cases de ligne ne sont visibles qu’au survol ou au focus', () => {
-  assert.match(CSS, /\.link__check \{[\s\S]*?opacity: 0/);
-  assert.match(CSS, /\.link:hover \.link__check[\s\S]*?opacity: 1/);
-  assert.match(CSS, /@media \(hover: none\)[\s\S]*?\.link__check \{ opacity: 1; \}/);
+test('les cases de ligne sont toujours visibles', () => {
+  // Masquées au repos, elles se cocherent sans qu'on voie ni la case ni l'état.
+  const bloc = CSS.match(/\.link__check \{([\s\S]*?)\}/)?.[1] ?? '';
+  assert.match(bloc, /opacity: 1/);
+  assert.doesNotMatch(bloc, /opacity: 0/);
 });
