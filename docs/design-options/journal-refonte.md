@@ -439,6 +439,24 @@ Hypothèse écartée en cours de route : le jeu SVG ne pouvait pas être constru
 
 Preuves : `.audit/captures-print-num/`, `.audit/captures-i7b/`, `mockup/quatre-modes-i7b.png`.
 
+## Correctif — marges d'impression et pied de page · 23 novembre 2026
+
+Signalé : « la marge en bas de page n'est pas assez grande, la numérotation est collée en bas ; en tableau, aucune marge ». Le calcul ne réservait effectivement **aucune bande de pied de page** : le numéro était posé à **3 mm du bord**, dans la zone non imprimable de nombreuses imprimantes, et le contenu pouvait descendre jusqu'à lui.
+
+| Mesure | Avant | Après |
+|---|---|---|
+| Position du numéro | 3 mm du bord | **8 mm** (texte entier + 4 mm de respiration) |
+| Bande réservée en bas, planche | 0 | **12 mm** retirés de la hauteur utilisable |
+| Bande réservée en bas, tableau | 0 (rembourrage = marge haute seulement) | **marge + 12 mm** de rembourrage bas, hauteur utile recalculée |
+| Marge basse mesurée, tableau | ~0 | **18,6 mm** entre le contenu et le bord |
+| Grille planche (A4 3 × 4, numérotation on) | 3 × 4 | **3 × 3**, annoncé : « la grille peut perdre une rangée » |
+| Pages, 40 liens | 4 | **5** (conséquence assumée de la bande) |
+| Tests | 1 138 | **1 140** |
+
+**Le compromis est explicite** : sur une A4 remplie par 3 × 4 étiquettes, il n'existe pas de place pour un pied de page sûr sans retirer une rangée. La case peut être décochée pour retrouver 3 × 4, sans bande ni numéro. L'indice du volet le dit, et les champs Colonnes/Rangées suivent ce qui s'imprime.
+
+Preuves : `.audit/captures-print-num/`, mesures de marge (tableau : 18,6 mm ; numéro à 8 mm des deux côtés).
+
 ## Dettes de finition (assumées, pour I6)
 
 Consignées au fil des revues, traitées lors de la **passe générale** avant la note 4,8 :

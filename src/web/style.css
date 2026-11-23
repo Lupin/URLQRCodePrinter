@@ -1579,7 +1579,7 @@ textarea.input { padding: var(--space-2) var(--space-3); }
 .print-page__number {
   position: absolute;
   right: 0;
-  bottom: 3mm;
+  bottom: 8mm;
   left: 0;
   text-align: center;
   color: #555;

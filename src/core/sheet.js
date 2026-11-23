@@ -1254,7 +1254,10 @@ export function fitGrid(options) {
   const minLabelMm = Number.isFinite(options.minLabelMm) ? options.minLabelMm : 5;
 
   const usableWidth = pageWidthMm - marginXMm * 2;
-  const usableHeight = pageHeightMm - marginYMm * 2;
+  // `footerMm` réserve une bande de pied de page (numérotation) : la grille ne
+  // peut pas descendre dedans, sinon le numéro chevauche le contenu.
+  const footerMm = nonNegative(options.footerMm ?? 0);
+  const usableHeight = pageHeightMm - marginYMm * 2 - footerMm;
 
   const rawWidth = (usableWidth - (columns - 1) * gapXMm) / columns;
   const rawHeight = (usableHeight - (rows - 1) * gapYMm) / rows;

@@ -3403,8 +3403,10 @@ function sheetConfig() {
   if (!autoActif) {
     const coteW = preset.labelWidthMm;
     const coteH = preset.labelHeightMm;
+    const numeroActif = Boolean(el.sheetPageNumbers?.checked);
+    const bande = numeroActif ? PAGE_FOOTER_MM : 0;
     const usableW = page.widthMm - 2 * demande.marginXMm;
-    const usableH = page.heightMm - 2 * demande.marginYMm;
+    const usableH = page.heightMm - 2 * demande.marginYMm - bande;
     const capacite = (usable, cote, gap) => (gap === 0
       ? Math.floor(usable / cote + 1e-9)
       : Math.floor((usable + gap) / (cote + gap) + 1e-9));
@@ -3440,6 +3442,7 @@ function sheetConfig() {
         columns: garde.columns,
         rows: garde.rows,
         reduced: columns !== garde.columns || rows !== garde.rows,
+        footer: numeroActif,
       },
     };
   }
@@ -3448,6 +3451,7 @@ function sheetConfig() {
     ...demande,
     columns: garde.columns,
     rows: garde.rows,
+    footerMm: el.sheetPageNumbers?.checked ? PAGE_FOOTER_MM : 0,
   });
 
   if (!grid.ok) {
@@ -3691,10 +3695,15 @@ function updateFitHint(state) {
     }),
   ];
   if (state.gridFix?.reduced) {
-    parts.push(t('L\'écart ou la marge a ramené la grille à {columns} × {rows} : la taille des étiquettes est conservée.', {
-      columns: layout.columns,
-      rows: layout.rows,
-    }));
+    parts.push(state.gridFix.footer
+      ? t('La bande de pied de page (numérotation) ramène la grille à {columns} × {rows} : la taille des étiquettes est conservée.', {
+        columns: layout.columns,
+        rows: layout.rows,
+      })
+      : t('L\'écart ou la marge a ramené la grille à {columns} × {rows} : la taille des étiquettes est conservée.', {
+        columns: layout.columns,
+        rows: layout.rows,
+      }));
   }
 
   if (offsetXMm !== 0 || offsetYMm !== 0) {
@@ -4633,7 +4642,8 @@ function buildTablePage(table, options = {}) {
   page.className = options.preview ? 'print-page print-page--screen' : 'print-page';
   page.style.width = `${config.widthMm}mm`;
   page.style.height = `${config.heightMm}mm`;
-  page.style.padding = `${config.marginYMm}mm ${config.marginXMm}mm`;
+  const bandePied = el.tablePageNumbers?.checked ? PAGE_FOOTER_MM : 0;
+  page.style.padding = `${config.marginYMm}mm ${config.marginXMm}mm ${config.marginYMm + bandePied}mm`;
   page.style.boxSizing = 'border-box';
 
   // Le nom de la collection en tête : sur une liasse imprimée, c'est ce qui
@@ -4737,9 +4747,10 @@ function measureTableRows(rows, columns, config, largeurs = null) {
     // La bande de titre et le rembourrage du bas se déduisent de la mesure, et
     // non d'une constante recopiée : ils changent avec la case cochée et avec
     // les marges du tableau.
+    const bandePied = el.tablePageNumbers?.checked ? PAGE_FOOTER_MM : 0;
     const hauteurUtile = cadre.height
       - (boiteTable.top - cadre.top)
-      - config.marginYMm * PX_PER_MM;
+      - (config.marginYMm + bandePied) * PX_PER_MM;
     return { hauteurs, hauteurUtile };
   } finally {
     document.body.removeChild(hote);
@@ -5023,6 +5034,11 @@ function updateHeaderNoteOptions() {
 }
 
 /** Redessine l'aperçu selon le mode actif. */
+/* Bande réservée en bas de feuille quand la pagination est demandée : le
+   numéro doit rester dans la zone imprimable, et le contenu ne doit pas
+   l'approcher. 12 mm : 8 mm pour le numéro, 4 mm de respiration. */
+const PAGE_FOOTER_MM = 12;
+
 /** Niveaux de zoom de la scène ; 1 = ajusté à la place disponible. */
 const NIVEAUX_ZOOM = [0.5, 0.67, 0.8, 1, 1.25, 1.5, 2];
 let zoomApercu = 1;
