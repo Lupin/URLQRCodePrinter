@@ -169,6 +169,11 @@
    et les panneaux masqués reprenaient leur place. */
 [hidden] { display: none !important; }
 
+/* Les contrôles natifs ne reçoivent pas la police du document : sans cette
+   règle, les cases et certains boutons retombaient sur le 13,333 px du
+   navigateur, une septième taille hors des jetons. */
+button, input, select, textarea { font: inherit; }
+
 body {
   margin: 0;
   min-height: 100vh;
@@ -1041,7 +1046,10 @@ textarea.input { padding: var(--space-2) var(--space-3); }
 }
 
 .link__body > * { grid-column: 1 / -1; min-width: 0; }
-.link__url { grid-column: 1; }
+.link__url {
+  display: flex;
+  align-items: center;
+  min-height: 24px; grid-column: 1; }
 .link__tags {
   grid-column: 2;
   display: flex;
@@ -1050,7 +1058,10 @@ textarea.input { padding: var(--space-2) var(--space-3); }
 .link__tags .tag { flex: none; }
 
 .link__title {
-  display: block;
+  display: flex;
+  align-items: center;
+  min-height: 24px;
+  min-width: 0;
   font-size: var(--type-sm);
   overflow: hidden;
   text-overflow: ellipsis;

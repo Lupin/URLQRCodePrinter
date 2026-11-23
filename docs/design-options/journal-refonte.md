@@ -523,6 +523,31 @@ La liste vide est désormais masquée (`el.list.hidden`) : elle occupait la plac
 
 Preuves : `docs/design-options/mockup/etats-vides-avant-apres.png`, `.audit/captures-empty/` (vide, recherche, mobile) et `mesures-empty.json`.
 
+## I7d — Re-mesure et porte 4,3 · 23 novembre 2026
+
+**Tag** : `checkpoint/i7d` · **Ticket** : #61 (laissé ouvert, porte non atteinte).
+
+**Note mesurée : 4,24 / 5** (contre 3,9 à I6, soit **+0,34**). Porte **≥ 4,3 non atteinte** (écart 0,06).
+
+| Dimension | Note | Preuve principale |
+|---|---|---|
+| Clarté | 4,3 | 1 primaire, aperçu visible 4/4 modes, `top = 122 px` |
+| Architecture | 4,2 | 3 zones, groupes repliables |
+| Densité | 4,0 | 4 tailles UI + 2 tailles physiques d'impression ; 79 contrôles à 6 liens |
+| Composants | 4,3 | 3 hauteurs, sélecteurs au chevron |
+| États | 4,3 | 2 états vides dessinés + actions, progression, toasts |
+| Accessibilité | 4,2 | contrastes 18,1 / 14,2 / 16,45 ; cibles 82 → 2 |
+| Affordance | 4,3 | dépliants-commandes 40 px, icônes |
+| Marque | 4,6 | Plex, wordmark, icônes, mouvement, site photographié |
+| Charge cognitive | 4,0 | 79 contrôles ouverts (repliables sous 40) |
+| Responsive | 4,4 | 0 débordement 380–1440, aperçu visible à 380 |
+| Microcopy | 4,2 | textes sans glyphe, erreurs actionnables |
+| Finition | 4,5 | ombre unique, rayon 0, mouvement tokenisé |
+
+Les trois écarts qui coûtent la porte : **79 contrôles visibles par défaut** (seuil 40), **deux cibles < 24 px** (champ fichier sr-only, lien de pied 16 px), **densité de l'inspecteur** (12 champs par mode). Aucune note n'a été arrondie vers le haut : 4,24 ne s'écrit pas 4,3.
+
+Détail complet et décisions : `docs/design-options/audit-i7d-2026-11-23.md`. Mesures : `.audit/mesures-i7d/`.
+
 ## Dettes de finition (assumées, pour I6)
 
 Consignées au fil des revues, traitées lors de la **passe générale** avant la note 4,8 :

@@ -2,7 +2,7 @@
 
 **But** : transformer « c'est mieux » en une note reproductible sur 5, itération après itération, jusqu'à **4,8**. Le barème ne juge pas le goût : il juge ce qui se mesure, et laisse au jugement ce qui ne se mesure pas — en le bornant par des critères explicites.
 
-**Version auditée** : 0.4.0, branche `extension-layout-improvement` — **2,3 / 5** (détail dans [audit-ui-ux-2026-11-22.md](audit-ui-ux-2026-11-22.md)). **Plan de sortie vers > 4,5** : [atteindre-4-5.md](atteindre-4-5.md).
+**Version auditée** : 0.4.0, branche `extension-layout-improvement` — **4,24 / 5** au 23 novembre 2026 (détail : [audit-i7d-2026-11-23.md](audit-i7d-2026-11-23.md)) ; audit initial 2,3 / 5 (détail dans [audit-ui-ux-2026-11-22.md](audit-ui-ux-2026-11-22.md)). **Plan de sortie vers > 4,5** : [atteindre-4-5.md](atteindre-4-5.md).
 
 ---
 
@@ -84,7 +84,8 @@ Quatre questions, dans cet ordre, et une note argumentée en une phrase :
 | I3 | 4,1 | La liste est un outil : on va vite. |
 | I4 | 4,45 | La sortie est le produit : on comprend en regardant. |
 | I5 | 4,65 | Le produit a une voix et une matière. |
-| I6 | **4,8** | On ne remarque plus l'interface. |
+| I6 | 3,9 mesuré (cible 4,8 non tenue) | Le socle est propre, mais la marque et les états vides manquent encore. |
+| I7a–d | **4,24 mesuré** (porte 4,3 non atteinte) | Identité, icônes, pied de page, états vides : +0,34 depuis I6. Les 0,06 manquants sont dans la densité par défaut et deux cibles. |
 
 **Rappel de lecture** : 4,8 n'est pas « parfait ». C'est « aucun défaut qu'un utilisateur remarquera sans y être invité ». Le dernier demi-point se gagne sur des détails qu'on ne voit qu'en comparant — c'est pour cela que l'itération 6 existe, et qu'elle ne peut pas être fusionnée avec les autres.
 
