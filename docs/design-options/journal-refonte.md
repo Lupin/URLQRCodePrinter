@@ -680,6 +680,20 @@ Retour assumé : **cases toujours visibles**, bouton « Sélectionner » retiré
 
 Conséquence : +6 contrôles visibles par mode (les cases des lignes). La charge augmente d'un cran, mais une sélection invisible était un défaut plus coûteux que six cases visibles.
 
+## Publication — version 0.5.0 et site · 23 novembre 2026
+
+| Élément | État |
+|---|---|
+| Version du paquet / manifeste | **0.5.0** (publiée sur le Store : 0.4.0) |
+| Archive de dépôt | `dist/store/url-qrcode-printer-chrome.zip` (0.5.0) |
+| Note de version | `CHANGELOG.md` / `CHANGELOG.fr.md`, entrée 0.5.0 |
+| Site GitHub Pages | **publié** — run 45149408976, commit `8c6fbeb` |
+| URL | https://lupin.github.io/URLQRCodePrinter/ · `/en/` · `/app/` |
+| Vérifications | 5 figures FR/EN, images 200, application en 0.5.0 |
+| Tests | 1 153 / 1 153 |
+
+Le workflow `.github/workflows/site.yml` construit `dist/site` et le déploie depuis `main` ; aucune branche `gh-pages` à maintenir. Les branches distantes `main` et `extension-Layout-improvement` pointent sur le même commit.
+
 ## Dettes de finition (assumées, pour I6)
 
 Consignées au fil des revues, traitées lors de la **passe générale** avant la note 4,8 :
