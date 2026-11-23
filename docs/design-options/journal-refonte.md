@@ -565,6 +565,16 @@ Les deux leviers : **groupes Page et Étiquette repliés par défaut** (divulgat
 
 Détail complet : `docs/design-options/audit-i7e-2026-11-23.md`. Mesures : `.audit/mesures-i7d-6liens/` et `.audit/mesures-i7d/` (noms de dossiers de la campagne I7d, mêmes scripts). Captures : `.audit/captures-i7b/`.
 
+## I8 — Cadrage contenu et charge cognitive · 23 novembre 2026
+
+**Tag** : `checkpoint/i8-cadrage` · **Milestone** : #13 · **Tickets** : #62 (prose), #63 (inspecteur), #64 (état replié), #65 (re-mesure).
+
+Base : **4,36 / 5** (I7e). Objectif : **4,5** (#51) ; #49 (4,8) reste hors de portée sans cette passe.
+
+Mesures de départ, 6 liens, groupes repliés : contrôles **24 / 41 / 38 / 31** (Planche / Tableau / Niimbot / Images) ; aides visibles **3 / 6 / 7 / 3** ; 220 à 512 signes. La sonde compte aussi les légendes d'aperçu : l'inventaire d'I8a les séparera.
+
+Ordre : I8a (prose) → I8b (inspecteur) → I8c (repli mémorisé et < 1024 px) → I8d (re-mesure et porte 4,5). Critères complets : `docs/design-options/i8-contenu.md`.
+
 ## Dettes de finition (assumées, pour I6)
 
 Consignées au fil des revues, traitées lors de la **passe générale** avant la note 4,8 :
