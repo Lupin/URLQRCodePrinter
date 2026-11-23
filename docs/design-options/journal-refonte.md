@@ -619,6 +619,22 @@ Les trois dépliants utilisent la même ligne-contrôle de 40 px et le même che
 
 Captures : `.audit/captures-i7b/` (4 modes, état par défaut). Mesures : `.audit/mesures-i8/prose.json`.
 
+## I8c et I8d — Mémoire des replis, re-mesure · 23 novembre 2026
+
+**Tags** : `checkpoint/i8c` (dans le commit I8d) · **Tickets** : #64 fermé, #65 laissé ouvert.
+
+### I8c
+
+- État des groupes Page et Étiquette mémorisé dans `localStorage` (clé `groupes.planche`), avec `try/catch` : stockage refusé, les groupes restent utilisables.
+- **Replié par défaut au premier chargement, à toutes les largeurs** — y compris sous 1024 px, où la place manque. La décision initiale « ouvert par défaut au-dessus de 1024 » a été revue après I8b : ouvrir par défaut aurait ramené 49 contrôles visibles et annulé le gain.
+- Vérifié : 1440 premier chargement fermé ; clic ouvre ; rechargement conserve ; 380 px premier chargement fermé. Tests **1 148**.
+
+### I8d — note mesurée : 4,40 / 5
+
+Porte **4,5 non atteinte** (écart 0,10). Contrôles **17 / 18 / 16 / 14** (Planche / Tableau / Niimbot / Images), aides de mode **0 / 0 / 1 / 0**, aperçu 4/4 modes à 1440 et 380, 0 cible < 24 px, contrastes 18,1 / 14,2 / 16,45, désactivé sombre 5,31.
+
+Il manque trois choses, toutes de contenu/interaction : densité des deux derniers dépliants, découvrabilité du survol, phrase de portée télégraphique. Détail : `docs/design-options/audit-i8d-2026-11-23.md`.
+
 ## Dettes de finition (assumées, pour I6)
 
 Consignées au fil des revues, traitées lors de la **passe générale** avant la note 4,8 :

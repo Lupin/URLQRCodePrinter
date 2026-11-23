@@ -21144,6 +21144,51 @@ wireSiteLink();
 wirePrivacyLink();
 
 fillPresets();
+/**
+ * Les deux groupes de la planche se souviennent de leur état, et restent
+ * repliés au premier chargement — y compris sous 1024 px, où la place manque.
+ *
+ * L'état par défaut est **fermé** : c'est ce qui a fait descendre la charge de
+ * l'inspecteur (I8b). La mémoire ne s'applique qu'à un geste explicite de
+ * l'utilisateur.
+ */
+const GROUPES_PLANCHE_KEY = 'groupes.planche';
+const GROUPES_PLANCHE = [['page', 'sheet-group-page'], ['etiquette', 'sheet-group-label']];
+
+function memoriserGroupesPlanche() {
+  const etat = {};
+  for (const [nom, id] of GROUPES_PLANCHE) {
+    const noeud = document.getElementById(id);
+    const details = noeud && typeof noeud.closest === 'function' ? noeud.closest('details') : null;
+    if (details) etat[nom] = details.open;
+  }
+  try {
+    localStorage.setItem(GROUPES_PLANCHE_KEY, JSON.stringify(etat));
+  } catch {
+    // Stockage refusé (navigation privée, quota) : les groupes restent
+    // utilisables, ils ne se souviennent simplement plus.
+  }
+}
+
+function initGroupesPlanche() {
+  let memoire = null;
+  try {
+    const brut = localStorage.getItem(GROUPES_PLANCHE_KEY);
+    memoire = brut ? JSON.parse(brut) : null;
+  } catch {
+    memoire = null;
+  }
+  for (const [nom, id] of GROUPES_PLANCHE) {
+    const noeud = document.getElementById(id);
+    const details = noeud && typeof noeud.closest === 'function' ? noeud.closest('details') : null;
+    if (!details) continue;
+    details.open = memoire && typeof memoire[nom] === 'boolean' ? memoire[nom] : false;
+    details.addEventListener('toggle', memoriserGroupesPlanche);
+  }
+}
+
+initGroupesPlanche();
+
 fillLabelForm();
 fillProfiles();
 fillShorteners();
