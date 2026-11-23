@@ -645,6 +645,31 @@ Il manque trois choses, toutes de contenu/interaction : densité des deux dernie
 
 Détail : `docs/design-options/audit-i9-2026-11-23.md`. Décision : ne pas fermer #65/#51 ; les 0,05 restants demandent un choix de structure (fusion de dépliants ou réorganisation des onglets), pas une retouche.
 
+## Outil de dépôt Chrome Web Store · 23 novembre 2026
+
+**Commande** : `npm run store` · **Sortie** : `dist/store/` (19 fichiers, 3,7 Mo).
+
+Un seul script (`scripts/store.mjs`) enchaîne : build + miroir Safari, paquet zip,
+captures magasin FR/EN, captures de la fenêtre, visuels promotionnels, captures du
+site, reconstruction du site, feuille de saisie, assemblage et nettoyage.
+
+| Point | Avant | Après |
+|---|---|---|
+| Captures du magasin | scripts séparés, à lancer dans l'ordre | **refaites à chaque exécution**, dimensions vérifiées (1280 × 800) |
+| Dossier de dépôt | fichiers dispersés dans `store/` | **`dist/store/`** : archive, `fr/`, `en/`, promo, icône, textes, `CHECKLIST.md` |
+| Nettoyage | manuel | **tout fichier hors liste est retiré** |
+| Page GitHub Pages | images anciennes | **5 captures régénérées** (planche, tableau, étiquette, sélection, divers) et site reconstruit |
+| Panne de nettoyage Chrome | ENOTEMPTY | attente de la sortie du processus + reprise |
+
+Vérifié : `npm run store` produit 19 fichiers, dont 10 captures 1280 × 800 et
+l'archive 0.4.0 ; `dist/site/index.html` porte 5 figures.
+
+## Correctif — Niimbot, « Ce qu'on imprime » ne suivait pas la sélection · 23 novembre 2026
+
+Signalé : cocher une entrée dans l'aperçu de la liste ne rafraîchissait pas le menu déroulant « Ce qu'on imprime ». Reproduit : après deux cases cochées, l'option affichait encore « 0 lien coché ».
+
+La cause : les cases de ligne et « Tout sélectionner » mettaient à jour la sélection et l'aperçu, mais ne reconstruisaient pas les options du sélecteur (qui portent le compte). Trois points corrigés : case de ligne, tout sélectionner/tout désélectionner, et « Tout désélectionner » de la barre. Vérifié au rendu : 0 → 1 → 2 liens cochés dans l'option, aperçu recalculé, tests **1 153**.
+
 ## Dettes de finition (assumées, pour I6)
 
 Consignées au fil des revues, traitées lors de la **passe générale** avant la note 4,8 :

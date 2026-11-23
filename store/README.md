@@ -11,6 +11,22 @@ vérifiée le 21 septembre 2026 — pas d'une estimation.
 | Petite image promotionnelle | 440 × 280 | PNG ou JPEG | **Oui** | ✅ [`promo/promo-440x280.jpg`](promo/promo-440x280.jpg) |
 | Image « marquee » | 1400 × 560 | PNG ou JPEG | Non | ✅ [`promo/marquee-1400x560.jpg`](promo/marquee-1400x560.jpg) |
 
+## Mise à jour : une seule commande
+
+```bash
+npm run store
+```
+
+Elle reconstruit le paquet, **refait toutes les captures** (application, fenêtre,
+impression, confidentialité, collections, FR et EN), refait les visuels
+promotionnels, régénère les **cinq images du site GitHub Pages** et le site, puis
+assemble `dist/store/` — un dossier jetable qui ne contient **que** les fichiers à
+déposer : archive, dix captures, deux visuels, icône, textes de fiche, note de
+version et `CHECKLIST.md`. Les fichiers inattendus sont retirés à chaque passage.
+
+Aucun visuel n'est édité à la main : les captures sont refaites depuis le build
+courant, et la fiche vient de `store/listing.json`.
+
 ## Le point à ne pas manquer
 
 **La petite image promotionnelle est obligatoire**, et ce n'est pas une formalité.

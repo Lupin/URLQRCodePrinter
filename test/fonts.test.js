@@ -56,7 +56,17 @@ test('le wordmark est toujours illustré : marque + nom', () => {
   assert.match(site, /<h1 class="hero__title">URLQRCodePrinter<\/h1>/);
 });
 
-test('les livrables contiennent les polices, la licence et les références locales', () => {
+test('les livrables contiennent les polices, la licence et les références locales', async () => {
+  // Les tests tournent en parallèle avec des constructions qui réécrivent
+  // `dist/` : on laisse à la copie le temps d'apparaître au lieu de dépendre
+  // d'un ordonnancement fortuit.
+  const attendre = async (chemin) => {
+    for (let i = 0; i < 40; i += 1) {
+      if (existsSync(chemin)) return true;
+      await new Promise((suite) => setTimeout(suite, 50));
+    }
+    return false;
+  };
   const livrables = [
     ['dist/web', 'style.css'],
     ['dist/extension', 'popup.css'],
@@ -64,8 +74,8 @@ test('les livrables contiennent les polices, la licence et les références loca
   ];
   for (const [dossier, css] of livrables) {
     const racine = join(ROOT, dossier);
-    assert.ok(existsSync(join(racine, 'fonts', 'ibm-plex-sans-400.woff2')), `${dossier} : police absente`);
-    assert.ok(existsSync(join(racine, 'fonts', 'OFL.txt')), `${dossier} : licence absente`);
+    assert.ok(await attendre(join(racine, 'fonts', 'ibm-plex-sans-400.woff2')), `${dossier} : police absente`);
+    assert.ok(await attendre(join(racine, 'fonts', 'OFL.txt')), `${dossier} : licence absente`);
     assert.match(readFileSync(join(racine, css), 'utf8'), /url\("fonts\/ibm-plex-sans-400\.woff2"\)/);
   }
 });

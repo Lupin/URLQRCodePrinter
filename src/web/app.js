@@ -1194,6 +1194,9 @@ function renderLink(link) {
     // doivent suivre chaque case cochée, sans quoi ils mentent. `updatePrintScope`
     // manquait ici : cocher trois liens laissait le bouton annoncer « 1 étiquette ».
     updateSelectionHint();
+    // Le menu « Ce qu'on imprime » affiche le nombre de liens cochés : sans ce
+    // rappel, il restait à « 0 lien coché » alors que la liste en montrait deux.
+    fillLabelLinks();
     updatePrintScope();
     renderPreview();
   });
@@ -7077,6 +7080,9 @@ el.search.addEventListener('keydown', (event) => {
 document.getElementById('selection-clear')?.addEventListener('click', () => {
   selected = new Set();
   renderList();
+  fillLabelLinks();
+  updatePrintScope();
+  renderPreview();
   el.selectAllBox.focus();
 });
 
@@ -7385,6 +7391,8 @@ el.selectAllBox.addEventListener('change', () => {
     : new Set();
 
   renderList();
+  fillLabelLinks();
+  updatePrintScope();
   renderPreview();
 
   if (selected.size === 0) {

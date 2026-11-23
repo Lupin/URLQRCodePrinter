@@ -302,7 +302,17 @@ async function main() {
     console.log(`\n✓ fenêtres écrites dans ${OUT.slice(ROOT.length + 1)}`);
   } finally {
     try { browser.kill('SIGKILL'); } catch { /* déjà arrêté */ }
-    rmSync(SANDBOX, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 });
+    // Attendre la sortie réelle avant d'effacer : le profil Chrome reste tenu
+    // une fraction de seconde après le SIGKILL, et le nettoyage partait en
+    // ENOTEMPTY alors que les captures étaient déjà écrites.
+    await new Promise((resolve) => {
+      if (browser.exitCode !== null) return resolve();
+      const fini = () => resolve();
+      browser.once('exit', fini);
+      setTimeout(fini, 2000);
+    });
+    await pause(400);
+    rmSync(SANDBOX, { recursive: true, force: true, maxRetries: 20, retryDelay: 250 });
   }
 }
 
