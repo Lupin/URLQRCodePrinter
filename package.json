@@ -42,7 +42,8 @@
     "dev": "node scripts/build.mjs && node scripts/serve.mjs",
     "capture:promo": "node scripts/capture-promo.mjs",
     "icons:propositions": "node scripts/proposer-icones.mjs",
-    "store": "node scripts/store.mjs"
+    "store": "node scripts/store.mjs",
+    "store:open": "open dist/store"
   },
   "dependencies": {
     "uqr": "^0.1.3"

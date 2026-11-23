@@ -330,10 +330,14 @@ async function main() {
     fichiers: fichiers.sort(),
   }, null, 2) + '\n', 'utf8');
 
-  process.stdout.write(`\n✓ dist/store/ prêt — ${fichiers.length} fichiers, version ${v}\n`);
-  process.stdout.write('  Archive : dist/store/url-qrcode-printer-chrome.zip\n');
-  process.stdout.write('  Captures : dist/store/fr/ et dist/store/en/\n');
-  process.stdout.write('  À lire : dist/store/CHECKLIST.md\n');
+  process.stdout.write(`\n✓ ${OUT} prêt — ${fichiers.length} fichiers, version ${v}\n`);
+  process.stdout.write('  Tout est dans ce seul dossier :\n');
+  process.stdout.write('  - url-qrcode-printer-chrome.zip\n');
+  process.stdout.write('  - fr/ et en/ (cinq captures 1280 × 800 chacune)\n');
+  process.stdout.write('  - promo-440x280.jpg, marquee-1400x560.jpg, icone-128.png\n');
+  process.stdout.write('  - listing-fr.md, listing-en.md, a-coller-mise-a-jour.md\n');
+  process.stdout.write('  - CHECKLIST.md, version.json\n');
+  process.stdout.write('  Ouvrir : npm run store:open\n');
 }
 
 main().catch((erreur) => {
