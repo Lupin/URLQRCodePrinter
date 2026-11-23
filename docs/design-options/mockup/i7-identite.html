@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>I7 — Identité · maquette</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #ffffff; --surface: #f3f3f1; --surface-2: #e8e8e8; --desk: #eae6df;
+    --ink: #1a1a1a; --text: #161616; --text-2: #393939; --text-3: #5c5c5c;
+    --line: #e2e2e2; --strong: #b9b9b4; --accent: #c2410c; --accent-ink: #ffffff;
+    --plex: "IBM Plex Sans", -apple-system, BlinkMacSystemFont, sans-serif;
+    --inter: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+    --mono: "IBM Plex Mono", "SF Mono", Menlo, monospace;
+    --system: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    --paper: var(--bg);
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--desk); color: var(--text); font: 400 14px/1.5 var(--plex); }
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 40px 32px 80px; }
+  header.doc { border-bottom: 1px solid var(--strong); padding-bottom: 20px; margin-bottom: 32px; }
+  h1 { margin: 0 0 6px; font: 600 30px/1.1 var(--plex); letter-spacing: -0.01em; }
+  .lead { margin: 0; color: var(--text-2); max-width: 68ch; }
+  h2 { margin: 44px 0 4px; font: 600 18px/1.2 var(--plex); }
+  h2 .num { color: var(--text-3); font: 500 12px/1 var(--mono); margin-right: 8px; }
+  .sub { margin: 0 0 18px; color: var(--text-2); max-width: 70ch; }
+  section { margin-bottom: 8px; }
+  .cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+  .card { background: var(--bg); border: 1px solid var(--strong); padding: 16px; }
+  .card h3 { margin: 0 0 2px; font: 600 15px/1.2 var(--plex); }
+  .card .tag { font: 500 10px/1 var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--text-3); }
+  .card.reco { outline: 2px solid var(--accent); outline-offset: -2px; }
+  .card .ex { margin: 12px 0; padding: 12px; background: var(--surface); border-left: 2px solid var(--ink); }
+  .card .ex p { margin: 0; }
+  .card ul { margin: 10px 0 0; padding-left: 16px; color: var(--text-2); font-size: 12px; }
+  .card li { margin: 3px 0; }
+  .plex { font-family: var(--plex); }
+  .inter { font-family: var(--inter); }
+  .syst { font-family: var(--system); }
+  .mono { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+  .scale { background: var(--bg); border: 1px solid var(--strong); padding: 18px 20px; }
+  .row { display: grid; grid-template-columns: 90px 1fr; gap: 12px; align-items: baseline; padding: 7px 0; border-bottom: 1px solid var(--line); }
+  .row:last-child { border-bottom: 0; }
+  .row .tok { font: 500 11px/1.3 var(--mono); color: var(--text-3); }
+  .s20 { font-size: 20px; line-height: 1.2; font-weight: 600; }
+  .s15 { font-size: 15px; line-height: 1.25; font-weight: 600; }
+  .s13 { font-size: 13px; line-height: 1.35; }
+  .s12 { font-size: 12px; line-height: 1.4; color: var(--text-2); }
+  .s11 { font-size: 11px; line-height: 1.4; color: var(--text-3); }
+  .mono11 { font: 400 11px/1.5 var(--mono); color: var(--text-2); }
+  .icons { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; }
+  .icon { background: var(--bg); border: 1px solid var(--strong); padding: 12px 8px 8px; text-align: center; }
+  .icon svg { width: 20px; height: 20px; stroke: var(--ink); stroke-width: 1.5; fill: none; stroke-linecap: square; stroke-linejoin: miter; }
+  .icon .nom { display: block; margin-top: 8px; font: 400 10px/1.3 var(--mono); color: var(--text-3); }
+  .motion { display: grid; grid-template-columns: 150px 120px 1fr; gap: 0; background: var(--bg); border: 1px solid var(--strong); }
+  .motion > div { padding: 10px 12px; border-bottom: 1px solid var(--line); }
+  .motion .cap { font: 500 10px/1.3 var(--mono); color: var(--text-3); text-transform: uppercase; letter-spacing: .05em; }
+  .bar { height: 8px; background: var(--surface-2); position: relative; overflow: hidden; }
+  .bar i { position: absolute; inset: 0 auto 0 0; background: var(--ink); display: block; }
+  .empties { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+  .empty { background: var(--bg); border: 1px dashed var(--strong); padding: 20px 18px; text-align: center; }
+  .empty svg { width: 84px; height: 64px; stroke: var(--text-3); stroke-width: 1.5; fill: none; stroke-linecap: square; }
+  .empty h4 { margin: 10px 0 4px; font: 600 13px/1.3 var(--plex); }
+  .empty p { margin: 0 0 12px; color: var(--text-2); font-size: 12px; }
+  .btn { display: inline-flex; align-items: center; justify-content: center; height: 32px; padding: 0 12px; border: 1px solid var(--strong); background: transparent; color: var(--text); font: 500 12px/1 var(--plex); }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+  .fragments { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .frag { background: var(--bg); border: 1px solid var(--strong); }
+  .frag .tete { padding: 8px 12px; border-bottom: 1px solid var(--strong); font: 500 10px/1 var(--mono); text-transform: uppercase; letter-spacing: .06em; color: var(--text-3); }
+  .frag .corps { display: flex; min-height: 210px; }
+  .rail { width: 210px; border-right: 1px solid var(--line); background: var(--surface); padding: 10px; }
+  .scene { flex: 1; background: var(--desk); padding: 14px; display: grid; place-items: center; }
+  .ligne { display: flex; align-items: center; gap: 6px; padding: 5px 0; border-bottom: 1px solid var(--line); }
+  .ligne .num { font: 400 10px/1 var(--mono); color: var(--text-3); width: 14px; }
+  .ligne .titre { font-size: 12px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .ligne .url { font: 400 10px/1.4 var(--mono); color: var(--text-3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .ligne .crayon { margin-left: auto; color: var(--text-3); }
+  .feuille { background: #fff; border: 1px solid var(--strong); width: 120px; height: 168px; display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; padding: 10px; }
+  .feuille i { display: block; background: repeating-conic-gradient(var(--ink) 0 25%, #fff 0 50%) 0 0/8px 8px; }
+  .legende { font: 400 10px/1.5 var(--mono); color: var(--text-3); padding: 6px 12px; border-top: 1px solid var(--line); }
+  .check { background: var(--bg); border: 1px solid var(--strong); padding: 16px 18px; }
+  .check ol { margin: 0; padding-left: 20px; }
+  .check li { margin: 6px 0; }
+  .note { margin-top: 28px; padding: 14px 16px; border-left: 3px solid var(--accent); background: #fff; font-size: 12px; color: var(--text-2); }
+  @media (max-width: 900px) {
+    .cards, .icons, .empties, .fragments { grid-template-columns: 1fr 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="doc">
+    <p class="tag mono11">I7 · identité · proposition à valider · 23 novembre 2026</p>
+    <h1>Donner une voix à la console</h1>
+    <p class="lead">
+      Les six premiers paliers ont corrigé la structure, la sortie et la cohérence.
+      La note s'est arrêtée à 3,9 parce qu'il manque une identité : une typographie,
+      des icônes, un mouvement, des états vides dessinés. Cette maquette propose quatre
+      décisions, chiffrées et comparées. Rien n'est implémenté.
+    </p>
+  </header>
+
+  <section>
+    <h2><span class="num">01</span>Typographie — trois options</h2>
+    <p class="sub">Même échelle, même densité : seule la voix change. La recommandation est l'option A, pour son caractère technique et papier, et son mono qui relie URL, rangs et cotes.</p>
+    <div class="cards">
+      <article class="card reco">
+        <p class="tag">Recommandée</p>
+        <h3>A — IBM Plex Sans + Mono</h3>
+        <div class="ex plex">
+          <p class="s13 plex">Collectez vos liens, imprimez-les en QR Codes.</p>
+          <p class="mono11">12,0 × 25,7 mm · 40 liens · Page 1 / 4</p>
+        </div>
+        <ul>
+          <li>Voix technique et papier, héritage IBM</li>
+          <li>Mono dessiné pour les données</li>
+          <li>OFL, embarquable ; 3 fichiers, ~120–180 Ko</li>
+        </ul>
+      </article>
+      <article class="card">
+        <p class="tag">Alternative</p>
+        <h3>B — Inter + Mono</h3>
+        <div class="ex inter">
+          <p class="s13 inter">Collectez vos liens, imprimez-les en QR Codes.</p>
+          <p class="mono11">12,0 × 25,7 mm · 40 liens · Page 1 / 4</p>
+        </div>
+        <ul>
+          <li>Très lisible, neutre</li>
+          <li>Déjà présente sur la machine</li>
+          <li>Identité faible : on l'a vue partout</li>
+        </ul>
+      </article>
+      <article class="card">
+        <p class="tag">Statut quo</p>
+        <h3>C — Système + Mono</h3>
+        <div class="ex syst">
+          <p class="s13 syst">Collectez vos liens, imprimez-les en QR Codes.</p>
+          <p class="mono11">12,0 × 25,7 mm · 40 liens · Page 1 / 4</p>
+        </div>
+        <ul>
+          <li>Zéro octet, zéro FOUT</li>
+          <li>La voix de l'OS, pas la nôtre</li>
+          <li>Ne peut pas porter la note de 4,5</li>
+        </ul>
+      </article>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">02</span>Échelle typographique proposée</h2>
+    <p class="sub">Cinq tailles, un interligne par usage, chiffres tabulaires partout où l'on aligne.</p>
+    <div class="scale">
+      <div class="row"><span class="tok">20 / 1.2 · 600</span><span class="s20">Planche d'étiquettes</span></div>
+      <div class="row"><span class="tok">15 / 1.25 · 600</span><span class="s15">Mise en forme</span></div>
+      <div class="row"><span class="tok">13 / 1.35 · 400</span><span class="s13">Collectez vos liens depuis le navigateur, rangez-les par thème, imprimez-les en une planche.</span></div>
+      <div class="row"><span class="tok">12 / 1.4 · 500</span><span class="s12">Exporter la planche (ZIP) · Imprimer les 40 liens</span></div>
+      <div class="row"><span class="tok">11 / 1.5 · mono</span><span class="mono11">https://exemple.fr/un-article-assez-long · 12,0 × 25,7 mm · version 0.4.0</span></div>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">03</span>Wordmark</h2>
+    <p class="sub">La marque existante, le nom en Plex Sans 600, interlettrage −0,01 em. Deux variantes : verrouillée, ou nom seul pour les emplacements étroits.</p>
+    <div class="scale" style="display:flex;gap:40px;align-items:center;flex-wrap:wrap">
+      <div style="display:flex;align-items:center;gap:10px">
+        <svg width="34" height="34" viewBox="0 0 34 34" aria-hidden="true"><rect width="34" height="34" fill="#c2410c"/><rect x="7" y="7" width="9" height="9" fill="#fff"/><rect x="18" y="7" width="9" height="9" fill="#fff"/><rect x="7" y="18" width="9" height="9" fill="#fff"/><rect x="18" y="18" width="4" height="4" fill="#fff"/></svg>
+        <span style="font:600 20px/1 var(--plex);letter-spacing:-0.01em">URLQRCodePrinter</span>
+      </div>
+      <div style="font:600 20px/1 var(--plex);letter-spacing:-0.01em;color:var(--text-3)">URLQRCodePrinter</div>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">04</span>Icônes — un jeu, pas des glyphes</h2>
+    <p class="sub">20 × 20, trait 1,5, bouts carrés, une seule couleur. Les glyphes actuels (✎ × ▲ ▼ ⠿ ◀ ▶) dépendent de la police du système.</p>
+    <div class="icons">
+      <div class="icon"><svg viewBox="0 0 20 20"><path d="M8 12l4-4M7 13.5l-1.5 1.5a3 3 0 01-4.2-4.2L3 9M13 6.5l1.5-1.5a3 3 0 014.2 4.2L17 11"/></svg><span class="nom">lien</span></div>
+      <div class="icon"><svg viewBox="0 0 20 20"><path d="M10 4v12M4 10h12"/></svg><span class="nom">ajouter</span></div>
+      <div class="icon"><svg viewBox="0 0 20 20"><path d="M4 16l1-4L14 3l3 3-9 9-4 1zM12 5l3 3"/></svg><span class="nom">éditer</span></div>
+      <div class="icon"><svg viewBox="0 0 20 20"><path d="M4 6h12M8 6V4h4v2M6 6l1 10h6l1-10"/></svg><span class="nom">supprimer</span></div>
+      <div class="icon"><svg viewBox="0 0 20 20"><circle cx="7" cy="5" r="1"/><circle cx="13" cy="5" r="1"/><circle cx="7" cy="10" r="1"/><circle cx="13" cy="10" r="1"/><circle cx="7" cy="15" r="1"/><circle cx="13" cy="15" r="1"/></svg><span class="nom">poignée</span></div>
+      <div class="icon"><svg viewBox="0 0 20 20"><path d="M10 16V4M5 9l5-5 5 5"/></svg><span class="nom">haut</span></div>
+      <div class="icon"><svg viewBox="0 0 20 20"><path d="M10 4v12M5 11l5 5 5-5"/></svg><span class="nom">bas</span></div>
+      <div class="icon"><svg viewBox="0 0 20 20"><path d="M12 5l-5 5 5 5"/></svg><span class="nom">chevron gauche</span></div>
+      <div class="icon"><svg viewBox="0 0 20 20"><path d="M8 5l5 5-5 5"/></svg><span class="nom">chevron droite</span></div>
+      <div class="icon"><svg viewBox="0 0 20 20"><path d="M10 4v8M6 8l4 4 4-4M4 16h12"/></svg><span class="nom">exporter</span></div>
+      <div class="icon"><svg viewBox="0 0 20 20"><path d="M10 16V8M6 12l4-4 4 4M4 4h12"/></svg><span class="nom">importer</span></div>
+      <div class="icon"><svg viewBox="0 0 20 20"><path d="M6 7V4h8v3M5 7h10v5h-2M4 12H3V8h1M6 11h8v6H6zM8 14h4"/></svg><span class="nom">imprimer</span></div>
+      <div class="icon"><svg viewBox="0 0 20 20"><circle cx="9" cy="9" r="5"/><path d="M13 13l4 4"/></svg><span class="nom">recherche</span></div>
+      <div class="icon"><svg viewBox="0 0 20 20"><path d="M4 7h12M4 13h12"/><circle cx="7" cy="7" r="1.6"/><circle cx="13" cy="13" r="1.6"/></svg><span class="nom">réglages</span></div>
+      <div class="icon"><svg viewBox="0 0 20 20"><path d="M5 10h10M9 6l-4 4 4 4"/></svg><span class="nom">zoom −</span></div>
+      <div class="icon"><svg viewBox="0 0 20 20"><path d="M4 4h12v12H4zM8 10h4M10 8v4"/></svg><span class="nom">zoom +</span></div>
+      <div class="icon"><svg viewBox="0 0 20 20"><path d="M4 8V4h4M12 4h4v4M16 12v4h-4M8 16H4v-4"/></svg><span class="nom">ajuster</span></div>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">05</span>Mouvement — trois durées, une courbe</h2>
+    <p class="sub">Aucune animation d'entrée de liste. Réduction à zéro sous <span class="mono">prefers-reduced-motion</span>.</p>
+    <div class="motion">
+      <div class="cap">Jeton</div><div class="cap">Valeur</div><div class="cap">Usage</div>
+      <div class="mono11">--motion-fast</div><div class="mono11">90 ms</div><div class="s12">survol, focus, press<div class="bar"><i style="width:18%"></i></div></div>
+      <div class="mono11">--motion</div><div class="mono11">140 ms</div><div class="s12">panneaux, toasts, onglets<div class="bar"><i style="width:28%"></i></div></div>
+      <div class="mono11">--motion-slow</div><div class="mono11">220 ms</div><div class="s12">changement de mode, volet de détail<div class="bar"><i style="width:44%"></i></div></div>
+      <div class="mono11">easing</div><div class="mono11">0.2, 0.7, 0.2, 1</div><div class="s12">toutes les transitions</div>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">06</span>États vides — dessinés, pas seulement écrits</h2>
+    <p class="sub">Le dessin accompagne l'action, il ne la remplace pas. Même trait que les icônes.</p>
+    <div class="empties">
+      <div class="empty">
+        <svg viewBox="0 0 84 64"><path d="M18 8h34l14 14v34H18z"/><path d="M52 8v14h14"/><path d="M28 30h28v18H28z"/><path d="M32 34h6v6h-6zM46 34h6v6h-6zM32 44h6v2h-6zM46 44h6v2h-6z"/></svg>
+        <h4>Collection vide</h4>
+        <p>Collez une adresse, ou importez une archive.</p>
+        <button class="btn primary">Ajouter un lien</button>
+      </div>
+      <div class="empty">
+        <svg viewBox="0 0 84 64"><rect x="16" y="8" width="40" height="48"/><path d="M24 18h24M24 26h24M24 34h16"/><circle cx="56" cy="42" r="9"/><path d="M62 48l8 8"/></svg>
+        <h4>Aucun résultat</h4>
+        <p>La recherche ne correspond à aucun lien.</p>
+        <button class="btn">Effacer la recherche</button>
+      </div>
+      <div class="empty">
+        <svg viewBox="0 0 84 64"><path d="M12 22h60v30H12z"/><path d="M12 22l12-10h36l12 10"/><path d="M42 28v14M36 34l6-6 6 6"/></svg>
+        <h4>Import impossible</h4>
+        <p>Le fichier n'a pas été reconnu.</p>
+        <button class="btn">Choisir un autre fichier</button>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">07</span>Avant / après — le même écran</h2>
+    <p class="sub">À gauche l'aspect actuel (système, glyphes). À droite la proposition : Plex, mono pour les données, icônes dessinées, chiffres tabulaires.</p>
+    <div class="fragments">
+      <div class="frag">
+        <div class="tete">avant</div>
+        <div class="corps">
+          <div class="rail" style="font-family: var(--system)">
+            <div class="ligne"><span class="num">1</span><span class="titre">Un titre délibérément long…</span><span class="crayon">✎</span></div>
+            <div class="ligne"><span class="num">2</span><span class="titre">Recette</span><span class="crayon">✎</span></div>
+            <div class="ligne"><span class="num">3</span><span class="titre">Documentation</span><span class="crayon">✎</span></div>
+          </div>
+          <div class="scene"><div class="feuille"><i></i><i></i><i></i><i></i></div></div>
+        </div>
+        <div class="legende">Aperçu à 54 % de la taille réelle</div>
+      </div>
+      <div class="frag">
+        <div class="tete">après</div>
+        <div class="corps">
+          <div class="rail">
+            <div class="ligne"><span class="num">1</span><div style="min-width:0"><div class="titre">Un titre délibérément long…</div><div class="url">https://exemple.fr/un-article</div></div><svg class="crayon" width="16" height="16" viewBox="0 0 20 20" style="stroke: var(--text-3); stroke-width:1.5; fill:none"><path d="M4 16l1-4L14 3l3 3-9 9-4 1zM12 5l3 3"/></svg></div>
+            <div class="ligne"><span class="num">2</span><div style="min-width:0"><div class="titre">Recette</div><div class="url">https://exemple.fr/page-1</div></div><svg class="crayon" width="16" height="16" viewBox="0 0 20 20" style="stroke: var(--text-3); stroke-width:1.5; fill:none"><path d="M4 16l1-4L14 3l3 3-9 9-4 1zM12 5l3 3"/></svg></div>
+            <div class="ligne"><span class="num">3</span><div style="min-width:0"><div class="titre">Documentation</div><div class="url">https://exemple.fr/page-2</div></div><svg class="crayon" width="16" height="16" viewBox="0 0 20 20" style="stroke: var(--text-3); stroke-width:1.5; fill:none"><path d="M4 16l1-4L14 3l3 3-9 9-4 1zM12 5l3 3"/></svg></div>
+          </div>
+          <div class="scene"><div class="feuille"><i></i><i></i><i></i><i></i></div></div>
+        </div>
+        <div class="legende">Aperçu à 54 % · 4 pages · A4</div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">08</span>Décisions à valider</h2>
+    <div class="check">
+      <ol>
+        <li><strong>Typographie</strong> : A (Plex Sans + Mono, recommandé) · B (Inter + Mono) · C (système + Mono).</li>
+        <li><strong>Icônes</strong> : jeu SVG maison (recommandé) ou conservation des glyphes actuels.</li>
+        <li><strong>Wordmark</strong> : marque + « URLQRCodePrinter » en 600, ou nom seul.</li>
+        <li><strong>Périmètre</strong> : I7a–c en une passe (3 paliers) ou I7a seul d'abord, maquette à l'appui.</li>
+      </ol>
+    </div>
+    <p class="note">
+      Cette maquette n'est pas le produit : c'est une proposition de direction. Aucun fichier de l'application
+      n'est modifié à ce stade. La police est chargée depuis Google Fonts pour le rendu de la maquette ;
+      en production, elle sera <strong>embarquée</strong> (aucune requête distante, CSP de l'extension).
+    </p>
+  </section>
+</div>
+</body>
+</html>

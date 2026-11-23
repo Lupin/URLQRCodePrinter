@@ -350,6 +350,21 @@ Preuves : `.audit/captures-reorder/` (`apres-reorder.png`, `mesures-reorder.json
 **Écart avec la cible 4,8.** La mesure donne **3,9**. Le plan tablait sur 4,8 après six paliers ; les paliers ont surtout corrigé la structure, la sortie et la cohérence, pas encore l'**identité** : typographie propriétaire, iconographie, mouvement, traitement des états vides, densité au pixel. Les tickets **#49** (note 4,8) et **#51** (porte 4,5) restent ouverts : les fermer sur 3,9 serait un mensonge de mesure.
 
 **Prochaine étape proposée** : une itération d'identité (I7), pas un polissage de plus — dessin typographique et iconographique, mouvement, et re-mesure du barème instrumenté.
+## I7 — Cadrage d'identité · 23 novembre 2026
+
+**Tag** : `checkpoint/i7-cadrage` · **Aucun fichier produit modifié.** Maquette à valider avant implémentation.
+
+La note s'est arrêtée à 3,9 parce que ce qui manque n'est pas un défaut mais une **identité**. Le cadrage propose quatre décisions, chiffrées et comparées :
+
+1. **Typographie** — trois options rendues côte à côte : A (IBM Plex Sans + Mono, recommandée), B (Inter + Mono), C (système + Mono). Échelle proposée 11/12/13/15/20, mono pour URL/rangs/cotes/statut, chiffres tabulaires.
+2. **Icônes** — jeu SVG maison de 17 pictogrammes (20 × 20, trait 1,5, bouts carrés) en remplacement des glyphes Unicode (`✎ × ▲ ▼ ⠿ ◀ ▶`).
+3. **Mouvement** — trois jetons (90/140/220 ms, courbe `cubic-bezier(0.2,0.7,0.2,1)`), aucune entrée de liste, réduction à zéro.
+4. **Wordmark** — marque + nom en 600, ou nom seul.
+
+Le document `docs/design-options/i7-identite.md` détaille les risques (poids des polices, CSP de l'extension, licences OFL, FOUT), le découpage **I7a–d** et les preuves attendues. La maquette `docs/design-options/mockup/i7-identite.html` (+ PNG) montre les trois options, l'échelle, les icônes, le mouvement, les états vides dessinés et un avant/après du même écran.
+
+**Prochaine étape** : validation des quatre décisions, puis I7a (typographie) avec preuve de poids et test « aucune requête distante ». La cible de la porte I7 est **≥ 4,3** ; 4,8 reste l'objectif après I8 si nécessaire.
+
 ## Dettes de finition (assumées, pour I6)
 
 Consignées au fil des revues, traitées lors de la **passe générale** avant la note 4,8 :
