@@ -489,6 +489,21 @@ La cotation avait ajouté un bloc entre l'étiquette et la légende ; celle-ci r
 
 La légende entre dans `.label-cote` (ligne 3, toutes colonnes) : elle suit la cote au lieu de flotter après l'espacement général. Captures et mesures : `.audit/captures-niimbot/`, `sonde-niimbot`.
 
+## Correctif — espace autour de « Aperçu à la taille réelle » · 23 novembre 2026
+
+Le premier correctif portait sur la **scène** (légende sous l'étiquette). La capture envoyée montrait le **volet** : la case « Aperçu à la taille réelle » y était collée au texte au-dessus et au bloc imprimante en dessous — 0 px avant, 0 px après.
+
+| Mesure | Avant | Après |
+|---|---|---|
+| Texte → case | **0 px** | **8 px de marge + 8 px de rembourrage**, filet de séparation |
+| Case → bloc imprimante | **0 px** | **8 px + 8 px**, filet |
+| Portée | Niimbot seulement | **Niimbot et Divers** (`export-real-size`) |
+| Tests | 1 141 | **1 142** |
+
+La case est reconnue comme un réglage d'**aperçu**, et non d'impression : elle est détachée des réglages qui s'impriment. `.field--preview` porte la marge, le rembourrage et les deux filets.
+
+Preuves : `.audit/captures-niimbot/inspecteur-avant.png` / `inspecteur-apres.png`.
+
 ## Dettes de finition (assumées, pour I6)
 
 Consignées au fil des revues, traitées lors de la **passe générale** avant la note 4,8 :

@@ -541,6 +541,16 @@ textarea.input { padding: var(--space-2) var(--space-3); }
 
 .field--inline { flex-direction: row; align-items: center; gap: var(--space-15); }
 
+/* Un réglage d'**aperçu** n'est pas un réglage d'impression : il ne doit pas
+   être collé au texte qui décrit le contenu, ni au bloc imprimante. La ligne
+   prend ses distances et se détache par un filet. */
+.field--preview {
+  margin: var(--space-2) 0;
+  padding: var(--space-2) 0;
+  border-top: 1px solid var(--border-line);
+  border-bottom: 1px solid var(--border-line);
+}
+
 /* Un champ et son bouton accolé : le bouton ne doit pas être étiré par la
    largeur du champ, il reste à sa taille naturelle. */
 .field__row { display: flex; align-items: stretch; gap: var(--space-15); }
