@@ -1041,6 +1041,7 @@ textarea.input { padding: var(--space-2) var(--space-3); }
 }
 .link:hover .link__check,
 .link:focus-within .link__check,
+.links--choisir .link__check,
 .link--selection .link__check { opacity: 1; }
 
 /* Sans survol (tactile), une case invisible serait une case perdue. */

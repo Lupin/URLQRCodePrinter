@@ -667,14 +667,22 @@ function updatePrintScope() {
     );
     return;
   }
-  const source = kind === 'one'
-    ? t('le lien affiché')
-    : (kind === 'selected'
-      ? tpl(items.length, '{count} lien coché', '{count} liens cochés', { count: items.length })
-      : t('les {count} liens de la collection', { count: items.length }));
-  el.printScopeHint.textContent = copies > 1
-    ? tpl(copies, '{source}, {count} exemplaire de chacun.', '{source}, {count} exemplaires de chacun.', { source })
-    : `${source}.`;
+  let portee;
+  if (kind === 'one') {
+    portee = t('Vous imprimez le lien affiché.');
+  } else if (kind === 'selected') {
+    portee = tpl(items.length, 'Vous imprimez {count} lien coché.', 'Vous imprimez {count} liens cochés.', {
+      count: items.length,
+    });
+  } else {
+    portee = tpl(items.length, 'Vous imprimez {count} lien de la collection.', 'Vous imprimez les {count} liens de la collection.', {
+      count: items.length,
+    });
+  }
+  if (copies > 1) {
+    portee += ` ${tpl(copies, 'Chacun en {count} exemplaire.', 'Chacun en {count} exemplaires.', { count: copies })}`;
+  }
+  el.printScopeHint.textContent = portee;
 }
 
 /**
@@ -7093,6 +7101,15 @@ el.moveGroup.addEventListener('keydown', (event) => {
     event.preventDefault();
     closeMoveMenu();
   }
+});
+
+const boutonSelection = document.getElementById('list-select');
+boutonSelection?.addEventListener('click', () => {
+  // Montrer les cases au clic, pas seulement au survol : la sélection reste
+  // découvrable, et le bouton dit son état.
+  const actif = el.list.classList.toggle('links--choisir');
+  boutonSelection.setAttribute('aria-pressed', String(actif));
+  boutonSelection.textContent = actif ? t('Terminer la sélection') : t('Sélectionner');
 });
 
 el.reorder.addEventListener('click', () => {

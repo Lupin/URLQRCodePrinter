@@ -635,6 +635,16 @@ Porte **4,5 non atteinte** (écart 0,10). Contrôles **17 / 18 / 16 / 14** (Plan
 
 Il manque trois choses, toutes de contenu/interaction : densité des deux derniers dépliants, découvrabilité du survol, phrase de portée télégraphique. Détail : `docs/design-options/audit-i8d-2026-11-23.md`.
 
+## I9 — Sélection découvrable et portée d'impression · 23 novembre 2026
+
+**Tag** : `checkpoint/i9` · **Note mesurée : 4,45 / 5** (contre 4,40, +0,05). Porte 4,5 non atteinte, écart 0,054.
+
+- Bouton **« Sélectionner »** dans la barre de liste : révèle les cases de ligne sans dépendre du survol, `aria-pressed`, libellé « Terminer la sélection ». Vérifié au rendu (cases à `opacity: 1`, classe `links--choisir`).
+- **Portée d'impression** réécrite : « Vous imprimez le lien affiché. », « Vous imprimez 3 liens cochés. », « Chacun en 2 exemplaires. » — plus de télégramme.
+- Contrôles : 18 / 19 / 17 / 15 (toujours ≤ 20) ; tests **1 150**.
+
+Détail : `docs/design-options/audit-i9-2026-11-23.md`. Décision : ne pas fermer #65/#51 ; les 0,05 restants demandent un choix de structure (fusion de dépliants ou réorganisation des onglets), pas une retouche.
+
 ## Dettes de finition (assumées, pour I6)
 
 Consignées au fil des revues, traitées lors de la **passe générale** avant la note 4,8 :

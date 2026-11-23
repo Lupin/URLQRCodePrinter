@@ -47,6 +47,15 @@ const EN_MESSAGES = {
   "{label} n'a pas répondu à l'instant : {message} Aucun autre service n'est proposé.":
     "{label} did not respond just now: {message} No other service is offered.",
   "Réorganiser": "Reorder",
+  "Sélectionner": "Select",
+  "Terminer la sélection": "Finish selecting",
+  "Vous imprimez le lien affiché.": "You are printing the displayed link.",
+  "Vous imprimez {count} lien coché.": "You are printing {count} checked link.",
+  "Vous imprimez {count} liens cochés.": "You are printing {count} checked links.",
+  "Vous imprimez {count} lien de la collection.": "You are printing {count} link from the collection.",
+  "Vous imprimez les {count} liens de la collection.": "You are printing all {count} links from the collection.",
+  "Chacun en {count} exemplaire.": "Each in {count} copy.",
+  "Chacun en {count} exemplaires.": "Each in {count} copies.",
   "Terminer le rangement": "Finish reordering",
   "Le rangement déplace un lien dans la collection, et le tableau imprimé suit cet ordre. Un tri le renumérote.":
     "Reordering moves a link within the collection, and the printed table follows that order. Sorting renumbers it instead.",
@@ -3260,6 +3269,7 @@ const ELEMENT_IDS = Object.freeze([
   'select-all-box',
   'selection-hint',
   'reorder',
+  'list-select',
   'move-group',
   'move-to',
   'move-menu',
@@ -13633,14 +13643,22 @@ function updatePrintScope() {
     );
     return;
   }
-  const source = kind === 'one'
-    ? t('le lien affiché')
-    : (kind === 'selected'
-      ? tpl(items.length, '{count} lien coché', '{count} liens cochés', { count: items.length })
-      : t('les {count} liens de la collection', { count: items.length }));
-  el.printScopeHint.textContent = copies > 1
-    ? tpl(copies, '{source}, {count} exemplaire de chacun.', '{source}, {count} exemplaires de chacun.', { source })
-    : `${source}.`;
+  let portee;
+  if (kind === 'one') {
+    portee = t('Vous imprimez le lien affiché.');
+  } else if (kind === 'selected') {
+    portee = tpl(items.length, 'Vous imprimez {count} lien coché.', 'Vous imprimez {count} liens cochés.', {
+      count: items.length,
+    });
+  } else {
+    portee = tpl(items.length, 'Vous imprimez {count} lien de la collection.', 'Vous imprimez les {count} liens de la collection.', {
+      count: items.length,
+    });
+  }
+  if (copies > 1) {
+    portee += ` ${tpl(copies, 'Chacun en {count} exemplaire.', 'Chacun en {count} exemplaires.', { count: copies })}`;
+  }
+  el.printScopeHint.textContent = portee;
 }
 
 /**
@@ -20059,6 +20077,15 @@ el.moveGroup.addEventListener('keydown', (event) => {
     event.preventDefault();
     closeMoveMenu();
   }
+});
+
+const boutonSelection = document.getElementById('list-select');
+boutonSelection?.addEventListener('click', () => {
+  // Montrer les cases au clic, pas seulement au survol : la sélection reste
+  // découvrable, et le bouton dit son état.
+  const actif = el.list.classList.toggle('links--choisir');
+  boutonSelection.setAttribute('aria-pressed', String(actif));
+  boutonSelection.textContent = actif ? t('Terminer la sélection') : t('Sélectionner');
 });
 
 el.reorder.addEventListener('click', () => {

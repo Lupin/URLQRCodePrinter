@@ -47,6 +47,15 @@ const EN_MESSAGES = {
   "{label} n'a pas répondu à l'instant : {message} Aucun autre service n'est proposé.":
     "{label} did not respond just now: {message} No other service is offered.",
   "Réorganiser": "Reorder",
+  "Sélectionner": "Select",
+  "Terminer la sélection": "Finish selecting",
+  "Vous imprimez le lien affiché.": "You are printing the displayed link.",
+  "Vous imprimez {count} lien coché.": "You are printing {count} checked link.",
+  "Vous imprimez {count} liens cochés.": "You are printing {count} checked links.",
+  "Vous imprimez {count} lien de la collection.": "You are printing {count} link from the collection.",
+  "Vous imprimez les {count} liens de la collection.": "You are printing all {count} links from the collection.",
+  "Chacun en {count} exemplaire.": "Each in {count} copy.",
+  "Chacun en {count} exemplaires.": "Each in {count} copies.",
   "Terminer le rangement": "Finish reordering",
   "Le rangement déplace un lien dans la collection, et le tableau imprimé suit cet ordre. Un tri le renumérote.":
     "Reordering moves a link within the collection, and the printed table follows that order. Sorting renumbers it instead.",

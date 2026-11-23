@@ -2,7 +2,7 @@
 
 **But** : transformer « c'est mieux » en une note reproductible sur 5, itération après itération, jusqu'à **4,8**. Le barème ne juge pas le goût : il juge ce qui se mesure, et laisse au jugement ce qui ne se mesure pas — en le bornant par des critères explicites.
 
-**Version auditée** : 0.4.0, branche `extension-layout-improvement` — **4,40 / 5** au 23 novembre 2026 (détail : [audit-i8d-2026-11-23.md](audit-i8d-2026-11-23.md)) ; audit initial 2,3 / 5 (détail dans [audit-ui-ux-2026-11-22.md](audit-ui-ux-2026-11-22.md)). **Plan de sortie vers > 4,5** : [atteindre-4-5.md](atteindre-4-5.md).
+**Version auditée** : 0.4.0, branche `extension-layout-improvement` — **4,45 / 5** au 23 novembre 2026 (détail : [audit-i9-2026-11-23.md](audit-i9-2026-11-23.md)) ; audit initial 2,3 / 5 (détail dans [audit-ui-ux-2026-11-22.md](audit-ui-ux-2026-11-22.md)). **Plan de sortie vers > 4,5** : [atteindre-4-5.md](atteindre-4-5.md).
 
 ---
 
@@ -87,7 +87,8 @@ Quatre questions, dans cet ordre, et une note argumentée en une phrase :
 | I6 | 3,9 mesuré (cible 4,8 non tenue) | Le socle est propre, mais la marque et les états vides manquent encore. |
 | I7a–d | 4,24 mesuré (porte 4,3 non atteinte) | Identité, icônes, pied de page, états vides : +0,34 depuis I6. |
 | I7e | 4,36 mesuré (porte 4,3 franchie) | Groupes repliés par défaut, 0 cible < 24 px. |
-| I8a–d | **4,40 mesuré** (porte 4,5 non atteinte) | Prose réduite (0/1/1/0 aides), 14–18 contrôles, mémoire des replis. Reste 0,10 pour 4,5 et 0,40 pour 4,8. |
+| I8a–d | 4,40 mesuré (porte 4,5 non atteinte) | Prose réduite, 14–18 contrôles, mémoire des replis. |
+| I9 | **4,45 mesuré** (porte 4,5 non atteinte) | Sélection découvrable, portée d'impression réécrite. Reste 0,05 pour 4,5, 0,35 pour 4,8. |
 
 **Rappel de lecture** : 4,8 n'est pas « parfait ». C'est « aucun défaut qu'un utilisateur remarquera sans y être invité ». Le dernier demi-point se gagne sur des détails qu'on ne voit qu'en comparant — c'est pour cela que l'itération 6 existe, et qu'elle ne peut pas être fusionnée avec les autres.
 
