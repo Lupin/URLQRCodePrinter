@@ -93,3 +93,11 @@ test('la légende du mode Images donne des millimètres, pas des tirets', () => 
   const zone = APP.slice(APP.indexOf('function renderImagePreview'), APP.indexOf('async function exportLabelImages'));
   assert.equal((zone.match(/el\.preview\.appendChild\(frame\)/g) ?? []).length, 1);
 });
+
+test('la légende de l’étiquette suit la cote, sans vide', () => {
+  // Signalé : un espace avant « Aperçu à la taille réelle » en Niimbot. La
+  // légende était sœur du bloc coté, après l'espacement de la scène.
+  assert.match(APP, /cote\.appendChild\(caption\)/);
+  assert.match(CSS, /\.label-cote > \.preview__caption \{[\s\S]*?grid-row: 3/);
+  assert.match(CSS, /\.label-cote > \.preview__caption \{[\s\S]*?margin: 0/);
+});

@@ -474,6 +474,21 @@ Le contenu des groupes est enveloppé dans `.sheet-group__body` pour que l'ouver
 
 Preuve : `.audit/captures-collapse/` (ouverts, fermés, mobile) et `mesures-collapse.json`.
 
+## Correctif — espace avant la légende en Niimbot · 23 novembre 2026
+
+Signalé : « dans l'onglet Niimbot, problème d'espace avant l'aperçu à la taille réelle ».
+
+La cotation avait ajouté un bloc entre l'étiquette et la légende ; celle-ci restait **sœur** du bloc coté, donc séparée par l'espacement de la scène (16 px) plus sa marge propre (8 px), au-dessus de la cote de largeur.
+
+| Mesure | Avant | Après |
+|---|---|---|
+| Étiquette → légende | **50 px** | **24 px** |
+| Cote de largeur → légende | 24 px (bloc séparé) | **2 px** (même grille) |
+| Structure | légende hors du bloc coté | **dans la grille de cotation**, sous la cote de largeur |
+| Tests | 1 140 | **1 141** |
+
+La légende entre dans `.label-cote` (ligne 3, toutes colonnes) : elle suit la cote au lieu de flotter après l'espacement général. Captures et mesures : `.audit/captures-niimbot/`, `sonde-niimbot`.
+
 ## Dettes de finition (assumées, pour I6)
 
 Consignées au fil des revues, traitées lors de la **passe générale** avant la note 4,8 :

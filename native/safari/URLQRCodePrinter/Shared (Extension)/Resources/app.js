@@ -18551,8 +18551,10 @@ function renderSingleLabel(link) {
   coteHauteur.className = 'label-cote__h';
   coteHauteur.textContent = t('{height} mm', { height: decimal(hauteurMm) });
   cote.append(frame, coteLargeur, coteHauteur);
+  // La légende suit **la cote**, pas l'espacement général de la scène : sinon
+  // elle flottait 25 px plus bas, avec le bloc de cotation entre les deux.
+  cote.appendChild(caption);
   el.preview.appendChild(cote);
-  el.preview.appendChild(caption);
 
   // Un refus sans remède oblige à deviner. Les deux gestes qui le font taire
   // sont ici : encoder le raccourci déjà présent, ou changer d'étiquette.

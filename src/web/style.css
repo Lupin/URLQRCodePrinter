@@ -2353,7 +2353,7 @@ input[type="range"]:focus-visible {
   grid-template-rows: auto auto;
   align-items: center;
   justify-items: center;
-  gap: var(--space-1) var(--space-2);
+  gap: var(--space-05) var(--space-2);
 }
 
 .label-cote .preview__page { grid-column: 1; grid-row: 1; }
@@ -2362,11 +2362,18 @@ input[type="range"]:focus-visible {
   grid-column: 1;
   grid-row: 2;
   align-self: start;
-  padding-top: var(--space-1);
+  padding-top: var(--space-05);
   border-top: 1px solid var(--text-3);
   color: var(--text-3);
   font-size: var(--type-2xs);
   white-space: nowrap;
+}
+
+.label-cote > .preview__caption {
+  grid-column: 1 / -1;
+  grid-row: 3;
+  justify-self: stretch;
+  margin: 0;
 }
 
 .label-cote__h {
