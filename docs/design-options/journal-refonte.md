@@ -504,6 +504,25 @@ La case est reconnue comme un réglage d'**aperçu**, et non d'impression : elle
 
 Preuves : `.audit/captures-niimbot/inspecteur-avant.png` / `inspecteur-apres.png`.
 
+## I7c — États vides dessinés et densité · 23 novembre 2026
+
+**Tag** : `checkpoint/i7c` · **Ticket fermé** : #60.
+
+| Mesure | Avant | Après |
+|---|---|---|
+| Collection vide | phrase seule, **poussée en bas du volet** | **dessin 96 × 72**, phrase, deux actions, sous la recherche |
+| Recherche sans résultat | phrase seule | **dessin dédié** (feuille + loupe), phrase, « Effacer la recherche » |
+| Position | ~bas du volet | **190 px / 171 px** sous le champ de recherche (la liste vide est retirée) |
+| Facture | — | trait **1,5 px**, bouts carrés, `--text-3` (suit le thème) |
+| Mobile 390 px | — | **190 px**, aucun débordement |
+| Tests | 1 142 | **1 143** |
+
+Le troisième état du cadrage (import impossible) n'est pas un état vide : c'est un **toast d'erreur**, avec son message et son remède. Il n'a donc pas reçu de dessin — le dessin accompagne une liste vide, pas un échec d'action.
+
+La liste vide est désormais masquée (`el.list.hidden`) : elle occupait la place restante et repoussait l'état vide au bas du volet, ce qui était le vrai défaut de densité.
+
+Preuves : `docs/design-options/mockup/etats-vides-avant-apres.png`, `.audit/captures-empty/` (vide, recherche, mobile) et `mesures-empty.json`.
+
 ## Dettes de finition (assumées, pour I6)
 
 Consignées au fil des revues, traitées lors de la **passe générale** avant la note 4,8 :

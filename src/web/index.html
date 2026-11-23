@@ -237,14 +237,33 @@
       <!-- Trois états vides distincts : collection vide, recherche sans
            résultat, et le même avec une action de sortie. Une phrase seule
            laissait l'utilisateur sans prochain geste. -->
-      <p id="empty" class="empty">Aucun lien pour l'instant. Collez une adresse ci-dessus, ou importez une archive.</p>
-      <div id="empty-actions" class="empty__actions" hidden>
+      <div id="empty-state" class="empty-state" hidden>
+        <!-- Deux dessins au trait, cohérents avec les icônes : la collection
+             vide, et la recherche sans résultat. Le dessin accompagne l'action,
+             il ne la remplace pas. -->
+        <div class="empty-state__art" aria-hidden="true">
+          <svg id="empty-art-vide" viewBox="0 0 96 72">
+            <path d="M24 6h34l16 16v44H24z"/>
+            <path d="M58 6v16h16"/>
+            <path d="M34 34h30v22H34z"/>
+            <path d="M39 39h6v6h-6zM53 39h6v6h-6zM39 50h6v2h-6zM53 50h6v2h-6z"/>
+          </svg>
+          <svg id="empty-art-recherche" viewBox="0 0 96 72" hidden>
+            <rect x="18" y="6" width="44" height="60"/>
+            <path d="M26 18h28M26 28h28M26 38h18"/>
+            <circle cx="66" cy="48" r="12"/>
+            <path d="M75 57l10 10"/>
+          </svg>
+        </div>
+        <p id="empty" class="empty">Aucun lien pour l'instant. Collez une adresse ci-dessus, ou importez une archive.</p>
+        <div id="empty-actions" class="empty__actions" hidden>
         <button id="empty-add" class="btn btn--primary btn--small" type="button"
                 data-i18n="Ajouter un lien">Ajouter un lien</button>
         <button id="empty-import" class="btn btn--ghost btn--small" type="button"
                 data-i18n="Importer une archive">Importer une archive</button>
-        <button id="empty-search-clear" class="btn btn--ghost btn--small" type="button" hidden
-                data-i18n="Effacer la recherche">Effacer la recherche</button>
+          <button id="empty-search-clear" class="btn btn--ghost btn--small" type="button" hidden
+                  data-i18n="Effacer la recherche">Effacer la recherche</button>
+        </div>
       </div>
 
       <!-- Exporter, importer, vider : trois gestes de gestion, pas de

@@ -787,9 +787,20 @@ function renderList() {
     ? t('Aucun lien pour l\'instant. Collez une adresse ci-dessus, ou importez une archive.')
     : t('Aucun lien ne correspond à la recherche.');
   const actionsVides = document.getElementById('empty-actions');
+  const etatVide = document.getElementById('empty-state');
+  // Une liste vide poussait l'état vide au bas du volet (elle occupe la place
+  // restante). On la retire : le dessin et l'action viennent sous la recherche.
+  el.list.hidden = visible.length === 0;
   const boutonAjouter = document.getElementById('empty-add');
   const boutonImporter = document.getElementById('empty-import');
   const boutonEffacer = document.getElementById('empty-search-clear');
+  if (etatVide) etatVide.hidden = visible.length > 0;
+  // Le dessin suit l'état : feuille + QR Code fantôme pour une collection vide,
+  // loupe sur feuille pour une recherche sans résultat.
+  const artVide = document.getElementById('empty-art-vide');
+  const artRecherche = document.getElementById('empty-art-recherche');
+  if (artVide) artVide.hidden = !aucunLien;
+  if (artRecherche) artRecherche.hidden = aucunLien;
   if (actionsVides) actionsVides.hidden = visible.length > 0;
   if (boutonAjouter) boutonAjouter.hidden = !aucunLien;
   if (boutonImporter) boutonImporter.hidden = !aucunLien;

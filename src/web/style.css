@@ -1187,9 +1187,35 @@ textarea.input { padding: var(--space-2) var(--space-3); }
    bleu derrière le doigt. */
 .links--reorder .link { user-select: none; }
 
-.empty {
-  margin: 8px 0;
-  padding: var(--space-4) var(--space-15);
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  margin: var(--space-2) 0;
+  padding: var(--space-4) var(--space-2);
+}
+
+.empty-state[hidden] { display: none; }
+
+/* Dessins au trait, même facture que les icônes : 1,5 px, bouts carrés. */
+.empty-state__art svg {
+  display: block;
+  width: 96px;
+  height: 72px;
+  fill: none;
+  stroke: var(--text-3);
+  stroke-width: 1.5;
+  stroke-linecap: square;
+  stroke-linejoin: miter;
+}
+
+.empty-state__art svg[hidden] { display: none; }
+
+.empty-state .empty {
+  margin: 0;
+  padding: 0;
+  max-width: 40ch;
   color: var(--text-2);
   font-size: var(--type-xs);
   line-height: 1.6;
@@ -1198,7 +1224,7 @@ textarea.input { padding: var(--space-2) var(--space-3); }
 
 .empty__actions {
   display: flex; flex-wrap: wrap; justify-content: center; gap: var(--space-15);
-  margin: -2px 0 8px;
+  margin-top: var(--space-1);
 }
 .empty__actions[hidden] { display: none; }
 
