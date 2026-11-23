@@ -1031,7 +1031,22 @@ textarea.input { padding: var(--space-2) var(--space-3); }
   cursor: pointer;
 }
 
-.link__check { width: 14px; height: 14px; margin: 0; }
+.link__check {
+  width: 14px; height: 14px; margin: 0;
+  /* La case reste dans le flux et au clavier (focus-within la révèle), mais ne
+     se montre qu'au survol : six cases visibles en permanence, c'étaient six
+     décisions avant même de lire la liste. */
+  opacity: 0;
+  transition: opacity var(--motion-fast) var(--easing);
+}
+.link:hover .link__check,
+.link:focus-within .link__check,
+.link--selection .link__check { opacity: 1; }
+
+/* Sans survol (tactile), une case invisible serait une case perdue. */
+@media (hover: none) {
+  .link__check { opacity: 1; }
+}
 /* Deux colonnes : le titre sur toute la largeur, puis l'adresse et les puces
    sur une même ligne. La grille, contrairement au flex wrap, comprime
    l'adresse au lieu de renvoyer les puces à la ligne suivante — c'est ce qui
@@ -2564,3 +2579,44 @@ select.input, .locale__select {
   transition: background-color var(--motion-fast) var(--easing),
     border-color var(--motion-fast) var(--easing), color var(--motion-fast) var(--easing);
 }
+
+/* Un dépliant de mode : mêmes conventions que les dépliants du volet. */
+.mode__advanced { border-top: 1px solid var(--border-line); padding-top: var(--space-2); }
+.mode__advanced > .mode__advanced-title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 40px;
+  margin: 0;
+  padding: 0 var(--space-2);
+  border: 1px solid var(--border-line);
+  background: var(--bg);
+  font-size: var(--type-xs);
+  font-weight: 650;
+  list-style: none;
+  cursor: pointer;
+}
+.mode__advanced > .mode__advanced-title::-webkit-details-marker { display: none; }
+.mode__advanced > .mode__advanced-title:hover { border-color: var(--border-strong); background: var(--surface-2); }
+.mode__advanced[open] > .mode__advanced-title { border-color: var(--border-strong); background: var(--surface-2); }
+.mode__advanced > .mode__advanced-title:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.mode__advanced > .mode__advanced-title::after {
+  content: "";
+  flex: none;
+  width: 24px;
+  height: 24px;
+  margin-left: auto;
+  border: 1px solid var(--border-strong);
+  background: var(--bg) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cpath d='M6 8l4 4 4-4' fill='none' stroke='%231a1a1a' stroke-width='1.5' stroke-linecap='square'/%3E%3C/svg%3E") center / 14px 14px no-repeat;
+  transition: transform var(--motion) var(--easing);
+}
+.mode__advanced[open] > .mode__advanced-title::after { transform: rotate(180deg); }
+.mode__advanced-body { display: flex; flex-direction: column; gap: var(--space-3); padding-top: var(--space-3); }
+
+/* Une action destructive ne se propose pas à côté d'un sélecteur inoffensif :
+   elle apparaît au survol ou au focus du bloc collection, et reste accessible
+   au clavier. Au tactile, elle reste visible. */
+#collection-delete { opacity: 0; transition: opacity var(--motion-fast) var(--easing); }
+.collection-picker:hover #collection-delete,
+.collection-picker:focus-within #collection-delete { opacity: 1; }
+@media (hover: none) { #collection-delete { opacity: 1; } }

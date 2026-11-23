@@ -733,6 +733,9 @@ const EN_MESSAGES = {
     "The notice has changed: read it again to keep saving links.",
   "Refus enregistré : acceptez la mention pour enregistrer un lien.":
     "Consent declined: accept the notice to record a link.",
+  "Réglages du tableau": "Table settings",
+  "Réglages de l’étiquette": "Label settings",
+  "Réglages des images": "Image settings",
 };
 
 // ────────────────────────────────────────────────────────────────────────

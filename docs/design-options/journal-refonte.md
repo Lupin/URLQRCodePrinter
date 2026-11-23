@@ -596,6 +596,29 @@ Ce qui reste : une aide **actionnable** par mode (numérotation en Tableau, cont
 
 Tests : **1 144 / 1 144**. Mesures : `.audit/mesures-i8/prose-i8a-apres.json`. Captures : `.audit/captures-i7b/` (4 modes, état par défaut).
 
+## I8b — Charge de l'inspecteur · 23 novembre 2026
+
+**Tag** : `checkpoint/i8b` · **Ticket fermé** : #63.
+
+| Contrôles visibles par défaut | Avant | Après |
+|---|---|---|
+| Planche | 24 | **17** |
+| Tableau | 41 | **18** |
+| Niimbot | 38 | **16** |
+| Images | 31 | **14** |
+
+Trois leviers, tous mesurés sur le rendu :
+
+1. **Cases de ligne au survol ou au focus** (et visibles au tactile via `@media (hover: none)`) : six cases visibles en permanence, c'étaient six décisions avant la lecture de la liste.
+2. **Suppression de collection** au survol/focus du bloc : une action destructive ne se propose plus à côté d'un sélecteur inoffensif ; elle reste au clavier et au tactile.
+3. **Un dépliant de réglages par mode** (`Réglages du tableau`, `Réglages de l'étiquette`, `Réglages des images`), en gardant visible ce qui décide de la sortie : taille du QR Code en Tableau, format d'étiquette en Niimbot et Images.
+
+Les trois dépliants utilisent la même ligne-contrôle de 40 px et le même chevron que le reste du produit. Aperçu visible 4/4 modes à 380 px, 0 débordement, 0 cible < 24 px ; tests **1 146 / 1 146**.
+
+**Incidences en cours de route** : une première découpe HTML a mal imbriqué les panneaux (bloc imprimante rendu hors de l'onglet Niimbot, texte de balise affiché). Détecté sur capture avant commit, corrigé par reconstruction stricte des bornes et vérification de l'arbre HTML (`printer` bien enfant de `mode-single`). Aucun commit intermédiaire cassé.
+
+Captures : `.audit/captures-i7b/` (4 modes, état par défaut). Mesures : `.audit/mesures-i8/prose.json`.
+
 ## Dettes de finition (assumées, pour I6)
 
 Consignées au fil des revues, traitées lors de la **passe générale** avant la note 4,8 :

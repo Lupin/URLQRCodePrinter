@@ -634,12 +634,17 @@
             <span class="field__label" data-i18n="Taille du QR Code">Taille du QR Code</span>
             <input id="table-qr" class="input" type="range" min="20" max="80" value="38">
           </label>
+        </div>
+
+        <details class="advanced mode__advanced">
+          <summary class="mode__advanced-title" data-i18n="Réglages du tableau">Réglages du tableau</summary>
+          <div class="mode__advanced-body">
+
           <!-- Le sens de la feuille : un tableau large gagne à être couché. -->
           <label class="field">
             <span class="field__label" data-i18n="Orientation de la page">Orientation de la page</span>
             <select id="table-orientation" class="input"></select>
           </label>
-        </div>
 
         <!-- Marges de la page imprimée. Elles étaient fixes : un tableau large
              se faisait rogner, et rien ne permettait de le rattraper. -->
@@ -729,6 +734,9 @@
             <span data-i18n="Grille et bordures">Grille et bordures</span>
           </label>
         </fieldset>
+          </div>
+        </details>
+
         <p id="table-hint" class="hint hint--tight"></p>
       </div>
 
@@ -741,6 +749,12 @@
             <span class="field__label" data-i18n="Format d'étiquette">Format d'étiquette</span>
             <select id="label-profile" class="input"></select>
           </label>
+        </div>
+
+        <details class="advanced mode__advanced">
+          <summary class="mode__advanced-title" data-i18n="Réglages de l’étiquette">Réglages de l’étiquette</summary>
+          <div class="mode__advanced-body">
+
           <label class="field">
             <span class="field__label" data-i18n="Densité">Densité</span>
             <input id="density" class="input" type="number" min="1" max="3" value="2">
@@ -768,7 +782,6 @@
             <span class="field__label" data-i18n="Exemplaires">Exemplaires</span>
             <input id="copies" class="input" type="number" min="1" max="20" value="1">
           </label>
-        </div>
 
         <div class="fields">
           <!-- Le consommable porte ses deux cotes. Demander la longueur à côté
@@ -860,6 +873,9 @@
           <span class="field__label" data-i18n="Aperçu à la taille réelle">Aperçu à la taille réelle</span>
         </label>
 
+          </div>
+        </details>
+
         <div class="printer">
           <div class="printer__status">
             <span id="printer-dot" class="dot dot--off"></span>
@@ -891,6 +907,11 @@
             <select id="label-format" class="input"></select>
           </label>
         </div>
+
+        <details class="advanced mode__advanced">
+          <summary class="mode__advanced-title" data-i18n="Réglages des images">Réglages des images</summary>
+          <div class="mode__advanced-body">
+
         <div class="fields">
           <label class="field">
             <span class="field__label" data-i18n="Marge (mm)">Marge (mm)</span>
@@ -949,6 +970,8 @@
             <span data-i18n="Avec l'heure">Avec l'heure</span>
           </label>
         </fieldset>
+          </div>
+        </details>
       </div>
 
       <!-- Actions, juste après les instructions du mode actif et avant
