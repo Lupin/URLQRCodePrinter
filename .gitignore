@@ -8,6 +8,7 @@ dist/
 npm-debug.log*
 
 # Xcode / Swift
+.xcode-build/
 *.xcuserstate
 xcuserdata/
 DerivedData/
@@ -25,12 +26,8 @@ native/niimbot-kit/.build/
 
 # Profils navigateur, captures et fichiers temporaires des vérifications
 .brave-test/
-.verify-brave/
-.verify-brave-captures/
-.verify-chrome/
-.verify-chrome-captures/
-# Les PDF produits par la mesure de pagination : des sorties, pas des sources.
-.verify-chrome-pages/
+# Toutes les sorties des scripts de vérification (profils, captures, PDF).
+.verify-*/
 
 # Dossier de travail de l'outillage de vision : captures intermédiaires, jamais
 # une source du dépôt.
@@ -43,6 +40,8 @@ native/niimbot-kit/.build/
 # Profils de navigateur des captures et vérifications
 .shot-profile/
 .store-shots/
+.fenetre-shots/
+.promo-shots/
 
 # Dossier de travail de l'audit UI/UX : captures, relevés, brouillons.
 .audit/

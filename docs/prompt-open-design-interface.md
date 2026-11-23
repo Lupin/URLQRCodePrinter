@@ -25,7 +25,7 @@ deux choses, dans cet ordre : **analyser et améliorer l'interface**, puis
 
 - Les visuels de la page : `src/site/` (le build du site recopie le dossier tel
   quel, sous-dossiers compris).
-- Les explorations et variantes : `store/promo/alternatives/`.
+- Les explorations et variantes : `docs/archive/store-promo-2026/alternatives/`.
 - L'analyse d'interface : à rendre en texte, et à recopier dans
   `docs/design-options/` si elle tient debout.
 
