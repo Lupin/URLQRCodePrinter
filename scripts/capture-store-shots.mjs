@@ -460,8 +460,20 @@ const SHOTS = [
     },
   },
   {
-    file: 'privacy.html',
-    name: '04-mention-confidentialite-fr.png',
+    file: 'app.html',
+    name: '04-tableau-fr.png',
+    seed: true,
+    // Le mode Tableau, et non la mention de confidentialité : la fiche montre
+    // ce que le produit sort, pas un écran de texte légal. Le cadrage reste en
+    // haut de page pour voir le tableau imprimé et ses colonnes.
+    before: `(async () => {
+      const onglet = document.getElementById('tab-table');
+      if (onglet) onglet.click();
+      await new Promise((r) => setTimeout(r, 700));
+      window.scrollTo(0, 0);
+      await new Promise((r) => setTimeout(r, 300));
+      return onglet ? 'onglet Tableau, défilement ' + window.scrollY : 'onglet Tableau introuvable';
+    })()`,
   },
 ];
 

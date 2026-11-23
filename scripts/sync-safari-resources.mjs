@@ -30,6 +30,27 @@ const TARGET = join(
   'Resources',
 );
 
+/**
+ * Retire les copies de synchronisation iCloud (« app 2.js », « icon 3.png »).
+ *
+ * Elles apparaissent dans le dossier Documents pendant que les captures ou le
+ * build écrivent, et le miroir les refusait à juste titre. On les enlève des
+ * deux côtés avant de comparer et de copier.
+ */
+async function retirerDoublons(dossier) {
+  if (!existsSync(dossier)) return;
+  for (const entree of await readdir(dossier, { withFileTypes: true })) {
+    const chemin = join(dossier, entree.name);
+    if (entree.isDirectory()) {
+      await retirerDoublons(chemin);
+      continue;
+    }
+    if (!/ \d+\.[A-Za-z0-9]+$/.test(entree.name)) continue;
+    await rm(chemin, { force: true });
+    console.log(`  doublon retiré : ${chemin.slice(ROOT.length + 1)}`);
+  }
+}
+
 /** Point d'entrée. */
 async function main() {
   if (!existsSync(SOURCE)) {
@@ -39,6 +60,8 @@ async function main() {
     );
   }
 
+  await retirerDoublons(SOURCE);
+  await retirerDoublons(TARGET);
   const entries = await readdir(SOURCE);
 
   // Les ressources doivent refléter la source **exactement**. Une copie macOS

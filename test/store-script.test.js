@@ -25,7 +25,7 @@ test('le dossier de dépôt ne contient que les fichiers attendus', () => {
   // Les cinq captures, dans les deux langues, plus les visuels et les textes.
   for (const base of [
     '01-fenetre-popup', '02-application', '03-impression-niimbot',
-    '04-mention-confidentialite', '05-collections',
+    '04-tableau', '05-collections',
   ]) {
     assert.ok(SCRIPT.includes(base), `capture absente du script : ${base}`);
   }

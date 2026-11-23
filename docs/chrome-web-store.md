@@ -386,7 +386,7 @@ main, et de ce que le portail ne dit pas tout seul.
 | Justifications de permissions | **Rédigées** ci-dessus |
 | Choix trader / non-trader | **Traité** |
 | Mention et consentement dans l'interface | **Fait** — voir section 3 ; reste à éprouver à la main dans le navigateur |
-| Captures d'écran | **Fait — les cinq emplacements sont remplis** : `01` et `02` à `04` régénérées le 3 novembre 2026 avec l'interface 0.3.0, plus la nouvelle `05-collections-fr.png` (nom validé, « Nouvelle », confirmation de suppression). Toutes en 1280 × 800. Le dossier ne contient que les captures déclarées ; les huit captures brutes du 30 septembre en ont été sorties (voir section 7) |
+| Captures d'écran | **Fait — les cinq emplacements sont remplis** : `01` à `05` régénérées le 23 novembre 2026 avec l'interface 0.5.0 ; `04` montre le mode Tableau, pas la mention de confidentialité. Toutes en 1280 × 800. Le dossier ne contient que les captures déclarées ; les huit captures brutes du 30 septembre en ont été sorties (voir section 7) |
 | Petite image promotionnelle 440 × 280 | **Fait** — `store/promo/promo-440x280.jpg`, 440 × 280, JPEG 24 bits sans alpha, régénérée le 4 novembre 2026 |
 | Icône de la fiche | **Fait** — `src/extension-src/icons/icon-128.png`, 128 × 128 avec alpha : tuile orange, étiquette QR Code sortant d'une imprimante (dessin retenu parmi huit propositions), **dessin de 96 × 96 centré** avec 16 px transparents de chaque côté — la recommandation du magasin est suivie. Même source pour l'icône d'application, en bord perdu — `npm run icons` écrit les deux jeux |
 | Image « marquee » 1400 × 560 | **Fait** — `store/promo/marquee-1400x560.jpg`, 1400 × 560, JPEG 24 bits sans alpha. Facultative pour publier, mais c'est elle qui sert la mise en avant |

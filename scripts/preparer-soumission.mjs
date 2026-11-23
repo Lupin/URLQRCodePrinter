@@ -41,7 +41,7 @@ const VISUELS = [
     'store/screenshots/01-fenetre-popup-fr.png',
     'store/screenshots/02-application-fr.png',
     'store/screenshots/03-impression-niimbot-fr.png',
-    'store/screenshots/04-mention-confidentialite-fr.png',
+    'store/screenshots/04-tableau-fr.png',
     'store/screenshots/05-collections-fr.png',
   ] },
   // La série anglaise est complète elle aussi : la fenêtre est produite par
@@ -51,7 +51,7 @@ const VISUELS = [
     'store/screenshots/01-fenetre-popup-en.png',
     'store/screenshots/02-application-en.png',
     'store/screenshots/03-impression-niimbot-en.png',
-    'store/screenshots/04-mention-confidentialite-en.png',
+    'store/screenshots/04-tableau-en.png',
     'store/screenshots/05-collections-en.png',
   ] },
   { champ: 'Petite image promotionnelle (440 × 280)', chemins: ['store/promo/promo-440x280.jpg'] },

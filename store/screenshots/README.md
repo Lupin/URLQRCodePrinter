@@ -16,14 +16,14 @@ recommande de les remplir :
 01-fenetre-popup-fr.png              la fenêtre, avec les liens collectés
 02-application-fr.png                l'application : collection, mise en forme
 03-impression-niimbot-fr.png         l'onglet Niimbot : réglages, commandes, étiquette
-04-mention-confidentialite-fr.png    la mention, en attente d'accord
+04-tableau-fr.png                   le mode Tableau : colonnes, grille, aperçu
 05-collections-fr.png                la gestion des collections : nom validé,
                                      « Nouvelle », et la confirmation de suppression
 
 01-fenetre-popup-en.png              les mêmes, en anglais
 02-application-en.png
 03-impression-niimbot-en.png
-04-mention-confidentialite-en.png
+04-tableau-en.png
 05-collections-en.png
 ```
 
@@ -32,7 +32,7 @@ captures par langue : la fiche française reçoit la série `-fr`, la fiche
 anglaise la série `-en`. Sans elle, le magasin sert les captures françaises aux
 visiteurs anglophones.
 
-Les quatre captures d'application (`02` à `05`) sont produites **par le même
+Les captures d'application (`02` à `05`) sont produites **par le même
 script, dans la même passe**, pour les deux langues : la langue est écrite dans
 `chrome.storage.local` (clé `locale`, ce qu'écrit le sélecteur de langue de
 l'application), la page est rechargée, et le script **vérifie ce qui est
@@ -224,13 +224,13 @@ Le préfixe donne l'ordre d'affichage, le suffixe la langue :
 01-fenetre-popup-fr.png              la fenêtre de l'extension, avec ses liens
 02-application-fr.png                l'application : collection, mise en forme, aperçu
 03-impression-niimbot-fr.png         l'onglet d'impression sur l'imprimante
-04-mention-confidentialite-fr.png    la mention, en attente d'accord
+04-tableau-fr.png                   le mode Tableau : colonnes, grille, aperçu
 05-collections-fr.png                la gestion des collections et la confirmation
 
 01-fenetre-popup-en.png              les mêmes, en anglais
 02-application-en.png
 03-impression-niimbot-en.png
-04-mention-confidentialite-en.png
+04-tableau-en.png
 05-collections-en.png
 ```
 

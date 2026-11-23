@@ -25,6 +25,9 @@ const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const OUT = join(ROOT, 'dist', 'store');
 const SITE_IMAGES = join(ROOT, 'src', 'site', 'images');
 const SITE_SHOTS = join(ROOT, 'dist', '.site-shots');
+const VERSION_FILE = join(ROOT, 'store', 'screenshots', 'VERSION');
+const ARCHIVES = join(ROOT, 'docs', 'archive', 'store-versions');
+
 const LISTING = JSON.parse(readFileSync(join(ROOT, 'store', 'listing.json'), 'utf8'));
 const CHROME = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
 const PORT = 9680;
@@ -43,6 +46,48 @@ function runCapture(label, args) {
   } catch {
     process.stdout.write(`  ↻ ${label} : nouvelle tentative après nettoyage du profil\n`);
     run(label, args);
+  }
+}
+
+function versionActuelle() {
+  return JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8')).version;
+}
+
+/**
+ * Archive la série de captures de la version précédente avant de l'écraser.
+ *
+ * Sans cela, une nouvelle version remplaçait les images sur disque et la fiche
+ * publiée devenait impossible à reconstituer. La version lue est celle du
+ * marqueur `store/screenshots/VERSION` ; une série déjà archivée n'est pas
+ * recopiée.
+ */
+function archiverVersionPrecedente() {
+  let ancienne = null;
+  try { ancienne = readFileSync(VERSION_FILE, 'utf8').trim(); } catch { return; }
+  const actuelle = versionActuelle();
+  if (!ancienne || ancienne === actuelle) return;
+  const destination = join(ARCHIVES, ancienne);
+  if (existsSync(destination)) return;
+  mkdirSync(join(destination, 'screenshots'), { recursive: true });
+  mkdirSync(join(destination, 'promo'), { recursive: true });
+  for (const nom of readdirSync(join(ROOT, 'store', 'screenshots'))) {
+    if (!/\.png$/i.test(nom)) continue;
+    copyFileSync(join(ROOT, 'store', 'screenshots', nom), join(destination, 'screenshots', nom));
+  }
+  for (const nom of ['promo-440x280.jpg', 'marquee-1400x560.jpg']) {
+    copyFileSync(join(ROOT, 'store', 'promo', nom), join(destination, 'promo', nom));
+  }
+  writeFileSync(join(destination, 'README.md'), `# Fiche Chrome Web Store — ${ancienne}\n\nArchive automatique de la série ${ancienne}, remplacée par ${actuelle}.\n`, 'utf8');
+  process.stdout.write(`  série ${ancienne} archivée dans docs/archive/store-versions/\n`);
+}
+
+/** Retire les doublons de synchronisation iCloud dans un dossier de visuels. */
+function retirerDoublons(dossier) {
+  if (!existsSync(dossier)) return;
+  for (const nom of readdirSync(dossier)) {
+    if (!/ \d+\.(png|jpe?g)$/i.test(nom) && !/^\._/.test(nom) && nom !== '.DS_Store') continue;
+    rmSync(join(dossier, nom), { force: true });
+    process.stdout.write(`  doublon retiré : ${nom}\n`);
   }
 }
 
@@ -187,7 +232,7 @@ async function captureSite() {
 
 const CAPTURES = [
   '01-fenetre-popup', '02-application', '03-impression-niimbot',
-  '04-mention-confidentialite', '05-collections',
+  '04-tableau', '05-collections',
 ];
 
 function deposerCaptures() {
@@ -268,6 +313,7 @@ async function main() {
     return;
   }
 
+  archiverVersionPrecedente();
   run('Construction de l’extension et du site', ['scripts/build.mjs']);
   run('Synchronisation du miroir Safari', ['scripts/sync-safari-resources.mjs']);
   run('Paquet Chrome (zip)', ['scripts/package-chrome.mjs']);
@@ -277,6 +323,11 @@ async function main() {
   process.stdout.write('\n▸ Captures du site (GitHub Pages)\n');
   await captureSite();
   run('Reconstruction du site avec les nouvelles images', ['scripts/build-site.mjs', '--no-build']);
+  // Les scripts de capture peuvent laisser passer un doublon iCloud dans les
+  // visuels du site ou de la promotion : on nettoie avant d'assembler.
+  retirerDoublons(SITE_IMAGES);
+  retirerDoublons(join(ROOT, 'store', 'promo'));
+  writeFileSync(VERSION_FILE, `${versionActuelle()}\n`, 'utf8');
   run('Feuille de saisie de la mise à jour', ['scripts/preparer-soumission.mjs']);
 
   process.stdout.write('\n▸ Assemblage de dist/store/\n');
