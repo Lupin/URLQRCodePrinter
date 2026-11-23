@@ -227,6 +227,7 @@ const EN_MESSAGES = {
   "Aperçu à {percent} % de la taille réelle.": "Preview at {percent}% of actual size.",
   "Numéroter les pages": "Number pages",
   "Ajoute « Page 1 / 4 » dans la marge basse, sur l'aperçu comme sur le papier.": "Adds “Page 1 / 4” in the bottom margin, in the preview and on paper.",
+  "Ajoute « Page 1 / 4 » dans la marge basse du tableau.": "Adds “Page 1 / 4” in the table's bottom margin.",
   "Page {index} / {total}": "Page {index} / {total}",
   "{width} mm": "{width} mm",
   "{height} mm": "{height} mm",
@@ -443,7 +444,7 @@ const EN_MESSAGES = {
   " — {count} raccourci en place": " — {count} short link in place",
   " — {count} raccourcis en place": " — {count} short links in place",
   "Ajoutez des liens pour voir un aperçu.": "Add links to see a preview.",
-  "Ajoutez un tag ou une note depuis la liste (bouton ✎) pour pouvoir les imprimer.": "Add a tag or a note from the list (✎ button) to be able to print them.",
+  "Ajoutez un tag ou une note depuis la liste (bouton d'édition) pour pouvoir les imprimer.": "Add a tag or a note from the list (edit button) to be able to print them.",
   "Annuler": "Cancel",
   "Enregistrer": "Save",
   "Fermer": "Close",
@@ -458,7 +459,7 @@ const EN_MESSAGES = {
   "Aucun lien dans la collection": "No link in the collection",
   "Aucun lien dans la collection.": "No link in the collection.",
   "Aucun lien exploitable dans {file}": "No usable link in {file}",
-  "Aucun lien n'a de {what} : ajoutez-en un avec le bouton ✎ de la liste.": "No link has a {what}: add one with the ✎ button in the list.",
+  "Aucun lien n'a de {what} : ajoutez-en un avec le bouton d'édition de la liste.": "No link has a {what}: add one with the edit button in the list.",
   "Aucun lien ne correspond à la recherche.": "No link matches the search.",
   "Aucun lien à imprimer": "No link to print",
   "Aucun lien. Ajoutez-en un ci-dessus, importez une archive, ou utilisez l'extension navigateur.": "No links. Add one above, import an archive, or use the browser extension.",
@@ -506,7 +507,7 @@ const EN_MESSAGES = {
   "Le navigateur n'a pas pu encoder l'image.": "The browser could not encode the image.",
   "Le numéro du lien s'imprime au-dessus du titre.": "The link number is printed above the title.",
   "Lecture…": "Reading…",
-  "Les tags et la note saisis dans la liste (bouton ✎) peuvent être imprimés ici.": "Tags and the note entered in the list (✎ button) can be printed here.",
+  "Les tags et la note saisis dans la liste (bouton d'édition) peuvent être imprimés ici.": "Tags and the note entered in the list (edit button) can be printed here.",
   "Les {count} liens sont cochés.": "All {count} links are checked.",
   "Lien ajouté": "Link added",
   "Lien mis à jour": "Link updated",
@@ -3313,6 +3314,7 @@ const ELEMENT_IDS = Object.freeze([
   'table-margin-x',
   'table-margin-y',
   'table-title',
+  'table-page-numbers',
   'table-title-date',
   'table-title-note',
   'table-col-index',
@@ -13525,6 +13527,30 @@ function button(label, className, onClick) {
 }
 
 /**
+ * Un pictogramme du jeu d'icônes, sans glyphe Unicode et sans DOM SVG.
+ *
+ * Le dessin vit dans la feuille (masque SVG) : le bouton ne porte qu'un span
+ * `aria-hidden`, son nom accessible venant de `aria-label` ou du texte voisin.
+ * C'est ce qui permet au DOM de substitution des tests de rester simple.
+ *
+ * @param {string} nom
+ * @returns {HTMLSpanElement}
+ */
+function icone(nom) {
+  const span = document.createElement('span');
+  span.className = `icon icon-${nom}`;
+  span.setAttribute('aria-hidden', 'true');
+  return span;
+}
+
+/** Un bouton dont le contenu visuel est une icône. */
+function boutonIcone(nom, className, onClick) {
+  const node = button('', className, onClick);
+  node.appendChild(icone(nom));
+  return node;
+}
+
+/**
  * Construit l'aperçu SVG d'un QR Code.
  *
  * L'`innerHTML` est sûr ici : la chaîne ne contient que des nombres et des
@@ -14061,7 +14087,7 @@ function linkEditor(link) {
     }
   };
 
-  const open = button('✎', 'link__edit', () => ouvrir(null));
+  const open = boutonIcone('edit', 'link__edit', () => ouvrir(null));
   open.setAttribute('aria-label', t('Modifier le lien, le titre, les tags et la note de {title}', { title: link.title || link.url }));
   open.title = t('Modifier le lien, le titre, les tags et la note');
 
@@ -14206,7 +14232,7 @@ function renderLink(link) {
     body.appendChild(tags);
   }
 
-  const remove = button('×', 'link__remove', async () => {
+  const remove = boutonIcone('trash', 'link__remove', async () => {
     const snapshot = { ...link };
     await store.remove(link.id);
     selected.delete(link.id);
@@ -14273,19 +14299,19 @@ function moveControls(link) {
   const grip = document.createElement('span');
   grip.className = 'link__grip';
   grip.setAttribute('aria-hidden', 'true');
-  grip.textContent = '⠿';
+  grip.appendChild(icone('drag'));
 
   // La **position** dans la liste, et non le numéro affiché : depuis que la
   // numérotation peut commencer à 101, comparer le numéro à l'effectif
   // désactiverait les flèches au mauvais moment.
   const position = links.findIndex((candidat) => candidat.id === link.id) + 1;
   const nom = link.title || link.url;
-  const up = button('▲', 'link__move', () => moveLink(link.id, -1));
+  const up = boutonIcone('arrow-up', 'link__move', () => moveLink(link.id, -1));
   up.setAttribute('aria-label', t('Déplacer {title} vers le haut', { title: nom }));
   up.title = t('Monter');
   up.disabled = position <= 1;
 
-  const down = button('▼', 'link__move', () => moveLink(link.id, 1));
+  const down = boutonIcone('arrow-down', 'link__move', () => moveLink(link.id, 1));
   down.setAttribute('aria-label', t('Déplacer {title} vers le bas', { title: nom }));
   down.title = t('Descendre');
   down.disabled = position <= 0 || position >= links.length;
@@ -15021,7 +15047,7 @@ function collectionOrderButton(collection, direction, rang, total) {
   const bouton = document.createElement('button');
   bouton.type = 'button';
   bouton.className = 'btn btn--ghost btn--small collection-order__move';
-  bouton.textContent = direction === -1 ? '▲' : '▼';
+  bouton.appendChild(icone(direction === -1 ? 'arrow-up' : 'arrow-down'));
   bouton.dataset.direction = direction === -1 ? 'up' : 'down';
 
   const nom = collectionDisplayName(collection);
@@ -17920,13 +17946,13 @@ function updateTableOptions() {
     if (label) {
       label.title = available
         ? t('Imprimer la colonne « {what} »', { what })
-        : t("Aucun lien n'a de {what} : ajoutez-en un avec le bouton ✎ de la liste.", { what });
+        : t("Aucun lien n'a de {what} : ajoutez-en un avec le bouton d'édition de la liste.", { what });
     }
   }
 
   el.tableHint.textContent = hasAnyNote(links) || hasAnyTag(links)
-    ? t('Les tags et la note saisis dans la liste (bouton ✎) peuvent être imprimés ici.')
-    : t('Ajoutez un tag ou une note depuis la liste (bouton ✎) pour pouvoir les imprimer.');
+    ? t("Les tags et la note saisis dans la liste (bouton d'édition) peuvent être imprimés ici.")
+    : t("Ajoutez un tag ou une note depuis la liste (bouton d'édition) pour pouvoir les imprimer.");
 }
 
 /**
@@ -18003,6 +18029,7 @@ function renderPreview() {
   el.preview.textContent = '';
   el.print.disabled = items.length === 0;
   el.print.textContent = printLabel(items.length);
+  majResumeImpression(items);
   // L'export du tableau suit la même portée que l'impression : la sélection et
   // les colonnes cochées. Sans colonne, il n'y a rien à exporter. Il ne se
   // montre que dans l'onglet Tableau, à côté d'« Imprimer ».
@@ -18066,7 +18093,10 @@ function renderPreview() {
     // Le tableau aussi se découpe en pages : on en montre les deux premières,
     // comme pour la planche. Une seule page affichée laisserait croire que le
     // reste n'existe pas — c'était le cas, et c'est ce qui trompait.
-    const pagesTableau = buildTablePages(items, { preview: true });
+    const pagesTableau = numeroterPages(
+      buildTablePages(items, { preview: true }),
+      el.tablePageNumbers?.checked ?? true,
+    );
     for (const page of pagesTableau.slice(0, 2)) {
       el.preview.appendChild(scaleForScreen(page));
     }
@@ -18088,7 +18118,7 @@ function renderPreview() {
   // Planche : on affiche les deux premières pages, à l'échelle. La légende dit
   // le nombre de feuilles, le format et l'échelle absolue — les trois faits
   // qu'on ne peut pas deviner avant d'imprimer.
-  const pages = numeroterPages(buildSheetPages(items));
+  const pages = numeroterPages(buildSheetPages(items), el.sheetPageNumbers?.checked ?? true);
   for (const page of pages.slice(0, 2)) {
     el.preview.appendChild(scaleForScreen(page));
   }
@@ -18150,8 +18180,7 @@ function previewViewportWidth() {
  * @param {HTMLElement[]} pages
  * @returns {HTMLElement[]}
  */
-function numeroterPages(pages) {
-  const actif = el.sheetPageNumbers ? el.sheetPageNumbers.checked : true;
+function numeroterPages(pages, actif) {
   if (!actif || pages.length < 2) return pages;
   pages.forEach((page, index) => {
     const numero = document.createElement('span');
@@ -19165,49 +19194,29 @@ function pagesImprimees(items) {
 
 /** Le papier de la vue courante, dit comme dans la légende. */
 function papierImprime() {
-  if (mode === 'table') return PAGE_SIZES.a4?.label ?? 'A4';
+  if (mode === 'table') return 'A4';
   if (mode === 'sheet') {
-    // « A4 », et non « A4 (210 × 297 mm) » : le résumé d'impression écrit déjà
-    // le format entre parenthèses, et le nom de papier complet donnait
-    // « (A4 (210 × 297 mm)) ».
+    // « A4 », et non « A4 (210 × 297 mm) » : le résumé écrit déjà le format
+    // entre parenthèses.
     const config = sheetConfig();
     return (PAGE_SIZES[config.page]?.label ?? '').replace(/\s*\([^)]*\)\s*$/, '');
   }
   return previewProfile().id;
 }
 
-/** Demande confirmation, en disant ce qui va sortir. */
-function demanderImpression() {
-  const items = printableLinks();
-  if (items.length === 0) return;
-  const texte = document.getElementById('print-confirm-text');
-  if (texte) {
-    // Deux accords indépendants : le nombre de liens et celui des pages ne
-    // varient pas ensemble (10 liens tiennent sur 1 page).
-    const portee = tpl(items.length, 'Imprimer {count} lien', 'Imprimer {count} liens', { count: items.length });
-    const pages = pagesImprimees(items);
-    const feuilles = tpl(pages, 'sur {count} page', 'sur {count} pages', { count: pages });
-    texte.textContent = `${portee} ${feuilles} (${papierImprime()}).`;
-  }
-  const panneau = document.getElementById('print-confirm');
-  if (!panneau) {
-    printSelection();
-    return;
-  }
-  panneau.hidden = false;
-  // Une seule action primaire à l'écran : le bouton du pied s'efface le temps
-  // de la confirmation, sinon deux « Imprimer » se disputent le clic.
-  el.print.hidden = true;
-  document.getElementById('print-confirm-go')?.focus();
-}
-
-/** Referme la confirmation sans imprimer, et rend le focus au bouton. */
-function annulerImpression() {
-  const panneau = document.getElementById('print-confirm');
-  if (!panneau || panneau.hidden) return;
-  panneau.hidden = true;
-  el.print.hidden = !(mode === 'sheet' || mode === 'table');
-  el.print.focus();
+/** Le résumé permanent au-dessus du bouton : ce qui va sortir. */
+function majResumeImpression(items) {
+  const resume = document.getElementById('print-summary');
+  if (!resume) return;
+  const visible = (mode === 'sheet' || mode === 'table') && items.length > 0;
+  resume.hidden = !visible;
+  if (!visible) { resume.textContent = ''; return; }
+  const pages = pagesImprimees(items);
+  resume.textContent = [
+    tpl(items.length, '{count} lien', '{count} liens'),
+    tpl(pages, '{count} page', '{count} pages'),
+    papierImprime(),
+  ].join(' · ');
 }
 
 /** Prépare la racine d'impression puis ouvre la boîte de dialogue système. */
@@ -19227,9 +19236,9 @@ function printSelection() {
     // tranchait le contenu au bord de la feuille.
     const config = tablePageConfig();
     applyPrintPageSize(config.widthMm, config.heightMm);
-    for (const page of buildTablePages(items)) el.printRoot.appendChild(page);
+    for (const page of numeroterPages(buildTablePages(items), el.tablePageNumbers?.checked ?? true)) el.printRoot.appendChild(page);
   } else {
-    for (const page of numeroterPages(buildSheetPages(items))) el.printRoot.appendChild(page);
+    for (const page of numeroterPages(buildSheetPages(items), el.sheetPageNumbers?.checked ?? true)) el.printRoot.appendChild(page);
   }
   modeRacineImpression = mode;
 
@@ -19929,11 +19938,6 @@ function switchMode(next) {
 
   const scene = document.querySelectorAll('.stage')[0];
   if (scene) scene.dataset.mode = next;
-  const confirmation = document.getElementById('print-confirm');
-  if (confirmation && !confirmation.hidden) {
-    confirmation.hidden = true;
-    el.print.hidden = !(next === 'sheet' || next === 'table');
-  }
   rendreZoom();
 
   // Les actions du pied de l'inspecteur suivent le mode : une seule sortie
@@ -20938,22 +20942,8 @@ el.labelCut.addEventListener('change', renderPreview);
 el.exportLabels.addEventListener('click', exportLabelImages);
 el.sheetPageNumbers?.addEventListener('change', renderPreview);
 
-el.print.addEventListener('click', demanderImpression);
-document.getElementById('print-confirm-cancel')?.addEventListener('click', annulerImpression);
-document.getElementById('print-confirm-go')?.addEventListener('click', () => {
-  const panneau = document.getElementById('print-confirm');
-  if (panneau) panneau.hidden = true;
-  el.print.hidden = !(mode === 'sheet' || mode === 'table');
-  printSelection();
-});
-document.addEventListener('keydown', (event) => {
-  if (event.key !== 'Escape') return;
-  const panneau = document.getElementById('print-confirm');
-  if (panneau && !panneau.hidden) {
-    event.preventDefault();
-    annulerImpression();
-  }
-});
+el.print.addEventListener('click', printSelection);
+el.tablePageNumbers?.addEventListener('change', renderPreview);
 el.connect.addEventListener('click', connectPrinter);
 el.disconnect.addEventListener('click', disconnectPrinter);
 el.exportNiimbot.addEventListener('click', () => {
@@ -21027,7 +21017,7 @@ window.addEventListener('beforeprint', () => {
   if (mode === 'table') {
     const config = tablePageConfig();
     applyPrintPageSize(config.widthMm, config.heightMm);
-    for (const page of buildTablePages(items)) el.printRoot.appendChild(page);
+    for (const page of numeroterPages(buildTablePages(items), el.tablePageNumbers?.checked ?? true)) el.printRoot.appendChild(page);
   } else {
     for (const page of buildSheetPages(items)) el.printRoot.appendChild(page);
   }

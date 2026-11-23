@@ -60,7 +60,10 @@
   --accent-fg: #ffffff;
   /* Même direction que le produit : angles vifs, un seul pas de mouvement. */
   --radius: 0;
-  --motion: 120ms;
+  --motion-fast: 90ms;
+  --motion: 140ms;
+  --motion-slow: 220ms;
+  --easing: cubic-bezier(0.2, 0.7, 0.2, 1);
   --mono: "IBM Plex Mono", "SF Mono", Menlo, monospace;
 
   /* Jetons employés par la FAQ et par les liens : ils étaient utilisés sans
@@ -349,7 +352,7 @@ footer p {
   margin-left: auto;
   border: 1px solid var(--border);
   background: var(--bg) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cpath d='M6 8l4 4 4-4' fill='none' stroke='%235b5b66' stroke-width='1.5' stroke-linecap='square'/%3E%3C/svg%3E") center / 14px 14px no-repeat;
-  transition: transform var(--motion) ease;
+  transition: transform var(--motion) var(--easing);
 }
 
 .faq details[open] summary::after { transform: rotate(180deg); }
@@ -425,3 +428,8 @@ footer p {
 main .wrap > p,
 main .wrap > ul:not(.features),
 main .wrap > ol { max-width: 57ch; }
+
+.btn {
+  transition: background-color var(--motion-fast) var(--easing),
+    border-color var(--motion-fast) var(--easing), color var(--motion-fast) var(--easing);
+}

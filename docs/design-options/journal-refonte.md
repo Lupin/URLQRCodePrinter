@@ -402,6 +402,43 @@ Signalé : « l'icône qui déploie les menus est bien trop discrète, on ne com
 
 Appliqué aux trois dépliants du produit (« Nom, numéro et note », « Exporter, importer et vider », « Cible et raccourcissement ») et aux neuf questions du site. Test de garde : `test/disclosure.test.js`. Tests **1 133/1 133**.
 
+## I7b — Icônes, mouvement, et correctifs d'impression · 23 novembre 2026
+
+**Tag** : `checkpoint/i7b` · **Ticket fermé** : #59.
+
+### Décisions validées
+
+Icônes : **jeu SVG maison** (masque, `currentColor`). Wordmark : **toujours illustré**. Périmètre : I7a seul d'abord (fait), puis I7b.
+
+### Icônes
+
+Hypothèse écartée en cours de route : le jeu SVG ne pouvait pas être construit par `createElementNS` dans les tests (le DOM de substitution ne l'expose pas). Les dessins vivent donc **dans la feuille**, en masque SVG ; les boutons ne portent qu'un `span` décoratif et leur nom accessible. Aucun glyphe Unicode d'action ne reste : `✎ × ▲ ▼ ⠿ ◀ ▶ ←` ont disparu de l'interface.
+
+| Élément | Avant | Après |
+|---|---|---|
+| Édition, suppression, rangement | glyphes Unicode | **11 icônes SVG** en masque (`edit`, `trash`, `close`, `drag`, `arrow-up/down`, `chevron-left/right/down`, `zoom-in/out`) |
+| Sélecteurs (Trier, Disposition, Langue…) | chevron du navigateur | **même chevron**, boîte et espacement dédiés |
+| Couleur | dépendait de la police | `currentColor` : suit le thème |
+
+### Mouvement
+
+`--motion-fast` 90 ms · `--motion` 140 ms · `--motion-slow` 220 ms · `cubic-bezier(0.2, 0.7, 0.2, 1)` sur les trois surfaces ; réduction à zéro sous `prefers-reduced-motion`. Test `icons-motion`.
+
+### Correctifs d'impression (signalés en revue)
+
+1. **Double « Imprimer »** : le clic ouvrait une confirmation qui affichait… un second bouton « Imprimer ». La confirmation est supprimée : le résumé est **permanent** au-dessus du bouton (« 40 liens · 4 pages · A4 »), et **un clic imprime**.
+2. **Numérotation introuvable** : l'option n'existait que dans l'onglet Planche. Elle est désormais aussi dans **Tableau** (« Numéroter les pages », « Page 1 / 3 » dans la marge basse), appliquée à l'aperçu comme au papier. En Planche, elle était bien présente (relevé : case visible à 318 px) ; c'est le changement d'onglet qui la faisait disparaître.
+
+| Mesure | Avant | Après |
+|---|---|---|
+| Boutons primaires visibles en Planche | 2 (pied + confirmation) | **1** |
+| Résumé d'impression | après clic, dans un panneau | **avant clic**, permanent : « 40 liens · 4 pages · A4 » |
+| Numérotation Planche | disponible | conservée |
+| Numérotation Tableau | **absente** | **disponible** : « Page 1 / 3 », « Page 2 / 3 » |
+| Tests | 1 133 | **1 138** |
+
+Preuves : `.audit/captures-print-num/`, `.audit/captures-i7b/`, `mockup/quatre-modes-i7b.png`.
+
 ## Dettes de finition (assumées, pour I6)
 
 Consignées au fil des revues, traitées lors de la **passe générale** avant la note 4,8 :

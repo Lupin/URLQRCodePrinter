@@ -248,7 +248,7 @@ test('tags et note ne sont proposés que si la collection en contient', () => {
   assert.equal(registry.get('table-col-note').disabled, true);
 
   const hint = registry.get('table-hint').textContent;
-  assert.match(hint, /bouton ✎/, `la phrase doit dire comment les activer : « ${hint} »`);
+  assert.match(hint, /bouton d'édition/, `la phrase doit dire comment les activer : « ${hint} »`);
 });
 
 test('la grille du tableau peut être masquée', () => {

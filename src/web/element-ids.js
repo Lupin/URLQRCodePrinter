@@ -100,6 +100,7 @@ export const ELEMENT_IDS = Object.freeze([
   'table-margin-x',
   'table-margin-y',
   'table-title',
+  'table-page-numbers',
   'table-title-date',
   'table-title-note',
   'table-col-index',

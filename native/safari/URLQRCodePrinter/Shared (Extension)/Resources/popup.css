@@ -112,7 +112,10 @@
   --type-md: 0.875rem;   /* 14 px */
 
   --radius: 0;
+  --motion-fast: 90ms;
   --motion: 140ms;
+  --motion-slow: 220ms;
+  --easing: cubic-bezier(0.2, 0.7, 0.2, 1);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -507,8 +510,8 @@ body {
   background: transparent;
   color: var(--text-3);
   cursor: pointer;
-  transition: background-color var(--motion) ease, color var(--motion) ease,
-    border-color var(--motion) ease;
+  transition: background-color var(--motion) var(--easing), color var(--motion) var(--easing),
+    border-color var(--motion) var(--easing);
 }
 
 /* L'icône hérite de la couleur de son bouton (`fill="currentColor"`) : le
@@ -611,8 +614,8 @@ body {
   font-family: inherit;
   font-size: var(--type-sm);
   cursor: pointer;
-  transition: background-color var(--motion) ease, border-color var(--motion) ease,
-    color var(--motion) ease;
+  transition: background-color var(--motion) var(--easing), border-color var(--motion) var(--easing),
+    color var(--motion) var(--easing);
 }
 
 .btn--primary {
@@ -703,7 +706,7 @@ body {
   opacity: 0;
   pointer-events: none;
   transform: translateY(6px);
-  transition: opacity 160ms ease, transform 160ms ease;
+  transition: opacity var(--motion-slow) var(--easing), transform var(--motion-slow) var(--easing);
 }
 
 .toast--visible { opacity: 1; transform: translateY(0); }

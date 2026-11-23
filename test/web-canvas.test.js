@@ -53,8 +53,8 @@ test('la numérotation des pages est une option, appliquée au papier et à l’
   // Le numéro vit hors grille : position absolue dans la marge.
   assert.match(CSS, /^\.print-page__number \{[\s\S]*?position:\s*absolute/m);
   // Il est posé à l'impression comme à l'aperçu.
-  assert.match(APP, /for \(const page of numeroterPages\(buildSheetPages\(items\)\)\) el\.printRoot/);
-  assert.match(APP, /const pages = numeroterPages\(buildSheetPages\(items\)\)/);
+  assert.match(APP, /numeroterPages\(buildSheetPages\(items\), el\.sheetPageNumbers/);
+  assert.match(APP, /const pages = numeroterPages\(buildSheetPages\(items\), el\.sheetPageNumbers/);
   assert.match(APP, /el\.sheetPageNumbers\?\.addEventListener\('change', renderPreview\)/);
 });
 

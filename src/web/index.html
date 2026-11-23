@@ -189,7 +189,7 @@
           <input id="search" class="input input--compact" type="search" placeholder="Rechercher…" data-i18n-placeholder="Rechercher…">
           <span id="search-count" class="search-field__count mono" aria-live="polite" hidden></span>
           <button id="search-clear" class="search-field__clear" type="button" hidden
-                  aria-label="Effacer la recherche" data-i18n-aria-label="Effacer la recherche">×</button>
+                  aria-label="Effacer la recherche" data-i18n-aria-label="Effacer la recherche"><span class="icon icon-close" aria-hidden="true"></span></button>
         </div>
         <!-- Le tri est une **vue** : rien n'est écrit, et revenir à l'ordre
              manuel retrouve la collection telle qu'elle était. Il est donc à
@@ -314,7 +314,7 @@
       <section id="detail-panel" class="detail" aria-labelledby="detail-title" hidden>
         <div class="detail__head">
           <button id="detail-back" class="btn btn--ghost btn--small" type="button"
-                  data-i18n="Retour à la collection">← Retour à la collection</button>
+                  data-i18n="Retour à la collection"><span class="icon icon-chevron-left" aria-hidden="true"></span> Retour à la collection</button>
         </div>
         <h2 id="detail-title" class="detail__title" data-i18n="Détail du lien">Détail du lien</h2>
         <div id="detail-body" class="detail__body"></div>
@@ -333,10 +333,10 @@
              papier. -->
         <div id="stage-zoom" class="stage__zoom" hidden>
           <button id="zoom-out" class="stage__zoom-btn" type="button"
-                  aria-label="Zoom arrière" data-i18n-aria-label="Zoom arrière">−</button>
+                  aria-label="Zoom arrière" data-i18n-aria-label="Zoom arrière"><span class="icon icon-zoom-out" aria-hidden="true"></span></button>
           <span id="zoom-value" class="stage__zoom-value mono" aria-live="polite">100 %</span>
           <button id="zoom-in" class="stage__zoom-btn" type="button"
-                  aria-label="Zoom avant" data-i18n-aria-label="Zoom avant">+</button>
+                  aria-label="Zoom avant" data-i18n-aria-label="Zoom avant"><span class="icon icon-zoom-in" aria-hidden="true"></span></button>
           <button id="zoom-fit" class="btn btn--ghost btn--small" type="button"
                   data-i18n="Ajuster">Ajuster</button>
         </div>
@@ -404,11 +404,11 @@
               <div class="field__row">
                 <button id="preset-prev" class="btn btn--ghost btn--small btn--arrow" type="button"
                         aria-label="Disposition précédente" data-i18n-aria-label="Disposition précédente"
-                        title="Disposition précédente" data-i18n-title="Disposition précédente">◀</button>
+                        title="Disposition précédente" data-i18n-title="Disposition précédente"><span class="icon icon-chevron-left" aria-hidden="true"></span></button>
                 <select id="preset" class="input"></select>
                 <button id="preset-next" class="btn btn--ghost btn--small btn--arrow" type="button"
                         aria-label="Disposition suivante" data-i18n-aria-label="Disposition suivante"
-                        title="Disposition suivante" data-i18n-title="Disposition suivante">▶</button>
+                        title="Disposition suivante" data-i18n-title="Disposition suivante"><span class="icon icon-chevron-right" aria-hidden="true"></span></button>
               </div>
             </div>
           </div>
@@ -634,6 +634,12 @@
                    step="1" value="10">
           </label>
         </div>
+
+        <label class="columns__item field__label">
+          <input id="table-page-numbers" type="checkbox" checked>
+          <span data-i18n="Numéroter les pages">Numéroter les pages</span>
+        </label>
+        <p class="hint hint--tight" data-i18n="Ajoute « Page 1 / 4 » dans la marge basse du tableau.">Ajoute « Page 1 / 4 » dans la marge basse du tableau.</p>
 
         <fieldset class="columns">
           <legend class="columns__legend" data-i18n="En-tête de page">En-tête de page</legend>
@@ -976,18 +982,9 @@
       <!-- Une seule action primaire par vue : la sortie du mode actif. Les
            exports secondaires restent au-dessus, en aplat neutre. -->
       <div id="panel-actions" class="panel__actions inspector__foot">
-        <!-- Résumé avant impression : portée, pages, format. La boîte système
-             ne dit que « imprimer » ; ce qui va sortir se décide ici. -->
-        <div id="print-confirm" class="print-confirm" role="group"
-             aria-labelledby="print-confirm-text" hidden>
-          <p id="print-confirm-text" class="print-confirm__text"></p>
-          <div class="print-confirm__actions">
-            <button id="print-confirm-cancel" class="btn btn--ghost btn--small" type="button"
-                    data-i18n="Annuler">Annuler</button>
-            <button id="print-confirm-go" class="btn btn--primary btn--small" type="button"
-                    data-i18n="Imprimer">Imprimer</button>
-          </div>
-        </div>
+        <!-- Le résumé est **là, avant** le clic : portée, pages, format.
+             Un clic imprime, sans second bouton « Imprimer ». -->
+        <p id="print-summary" class="print-summary mono" aria-live="polite"></p>
         <button id="export-table" class="btn btn--ghost btn--fill" type="button" hidden disabled data-i18n="Exporter le tableau (ZIP)">
           Exporter le tableau (ZIP)
         </button>

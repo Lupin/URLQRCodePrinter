@@ -7,28 +7,31 @@ const HTML = readFileSync(new URL('src/web/index.html', ROOT), 'utf8');
 const CSS = readFileSync(new URL('src/web/style.css', ROOT), 'utf8');
 const APP = readFileSync(new URL('src/web/app.js', ROOT), 'utf8');
 
-test('l’impression annonce d’abord ce qui va sortir', () => {
-  assert.match(HTML, /id="print-confirm"[^>]*hidden/);
-  assert.match(HTML, /id="print-confirm-text"/);
-  for (const id of ['print-confirm-cancel', 'print-confirm-go']) {
-    assert.match(HTML, new RegExp(`id="${id}"`), `bouton absent : ${id}`);
-  }
-  // Le résumé compte les pages du rendu réel, pas une estimation.
+test('l’impression annonce ce qui va sortir, sans second bouton', () => {
+  // Le double « Imprimer » (celui du pied, puis celui de la confirmation) a été
+  // supprimé : un résumé permanent dit ce qui sort, et le clic imprime.
+  assert.match(HTML, /id="print-summary"[^>]*aria-live="polite"/);
+  assert.doesNotMatch(HTML, /id="print-confirm"/);
+  assert.match(APP, /el\.print\.addEventListener\('click', printSelection\)/);
+  // Le résumé compte les pages du rendu réel.
   assert.match(APP, /function pagesImprimees\(/);
   assert.match(APP, /buildTablePages\(items, \{ preview: true \}\)\.length/);
   assert.match(APP, /buildSheetPages\(items\)\.length/);
-  // Deux accords indépendants : 10 liens peuvent tenir sur 1 page.
-  assert.match(APP, /tpl\(items\.length, 'Imprimer \{count\} lien', 'Imprimer \{count\} liens'/);
-  assert.match(APP, /tpl\(pages, 'sur \{count\} page', 'sur \{count\} pages'/);
+  assert.match(APP, /function majResumeImpression\(/);
+  assert.match(APP, /tpl\(pages, '\{count\} page', '\{count\} pages'\)/);
 });
 
 test('l’impression se termine par un accusé, sans mentir sur le papier', () => {
   // `afterprint` se déclenche aussi à l'annulation : le message dit « terminée
   // ou annulée », il ne prétend pas que la feuille est sortie.
   assert.match(APP, /toast\(t\('Impression terminée ou annulée\.'\)\)/);
-  // Échap et « Annuler » referment sans imprimer, et rendent le focus.
-  assert.match(APP, /function annulerImpression\(/);
-  assert.match(APP, /if \(panneau && !panneau\.hidden\)/);
+});
+
+test('la numérotation est disponible pour la planche et le tableau', () => {
+  assert.match(HTML, /id="table-page-numbers" type="checkbox" checked/);
+  assert.match(APP, /numeroterPages\(\s*buildTablePages\(items, \{ preview: true \}\),/);
+  assert.match(APP, /numeroterPages\(buildTablePages\(items\), el\.tablePageNumbers/);
+  assert.match(APP, /el\.tablePageNumbers\?\.addEventListener\('change', renderPreview\)/);
 });
 
 test('un refus de longueur propose son remède', () => {
