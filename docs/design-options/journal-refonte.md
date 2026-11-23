@@ -575,6 +575,27 @@ Mesures de départ, 6 liens, groupes repliés : contrôles **24 / 41 / 38 / 31**
 
 Ordre : I8a (prose) → I8b (inspecteur) → I8c (repli mémorisé et < 1024 px) → I8d (re-mesure et porte 4,5). Critères complets : `docs/design-options/i8-contenu.md`.
 
+## I8a — Prose et aides · 23 novembre 2026
+
+**Tag** : `checkpoint/i8a` · **Ticket fermé** : #62.
+
+Base (I8d cadrage) : 3 / 6 / 7 / 3 aides visibles par mode (Planche / Tableau / Niimbot / Images), 220 à 512 signes.
+
+| Mesure | Avant | Après |
+|---|---|---|
+| Aides **du mode**, Planche | 2 (dont reorder global) | **0** (la ligne « 3 × 3 = … » est une légende) |
+| Aides du mode, Tableau | 3 | **1** (numérotation des pages) |
+| Aides du mode, Niimbot | 4 | **1** (« Sous le QR Code : … ») |
+| Aides du mode, Images | 1 | **0** |
+| Aides > 2 phrases | 0 | **0** |
+| Doublons champ/aide | 2 (import, tableau) | **0** |
+
+Ce qui a été retiré de l'application et **déplacé en FAQ** (fr + en) : formats d'export du tableau, contenu d'un export d'images, vérification de l'alignement avant impression, découpe du texte à la largeur de la tête, exactitude de l'aperçu sans imprimante.
+
+Ce qui reste : une aide **actionnable** par mode (numérotation en Tableau, contenu sous le QR Code en Niimbot), et une aide globale au volet (le rangement). L'import garde ses formats et son sort des doublons en **une** phrase ; les tags/note du tableau passent en infobulle de case inactive, sans paragraphe redondant.
+
+Tests : **1 144 / 1 144**. Mesures : `.audit/mesures-i8/prose-i8a-apres.json`. Captures : `.audit/captures-i7b/` (4 modes, état par défaut).
+
 ## Dettes de finition (assumées, pour I6)
 
 Consignées au fil des revues, traitées lors de la **passe générale** avant la note 4,8 :

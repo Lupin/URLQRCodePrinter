@@ -5017,9 +5017,10 @@ function updateTableOptions() {
     }
   }
 
-  el.tableHint.textContent = hasAnyNote(links) || hasAnyTag(links)
-    ? t("Les tags et la note saisis dans la liste (bouton d'édition) peuvent être imprimés ici.")
-    : t("Ajoutez un tag ou une note depuis la liste (bouton d'édition) pour pouvoir les imprimer.");
+  // Pas de paragraphe ici : chaque case porte déjà son infobulle, et la même
+  // phrase sous le tableau redisait deux fois la même chose. Le texte vit dans
+  // le `title` de la case inactive (voir ci-dessus).
+  el.tableHint.textContent = '';
 }
 
 /**
@@ -6840,10 +6841,9 @@ function updateLabelContentHint() {
     el.labelContentHint.textContent = t('Le QR Code seul, sans texte sous lui.');
     return;
   }
-  el.labelContentHint.textContent = t(
-    'Sous le QR Code : {list}. Le texte est découpé à la largeur de la tête.',
-    { list: choisis.join(', ') },
-  );
+  el.labelContentHint.textContent = t('Sous le QR Code : {list}.', {
+    list: choisis.join(', '),
+  });
 }
 
 /**
@@ -6964,7 +6964,7 @@ function updateProfileHint() {
 
   if (!printer) {
     el.profileHint.textContent = t(
-      'Aperçu composé avec le {profile} ({mm} mm utiles, {dpi} dpi), sans imprimante connectée : les dimensions et le nombre de modules sont exacts.',
+      'Aperçu composé avec le {profile} ({mm} mm utiles, {dpi} dpi), sans imprimante connectée.',
       { profile: profile.id, mm: printableMm, dpi: profile.dpi },
     );
     return;

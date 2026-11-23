@@ -305,6 +305,15 @@ test('l\'interface annonce ce que l\'import accepte', () => {
   assert.match(hint[0], /ignorés/, 'le sort des doublons doit être dit');
 });
 
+test('les colonnes indisponibles disent comment les activer, sans paragraphe', () => {
+  const app = readFileSync(join(ROOT, 'src', 'web', 'app.js'), 'utf8');
+  // L'infobulle de la case porte la consigne ; le paragraphe sous le tableau a
+  // disparu pour ne pas la répéter.
+  assert.match(app, /label\.title = available/);
+  assert.match(app, /bouton d'édition de la liste/);
+  assert.doesNotMatch(app, /el\.tableHint\.textContent = hasAnyNote/);
+});
+
 test('le sélecteur de fichier accepte les formats relisibles', () => {
   const input = html.match(/<input id="import-file"[^>]*>/);
   assert.ok(input, 'le champ de fichier doit exister');

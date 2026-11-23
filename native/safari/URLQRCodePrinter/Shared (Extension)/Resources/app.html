@@ -305,7 +305,7 @@
                   data-i18n="Vider">Vider</button>
         </div>
       </div>
-      <p class="hint hint--tight rail__transfer-hint" data-i18n="Importer relit l'Archive, le .zip d'étiquettes ou un CSV, puis demande s'il faut fusionner, remplacer ou créer une collection ; les liens déjà présents sont ignorés.">Importer relit l'Archive, le .zip d'étiquettes ou un CSV, puis demande s'il faut fusionner, remplacer ou créer une collection ; les liens déjà présents sont ignorés.</p>
+      <p class="hint hint--tight rail__transfer-hint" data-i18n="Importer relit l'Archive, le .zip d'étiquettes ou un CSV, puis propose de fusionner, remplacer ou créer ; les doublons sont ignorés.">Importer relit l'Archive, le .zip d'étiquettes ou un CSV, puis propose de fusionner, remplacer ou créer ; les doublons sont ignorés.</p>
       </details>
 
       <!-- Le rangement d'un import, demandé au moment où il se fait.
@@ -522,7 +522,6 @@
               <input id="sheet-offset-y" class="input" type="number" min="-10" max="10" step="0.5" value="0">
             </label>
           </div>
-          <p class="hint hint--tight" data-i18n="Imprimez d'abord sur papier ordinaire, superposez la feuille obtenue à votre planche : si le texte est trop haut ou trop à gauche, corrigez ici.">Imprimez d'abord sur papier ordinaire, superposez la feuille obtenue à votre planche : si le texte est trop haut ou trop à gauche, corrigez ici.</p>
           <p id="sheet-fit-hint" class="hint hint--tight"></p>
           <!-- Ce qui ferait disparaître l'avertissement de mise en page, à
                côté de lui : agrandir la grille, ou laisser l'application la
@@ -731,8 +730,6 @@
           </label>
         </fieldset>
         <p id="table-hint" class="hint hint--tight"></p>
-        <p class="hint" data-i18n="Un tableau dense, adapté à une relecture ou à un archivage papier.">Un tableau dense, adapté à une relecture ou à un archivage papier.</p>
-        <p class="hint hint--tight" data-i18n="L'export du tableau produit un modèle JSON, les QR Codes en PNG et une page HTML. La sélection et les colonnes cochées s'appliquent.">L'export du tableau produit un modèle JSON, les QR Codes en PNG et une page HTML. La sélection et les colonnes cochées s'appliquent.</p>
       </div>
 
       <!-- Étiquette Niimbot -->
@@ -952,7 +949,6 @@
             <span data-i18n="Avec l'heure">Avec l'heure</span>
           </label>
         </fieldset>
-        <p class="hint" data-i18n="Un dossier d'images prêtes à imprimer, avec une planche HTML et un CSV. Fonctionne avec n'importe quelle étiqueteuse, ou sur papier.">Un dossier d'images prêtes à imprimer, avec une planche HTML et un CSV. Fonctionne avec n'importe quelle étiqueteuse, ou sur papier.</p>
       </div>
 
       <!-- Actions, juste après les instructions du mode actif et avant
@@ -1076,6 +1072,6 @@
 
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
-  <script type="module" src="app.js?v=1d8dca2f386c"></script>
+  <script type="module" src="app.js?v=6fee468721bc"></script>
 </body>
 </html>

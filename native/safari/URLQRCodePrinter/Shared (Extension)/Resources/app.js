@@ -330,6 +330,10 @@ const EN_MESSAGES = {
   "Relit l'archive JSON, le dossier d'étiquettes .zip ou un CSV exporté d'ici": "Reads back the JSON archive, the .zip label folder or a CSV exported from here",
   "Importer relit l'Archive, le .zip d'étiquettes ou un CSV, puis demande s'il faut fusionner, remplacer ou créer une collection ; les liens déjà présents sont ignorés.":
     "Import reads back the Archive, the label .zip or a CSV, then asks whether to merge, replace or create a collection; links already present are ignored.",
+  "L'import propose de fusionner, remplacer ou créer une collection ; les liens déjà présents sont ignorés.":
+    "Import offers to merge, replace or create a collection; links already present are ignored.",
+  "Importer relit l'Archive, le .zip d'étiquettes ou un CSV, puis propose de fusionner, remplacer ou créer ; les doublons sont ignorés.":
+    "Import reads back the Archive, the label .zip or a CSV, then offers to merge, replace or create; duplicates are ignored.",
   "{count} lien lu dans {file}": "{count} link read from {file}",
   "{count} liens lus dans {file}": "{count} links read from {file}",
   "Fusionner avec « {name} »": "Merge into “{name}”",
@@ -449,7 +453,7 @@ const EN_MESSAGES = {
   "Annuler": "Cancel",
   "Enregistrer": "Save",
   "Fermer": "Close",
-  "Aperçu composé avec le {profile} ({mm} mm utiles, {dpi} dpi), sans imprimante connectée : les dimensions et le nombre de modules sont exacts.": "Preview composed with the {profile} ({mm} mm usable, {dpi} dpi), without a connected printer: the dimensions and module count are exact.",
+  "Aperçu composé avec le {profile} ({mm} mm utiles, {dpi} dpi), sans imprimante connectée.": "Preview composed with the {profile} ({mm} mm usable, {dpi} dpi), without a connected printer.",
   "Arrêt demandé : la série s'arrête après l'étiquette en cours.": "Stop requested: the series stops after the current label.",
   "Arrêter la série": "Stop the series",
   "Assemblage…": "Assembling…",
@@ -528,7 +532,7 @@ const EN_MESSAGES = {
   "Recherche de l'imprimante…": "Searching for the printer…",
   "Rouleau continu : la longueur suit le contenu.": "Continuous roll: the length follows the content.",
   "Saisissez une URL.": "Enter a URL.",
-  "Sous le QR Code : {list}. Le texte est découpé à la largeur de la tête.": "Below the QR Code: {list}. The text is wrapped to the width of the printhead.",
+  "Sous le QR Code : {list}.": "Below the QR Code: {list}.",
   "Stockage temporaire : IndexedDB indisponible, les liens seront perdus": "Temporary storage: IndexedDB unavailable, links will be lost",
   "Supprimer {title}": "Delete {title}",
   "Sélectionner {title}": "Select {title}",
@@ -17976,9 +17980,10 @@ function updateTableOptions() {
     }
   }
 
-  el.tableHint.textContent = hasAnyNote(links) || hasAnyTag(links)
-    ? t("Les tags et la note saisis dans la liste (bouton d'édition) peuvent être imprimés ici.")
-    : t("Ajoutez un tag ou une note depuis la liste (bouton d'édition) pour pouvoir les imprimer.");
+  // Pas de paragraphe ici : chaque case porte déjà son infobulle, et la même
+  // phrase sous le tableau redisait deux fois la même chose. Le texte vit dans
+  // le `title` de la case inactive (voir ci-dessus).
+  el.tableHint.textContent = '';
 }
 
 /**
@@ -19799,10 +19804,9 @@ function updateLabelContentHint() {
     el.labelContentHint.textContent = t('Le QR Code seul, sans texte sous lui.');
     return;
   }
-  el.labelContentHint.textContent = t(
-    'Sous le QR Code : {list}. Le texte est découpé à la largeur de la tête.',
-    { list: choisis.join(', ') },
-  );
+  el.labelContentHint.textContent = t('Sous le QR Code : {list}.', {
+    list: choisis.join(', '),
+  });
 }
 
 /**
@@ -19923,7 +19927,7 @@ function updateProfileHint() {
 
   if (!printer) {
     el.profileHint.textContent = t(
-      'Aperçu composé avec le {profile} ({mm} mm utiles, {dpi} dpi), sans imprimante connectée : les dimensions et le nombre de modules sont exacts.',
+      'Aperçu composé avec le {profile} ({mm} mm utiles, {dpi} dpi), sans imprimante connectée.',
       { profile: profile.id, mm: printableMm, dpi: profile.dpi },
     );
     return;

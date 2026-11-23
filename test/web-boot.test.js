@@ -247,8 +247,10 @@ test('tags et note ne sont proposés que si la collection en contient', () => {
   assert.equal(registry.get('table-col-tags').disabled, true);
   assert.equal(registry.get('table-col-note').disabled, true);
 
-  const hint = registry.get('table-hint').textContent;
-  assert.match(hint, /bouton d'édition/, `la phrase doit dire comment les activer : « ${hint} »`);
+  // La consigne a quitté le paragraphe pour l'infobulle de la case : plus de
+  // doublon sous le tableau, mais l'information reste au même endroit (le
+  // câblage de `title` est vérifié dans test/web.test.js, sur le fichier réel).
+  assert.equal(registry.get('table-hint').textContent, '', 'plus de paragraphe sous le tableau');
 });
 
 test('la grille du tableau peut être masquée', () => {
