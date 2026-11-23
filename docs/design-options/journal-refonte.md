@@ -385,6 +385,23 @@ Le document `docs/design-options/i7-identite.md` détaille les risques (poids de
 
 **Suite** : I7b (#59) icônes SVG et mouvement, puis I7c (#60) états vides, I7d (#61) re-mesure.
 
+## Correctif — les dépliants se lisent comme des commandes · 23 novembre 2026
+
+Signalé : « l'icône qui déploie les menus est bien trop discrète, on ne comprend pas l'UX ». Le triangle de 10 px en texte, sans cadre ni surface, ne disait pas qu'il ouvrait quelque chose.
+
+**Avant / après** : `docs/design-options/mockup/depliants-avant-apres.png`.
+
+| Mesure | Avant | Après |
+|---|---|---|
+| Ligne du dépliant | 28 px, sans cadre | **40 px**, cadre, fond au survol |
+| Affordance | triangle `▸` de 10 px en gris | **boîte de 24 px** avec chevron SVG, bordée |
+| État ouvert | triangle `▾` | **chevron pivoté à 180°** + ligne teintée |
+| Zone cliquable | le texte et le triangle | **la ligne entière** |
+| Focus | anneau | anneau conservé, survol visible |
+| FAQ du site | ligne de texte | **ligne de 48 px**, cadre, chevron qui pivote |
+
+Appliqué aux trois dépliants du produit (« Nom, numéro et note », « Exporter, importer et vider », « Cible et raccourcissement ») et aux neuf questions du site. Test de garde : `test/disclosure.test.js`. Tests **1 133/1 133**.
+
 ## Dettes de finition (assumées, pour I6)
 
 Consignées au fil des revues, traitées lors de la **passe générale** avant la note 4,8 :

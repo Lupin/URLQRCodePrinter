@@ -2002,55 +2002,77 @@ textarea.input { padding: var(--space-2) var(--space-3); }
   margin-top: 2px;
 }
 
+/* Un dépliant est une **commande**, pas une note de bas de page.
+   Le petit triangle de 10 px ne se lisait pas ; la ligne entière est
+   maintenant un contrôle : hauteur de 40 px, cadre, chevron encadré à droite
+   qui pivote à l'ouverture, survol et focus visibles. */
 .advanced > summary,
-.rail__advanced > summary {
+.rail__advanced > summary,
+.rail__transfer > summary {
   display: flex;
   align-items: center;
-  gap: var(--space-15);
-  min-height: 28px;
+  gap: var(--space-2);
+  min-height: 40px;
+  padding: 0 var(--space-2);
+  border: 1px solid var(--border-line);
+  background: var(--bg);
+  color: var(--text);
+  font-size: var(--type-sm);
+  font-weight: 500;
   list-style: none;
   cursor: pointer;
-  color: var(--text-2);
-  font-size: var(--type-xs);
-  font-weight: 600;
 }
 
 .advanced > summary::-webkit-details-marker,
-.rail__advanced > summary::-webkit-details-marker { display: none; }
+.rail__advanced > summary::-webkit-details-marker,
+.rail__transfer > summary::-webkit-details-marker { display: none; }
 
-.advanced > summary::before,
-.rail__advanced > summary::before {
-  content: "▸";
-  color: var(--text-3);
-  font-size: var(--type-2xs);
+.advanced > summary:hover,
+.rail__advanced > summary:hover,
+.rail__transfer > summary:hover {
+  border-color: var(--border-strong);
+  background: var(--surface-2);
 }
 
-.advanced[open] > summary::before,
-.rail__advanced[open] > summary::before { content: "▾"; }
-
 .advanced[open] > summary,
-.rail__advanced[open] > summary { margin-bottom: 8px; }
+.rail__advanced[open] > summary,
+.rail__transfer[open] > summary {
+  margin-bottom: var(--space-2);
+  border-color: var(--border-strong);
+  background: var(--surface-2);
+}
 
 .advanced > summary:focus-visible,
-.rail__advanced > summary:focus-visible {
+.rail__advanced > summary:focus-visible,
+.rail__transfer > summary:focus-visible {
   outline: 2px solid var(--focus);
   outline-offset: 2px;
+}
+
+/* Le chevron : une boîte de 24 px, dessinée en SVG local, qui pivote. */
+.advanced > summary::after,
+.rail__advanced > summary::after,
+.rail__transfer > summary::after {
+  content: "";
+  flex: none;
+  width: 24px;
+  height: 24px;
+  margin-left: auto;
+  border: 1px solid var(--border-strong);
+  background: var(--bg) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cpath d='M6 8l4 4 4-4' fill='none' stroke='%231a1a1a' stroke-width='1.5' stroke-linecap='square'/%3E%3C/svg%3E") center / 14px 14px no-repeat;
+  transition: transform var(--motion) ease, background-color var(--motion) ease;
+}
+
+.advanced[open] > summary::after,
+.rail__advanced[open] > summary::after,
+.rail__transfer[open] > summary::after {
+  transform: rotate(180deg);
 }
 
 .advanced .shortener { margin-top: 8px; }
 
 /* --- Volet : un seul dépliant pour les gestes de gestion --- */
-.rail__transfer { padding-top: 8px; }
-.rail__transfer > summary {
-  display: flex; align-items: center; gap: var(--space-15);
-  min-height: 28px; list-style: none; cursor: pointer;
-  color: var(--text-2); font-size: var(--type-xs); font-weight: 600;
-}
-.rail__transfer > summary::-webkit-details-marker { display: none; }
-.rail__transfer > summary::before { content: "▸"; color: var(--text-3); font-size: var(--type-2xs); }
-.rail__transfer[open] > summary::before { content: "▾"; }
-.rail__transfer[open] > summary { margin-bottom: 8px; }
-.rail__transfer > summary:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.rail__transfer { padding-top: var(--space-2); }
 
 /* --- Actions de ligne au survol et au focus ---
  *
