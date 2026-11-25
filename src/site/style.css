@@ -125,7 +125,10 @@ a {
   height: 88px;
   border-radius: var(--radius);
   display: block;
-  margin-bottom: 1.5rem;
+  /* L'icône porte la marge du magasin (16/128 de chaque côté) : on la retire
+     à gauche pour que la tuile visible s'aligne sur le titre, et on la rend au
+     bas pour garder l'écart avec lui. L'image garde son alpha et ses cotes. */
+  margin: 0 0 calc(1.5rem - 11px) -11px;
 }
 
 .hero__title {
