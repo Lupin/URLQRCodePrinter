@@ -267,7 +267,9 @@ test('aucune couleur de la charte n\'est écrite en dur hors impression', () => 
 test('un seul fond coloré : l’action, et jamais sous du texte noir', () => {
   // Toute surface colorée reprend le blanc. Une surface orange avec du texte
   // noir est exactement ce que la maison ne fait pas.
-  const fonds = [...APP_ECRAN.matchAll(/background:\s*var\(--(action|accent)\);[\s\S]{0,80}?color:\s*var\(--([\w-]+)\)/g)];
+  // `(?<![\w-])` évite de lire « border-color: var(--action) » comme une
+  // couleur de texte : seule la propriété `color` compte.
+  const fonds = [...APP_ECRAN.matchAll(/background:\s*var\(--(action|accent)\);[^}]*?(?<![\w-])color:\s*var\(--([\w-]+)\)/g)];
   for (const [, fond, encre] of fonds) {
     assert.match(encre, /action-ink|canvas-mist|pure-white/, `texte ${encre} sur ${fond}`);
   }

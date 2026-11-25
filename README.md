@@ -1,4 +1,4 @@
-# URLQRCodePrinter
+![Bannière URLQRCodePrinter : l'icône orange et le nom du produit, puis une feuille de signets imprimée avec trois QR Codes — devise « Print your bookmarks »](store/promo/marquee-1400x560-en.jpg)
 
 [![Version](https://img.shields.io/github/package-json/v/Lupin/URLQRCodePrinter?label=version)](https://github.com/Lupin/URLQRCodePrinter/blob/main/package.json)
 [![License](https://img.shields.io/github/license/Lupin/URLQRCodePrinter?label=license)](https://github.com/Lupin/URLQRCodePrinter/blob/main/LICENSE)

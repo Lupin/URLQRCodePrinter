@@ -56,7 +56,9 @@
   --fg: #16161a;
   --muted: #5b5b66;
   --border: #e2e2e6;
-  --accent: #c2410c;
+  /* L'orange pur de la marque. Du blanc dessus : 3,33:1, le choix assumé
+     du produit — la même règle que dans l'application. */
+  --accent: #ff5000;
   --accent-fg: #ffffff;
   /* Même direction que le produit : angles vifs, un seul pas de mouvement. */
   --radius: 0;
@@ -81,8 +83,8 @@
     --fg: #f2f2f5;
     --muted: #a0a0aa;
     --border: #2e2e34;
-    --accent: #fb923c;
-    --accent-fg: #131316;
+    --accent: #ff5000;
+    --accent-fg: #ffffff;
 
     --text-2: #c6c6c6;
     --border-line: #2e2e34;
@@ -168,7 +170,12 @@ a {
 }
 
 .btn--primary:hover {
-  filter: brightness(1.08);
+  /* L'orange reste pur au survol : c'est le soulignement qui dit l'état. */
+  border-color: transparent;
+  background: var(--accent);
+  filter: none;
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 
 /* --- Sections --- */

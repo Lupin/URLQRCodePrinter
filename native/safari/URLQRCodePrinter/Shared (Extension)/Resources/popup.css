@@ -84,7 +84,8 @@
   --text-3: #666666;
 
   --action: #ff5000;
-  --action-hover: #e04700;
+  /* Un seul orange : le survol garde la teinte pure, le soulignement dit l'état. */
+  --action-hover: #ff5000;
   --action-ink: #ffffff;
 
   --link: #0071bb;
@@ -615,8 +616,10 @@ body {
 }
 
 .btn--primary:not(:disabled):hover {
-  border-color: var(--accent-hover);
-  background: var(--accent-hover);
+  border-color: var(--accent);
+  background: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 
 /* Action remplie, mais sans chroma. « Ouvrir l'application » garde le poids d'un

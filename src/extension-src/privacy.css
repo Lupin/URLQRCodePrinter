@@ -196,8 +196,11 @@ body {
 }
 
 .btn--primary:hover {
-  border-color: #e04700;
-  background: #e04700;
+  /* La teinte ne bouge pas : l'orange reste pur, le soulignement fait l'état. */
+  border-color: var(--accent);
+  background: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 
 .btn:focus-visible {

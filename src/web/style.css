@@ -127,7 +127,9 @@
 
   /* --- L'action : l'orange pur de la marque (#ff5000). Blanc dessus. --- */
   --action: #ff5000;
-  --action-hover: #e04700;
+  /* Le survol ne change pas la teinte : il n'y a qu'un orange, le pur.
+     Le soulignement dit l'état, pas une seconde couleur. */
+  --action-hover: #ff5000;
   --action-ink: #ffffff;
 
   /* --- Le lien : le bleu de la maison. --- */
@@ -841,9 +843,11 @@ select.input, .locale__select {
 }
 
 .btn--primary:not(:disabled):hover {
-  background: var(--action-hover);
-  border-color: var(--action-hover);
+  background: var(--action);
+  border-color: var(--action);
   color: var(--action-ink);
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 
 /* Le registre du lien : texte seul, filet bas au survol. */
@@ -868,9 +872,11 @@ select.input, .locale__select {
 }
 
 .btn--outline:not(:disabled):hover {
-  border-color: var(--action-hover);
-  background: var(--action-hover);
+  border-color: var(--action);
+  background: var(--action);
   color: var(--action-ink);
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 
 /* L'export secondaire : plein d'encre, comme l'action — le système n'a qu'un

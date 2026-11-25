@@ -432,7 +432,7 @@ ajoute la sauvegarde complète des collections.
 | Archive | `dist/store/url-qrcode-printer-chrome.zip`, manifeste 0.6.0 |
 | Captures d'écran | **10** fichiers (`01` à `05`, `-fr` et `-en`), 1280 × 800, régénérées le 25 novembre 2026 avec l'interface 0.6.0 |
 | Visuels promotionnels | `promo-440x280.jpg` et `marquee-1400x560.jpg`, nouvelle identité, sans texte hormis le nom du produit |
-| Icône | `icone-128.png`, tuile orange `#f45000` |
+| Icône | `icone-128.png`, tuile orange pure `#ff5000` |
 | Note de version | Lue dans `CHANGELOG.md` / `CHANGELOG.fr.md`, entrée `0.6.0` |
 
 ### État de la soumission 0.5.0 — 23 novembre 2026

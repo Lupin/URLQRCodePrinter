@@ -415,7 +415,12 @@ test("l'accent n'est pas porté par plus de deux éléments visibles", () => {
   // `craft/color.md` : « au plus 2 usages visibles de --accent par écran ».
   // Le plafond compte autant que le plancher : c'est la surutilisation de
   // l'accent qui rend une interface illisible.
-  const porteurs = [...cssCode.matchAll(/background:\s*var\(--accent\)/g)].length;
+  // Un même bouton qui garde l'accent au survol reste un seul porteur : on
+  // compte les règles au repos, pas leurs états.
+  const porteurs = [...cssCode.matchAll(/([^{}]+)\{([^{}]*)\}/g)].filter(
+    ([, selecteur, corps]) =>
+      !/:(hover|focus|active)/.test(selecteur) && /background:\s*var\(--accent\)/.test(corps),
+  ).length;
   assert.ok(porteurs <= 2, `trop de porteurs de l'accent : ${porteurs}`);
 });
 
