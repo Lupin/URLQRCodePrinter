@@ -137,6 +137,10 @@ a {
   font-weight: 600;
   line-height: 1.1;
   letter-spacing: -0.01em;
+  /* Le U a un blanc de gauche dans la fonte : on le retire pour que l'encre du
+     titre tombe sur le bord visible de l'icône, pas sur sa boîte. En em, le
+     décalage suit la taille du titre. */
+  text-indent: -0.08em;
 }
 
 .hero__lead {
