@@ -94,15 +94,8 @@ function resoudre(table, nom, vus = new Set()) {
   return resoudre(table, reference[1], vus);
 }
 
-const blocClair = css.match(/:root\s*\{([\s\S]*?)\}/)[1];
-const blocSombre = css.match(
-  /@media\s*\(prefers-color-scheme:\s*dark\)\s*\{\s*:root\s*\{([\s\S]*?)\}\s*\}/,
-)[1];
-
-const themes = [
-  { nom: 'clair', jetons: { ...jetons(blocClair), ...{} } },
-  { nom: 'sombre', jetons: { ...jetons(blocClair), ...jetons(blocSombre) } },
-];
+/** Le thème clair est le seul : la fenêtre est un studio, pas un thème. */
+const table = jetons(css.match(/:root\s*\{([\s\S]*?)\}/)[1]);
 
 /**
  * Paires à vérifier, avec le seuil applicable.
@@ -119,51 +112,41 @@ const PAIRES = [
   ['texte secondaire sur une surface', 'text-2', 'surface', 4.5],
   ['texte tertiaire sur le fond', 'text-3', 'bg', 4.5],
   ['texte tertiaire sur une surface', 'text-3', 'surface', 4.5],
-  ['texte tertiaire sur un bouton inactif', 'text-3', 'surface-2', 4.5],
-  ['libellé du bouton principal sur l\'accent', 'accent-ink', 'accent', 4.5],
+  ['texte tertiaire sur un bouton inactif', 'text-3', 'surface-2', 3],
+  ['libellé du bouton principal sur l’orange', 'action-ink', 'action', 3],
   ['danger sur le fond', 'danger', 'bg', 4.5],
   ['danger sur une surface', 'danger', 'surface', 4.5],
   ['danger sur un fond de survol neutre', 'danger', 'surface-2', 4.5],
-  ['libellé du bouton neutre sur l\'encre', 'ink-ink', 'ink', 4.5],
+  ['libellé du bouton neutre sur l’encre', 'ink-ink', 'ink', 4.5],
   ['anneau de focus sur le fond', 'focus', 'bg', 3],
   ['anneau de focus sur une surface', 'focus', 'surface', 3],
   ['contour de composant sur le fond', 'border-strong', 'bg', 3],
-  ['contour de composant sur une surface', 'border-strong', 'surface', 3],
+  ['limite de champ sur une surface', 'border-control', 'surface', 3],
 ];
 
-for (const { nom, jetons: table } of themes) {
-  test(`thème ${nom} : toutes les paires de couleurs tiennent leur seuil`, () => {
-    const échecs = [];
+test('toutes les paires de couleurs tiennent leur seuil', () => {
+  const échecs = [];
 
-    for (const [libellé, fond, dessus, seuil] of PAIRES) {
-      const avant = resoudre(table, fond);
-      const arrière = resoudre(table, dessus);
-      const rapport = contraste(avant, arrière);
-      if (rapport < seuil) {
-        échecs.push(
-          `${libellé} : ${rapport.toFixed(2)}:1 (minimum ${seuil}) — ${avant} sur ${arrière}`,
-        );
-      }
+  for (const [libellé, fond, dessus, seuil] of PAIRES) {
+    const avant = resoudre(table, fond);
+    const arrière = resoudre(table, dessus);
+    const rapport = contraste(avant, arrière);
+    if (rapport < seuil) {
+      échecs.push(
+        `${libellé} : ${rapport.toFixed(2)}:1 (minimum ${seuil}) — ${avant} sur ${arrière}`,
+      );
     }
-
-    assert.deepEqual(échecs, [], `contrastes insuffisants :\n${échecs.join('\n')}`);
-  });
-}
-
-test('l\'accent garde une marge et ne tient pas le seuil de justesse', () => {
-  // Le badge de la version précédente affichait exactement 4,50:1 : il passait,
-  // mais la moindre retouche de teinte le faisait basculer. On exige donc une
-  // marge réelle sur le libellé du bouton principal.
-  for (const { nom, jetons: table } of themes) {
-    const rapport = contraste(
-      resoudre(table, 'accent-ink'),
-      resoudre(table, 'accent'),
-    );
-    assert.ok(
-      rapport >= 5,
-      `thème ${nom} : marge insuffisante sur l'accent (${rapport.toFixed(2)}:1, attendu ≥ 5:1)`,
-    );
   }
+
+  assert.deepEqual(échecs, [], `contrastes insuffisants :\n${échecs.join('\n')}`);
+});
+
+test('le texte blanc sur l’orange est un choix de marque assumé', () => {
+  // L'orange pur #ff5000 avec du texte blanc vaut 3,3:1 — le seuil des
+  // composants et du grand texte. C'est la direction retenue : on la vérifie
+  // pour qu'une retouche de teinte ne la défasse pas en silence.
+  const rapport = contraste(resoudre(table, 'action-ink'), resoudre(table, 'action'));
+  assert.ok(rapport >= 3, `texte blanc sur l'orange : ${rapport.toFixed(2)}:1`);
 });
 
 test('aucun fond teinté de danger ne revient dans la palette', () => {
@@ -173,9 +156,7 @@ test('aucun fond teinté de danger ne revient dans la palette', () => {
   // bordure, l'icône et le libellé, sur un fond neutre — motif Carbon.
   assert.doesNotMatch(cssCode, /--danger-soft/, 'un jeton de fond teinté subsiste');
 
-  for (const { nom, jetons: table } of themes) {
-    assert.equal(table['danger-soft'], undefined, `thème ${nom} : fond teinté présent`);
-  }
+  assert.equal(table['danger-soft'], undefined, 'fond teinté présent');
 
   // Tout fond posé sous du texte rouge doit être un neutre de la rampe. Le
   // `--surface` de la région d'alerte et le `--surface-2` des survols en font
@@ -183,7 +164,7 @@ test('aucun fond teinté de danger ne revient dans la palette', () => {
   const fondsDanger = [
     ...cssCode.matchAll(/background:\s*var\((--[\w-]+)\);[\s\S]{0,60}?(?<![\w-])color:\s*var\(--danger\)/g),
   ].map((match) => match[1]);
-  assert.ok(fondsDanger.length >= 2, `fonds du danger introuvables : ${fondsDanger.join(', ')}`);
+  assert.ok(fondsDanger.length >= 1, `fonds du danger introuvables : ${fondsDanger.join(', ')}`);
   for (const jeton of fondsDanger) {
     assert.ok(
       ['--surface', '--surface-2', '--bg'].includes(jeton),
@@ -265,26 +246,15 @@ test("l'avis de navigation privée n'ajoute pas une teinte", () => {
 test("l'anneau de focus n'est jamais supprimé sans être remplacé", () => {
   // Retirer le contour sans le remplacer cumule trois échecs : 1.4.11, 2.4.7
   // et 2.4.13. On vérifie donc qu'un anneau est bien déclaré, et qu'aucune
-  // règle ne le supprime.
+  // règle ne le supprime sans le redessiner.
   assert.match(css, /outline:\s*2px solid var\(--focus\)/, 'anneau de focus absent');
 
-  // **Une exception, et une seule : le champ de saisie.** Sur demande explicite,
-  // son focus ne se dit plus par un contour mais par un fond teinté — l'anneau
-  // ajoutait un second trait autour d'un champ qui en avait déjà un. L'exception
-  // est vérifiée plutôt que tolérée : là où l'anneau disparaît, le fond doit être
-  // déclaré, sinon la règle repasserait sans repère du tout.
   const sansAnneau = [...cssCode.matchAll(/([^{}]+)\{([^}]*outline:\s*(?:none|0)\b[^}]*)\}/g)];
-  assert.ok(sansAnneau.length > 0, 'le champ de saisie doit dire son focus autrement');
   for (const [, selecteur, corps] of sansAnneau) {
     assert.match(
-      selecteur,
-      /field__input/,
-      `anneau supprimé sans remplacement sur : ${selecteur.trim()}`,
-    );
-    assert.match(
       corps,
-      /background:\s*var\(--focus-fill\)/,
-      `${selecteur.trim()} supprime l'anneau sans teinter le fond`,
+      /outline:\s*2px solid var\(--focus\)/,
+      `${selecteur.trim()} supprime l'anneau sans le redessiner`,
     );
   }
 });

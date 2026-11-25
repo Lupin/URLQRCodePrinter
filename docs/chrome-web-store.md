@@ -388,11 +388,11 @@ main, et de ce que le portail ne dit pas tout seul.
 | Mention et consentement dans l'interface | **Fait** — voir section 3 ; reste à éprouver à la main dans le navigateur |
 | Captures d'écran | **Fait — les cinq emplacements sont remplis** : `01` à `05` régénérées le 23 novembre 2026 avec l'interface 0.5.0 ; `04` montre le mode Tableau, pas la mention de confidentialité. Toutes en 1280 × 800. Le dossier ne contient que les captures déclarées ; les huit captures brutes du 30 septembre en ont été sorties (voir section 7) |
 | Petite image promotionnelle 440 × 280 | **Fait** — `store/promo/promo-440x280.jpg`, 440 × 280, JPEG 24 bits sans alpha, régénérée le 4 novembre 2026 |
-| Icône de la fiche | **Fait** — `src/extension-src/icons/icon-128.png`, 128 × 128 avec alpha : tuile orange, étiquette QR Code sortant d'une imprimante (dessin retenu parmi huit propositions), **dessin de 96 × 96 centré** avec 16 px transparents de chaque côté — la recommandation du magasin est suivie. Même source pour l'icône d'application, en bord perdu — `npm run icons` écrit les deux jeux |
+| Icône de la fiche | **Fait** — `src/extension-src/icons/icon-128.png`, 128 × 128 avec alpha : tuile orange pure, quatre carrés blancs (QR Code stylisé, dessin retenu parmi les propositions), **dessin de 96 × 96 centré** avec 16 px transparents de chaque côté — la recommandation du magasin est suivie. Même source pour l'icône d'application, en bord perdu — `npm run icons` écrit les deux jeux |
 | Image « marquee » 1400 × 560 | **Fait** — `store/promo/marquee-1400x560.jpg`, 1400 × 560, JPEG 24 bits sans alpha. Facultative pour publier, mais c'est elle qui sert la mise en avant |
 | Catégorie et langue | **À choisir** : la locale par défaut du manifeste est `fr` |
 | Instructions de test pour la revue | À rédiger si l'extension exige une action particulière |
-| Version publiée | Enregistrée dans `store/listing.json` (`item.publishedVersion`, aujourd'hui `0.4.0`). Le dépôt doit la **dépasser strictement** — voir section 7 |
+| Version publiée | Enregistrée dans `store/listing.json` (`item.publishedVersion`, aujourd'hui `0.5.0`). Le dépôt doit la **dépasser strictement** — voir section 7 |
 
 Les dimensions des visuels sont récapitulées dans [`store/README.md`](../store/README.md),
 avec la source officielle.
@@ -417,6 +417,23 @@ l'envoi, et son message ne nomme aucun fichier. D'où l'ordre ci-dessous.
 | Élément | `URLQRCodePrinter` — `fmfbpjekpbopeijaobdffbhhnfgjjbmi` |
 | Console | <https://chrome.google.com/webstore/devconsole> |
 | Fiche publique | <https://chromewebstore.google.com/detail/urlqrcodeprinter/fmfbpjekpbopeijaobdffbhhnfgjjbmi> |
+
+### État de la soumission 0.6.0 — 25 novembre 2026
+
+**Ce que la 0.6.0 change.** Une nouvelle direction visuelle : système clair et
+contrasté, orange pur `#ff5000` avec texte blanc, scènes grises, aucune surface
+noire, aucun fond pastel ; la fenêtre de l'extension et la page de
+confidentialité suivent le même système, et l'icône reprend l'orange pur. S'y
+ajoute la sauvegarde complète des collections.
+
+| Champ | Valeur |
+|---|---|
+| Version à déposer | **0.6.0** (publiée : 0.5.0 — strictement supérieure) |
+| Archive | `dist/store/url-qrcode-printer-chrome.zip`, manifeste 0.6.0 |
+| Captures d'écran | **10** fichiers (`01` à `05`, `-fr` et `-en`), 1280 × 800, régénérées le 25 novembre 2026 avec l'interface 0.6.0 |
+| Visuels promotionnels | `promo-440x280.jpg` et `marquee-1400x560.jpg`, nouvelle identité, sans texte hormis le nom du produit |
+| Icône | `icone-128.png`, tuile orange `#f45000` |
+| Note de version | Lue dans `CHANGELOG.md` / `CHANGELOG.fr.md`, entrée `0.6.0` |
 
 ### État de la soumission 0.5.0 — 23 novembre 2026
 

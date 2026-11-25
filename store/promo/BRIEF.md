@@ -1,4 +1,9 @@
-# Brief OpenDesign — image promotionnelle 440 × 280
+# Brief image promotionnelle 440 × 280
+
+> Les deux visuels sont désormais **générés** par `npm run store` :
+> `scripts/capture-promo.mjs` compose la scène (canvas `#f5f5f5`, orange
+> `#ff5000`, QR Codes réels, Inter embarquée, aucun dégradé ni ombre). Ce brief
+> garde la consigne d'origine et les contraintes du magasin.
 
 [← Images de la fiche](../README.md)
 
@@ -43,19 +48,19 @@ analytics. It prints to a small Bluetooth label printer, or exports a PDF sheet
 of labels.
 
 THE MARK
-The attached icon is the product's existing mark: a QR code emerging from a
-label slot — an orange QR sitting on a label shape. It reads as "a QR code you
-can stick on something". Build on it; do not redesign it. You may crop, scale or
-bleed it, and you may recolour it to white or to a darker orange, but the shape
+The attached icon is the product's mark: a pure-orange rounded tile carrying
+four white squares — a QR code reduced to its most recognisable form. It reads
+as "a QR code you can stick on something". Build on it; do not redesign it. You
+may crop, scale or bleed it, and you may recolour it to white, but the shape
 language must stay recognisable.
 
 BRAND PALETTE — sampled from the real icon, please use these exact values
-  #C2420E  primary rust orange — should dominate
-  #BE3501  deep orange, for depth and shadows
-  #DE6A34  light orange, for gradients and highlights
-  #FFFFFF  paper white
-  #FAF6F3  warm off-white, for label surfaces
-  #1A1A1A  ink, only if a near-black is needed
+  #FF5000  pure orange — the action colour, should dominate
+  #F45000  tile orange, a half-step deeper, for the mark itself
+  #F5F5F5  studio grey, the page background
+  #FFFFFF  paper white, for labels and panels
+  #E5E5E5  hairline grey, for the one-pixel rules
+  #0F0E12  ink, for type and the QR modules
 
 OFFICIAL CHROME WEB STORE GUIDANCE
 The size is the only hard requirement; the rest is what the store's own

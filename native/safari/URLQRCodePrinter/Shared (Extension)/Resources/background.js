@@ -745,6 +745,56 @@ const EN_MESSAGES = {
   "Réglages du tableau": "Table settings",
   "Réglages de l’étiquette": "Label settings",
   "Réglages des images": "Image settings",
+
+  // -------------------------------------------------------------------------
+  // Sauvegarde complète
+  // -------------------------------------------------------------------------
+  "Enregistre toutes les collections et leurs liens dans un seul fichier":
+    "Saves all collections and their links in a single file",
+  "Sauvegarde complète": "Full backup",
+  "Relit l'archive JSON, le dossier d'étiquettes .zip, un CSV exporté d'ici ou une sauvegarde complète":
+    "Reads back the JSON archive, the .zip label folder, a CSV exported from here or a full backup",
+  "« Sauvegarde complète » écrit toutes les collections dans un seul fichier ; « Importer… » relit aussi une sauvegarde, et propose de l'ajouter ou de remplacer toutes les collections.":
+    "“Full backup” writes every collection to a single file; “Import…” also reads a backup, and offers to add it or replace all collections.",
+  "Navigation privée : la sauvegarde complète ne couvre que les collections ordinaires, et reste donc à la navigation normale.":
+    "Private browsing: the full backup only covers ordinary collections, so it stays in normal browsing.",
+  "Sauvegarde impossible : {message}": "Backup failed: {message}",
+  "Restauration impossible : {message}": "Restore failed: {message}",
+  "{collections} dans {file}": "{collections} in {file}",
+  " ({details})": " ({details})",
+  "« Ajouter » garde vos collections et crée des copies de celles du fichier ; « Remplacer » efface tout ce qui est là.":
+    "“Add” keeps your collections and creates copies of the file’s; “Replace” erases everything here.",
+  "Cette page ne gère qu'une collection : celles du fichier seront réunies dans « {name} ».":
+    "This page manages a single collection: the file’s will be merged into “{name}”.",
+  "{links}{remarque}. {consigne} Rien n'est écrit avant votre choix.":
+    "{links}{remarque}. {consigne} Nothing is written before you choose.",
+  "Ajouter la collection du fichier": "Add the file’s collection",
+  "Ajouter les {count} collections du fichier": "Add the file’s {count} collections",
+  "Fusionner la collection dans « {name} »": "Merge the collection into “{name}”",
+  "Fusionner les {count} collections dans « {name} »":
+    "Merge the file’s {count} collections into “{name}”",
+  "Remplacer toutes les collections": "Replace all collections",
+  "Remplacer": "Replace",
+  "Remplacer les collections actuelles ({current}) par la sauvegarde ({backup}) ? Cette action ne peut pas être annulée.":
+    "Replace the current collections ({current}) with the backup ({backup})? This action cannot be undone.",
+  "{collections}, {links}": "{collections}, {links}",
+  "{count} collection": "{count} collection",
+  "{count} collections": "{count} collections",
+  "{count} collection restaurée": "{count} collection restored",
+  "{count} collections restaurées": "{count} collections restored",
+  "{count} lien restauré": "{count} link restored",
+  "{count} liens restaurés": "{count} links restored",
+  "Fichier de sauvegarde illisible.": "Unreadable backup file.",
+  "Ce fichier n'est pas une sauvegarde complète.": "This file is not a full backup.",
+  "Sauvegarde sans numéro de version lisible.": "Backup without a readable version number.",
+  "Sauvegarde d'une version plus récente ({version}) : mettez l'application à jour.":
+    "Backup from a newer version ({version}): update the application.",
+  "Cette sauvegarde ne contient aucune collection ni aucun lien.":
+    "This backup contains neither collections nor links.",
+  "Cette sauvegarde porte {count} collections, au-delà du plafond de {max}.":
+    "This backup holds {count} collections, beyond the limit of {max}.",
+  "Cette sauvegarde porte {count} liens, au-delà du plafond de {max}.":
+    "This backup holds {count} links, beyond the limit of {max}.",
 };
 
 // ────────────────────────────────────────────────────────────────────────
@@ -2287,11 +2337,12 @@ function freeCollectionName(desired, items = [], translate = t) {
  *   list: () => Promise<Array<object>>,
  *   visible: (options?: { isPrivate?: boolean }) => Promise<Array<object>>,
  *   ensureDefault: () => Promise<boolean>,
- *   create: (name: string) => Promise<object>,
+ *   create: (name: string, details?: object) => Promise<object>,
  *   rename: (id: string, name: string) => Promise<object>,
  *   setNote: (id: string, note: string) => Promise<object>,
  *   setStartIndex: (id: string, value: unknown) => Promise<object>,
  *   applyOrder: (ids: string[]) => Promise<Array<object>>,
+ *   replaceAll: (items: Array<object>) => Promise<Array<object>>,
  *   remove: (id: string) => Promise<boolean>,
  *   getActive: (isPrivate?: boolean) => Promise<string>,
  *   setActive: (id: string, isPrivate?: boolean) => Promise<string>,
@@ -2468,15 +2519,76 @@ function createCollectionStore(options = {}) {
       return write(document);
     },
 
-    async create(name) {
+    /**
+     * Crée une collection nommée, avec les métadonnées qu'un import apporte.
+     *
+     * Le nom reste obligatoire : c'est le geste de l'utilisateur, et le bouton
+     * qui crée une collection en propose toujours un. Les autres champs sont
+     * facultatifs et servent à la **restauration d'une sauvegarde** : sans eux,
+     * une collection restaurée perdrait sa note, son premier numéro et sa date
+     * de création, et ne serait donc pas « la même » collection.
+     *
+     * Un `createdAt` absent vaut l'instant présent, comme avant ; un `order`
+     * absent reste absent, ce qui laisse la collection se ranger à la fin tant
+     * que personne n'a réordonné.
+     *
+     * @param {string} name
+     * @param {{ note?: unknown, startIndex?: unknown, createdAt?: unknown, order?: unknown }} [details]
+     * @returns {Promise<object>}
+     */
+    async create(name, details = {}) {
       const clean = requireName(name);
       const { document } = await load();
       if (nameTaken(document.items, clean)) {
         throw new CollectionError(t('Une collection porte déjà ce nom'), 'duplicate-name');
       }
-      const collection = createCollection({ name: clean, createdAt: now() });
+      const collection = createCollection({
+        name: clean,
+        note: details.note,
+        startIndex: details.startIndex,
+        createdAt: Number.isFinite(details.createdAt) ? details.createdAt : now(),
+        order: details.order,
+      });
       await update((current) => ({ ...current, items: [...current.items, collection] }));
       return collection;
+    },
+
+    /**
+     * Remplace **tout** le document des collections.
+     *
+     * C'est le seul chemin de la restauration complète : une collection
+     * restaurée doit retrouver son nom, sa note, son premier numéro et sa date
+     * de création, et `create` ne suffit pas — il refuse un nom vide, refuse un
+     * nom déjà pris, et ne sait pas retrouver une place. On écrit donc le
+     * document d'un coup, en le faisant passer par le même assainissement que
+     * toute lecture : une entrée illisible est écartée, un identifiant dupliqué
+     * l'est aussi, et la collection privée n'entre pas.
+     *
+     * La collection courante qui n'existe plus est oubliée, comme après une
+     * suppression : la fenêtre suivante ne doit pas s'ouvrir sur un repli muet.
+     *
+     * @param {Array<object>} items
+     * @returns {Promise<Array<object>>}
+     */
+    async replaceAll(items) {
+      // Le tableau est passé **tel quel** à l'assainissement : c'est lui qui
+      // décide de la forme d'une collection, écarte la collection privée et
+      // garantit qu'il en reste une. Le normaliser avant ferait entrer la
+      // collection privée sous un identifiant neuf, comme une collection
+      // ordinaire — exactement ce que le module doit empêcher.
+      const remplacement = Array.isArray(items) ? items : [];
+      const document = await update((current) => ({
+        ...current,
+        version: COLLECTIONS_VERSION,
+        items: remplacement,
+      }));
+
+      const actives = await readActive();
+      const ids = new Set(document.items.map((item) => item.id));
+      if (actives.normal !== '' && !ids.has(actives.normal)) {
+        await writeActive({ ...actives, normal: '' });
+      }
+      return document.items;
     },
 
     async rename(id, name) {
@@ -3767,14 +3879,14 @@ const api = resolveApi();
  * orange ; l'inversion, elle, se voit. Le glyphe reste distinct dans les quatre
  * cas, si bien que la couleur n'est jamais la seule information (1.4.1).
  */
-const BADGE_COUNT = { fond: '#1a1a1a', texte: '#ffffff' };
-const BADGE_ADDED = { fond: '#1c7c4a', texte: '#ffffff' };
-const BADGE_DUPLICATE = { fond: '#f4f4f4', texte: '#161616' };
+const BADGE_COUNT = { fond: '#0f0e12', texte: '#ffffff' };
+const BADGE_ADDED = { fond: '#006837', texte: '#ffffff' };
+const BADGE_DUPLICATE = { fond: '#ffffff', texte: '#0f0e12' };
 // Un titre adopté **change** la collection, comme un ajout : mêmes teintes que
 // l'ajout, et c'est le signe qui les sépare. Le fond clair reste réservé à ce
 // qui ne change rien.
-const BADGE_UPDATED = { fond: '#1c7c4a', texte: '#ffffff' };
-const BADGE_ERROR = { fond: '#b3122b', texte: '#ffffff' };
+const BADGE_UPDATED = { fond: '#006837', texte: '#ffffff' };
+const BADGE_ERROR = { fond: '#b81d13', texte: '#ffffff' };
 
 /**
  * Durée d'un retour transitoire sur l'icône, en millisecondes.

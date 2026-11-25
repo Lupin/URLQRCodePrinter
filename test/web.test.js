@@ -88,7 +88,7 @@ test('les colonnes du tableau ont leurs valeurs par défaut dans le HTML', () =>
   // Ce qui décrit un lien est affiché ; les champs facultatifs attendent d'être
   // remplis. Un test de démarrage ne peut pas le voir : le DOM de substitution
   // ne lit pas les attributs.
-  for (const id of ['table-col-index', 'table-col-qr', 'table-col-url', 'table-col-title']) {
+  for (const id of ['table-col-qr', 'table-col-url', 'table-col-title']) {
     assert.match(
       html,
       new RegExp(`id="${id}"[^>]*checked`),
@@ -104,9 +104,16 @@ test('les colonnes du tableau ont leurs valeurs par défaut dans le HTML', () =>
   }
 });
 
-test('la grille du tableau est active par défaut', () => {
-  // Un tableau sans bordures est un choix : c'est à l'utilisateur de le faire.
-  assert.match(html, /id="table-grid"[^>]*checked/, 'la grille doit être cochée par défaut');
+test('la feuille de liens est active par défaut', () => {
+  // Le tableau s'ouvre sur la mise en page de la maison : des filets entre les
+  // lignes et un trait après le QR Code, sans colonne de numéros. La grille
+  // complète est un choix, pour recopier des valeurs à la main.
+  const grille = html.match(/<input id="table-grid"[^>]*>/)[0];
+  assert.doesNotMatch(grille, /checked/, 'la grille ne doit pas être cochée par défaut');
+  // La colonne des numéros reste disponible, mais décochée : la feuille se lit
+  // d'abord comme une liste de liens ; le numéro est une option de pointage.
+  const index = html.match(/<input id="table-col-index"[^>]*>/)[0];
+  assert.doesNotMatch(index, /checked/, 'la colonne des numéros ne doit pas être cochée');
 });
 
 test('la case maîtresse est en tête de la liste', () => {
@@ -960,11 +967,12 @@ test('un seul filet autour des champs : le champ, pas son contenant', () => {
   // Le champ, lui, garde son filet : `--border-strong` tient le 3:1 sur les deux
   // fonds de l'application, et c'est la seule limite qui reste.
   const champ = css.match(/\.input\s*\{([\s\S]*?)\}/)[1];
-  assert.match(champ, /border:\s*1px solid var\(--border-strong\)/);
+  assert.match(champ, /border:\s*1px solid var\(--border-control\)/);
 
   // Les cadres qui restent ne contiennent aucun champ : leur contour dit ce
-  // qu'ils enferment (une alerte, une surface d'aperçu).
-  for (const selecteur of ['.banner--error', '.preview']) {
+  // qu'ils enferment (une alerte, la feuille posée). L'aperçu lui-même n'est
+  // qu'un conteneur ; c'est le papier qui porte son bord.
+  for (const selecteur of ['.banner--error', '.preview__frame']) {
     const regle = css.match(new RegExp(`\\${selecteur}\\s*\\{([\\s\\S]*?)\\}`));
     assert.ok(regle, `aucune règle pour ${selecteur}`);
     assert.match(regle[1], /border:\s*1px solid/, `${selecteur} a perdu son contour`);
@@ -1147,6 +1155,29 @@ test('le panneau de collection offre le choix, la création et la suppression', 
   assert.match(html, /id="collection-reorder"[^>]*btn--small/);
   assert.match(html, /id="collection-delete"[^>]*btn--small/);
 
+  // « Supprimer » est une icône seule : plus discret qu'un mot, et le libellé
+  // reste accessible — en infobulle à la souris, en nom accessible au clavier
+  // et au lecteur d'écran. Un `data-i18n` de texte écraserait l'icône : il n'y
+  // en a pas, la traduction passe par les attributs.
+  const suppression = html.match(/<button id="collection-delete"[\s\S]*?<\/button>/)[0];
+  assert.match(suppression, /class="icon icon-trash"/, 'la poubelle doit être le contenu du bouton');
+  assert.match(suppression, /title="Supprimer"/, "le libellé manque en infobulle");
+  assert.match(suppression, /aria-label="Supprimer"/, "le bouton n'a pas de nom accessible");
+  assert.match(suppression, /data-i18n-title="Supprimer"/);
+  assert.match(suppression, /data-i18n-aria-label="Supprimer"/);
+  assert.doesNotMatch(suppression, /data-i18n="Supprimer"/);
+
+  // Au repos : l'icône à l'encre, sans cadre ni fond ; le trait orange n'apparaît
+  // qu'au survol. C'est ce qui la rend discrète dans la rangée.
+  const css = readFileSync(join(WEB, 'style.css'), 'utf8');
+  const repos = css.match(/#collection-delete \{([\s\S]*?)\}/)[1];
+  assert.match(repos, /border-color:\s*transparent/);
+  assert.match(repos, /background:\s*transparent/);
+  assert.match(repos, /color:\s*var\(--text\)/);
+  const survol = css.match(/#collection-delete:not\(:disabled\):hover \{([\s\S]*?)\}/)[1];
+  assert.match(survol, /border-color:\s*var\(--action\)/);
+  assert.match(survol, /color:\s*var\(--text\)/, "l'icône reste à l'encre au survol");
+
   // La suppression a son panneau de confirmation, avec deux issues.
   assert.match(html, /id="collection-delete-confirm"[^>]*hidden/);
   assert.match(html, /id="collection-delete-confirm-text"/);
@@ -1179,26 +1210,18 @@ test('l\'application a des collections dans l\'extension, et une seule ailleurs'
   assert.match(app, /el\.collectionPicker\.hidden = !disponible/);
 });
 
-test('ce que l\'application masque est réellement masqué', () => {
+test("ce que l'application masque est réellement masqué", () => {
   const css = readFileSync(join(WEB, 'style.css'), 'utf8');
 
   // `display: flex` l'emporte sur le `display: none` de l'attribut `hidden` :
-  // un panneau qui s'ouvre et se ferme doit donc porter **sa** règle `[hidden]`,
-  // sinon il se ferme dans le document et reste peint à l'écran. Le défaut a été
-  // commis deux fois — le sélecteur de collection sur la page autonome, puis le
-  // panneau du choix d'import, dont « Annuler » ne fermait rien. Le substitut de
-  // DOM des tests ne peint pas : seule une capture pouvait le montrer.
-  for (const selecteur of ['.field', '.banner', '.move__menu', '.collection-picker', '.collection-confirm', '.collection-order', '.import-menu']) {
-    assert.ok(
-      css.includes(`${selecteur}[hidden] { display: none; }`),
-      `${selecteur} porte un display qui l'emporterait sur l'attribut hidden`,
-    );
-  }
-  // Les commandes masquées **à l'intérieur** d'un panneau suivent la même règle :
-  // la nouvelle collection ne se propose que là où il y en a plusieurs.
-  assert.ok(
-    css.includes('.import-menu [hidden] { display: none; }'),
-    'la commande de collection nouvelle resterait visible hors de l\'extension',
+  // un panneau qui s'ouvre et se ferme doit donc être neutralisé. Le système
+  // pose la règle **une fois, globalement et avec `!important`** : elle gagne
+  // sur n'importe quel `display` de composant, sans répéter un sélecteur
+  // `[hidden]` par panneau — et la liste des panneaux ne peut pas en oublier un.
+  assert.match(
+    css,
+    /\[hidden\]\s*\{\s*display:\s*none\s*!important;?\s*\}/,
+    "la règle globale [hidden] qui gagne sur les display de composants manque",
   );
   assert.match(readFileSync(join(WEB, 'app.js'), 'utf8'), /el\.importAdd\.hidden = !collections\.available/);
 });

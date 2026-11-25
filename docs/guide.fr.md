@@ -244,9 +244,15 @@ barre d'outils.
 | Fichier fourni | D'où il vient | Ce qui est relu |
 |---|---|---|
 | `liens-….json` | bouton **Archive** | tout : URL, titre, tags, note, date de collecte, raccourci |
+| `sauvegarde-complete-….json` | bouton **Sauvegarde complète** | toutes les collections — noms, notes, premiers numéros, rangs, dates — et tous leurs liens |
 | `etiquettes-….zip` | bouton **Exporter les images (ZIP)** | les liens du manifeste contenu dans l'archive |
 | `export.json` | extrait à la main d'une archive | les mêmes |
 | `….csv` | bouton **CSV**, éventuellement retouché dans un tableur | URL, titre, tags, note, date |
+
+Une **sauvegarde complète** suit un chemin à part : elle porte plusieurs
+collections, et l'import ne l'aplatit pas en une archive d'une seule collection.
+Il ouvre alors un panneau distinct, décrit dans « Sauvegarder toutes les
+collections ».
 
 **L'import demande où ranger ce qu'il vient de relire.** Une fois le fichier lu —
 le panneau annonce alors combien de liens il porte, et sous quel nom de
@@ -430,6 +436,41 @@ Deux conditions pour la voir :
 Si vous enregistrez un lien privé dans une **autre** collection, il est conservé
 comme les autres — et la fenêtre le dit, puisque c'est une décision qui vous
 appartient.
+
+### Sauvegarder toutes les collections
+
+Le bouton **« Sauvegarde complète »**, dans le dépliant « Exporter, importer et
+vider », écrit **toutes les collections ordinaires et tous leurs liens** dans un
+seul fichier `sauvegarde-complete-AAAAMMJJ-HHMM.json`. C'est le fichier à copier
+sur une autre machine — ou à garder de côté avant de désinstaller l'extension.
+
+Il porte, pour chaque collection, son nom, sa note, son premier numéro, son rang
+et sa date de création ; pour chaque lien, son URL, son titre, ses tags, sa note,
+sa date de collecte, son rang et son raccourci. **La collection de navigation
+privée n'y entre jamais** : ses liens vivent en mémoire de session. En fenêtre
+privée, la commande est donc inactive, avec la phrase qui l'explique.
+
+Pour le relire, utilisez **« Importer… »** : le fichier est reconnu à sa marque,
+et un panneau propose deux issues. Rien n'est écrit avant votre choix.
+
+| Issue | Ce qu'elle fait |
+|---|---|
+| **Ajouter les N collections du fichier** | chaque collection du fichier est créée à côté des vôtres ; un nom déjà pris est suffixé (« Veille », puis « Veille 2 ») ; les liens gardent leur date, leur rang et leur raccourci ; un identifiant déjà utilisé est régénéré. La collection affichée n'est pas touchée. |
+| **Remplacer toutes les collections** | les collections actuelles et leurs liens sont **effacés d'abord**, puis celles du fichier sont restaurées. Une **seconde confirmation** annonce ce qui sera perdu et ce qui sera restauré — c'est la seule issue qui détruit. |
+
+Sur la **page web autonome**, qui n'a qu'une collection, les deux issues
+deviennent « Fusionner les N collections dans « Mes liens » » et « Remplacer
+« Mes liens » » : les collections du fichier y sont réunies dans l'unique
+collection, et le remplacement reprend son nom, sa note et son premier numéro.
+
+Un lien illisible est compté et signalé, sans faire échouer le reste ; une URL en
+double dans une même collection est ignorée. Une sauvegarde d'une version plus
+récente de l'application est refusée avec la phrase « mettez l'application à
+jour ».
+
+**Les réglages ne sont pas dans le fichier.** La sauvegarde porte les collections
+et leurs liens, pas les préférences de mise en page — elles se règlent en un
+geste, et dépendent de l'imprimante.
 
 ## Raccourcir, en option
 

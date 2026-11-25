@@ -21,6 +21,44 @@ Deux conventions, pour que le fichier reste lisible par une machine :
 La plus ancienne version ne porte pas de date : elle n'a pas été consignée à
 l'époque, et elle n'est pas inventée ici.
 
+## [0.6.0] - 2026-11-25
+
+### Ajouté
+
+- **Sauvegarde complète des collections** : un bouton écrit toutes les
+  collections ordinaires et tous leurs liens dans un seul fichier JSON,
+  `sauvegarde-complete-….json`. Chaque collection garde son nom, sa note, son
+  premier numéro, son rang et sa date de création ; la collection de navigation
+  privée n'y entre jamais.
+- **Restauration d'une sauvegarde** : « Importer… » reconnaît le fichier et
+  propose de l'**ajouter** — les collections sont créées à côté des existantes,
+  les noms déjà pris sont suffixés — ou de **remplacer** toutes les collections,
+  après une confirmation qui annonce ce qui sera perdu et ce qui sera restauré.
+
+### Modifié
+
+- L'import distingue désormais une sauvegarde complète d'une archive d'une seule
+  collection : il ne l'aplatit plus en une collection unique, et ouvre son propre
+  panneau de rangement.
+- **Nouvelle direction visuelle** : un système clair et contrasté — canvas
+  `#f5f5f5`, panneaux blancs, filets `#e5e5e5`, surface de travail grise, et un
+  seul orange d'action pur (`#ff5000`) avec du texte blanc. Aucune surface
+  noire, aucun fond pastel, aucun coin arrondi, aucune ombre hormis la feuille
+  elle-même. La fenêtre de l'extension et la page de confidentialité suivent le
+  même système.
+- **Hiérarchie typographique lisible** : Inter en 400/500/600 remplace les
+  graisses filaires — 11 / 13 / 19 / 24 px — tandis que l'étiquette imprimée
+  garde IBM Plex, pour que la sortie physique ne change pas.
+- L'icône du produit est redessinée : quatre carrés blancs — un QR Code réduit à
+  sa forme la plus reconnaissable — sur la tuile orange pure ; toutes les
+  tailles sont régénérées, icônes d'application comprises.
+
+### Ce qui ne change pas
+
+Aucun compte, aucun serveur de l'éditeur, aucune mesure d'audience. Les liens
+restent dans le stockage local, les permissions sont inchangées, et le seul appel
+réseau reste le raccourcissement demandé par l'utilisateur.
+
 ## [0.5.0] - 2026-11-23
 
 Mise à jour d'identité et d'ergonomie : la fiche, l'application, la fenêtre et le

@@ -278,8 +278,8 @@ Ce dossier est **jetable** : il est régénéré par \`npm run store\`. Ne le mo
 | Archive de l'extension | \`url-qrcode-printer-chrome.zip\` | manifeste à la racine |
 | Captures FR (5 emplacements) | \`fr/01…05\` | 1280 × 800, PNG |
 | Captures EN (5 emplacements) | \`en/01…05\` | 1280 × 800, PNG |
-| Petite image promotionnelle | \`promo-440x280.jpg\` | 440 × 280, JPEG sans alpha |
-| Image en haut de page | \`marquee-1400x560.jpg\` | 1 400 × 560, JPEG sans alpha |
+| Petite image promotionnelle | \`promo-440x280.jpg\` | 440 × 280, JPEG sans alpha — version FR ; \`promo-440x280-en.jpg\` pour une fiche anglophone |
+| Image en haut de page | \`marquee-1400x560.jpg\` | 1 400 × 560, JPEG sans alpha — version FR ; \`marquee-1400x560-en.jpg\` pour une fiche anglophone |
 | Icône de la fiche | \`icone-128.png\` | 128 × 128 |
 | Résumé + description FR | \`listing-fr.md\` | copier les sections |
 | Résumé + description EN | \`listing-en.md\` | copier les sections |
@@ -337,6 +337,11 @@ async function main() {
   deposerCaptures();
   copyFileSync(join(ROOT, 'store', 'promo', 'promo-440x280.jpg'), join(OUT, 'promo-440x280.jpg'));
   copyFileSync(join(ROOT, 'store', 'promo', 'marquee-1400x560.jpg'), join(OUT, 'marquee-1400x560.jpg'));
+  // Les variantes anglaises voyagent avec la fiche : le magasin ne prend qu'un
+  // visuel, mais celui qui prépare une fiche anglophone les a sous la main.
+  for (const variante of ['promo-440x280-en.jpg', 'marquee-1400x560-en.jpg']) {
+    copyFileSync(join(ROOT, 'store', 'promo', variante), join(OUT, variante));
+  }
   copyFileSync(join(ROOT, 'dist', 'extension', 'icons', 'icon-128.png'), join(OUT, 'icone-128.png'));
   copyFileSync(join(ROOT, 'dist', 'url-qrcode-printer-chrome.zip'), join(OUT, 'url-qrcode-printer-chrome.zip'));
   copyFileSync(join(ROOT, 'dist', 'a-coller-mise-a-jour.md'), join(OUT, 'a-coller-mise-a-jour.md'));
@@ -346,7 +351,9 @@ async function main() {
   // interrompue) est retiré après l'assemblage.
   const attendus = new Set([
     ...['fr', 'en'].flatMap((langue) => CAPTURES.map((base) => join(langue, `${base}-${langue}.png`))),
-    'promo-440x280.jpg', 'marquee-1400x560.jpg', 'icone-128.png',
+    'promo-440x280.jpg', 'marquee-1400x560.jpg',
+    'promo-440x280-en.jpg', 'marquee-1400x560-en.jpg',
+    'icone-128.png',
     'url-qrcode-printer-chrome.zip', 'a-coller-mise-a-jour.md',
     'listing-fr.md', 'listing-en.md', 'CHECKLIST.md', 'version.json',
   ]);
@@ -385,7 +392,8 @@ async function main() {
   process.stdout.write('  Tout est dans ce seul dossier :\n');
   process.stdout.write('  - url-qrcode-printer-chrome.zip\n');
   process.stdout.write('  - fr/ et en/ (cinq captures 1280 × 800 chacune)\n');
-  process.stdout.write('  - promo-440x280.jpg, marquee-1400x560.jpg, icone-128.png\n');
+  process.stdout.write('  - promo-440x280.jpg, marquee-1400x560.jpg (+ variantes -en)\n');
+  process.stdout.write('  - icone-128.png\n');
   process.stdout.write('  - listing-fr.md, listing-en.md, a-coller-mise-a-jour.md\n');
   process.stdout.write('  - CHECKLIST.md, version.json\n');
   process.stdout.write('  Ouvrir : npm run store:open\n');

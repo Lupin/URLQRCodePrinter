@@ -590,3 +590,80 @@ test('applyOrder ignore la collection privée, les doublons et les inconnues', a
     [b.id, a.id, DEFAULT_COLLECTION_ID],
   );
 });
+
+test('create accepte les métadonnées d\'une collection restaurée', async () => {
+  // Une sauvegarde restaurée doit retrouver la note, le premier numéro et la
+  // date de la collection d'origine : sans cela, ce ne serait pas « la même ».
+  const area = zone();
+  const magasin = createCollectionStore({ area, now: () => 9999 });
+
+  const creee = await magasin.create('Veille', {
+    note: 'mes lectures',
+    startIndex: 101,
+    createdAt: 20,
+  });
+  assert.equal(creee.note, 'mes lectures');
+  assert.equal(creee.startIndex, 101);
+  assert.equal(creee.createdAt, 20);
+  assert.equal(creee.order, undefined, 'un rang absent reste absent');
+
+  // L'écriture est relue du stockage, comme le ferait l'ouverture suivante.
+  const relue = (await magasin.list()).find((item) => item.id === creee.id);
+  assert.equal(relue.startIndex, 101);
+  assert.equal(relue.note, 'mes lectures');
+  assert.equal(relue.createdAt, 20);
+});
+
+test('replaceAll remplace tout le document, sans perdre l\'identité des collections', async () => {
+  const area = zone();
+  const magasin = createCollectionStore({ area, now: () => 1000 });
+  const ancienne = await magasin.create('Ancienne');
+  await magasin.setActive(ancienne.id);
+  await magasin.markMigrated();
+
+  const items = await magasin.replaceAll([
+    {
+      id: 'c1', name: '', note: 'note restaurée', startIndex: 42, createdAt: 10, order: 0,
+    },
+    {
+      id: 'c2', name: 'Veille', note: '', startIndex: 0, createdAt: 20, order: 1,
+    },
+  ]);
+
+  assert.deepEqual(items.map(idDe), ['c1', 'c2']);
+  assert.equal(items[0].name, '', 'un nom vide se restaure tel quel');
+  assert.equal(items[0].note, 'note restaurée');
+  assert.equal(items[0].startIndex, 42);
+  assert.equal(items[0].createdAt, 10);
+  assert.deepEqual(items.map((item) => item.order), [0, 1]);
+
+  // Le reste du document survit : la migration n'est pas rejouée au prochain
+  // démarrage, et aucune collection ne revient à la lecture suivante.
+  assert.equal(area.data[COLLECTIONS_KEY].migratedAt, 1000);
+  assert.deepEqual((await magasin.list()).map(idDe), ['c1', 'c2']);
+
+  // La collection courante désignait une collection disparue : elle est
+  // oubliée, comme après une suppression, pour que rien ne s'ouvre sur un repli
+  // silencieux.
+  assert.equal(await magasin.getActive(), 'c1');
+});
+
+test('replaceAll écarte la collection privée et garantit qu\'il en reste une', async () => {
+  const area = zone();
+  const magasin = createCollectionStore({ area, now: () => 1000 });
+
+  await magasin.replaceAll([
+    { id: PRIVATE_COLLECTION_ID, name: 'Navigation privée' },
+    { id: 'c1', name: 'Veille' },
+  ]);
+  assert.deepEqual(
+    area.data[COLLECTIONS_KEY].items.map((item) => item.id),
+    ['c1'],
+    'la collection privée n\'entre jamais dans le document',
+  );
+
+  // Un document vide rend la collection par défaut, synthétisée par
+  // l'assainissement : il doit toujours en rester une.
+  const vide = await magasin.replaceAll([]);
+  assert.deepEqual(vide.map(idDe), [DEFAULT_COLLECTION_ID]);
+});

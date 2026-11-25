@@ -1,22 +1,25 @@
-/* IBM Plex, embarquée (SIL OFL) — sous-ensemble latin, aucune requête
-   distante : l'extension et le site servent leurs propres fichiers. */
+/* Inter, embarquée (SIL OFL) — poids 400, 500 et 600, sous-ensemble latin.
+   Aucune requête distante : l'extension sert ses propres fichiers.
+
+   L'écran parle en Inter à trois graisses (texte, libellés, titres) ; les
+   adresses passent en IBM Plex Mono, le registre des données. */
 @font-face {
-  font-family: "IBM Plex Sans"; font-style: normal; font-weight: 400;
-  font-display: swap; src: url("fonts/ibm-plex-sans-400.woff2") format("woff2");
+  font-family: "Inter"; font-style: normal; font-weight: 400;
+  font-display: swap; src: url("fonts/inter-latin-400.woff2") format("woff2");
   unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA,
     U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193,
     U+2212, U+2215, U+FEFF, U+FFFD;
 }
 @font-face {
-  font-family: "IBM Plex Sans"; font-style: normal; font-weight: 500;
-  font-display: swap; src: url("fonts/ibm-plex-sans-500.woff2") format("woff2");
+  font-family: "Inter"; font-style: normal; font-weight: 500;
+  font-display: swap; src: url("fonts/inter-latin-500.woff2") format("woff2");
   unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA,
     U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193,
     U+2212, U+2215, U+FEFF, U+FFFD;
 }
 @font-face {
-  font-family: "IBM Plex Sans"; font-style: normal; font-weight: 600;
-  font-display: swap; src: url("fonts/ibm-plex-sans-600.woff2") format("woff2");
+  font-family: "Inter"; font-style: normal; font-weight: 600;
+  font-display: swap; src: url("fonts/inter-latin-600.woff2") format("woff2");
   unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA,
     U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193,
     U+2212, U+2215, U+FEFF, U+FFFD;
@@ -24,13 +27,6 @@
 @font-face {
   font-family: "IBM Plex Mono"; font-style: normal; font-weight: 400;
   font-display: swap; src: url("fonts/ibm-plex-mono-400.woff2") format("woff2");
-  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA,
-    U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193,
-    U+2212, U+2215, U+FEFF, U+FFFD;
-}
-@font-face {
-  font-family: "IBM Plex Mono"; font-style: normal; font-weight: 500;
-  font-display: swap; src: url("fonts/ibm-plex-mono-500.woff2") format("woff2");
   unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA,
     U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193,
     U+2212, U+2215, U+FEFF, U+FFFD;
@@ -68,82 +64,74 @@
  */
 
 :root {
-  /* --- Surfaces et texte (thème clair) --- */
-  --bg: #ffffff;
-  --surface: #f4f4f4;
-  --surface-2: #e8e8e8;
-  --text: #161616;
-  --text-2: #393939;
-  --text-3: #5c5c5c;
+  /* --- La palette de la maison, identique à celle de l'application -------
+     Cinq neutres et six signaux. L'orange #ff5000 est l'action ; le blanc est
+     son encre. Le noir #0f0e12 reste une encre, jamais un fond. */
+  --canvas-mist: #f5f5f5;
+  --pure-white: #ffffff;
+  --ink-black: #0f0e12;
+  --carbon: #0f0e12;
+  --steel-gray: #e5e5e5;
+  --graphite: #b2b2b2;
 
-  /* --- Accent : orange brûlé. Voir l'en-tête du fichier. --- */
-  --accent: #c2410c;
-  --accent-ink: #ffffff;
-  --accent-hover: #9a3412;
+  --bg: var(--canvas-mist);
+  --surface-1: var(--pure-white);
+  --surface: var(--pure-white);
+  --surface-2: var(--steel-gray);
+  --desk: var(--bg);
+  --text: var(--ink-black);
+  --text-2: #4d4d4d;
+  --text-3: #666666;
 
-  /* --- Encre pleine, sans chroma --- */
-  /* Sert aux éléments qui doivent porter du poids sans ajouter une couleur :
-     le filet d'en-tête, le compteur, et l'action secondaire remplie. Deux
-     remplissages colorés différents mettraient deux accents à l'écran. */
-  --ink: #1a1a1a;
-  --ink-ink: #ffffff;
-  --ink-hover: #000000;
+  --action: #ff5000;
+  --action-hover: #e04700;
+  --action-ink: #ffffff;
 
-  /* --- Sémantique --- */
-  /* Pas de `--danger-soft` : un fond teinté de rouge virait au rose, troisième
-     teinte chaude coincée entre l'orange de l'accent et le rouge de
-     destruction. La couleur du danger est portée par le texte, la bordure et
-     l'icône ; le fond reste neutre. C'est aussi le motif Carbon d'origine. */
-  --danger: #b3122b;
+  --link: #0071bb;
+  --link-hover: #00538a;
 
-  /* --- Limites --- */
-  --border-line: #e0e0e0;
-  --border-strong: #8d8d8d;
-  --focus: var(--accent);
-  /* Le focus d'un champ se dit par son fond : voir `.field__input:focus`. */
-  --focus-fill: #f1d3bf;
+  --danger: #b81d13;
+  --warn: #fab413;
+  --warn-ink: var(--ink-black);
+  --ok: #006837;
 
-  /* --- Typographie --- */
-  --font-ui: "IBM Plex Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+  --ink: var(--ink-black);
+  --ink-ink: var(--pure-white);
+  --ink-hover: #262626;
+
+  --accent: var(--action);
+  --accent-ink: var(--action-ink);
+  --accent-hover: var(--action-hover);
+
+  --border-line: var(--steel-gray);
+  --border-strong: var(--ink-black);
+  --border-control: #767676;
+  --focus: var(--action);
+  --focus-fill: var(--pure-white);
+
+  /* Typographie : une seule échelle, en rem pour suivre le réglage du
+     navigateur. 11 / 13 / 19 / 24 px. */
+  --font-ui: "Inter", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --font-mono: "IBM Plex Mono", "SF Mono", Menlo, monospace;
-  --type-xs: 0.6875rem;  /* 11 px à la taille par défaut */
-  --type-sm: 0.75rem;    /* 12 px */
-  --type-base: 0.8125rem;/* 13 px */
-  --type-md: 0.875rem;   /* 14 px */
+  --type-xs: 0.6875rem;
+  --type-sm: 0.8125rem;
+  --type-base: 0.8125rem;
+  --type-md: 0.8125rem;
+  --type-lg: 1.1875rem;
+  --type-xl: 1.5rem;
+
+  --weight-texte: 400;
+  --weight-ui: 500;
+  --weight-titre: 600;
 
   --radius: 0;
   --motion-fast: 90ms;
-  --motion: 140ms;
+  --motion: 120ms;
   --motion-slow: 220ms;
   --easing: cubic-bezier(0.2, 0.7, 0.2, 1);
-}
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #161616;
-    --surface: #262626;
-    --surface-2: #333333;
-    --text: #f4f4f4;
-    --text-2: #c6c6c6;
-    --text-3: #a8a8a8;
-
-    /* L'accent s'éclaircit sur fond sombre : c'est le contraste qui commande,
-       pas la teinte. */
-    --accent: #fdba74;
-    --accent-ink: #2a1204;
-    --accent-hover: #fecda0;
-
-    /* L'encre s'inverse elle aussi : sur fond sombre, c'est le clair qui porte. */
-    --ink: #f4f4f4;
-    --ink-ink: #161616;
-    --ink-hover: #ffffff;
-
-    --danger: #ff9d94;
-
-    --border-line: #393939;
-    --border-strong: #6f6f6f;
-    --focus-fill: #4a3a2c;
-  }
+  font-synthesis: none;
+  color-scheme: light;
 }
 
 * { box-sizing: border-box; }
@@ -154,12 +142,12 @@ body {
   margin: 0;
   display: flex;
   flex-direction: column;
-  background: var(--bg);
+  background: var(--surface);
   color: var(--text);
   font-family: var(--font-ui);
   font-size: var(--type-base);
   line-height: 1.45;
-  color-scheme: light dark;
+  color-scheme: light;
 }
 
 /* Un composant n'hérite pas de la typographie du document hôte. Sans cela, une
@@ -187,9 +175,7 @@ body {
   justify-content: space-between;
   gap: 10px;
   padding: 10px 12px;
-  /* Filet à l'encre, pas à l'accent : `craft/color.md` plafonne à deux usages
-     visibles de l'accent par écran, et le compteur en est déjà un. */
-  border-bottom: 3px solid var(--ink);
+  border-bottom: 1px solid var(--border-line);
   background: var(--surface);
 }
 
@@ -302,9 +288,9 @@ body {
   width: 100%;
   min-height: 32px;
   padding: 6px 8px;
-  border: 1px solid var(--border-strong);
+  border: 1px solid var(--border-control);
   border-radius: var(--radius);
-  background: var(--bg);
+  background: var(--surface);
   color: var(--text);
   font-family: inherit;
   font-size: var(--type-sm);
@@ -325,8 +311,9 @@ body {
    clavier, et le contour avec lui. */
 .field__input:focus,
 .field__input:focus-visible {
-  background: var(--focus-fill);
-  outline: none;
+  border-color: var(--focus);
+  outline: 2px solid var(--focus);
+  outline-offset: -2px;
 }
 
 .collection {
@@ -361,8 +348,9 @@ body {
   margin: 0;
   padding: 0 2px;
   color: var(--text);
-  font-size: var(--type-md);
-  font-weight: 680;
+  font-size: var(--type-lg);
+  font-weight: var(--weight-titre);
+  line-height: 1.2;
   /* Un nom long se coupe par une ellipse, jamais par un retour à la ligne :
      la barre garde une hauteur fixe, et les flèches restent à leur place. */
   overflow: hidden;
@@ -379,9 +367,9 @@ body {
   width: 26px;
   height: 26px;
   padding: 0;
-  border: 1px solid var(--border-line);
+  border: 1px solid var(--border-control);
   border-radius: var(--radius);
-  background: var(--bg);
+  background: var(--surface);
   color: var(--text-2);
   cursor: pointer;
 }
@@ -427,8 +415,8 @@ body {
      étiraient le document à 2 436 px, avec deux barres et un pied rogné. */
   position: relative;
   flex-direction: column;
-  gap: 4px;
-  padding: 0 0 8px;
+  gap: 0;
+  padding: 0;
   overflow-y: auto;
   /* Une liste verticale ne défile pas horizontalement : les cartes sont
      bornées par la fenêtre, et une barre transversale n'a rien à y faire. */
@@ -449,15 +437,15 @@ body {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 7px 8px;
-  border: 1px solid var(--border-strong);
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border-line);
   background: var(--surface);
 }
 
-/* Survol et focus à l'encre : un liseré orange sur chaque ligne ferait de
-   l'accent un ornement répété au lieu d'un signal. */
+/* Le survol éclaircit la ligne d'un gris de la maison — pas de teinte, pas de
+   liseré orange répété : l'orange reste un signal. */
 .item:hover,
-.item:focus-within { border-color: var(--ink); }
+.item:focus-within { background: var(--bg); }
 
 .item__body { flex: 1; min-width: 0; }
 
@@ -526,9 +514,9 @@ body {
 /* Fond neutre, et non un rose : le rouge est porté par la bordure, l'icône et
    le libellé. Trois signaux suffisent, et aucun n'ajoute une teinte. */
 .item__remove:hover {
-  border-color: var(--danger);
+  border-color: var(--action);
   background: var(--surface-2);
-  color: var(--danger);
+  color: var(--action);
 }
 
 .empty {
@@ -623,7 +611,7 @@ body {
   border-color: var(--accent);
   background: var(--accent);
   color: var(--accent-ink);
-  font-weight: 620;
+  font-weight: 600;
 }
 
 .btn--primary:not(:disabled):hover {
@@ -636,31 +624,37 @@ body {
    permet à l'orange de ne désigner qu'une seule chose, l'ajout de la page. */
 .btn--neutral {
   width: 100%;
-  border-color: var(--ink);
-  background: var(--ink);
-  color: var(--ink-ink);
-  font-weight: 620;
+  border-color: var(--border-control);
+  background: var(--surface);
+  color: var(--text);
+  font-weight: var(--weight-ui);
 }
 
 .btn--neutral:not(:disabled):hover {
-  border-color: var(--ink-hover);
-  background: var(--ink-hover);
+  border-color: var(--ink);
+  background: var(--bg);
+  color: var(--text);
 }
 
 .btn--ghost {
   flex: 1;
-  border-color: var(--border-strong);
+  border-color: var(--border-control);
   background: var(--surface);
 }
 
 .btn--ghost:not(:disabled):hover { background: var(--surface-2); }
 
-/* Fond neutre au survol, comme la suppression d'une ligne : le rouge reste sur
-   la bordure et le libellé, et aucune teinte rose n'entre dans la palette. */
+/* La destruction se dit au repos par la bordure et le libellé rouges ; au
+   survol, le fond reste neutre — aucune teinte rose dans la palette. */
+.btn--danger {
+  border-color: var(--action);
+  color: var(--action);
+}
+
 .btn--danger:not(:disabled):hover {
-  border-color: var(--danger);
-  background: var(--surface-2);
-  color: var(--danger);
+  border-color: var(--action);
+  background: var(--action);
+  color: var(--action-ink);
 }
 
 .btn:active:not(:disabled) { transform: translateY(1px); }
@@ -699,9 +693,10 @@ body {
   left: 12px;
   margin-bottom: 8px;
   padding: 8px 12px;
-  border: 1px solid var(--text);
-  background: var(--text);
-  color: var(--bg);
+  border: 1px solid var(--ink);
+  border-left: 3px solid var(--action);
+  background: var(--surface);
+  color: var(--text);
   font-size: var(--type-sm);
   opacity: 0;
   pointer-events: none;

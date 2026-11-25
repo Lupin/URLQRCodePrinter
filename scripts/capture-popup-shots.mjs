@@ -40,7 +40,7 @@ const PORT = 9334;
 const WIDTH = 1280;
 const HEIGHT = 800;
 const CADRE = { largeur: 380, hauteur: 560 };
-const FACTEUR = 1.5;
+const FACTEUR = 1.3;
 
 const pause = (ms) => new Promise((r) => setTimeout(r, ms));
 
@@ -242,12 +242,12 @@ async function capturer({ port, id, langue, nom }) {
     const hauteur = Math.round(image.height / 2 * ${FACTEUR});
     document.body.style.cssText = 'margin:0 !important;width:' + ${WIDTH} + 'px !important;'
       + 'height:' + ${HEIGHT} + 'px !important;display:grid !important;place-items:center !important;'
-      + 'max-height:none !important;overflow:hidden !important;background:#f4f2ef !important;';
+      + 'max-height:none !important;overflow:hidden !important;background:#e5e5e5 !important;';
     document.body.textContent = '';
     document.documentElement.style.overflow = 'hidden';
     const cadre = document.createElement('div');
     cadre.style.cssText = 'width:' + largeur + 'px;height:' + hauteur + 'px;overflow:hidden;'
-      + 'box-shadow:0 18px 50px rgba(0,0,0,.22);border-radius:10px;background:#fff;';
+      + 'border:1px solid #cfd4d1;background:#fff;';
     const img = document.createElement('img');
     img.src = image.src;
     img.style.cssText = 'width:' + largeur + 'px;height:' + hauteur + 'px;display:block;';

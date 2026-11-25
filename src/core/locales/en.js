@@ -738,4 +738,54 @@ export const EN_MESSAGES = {
   "Réglages du tableau": "Table settings",
   "Réglages de l’étiquette": "Label settings",
   "Réglages des images": "Image settings",
+
+  // -------------------------------------------------------------------------
+  // Sauvegarde complète
+  // -------------------------------------------------------------------------
+  "Enregistre toutes les collections et leurs liens dans un seul fichier":
+    "Saves all collections and their links in a single file",
+  "Sauvegarde complète": "Full backup",
+  "Relit l'archive JSON, le dossier d'étiquettes .zip, un CSV exporté d'ici ou une sauvegarde complète":
+    "Reads back the JSON archive, the .zip label folder, a CSV exported from here or a full backup",
+  "« Sauvegarde complète » écrit toutes les collections dans un seul fichier ; « Importer… » relit aussi une sauvegarde, et propose de l'ajouter ou de remplacer toutes les collections.":
+    "“Full backup” writes every collection to a single file; “Import…” also reads a backup, and offers to add it or replace all collections.",
+  "Navigation privée : la sauvegarde complète ne couvre que les collections ordinaires, et reste donc à la navigation normale.":
+    "Private browsing: the full backup only covers ordinary collections, so it stays in normal browsing.",
+  "Sauvegarde impossible : {message}": "Backup failed: {message}",
+  "Restauration impossible : {message}": "Restore failed: {message}",
+  "{collections} dans {file}": "{collections} in {file}",
+  " ({details})": " ({details})",
+  "« Ajouter » garde vos collections et crée des copies de celles du fichier ; « Remplacer » efface tout ce qui est là.":
+    "“Add” keeps your collections and creates copies of the file’s; “Replace” erases everything here.",
+  "Cette page ne gère qu'une collection : celles du fichier seront réunies dans « {name} ».":
+    "This page manages a single collection: the file’s will be merged into “{name}”.",
+  "{links}{remarque}. {consigne} Rien n'est écrit avant votre choix.":
+    "{links}{remarque}. {consigne} Nothing is written before you choose.",
+  "Ajouter la collection du fichier": "Add the file’s collection",
+  "Ajouter les {count} collections du fichier": "Add the file’s {count} collections",
+  "Fusionner la collection dans « {name} »": "Merge the collection into “{name}”",
+  "Fusionner les {count} collections dans « {name} »":
+    "Merge the file’s {count} collections into “{name}”",
+  "Remplacer toutes les collections": "Replace all collections",
+  "Remplacer": "Replace",
+  "Remplacer les collections actuelles ({current}) par la sauvegarde ({backup}) ? Cette action ne peut pas être annulée.":
+    "Replace the current collections ({current}) with the backup ({backup})? This action cannot be undone.",
+  "{collections}, {links}": "{collections}, {links}",
+  "{count} collection": "{count} collection",
+  "{count} collections": "{count} collections",
+  "{count} collection restaurée": "{count} collection restored",
+  "{count} collections restaurées": "{count} collections restored",
+  "{count} lien restauré": "{count} link restored",
+  "{count} liens restaurés": "{count} links restored",
+  "Fichier de sauvegarde illisible.": "Unreadable backup file.",
+  "Ce fichier n'est pas une sauvegarde complète.": "This file is not a full backup.",
+  "Sauvegarde sans numéro de version lisible.": "Backup without a readable version number.",
+  "Sauvegarde d'une version plus récente ({version}) : mettez l'application à jour.":
+    "Backup from a newer version ({version}): update the application.",
+  "Cette sauvegarde ne contient aucune collection ni aucun lien.":
+    "This backup contains neither collections nor links.",
+  "Cette sauvegarde porte {count} collections, au-delà du plafond de {max}.":
+    "This backup holds {count} collections, beyond the limit of {max}.",
+  "Cette sauvegarde porte {count} liens, au-delà du plafond de {max}.":
+    "This backup holds {count} links, beyond the limit of {max}.",
 };

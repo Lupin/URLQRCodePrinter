@@ -1,21 +1,23 @@
 /**
  * Génération des icônes du produit.
  *
- * Une seule source pour toutes les tailles, et pour les deux usages :
+ * Un seul dessin, deux usages :
  *
- *  - l'**icône d'extension** (16 à 1024 px) : une tuile arrondie orange sur fond
- *    transparent. C'est celle de la barre d'outils, de la page des extensions et
- *    de la fiche du magasin ;
+ *  - l'**icône d'extension** (16 à 1024 px) : une tuile arrondie orange, quatre
+ *    carrés blancs qui évoquent un QR Code — tuile posée au centre d'un carré
+ *    de 128, 16 px transparents de chaque côté (la marge conseillée par le
+ *    magasin) ;
  *  - l'**icône d'application** (Safari, macOS, iOS) : le même dessin en **bord
  *    perdu**, sans coins arrondis ni transparence. Le système applique lui-même
  *    son masque (squircle sur macOS et iOS), et une tuile déjà arrondie y
  *    apparaîtrait avec des coins vides.
  *
- * Le dessin est celui retenu après les propositions : une étiquette crème avec
- * son QR Code sortant d'une imprimante, sur une tuile orange. Il est ici en
- * **formes**, pas en pixels : chaque taille est rendue par suréchantillonnage
- * 4 × 4, donc anti-crénelée, et le QR Code se simplifie quand ses modules
- * deviendraient plus fins qu'un pixel.
+ * Le dessin est celui retenu après les propositions : l'orange **pur** de la
+ * maison (`#ff5000`), quatre carrés blancs dont les proportions — motif à 56 %
+ * de la tuile, carrés de 24 %, écart de 8 % — sont mesurées sur la référence.
+ * Il est ici en **formes**, pas en pixels : chaque taille est rendue par
+ * suréchantillonnage 4 × 4, donc anti-crénelée, et le petit carré garde une
+ * trace à 16 px au lieu de disparaître.
  *
  * Aucune dépendance graphique : l'encodeur PNG est celui du cœur partagé
  * (`src/core/png.js`), donc les icônes se régénèrent partout où le projet se
@@ -33,11 +35,8 @@ import { encodePng } from '../src/core/png.js';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
-/** Côté de la matrice : un QR Code de version 1 fait 21 modules. */
-export const MODULE_COUNT = 21;
-
 /**
- * La couleur de la tuile : l'accent de l'interface, `#c2410c`.
+ * La couleur de la tuile : l'orange pur de la maison, `#ff5000`.
  *
  * C'est la marque elle-même — la tuile est la surface la plus visible du
  * produit, et c'est elle qui doit rester identifiable d'un magasin à l'autre.
@@ -46,161 +45,40 @@ export const MODULE_COUNT = 21;
  *
  * | Fond | Contraste |
  * |---|---|
- * | barre claire `#ffffff` | 5,18:1 |
- * | barre claire grise `#f1f3f4` | 4,65:1 |
- * | barre sombre `#202124` | 3,11:1 |
- * | barre sombre `#292a2d` | 2,77:1 |
+ * | barre claire `#ffffff` | 3,33:1 |
+ * | barre claire grise `#f1f3f4` | 2,99:1 |
+ * | barre sombre `#202124` | 4,60:1 |
+ * | barre sombre `#292a2d` | 4,10:1 |
  *
- * Le seuil de 3:1 de WCAG 1.4.11 régit les composants **du contenu web** : il ne
- * s'applique pas à une icône peinte par le navigateur dans sa propre barre. La
- * valeur basse n'est donc pas une non-conformité, c'est un arbitrage assumé —
- * l'icône reste visible sur une barre sombre, simplement moins franche que sur
- * une barre claire.
+ * L'orange pur est un choix de marque assumé : le seuil de 3:1 de WCAG 1.4.11
+ * régit les composants du contenu web, pas une icône peinte par le navigateur
+ * dans sa propre barre, et l'icône reste franche sur la barre blanche comme sur
+ * les barres sombres. Le gris clair des barres est le seul fond où elle passe
+ * juste sous le seuil — c'est le prix de la teinte exacte de l'interface.
  */
-export const INK = [194, 65, 12];
+export const INK = [255, 80, 0];
 
-/** Le papier : l'étiquette et le corps de l'imprimante. */
-const PAPIER = [247, 243, 236];
-/** L'encre du QR Code : le graphite de l'interface. */
-const ENCRE = [22, 22, 22];
-/** Le voyant, d'un cran plus sombre : l'orange vif se perdrait sur le papier. */
-const VOYANT = [143, 47, 8];
+/** Le papier du motif : les quatre carrés blancs. */
+const PAPIER = [255, 255, 255];
 
 /**
  * Le dessin, sur une grille de 128 unités.
  *
- * Tout est exprimé dans cette grille, puis mis à l'échelle : les proportions ne
+ * Tout est exprimé dans cette grille puis mis à l'échelle : les proportions ne
  * dépendent donc pas de la taille rendue, et une seule retouche vaut pour tous
- * les formats.
+ * les formats. Le motif occupe 72 unités de côté (56 % de la tuile), soit un
+ * carré de repère de 31 unités, un écart de 10 et un petit carré de 15 — les
+ * proportions mesurées sur la référence.
  */
 const FORME = {
   tuile: { x: 0, y: 0, w: 128, h: 128, r: 28 },
-  // La marge recommandée par le magasin : le dessin occupe 96 unités sur 128,
-  // 16 de chaque côté restant transparents. Voir `echelleDe`.
-  marges: 16,
-  etiquette: { x: 34, y: 14, w: 60, h: 64, r: 7 },
-  // Le QR Code s'arrête au bord supérieur du corps : le corps le recouvre, et un
-  // repère coupé par le papier se verrait à toutes les tailles.
-  qr: { x: 40, y: 18, cote: 48 },
-  corps: { x: 8, y: 66, w: 112, h: 44, r: 12 },
-  fente: { x: 20, y: 76, w: 88, h: 12, r: 6 },
-  voyant: { cx: 102, cy: 99, r: 4.5 },
+  carres: [
+    { x: 28, y: 28, w: 31, h: 31 },
+    { x: 69, y: 28, w: 31, h: 31 },
+    { x: 28, y: 69, w: 31, h: 31 },
+    { x: 69, y: 69, w: 15, h: 15 },
+  ],
 };
-
-// ---------------------------------------------------------------------------
-// Le motif
-// ---------------------------------------------------------------------------
-
-/**
- * Construit la matrice de modules du motif.
- *
- * @returns {boolean[][]} `true` pour un module encre.
- */
-export function buildMatrix() {
-  const grid = Array.from({ length: MODULE_COUNT }, () => new Array(MODULE_COUNT).fill(false));
-
-  // Zones réservées : repères d'orientation, leurs séparateurs, et les motifs
-  // de synchronisation. On n'y écrit pas de données.
-  const reserved = (x, y) => {
-    if (x === 6 || y === 6) return true;
-    return (x < 8 && y < 8) || (x > MODULE_COUNT - 9 && y < 8) || (x < 8 && y > MODULE_COUNT - 9);
-  };
-
-  // Trois repères d'orientation : anneau de 7 × 7 avec un cœur de 3 × 3.
-  for (const [ox, oy] of [[0, 0], [MODULE_COUNT - 7, 0], [0, MODULE_COUNT - 7]]) {
-    for (let y = 0; y < 7; y++) {
-      for (let x = 0; x < 7; x++) {
-        const ring = x === 0 || y === 0 || x === 6 || y === 6;
-        const core = x >= 2 && x <= 4 && y >= 2 && y <= 4;
-        grid[oy + y][ox + x] = ring || core;
-      }
-    }
-  }
-
-  // Motifs de synchronisation : une alternance qui traverse la matrice.
-  for (let i = 8; i < MODULE_COUNT - 8; i++) {
-    grid[6][i] = i % 2 === 0;
-    grid[i][6] = i % 2 === 0;
-  }
-
-  // Données : générateur congruentiel linéaire, donc reproductible.
-  let state = 0x2f6e2b1;
-  const next = () => {
-    state = (state * 1664525 + 1013904223) >>> 0;
-    return state / 0x100000000;
-  };
-
-  for (let y = 0; y < MODULE_COUNT; y++) {
-    for (let x = 0; x < MODULE_COUNT; x++) {
-      if (reserved(x, y)) continue;
-      grid[y][x] = next() > 0.45;
-    }
-  }
-
-  return grid;
-}
-
-/**
- * Motif QR Code suggéré, pour les tailles où la matrice réelle ne peut pas exister.
- *
- * Trois repères d'orientation aux angles, et quelques modules épars. C'est la
- * structure que l'œil identifie comme un QR Code — un aplat disait seulement
- * « il y a quelque chose ici ».
- *
- * @param {number} x0
- * @param {number} y0
- * @param {number} taille Côté du carré, en unités de logo.
- * @returns {number[][]} rectangles `[x0, y0, x1, y1]`
- */
-export function qrSuggestion(x0, y0, taille) {
-  const m = taille / 21;
-  const c = 4 * m;
-  const rects = [
-    [x0, y0],
-    [x0 + taille - c, y0],
-    [x0, y0 + taille - c],
-  ].map(([x, y]) => [x, y, x + c, y + c]);
-
-  for (const [col, lig] of [[7, 7], [9, 12], [12, 7], [14, 14], [11, 17], [7, 14], [17, 9]]) {
-    const x = x0 + col * m;
-    const y = y0 + lig * m;
-    rects.push([x, y, x + 1.5 * m, y + 1.5 * m]);
-  }
-
-  return rects;
-}
-
-/**
- * Le QR Code à dessiner selon la taille, et la finesse de sa grille.
- *
- * À 21 modules de côté, un module vaut moins d'un pixel en dessous de 128 px :
- * il devient du bruit. On descend donc à une grille de 7 modules (repères de
- * 2 × 2), puis à 3 (repères d'un module) — à 16 px, cinq pixels de QR Code ne
- * peuvent pas porter davantage, et trois carrés en L restent reconnaissables.
- *
- * @param {number} taille
- * @returns {{ n: number, sombre: (colonne: number, ligne: number) => boolean }}
- */
-function grilleQr(taille) {
-  if (taille >= 128) {
-    const matrice = buildMatrix();
-    return { n: MODULE_COUNT, sombre: (colonne, ligne) => matrice[ligne]?.[colonne] === true };
-  }
-  if (taille >= 40) {
-    const reperes = new Set();
-    for (const [ox, oy] of [[0, 0], [5, 0], [0, 5]]) {
-      for (let y = 0; y < 2; y++) {
-        for (let x = 0; x < 2; x++) reperes.add(`${ox + x},${oy + y}`);
-      }
-    }
-    for (const [x, y] of [[3, 0], [4, 2], [3, 3], [4, 4], [1, 3], [3, 5], [5, 3], [6, 4], [2, 6]]) {
-      reperes.add(`${x},${y}`);
-    }
-    return { n: 7, sombre: (colonne, ligne) => reperes.has(`${colonne},${ligne}`) };
-  }
-  const reperes = new Set(['0,0', '2,0', '0,2', '1,1']);
-  return { n: 3, sombre: (colonne, ligne) => reperes.has(`${colonne},${ligne}`) };
-}
 
 // ---------------------------------------------------------------------------
 // Rendu
@@ -225,23 +103,14 @@ function cadreDe(marge) {
   return { x: retrait, y: retrait, echelle };
 }
 
-/** Applique le cadre à un rectangle arrondi. */
+/** Applique le cadre à un rectangle (arrondi ou non). */
 function placerRectangle(forme, cadre) {
   return {
     x: cadre.x + forme.x * cadre.echelle,
     y: cadre.y + forme.y * cadre.echelle,
     w: forme.w * cadre.echelle,
     h: forme.h * cadre.echelle,
-    r: forme.r * cadre.echelle,
-  };
-}
-
-/** Applique le cadre à un disque. */
-function placerDisque(forme, cadre) {
-  return {
-    cx: cadre.x + forme.cx * cadre.echelle,
-    cy: cadre.y + forme.cy * cadre.echelle,
-    r: forme.r * cadre.echelle,
+    r: (forme.r ?? 0) * cadre.echelle,
   };
 }
 
@@ -258,19 +127,12 @@ function dansRectangle(x, y, forme) {
   return dx * dx + dy * dy <= rayon * rayon;
 }
 
-/** Test d'appartenance à un disque, en unités. */
-function dansDisque(x, y, forme) {
-  const dx = x - forme.cx;
-  const dy = y - forme.cy;
-  return dx * dx + dy * dy <= forme.r * forme.r;
-}
-
 /**
  * La couleur du dessin à un point, ou `null` si le point est transparent.
  *
  * @param {number} x
  * @param {number} y
- * @param {{ plein?: boolean, grille: object }} options
+ * @param {{ plein: boolean, formes: object }} options
  * @returns {number[] | null}
  */
 function couleurAuPoint(x, y, options) {
@@ -278,30 +140,19 @@ function couleurAuPoint(x, y, options) {
   // En bord perdu, la tuile couvre tout le carré : aucune transparence.
   const tuile = options.plein ? { ...formes.tuile, r: 0 } : formes.tuile;
   if (!dansRectangle(x, y, tuile)) return null;
-  let couleur = INK;
 
-  if (dansRectangle(x, y, formes.etiquette)) {
-    couleur = PAPIER;
-    const { qr } = formes;
-    if (x >= qr.x && x < qr.x + qr.cote && y >= qr.y && y < qr.y + qr.cote) {
-      const colonne = Math.floor(((x - qr.x) / qr.cote) * options.grille.n);
-      const ligne = Math.floor(((y - qr.y) / qr.cote) * options.grille.n);
-      couleur = options.grille.sombre(colonne, ligne) ? ENCRE : PAPIER;
-    }
+  for (const carre of formes.carres) {
+    if (dansRectangle(x, y, carre)) return PAPIER;
   }
-
-  if (dansRectangle(x, y, formes.corps)) couleur = PAPIER;
-  if (dansRectangle(x, y, formes.fente)) couleur = ENCRE;
-  if (dansDisque(x, y, formes.voyant)) couleur = VOYANT;
-  return couleur;
+  return INK;
 }
 
 /**
  * Rend l'icône dans un tampon RGBA.
  *
- * Chaque pixel est échantillonné 4 × 4 : le contour de la tuile, les arrondis et
- * les modules du QR Code sont donc anti-crénelés, et un module plus fin qu'un pixel
- * laisse une trace grise plutôt que de disparaître d'un coup.
+ * Chaque pixel est échantillonné 4 × 4 : le contour de la tuile, ses arrondis et
+ * les bords des carrés sont donc anti-crénelés, et le petit carré garde une
+ * trace grise à 16 px plutôt que de disparaître d'un coup.
  *
  * @param {number} size Côté en pixels.
  * @param {{ plein?: boolean, marge?: boolean }} [options] `plein` : bord perdu,
@@ -315,19 +166,10 @@ export function renderIcon(size, options = {}) {
   // Tampon laissé à zéro : fond **transparent**.
   const data = Buffer.alloc(side * side * 4);
   const quatre = 4;
-  const grille = grilleQr(side);
   const cadre = cadreDe(options.marge === true && options.plein !== true);
   const formes = {
     tuile: placerRectangle(FORME.tuile, cadre),
-    etiquette: placerRectangle(FORME.etiquette, cadre),
-    corps: placerRectangle(FORME.corps, cadre),
-    fente: placerRectangle(FORME.fente, cadre),
-    voyant: placerDisque(FORME.voyant, cadre),
-    qr: {
-      x: cadre.x + FORME.qr.x * cadre.echelle,
-      y: cadre.y + FORME.qr.y * cadre.echelle,
-      cote: FORME.qr.cote * cadre.echelle,
-    },
+    carres: FORME.carres.map((carre) => placerRectangle(carre, cadre)),
   };
 
   for (let py = 0; py < side; py++) {
@@ -341,7 +183,7 @@ export function renderIcon(size, options = {}) {
         for (let sx = 0; sx < quatre; sx++) {
           const x = ((px + (sx + 0.5) / quatre) / side) * 128;
           const y = ((py + (sy + 0.5) / quatre) / side) * 128;
-          const couleur = couleurAuPoint(x, y, { plein: options.plein === true, grille, formes });
+          const couleur = couleurAuPoint(x, y, { plein: options.plein === true, formes });
           if (!couleur) continue;
           sommeR += couleur[0];
           sommeV += couleur[1];

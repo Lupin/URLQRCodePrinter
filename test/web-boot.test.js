@@ -227,7 +227,8 @@ test('la phrase annonce la taille déduite, dès le démarrage', () => {
 
 test('les colonnes du tableau sont choisies une par une', () => {
   const boxes = {
-    index: 'table-col-index', qr: 'table-col-qr', url: 'table-col-url',
+    index: 'table-col-index',
+    qr: 'table-col-qr', url: 'table-col-url',
     title: 'table-col-title', tags: 'table-col-tags', note: 'table-col-note',
   };
   for (const id of Object.values(boxes)) {
@@ -237,6 +238,7 @@ test('les colonnes du tableau sont choisies une par une', () => {
   // Les valeurs par défaut vivent dans le HTML — le DOM de substitution ne lit
   // pas les attributs `checked`. Elles sont vérifiées dans test/web.test.js,
   // sur le fichier réel ; ici on contrôle le câblage.
+  assert.equal(registry.get('table-col-index').checked, false, 'le numéro est une option');
   assert.equal(registry.get('table-col-tags').checked, false, 'aucun tag : case décochée');
   assert.equal(registry.get('table-col-note').checked, false, 'aucune note : case décochée');
 });

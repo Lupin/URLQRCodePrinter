@@ -12,9 +12,15 @@
  * | Fichier | Ce qu'on en tire |
  * |---|---|
  * | archive JSON (« Archive ») | tout le modèle : titre, tags, note, raccourci |
+ * | sauvegarde complète | l'ensemble des collections, avec leurs liens |
  * | dossier d'étiquettes `.zip` | les liens de son `export.json` |
  * | `export.json` seul | les mêmes |
  * | CSV exporté | URL, titre, tags, note, date — la colonne « Domaine » est ignorée |
+ *
+ * Une **sauvegarde complète** n'est pas lue comme une archive : elle porte
+ * plusieurs collections, et c'est l'application qui propose quoi en faire. Ce
+ * module la reconnaît à sa marque (`BACKUP_FORMAT`) et la rend à part, sous
+ * `kind: 'backup'`, pour qu'elle ne soit pas aplatie en une seule collection.
  *
  * Le **nom et la note de la collection** sont relevés quand le fichier les
  * porte : l'archive JSON les met dans `collection`, le manifeste du dossier
@@ -32,9 +38,10 @@ import { readStoredZip } from './zip.js';
 import { createLink } from './link.js';
 import { t } from './i18n.js';
 import { COLLECTION_NAME_MAX, COLLECTION_NOTE_MAX } from './collections.js';
+import { isBackupDocument, parseBackup } from './backup.js';
 
 /** Formes d'archive reconnues. */
-export const IMPORT_KINDS = Object.freeze(['links', 'labels', 'csv']);
+export const IMPORT_KINDS = Object.freeze(['links', 'labels', 'csv', 'backup']);
 
 /** Aucune collection décrite par le fichier : ni nom, ni note. */
 const SANS_COLLECTION = Object.freeze({ name: '', note: '' });
@@ -83,15 +90,31 @@ function unrecognised(detail) {
 /**
  * Lit l'archive JSON complète, produite par `toJson`.
  *
+ * Une **sauvegarde complète** est reconnue avant tout le reste : elle porte
+ * elle aussi une clé `links`, et la lire comme une archive ordinaire aplatirait
+ * toutes ses collections en une seule. Elle est donc rendue à part, déjà
+ * validée, et l'application demande quoi en faire.
+ *
  * @param {string} text
- * @returns {{ kind: string, records: object[], collection: { name: string, note: string } }}
+ * @param {{ now?: number }} [options]
+ * @returns {{ kind: string, records: object[], collection: { name: string, note: string },
+ *   backup?: object }}
  */
-function fromJson(text) {
+function fromJson(text, options = {}) {
   let parsed;
   try {
     parsed = JSON.parse(text);
   } catch (error) {
     throw unrecognised(t('Fichier illisible : {message}.', { message: error.message }));
+  }
+
+  if (isBackupDocument(parsed)) {
+    return {
+      kind: 'backup',
+      records: [],
+      collection: SANS_COLLECTION,
+      backup: parseBackup(parsed, options),
+    };
   }
 
   if (Array.isArray(parsed)) return { kind: 'links', records: parsed, collection: SANS_COLLECTION };
@@ -301,11 +324,13 @@ function fromCsv(text) {
  * qu'on fait de la collection affichée.
  *
  * @param {{ text?: string, bytes?: Uint8Array, name?: string }} file
+ * @param {{ now?: number }} [options] `now` date les liens d'une sauvegarde qui
+ *   n'en portent pas ; il est injectable pour que les tests soient déterministes.
  * @returns {{ kind: string, records: object[], notes: string[],
- *   collection: { name: string, note: string } }}
+ *   collection: { name: string, note: string }, backup?: object }}
  * @throws {TypeError} si le fichier n'est pas une archive reconnue.
  */
-export function parseImportFile(file) {
+export function parseImportFile(file, options = {}) {
   const name = String(file?.name ?? '').toLowerCase();
   const notes = [];
 
@@ -324,7 +349,7 @@ export function parseImportFile(file) {
         `Archive ZIP sans « export.json » (entrées : ${[...entries.keys()].join(', ')}).`,
       );
     }
-    const parsed = fromJson(new TextDecoder().decode(manifest));
+    const parsed = fromJson(new TextDecoder().decode(manifest), options);
     notes.push(`${entries.size} fichier(s) dans l'archive, manifeste « export.json » lu.`);
     return { ...parsed, notes };
   }
@@ -333,7 +358,7 @@ export function parseImportFile(file) {
   const trimmed = text.replace(/^\uFEFF/, '').trimStart();
 
   if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
-    return { ...fromJson(text), notes };
+    return { ...fromJson(text, options), notes };
   }
   if (name.endsWith('.csv') || trimmed.includes(';') || trimmed.includes(',')) {
     return { ...fromCsv(text), notes };

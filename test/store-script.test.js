@@ -30,7 +30,8 @@ test('le dossier de dépôt ne contient que les fichiers attendus', () => {
     assert.ok(SCRIPT.includes(base), `capture absente du script : ${base}`);
   }
   for (const fichier of [
-    'promo-440x280.jpg', 'marquee-1400x560.jpg', 'icone-128.png',
+    'promo-440x280.jpg', 'marquee-1400x560.jpg',
+    'promo-440x280-en.jpg', 'marquee-1400x560-en.jpg', 'icone-128.png',
     'url-qrcode-printer-chrome.zip', 'listing-fr.md', 'listing-en.md',
     'a-coller-mise-a-jour.md', 'CHECKLIST.md', 'version.json',
   ]) {

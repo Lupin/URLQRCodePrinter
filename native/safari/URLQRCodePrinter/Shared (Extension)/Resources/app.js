@@ -745,6 +745,56 @@ const EN_MESSAGES = {
   "Réglages du tableau": "Table settings",
   "Réglages de l’étiquette": "Label settings",
   "Réglages des images": "Image settings",
+
+  // -------------------------------------------------------------------------
+  // Sauvegarde complète
+  // -------------------------------------------------------------------------
+  "Enregistre toutes les collections et leurs liens dans un seul fichier":
+    "Saves all collections and their links in a single file",
+  "Sauvegarde complète": "Full backup",
+  "Relit l'archive JSON, le dossier d'étiquettes .zip, un CSV exporté d'ici ou une sauvegarde complète":
+    "Reads back the JSON archive, the .zip label folder, a CSV exported from here or a full backup",
+  "« Sauvegarde complète » écrit toutes les collections dans un seul fichier ; « Importer… » relit aussi une sauvegarde, et propose de l'ajouter ou de remplacer toutes les collections.":
+    "“Full backup” writes every collection to a single file; “Import…” also reads a backup, and offers to add it or replace all collections.",
+  "Navigation privée : la sauvegarde complète ne couvre que les collections ordinaires, et reste donc à la navigation normale.":
+    "Private browsing: the full backup only covers ordinary collections, so it stays in normal browsing.",
+  "Sauvegarde impossible : {message}": "Backup failed: {message}",
+  "Restauration impossible : {message}": "Restore failed: {message}",
+  "{collections} dans {file}": "{collections} in {file}",
+  " ({details})": " ({details})",
+  "« Ajouter » garde vos collections et crée des copies de celles du fichier ; « Remplacer » efface tout ce qui est là.":
+    "“Add” keeps your collections and creates copies of the file’s; “Replace” erases everything here.",
+  "Cette page ne gère qu'une collection : celles du fichier seront réunies dans « {name} ».":
+    "This page manages a single collection: the file’s will be merged into “{name}”.",
+  "{links}{remarque}. {consigne} Rien n'est écrit avant votre choix.":
+    "{links}{remarque}. {consigne} Nothing is written before you choose.",
+  "Ajouter la collection du fichier": "Add the file’s collection",
+  "Ajouter les {count} collections du fichier": "Add the file’s {count} collections",
+  "Fusionner la collection dans « {name} »": "Merge the collection into “{name}”",
+  "Fusionner les {count} collections dans « {name} »":
+    "Merge the file’s {count} collections into “{name}”",
+  "Remplacer toutes les collections": "Replace all collections",
+  "Remplacer": "Replace",
+  "Remplacer les collections actuelles ({current}) par la sauvegarde ({backup}) ? Cette action ne peut pas être annulée.":
+    "Replace the current collections ({current}) with the backup ({backup})? This action cannot be undone.",
+  "{collections}, {links}": "{collections}, {links}",
+  "{count} collection": "{count} collection",
+  "{count} collections": "{count} collections",
+  "{count} collection restaurée": "{count} collection restored",
+  "{count} collections restaurées": "{count} collections restored",
+  "{count} lien restauré": "{count} link restored",
+  "{count} liens restaurés": "{count} links restored",
+  "Fichier de sauvegarde illisible.": "Unreadable backup file.",
+  "Ce fichier n'est pas une sauvegarde complète.": "This file is not a full backup.",
+  "Sauvegarde sans numéro de version lisible.": "Backup without a readable version number.",
+  "Sauvegarde d'une version plus récente ({version}) : mettez l'application à jour.":
+    "Backup from a newer version ({version}): update the application.",
+  "Cette sauvegarde ne contient aucune collection ni aucun lien.":
+    "This backup contains neither collections nor links.",
+  "Cette sauvegarde porte {count} collections, au-delà du plafond de {max}.":
+    "This backup holds {count} collections, beyond the limit of {max}.",
+  "Cette sauvegarde porte {count} liens, au-delà du plafond de {max}.":
+    "This backup holds {count} links, beyond the limit of {max}.",
 };
 
 // ────────────────────────────────────────────────────────────────────────
@@ -2287,11 +2337,12 @@ function freeCollectionName(desired, items = [], translate = t) {
  *   list: () => Promise<Array<object>>,
  *   visible: (options?: { isPrivate?: boolean }) => Promise<Array<object>>,
  *   ensureDefault: () => Promise<boolean>,
- *   create: (name: string) => Promise<object>,
+ *   create: (name: string, details?: object) => Promise<object>,
  *   rename: (id: string, name: string) => Promise<object>,
  *   setNote: (id: string, note: string) => Promise<object>,
  *   setStartIndex: (id: string, value: unknown) => Promise<object>,
  *   applyOrder: (ids: string[]) => Promise<Array<object>>,
+ *   replaceAll: (items: Array<object>) => Promise<Array<object>>,
  *   remove: (id: string) => Promise<boolean>,
  *   getActive: (isPrivate?: boolean) => Promise<string>,
  *   setActive: (id: string, isPrivate?: boolean) => Promise<string>,
@@ -2468,15 +2519,76 @@ function createCollectionStore(options = {}) {
       return write(document);
     },
 
-    async create(name) {
+    /**
+     * Crée une collection nommée, avec les métadonnées qu'un import apporte.
+     *
+     * Le nom reste obligatoire : c'est le geste de l'utilisateur, et le bouton
+     * qui crée une collection en propose toujours un. Les autres champs sont
+     * facultatifs et servent à la **restauration d'une sauvegarde** : sans eux,
+     * une collection restaurée perdrait sa note, son premier numéro et sa date
+     * de création, et ne serait donc pas « la même » collection.
+     *
+     * Un `createdAt` absent vaut l'instant présent, comme avant ; un `order`
+     * absent reste absent, ce qui laisse la collection se ranger à la fin tant
+     * que personne n'a réordonné.
+     *
+     * @param {string} name
+     * @param {{ note?: unknown, startIndex?: unknown, createdAt?: unknown, order?: unknown }} [details]
+     * @returns {Promise<object>}
+     */
+    async create(name, details = {}) {
       const clean = requireName(name);
       const { document } = await load();
       if (nameTaken(document.items, clean)) {
         throw new CollectionError(t('Une collection porte déjà ce nom'), 'duplicate-name');
       }
-      const collection = createCollection({ name: clean, createdAt: now() });
+      const collection = createCollection({
+        name: clean,
+        note: details.note,
+        startIndex: details.startIndex,
+        createdAt: Number.isFinite(details.createdAt) ? details.createdAt : now(),
+        order: details.order,
+      });
       await update((current) => ({ ...current, items: [...current.items, collection] }));
       return collection;
+    },
+
+    /**
+     * Remplace **tout** le document des collections.
+     *
+     * C'est le seul chemin de la restauration complète : une collection
+     * restaurée doit retrouver son nom, sa note, son premier numéro et sa date
+     * de création, et `create` ne suffit pas — il refuse un nom vide, refuse un
+     * nom déjà pris, et ne sait pas retrouver une place. On écrit donc le
+     * document d'un coup, en le faisant passer par le même assainissement que
+     * toute lecture : une entrée illisible est écartée, un identifiant dupliqué
+     * l'est aussi, et la collection privée n'entre pas.
+     *
+     * La collection courante qui n'existe plus est oubliée, comme après une
+     * suppression : la fenêtre suivante ne doit pas s'ouvrir sur un repli muet.
+     *
+     * @param {Array<object>} items
+     * @returns {Promise<Array<object>>}
+     */
+    async replaceAll(items) {
+      // Le tableau est passé **tel quel** à l'assainissement : c'est lui qui
+      // décide de la forme d'une collection, écarte la collection privée et
+      // garantit qu'il en reste une. Le normaliser avant ferait entrer la
+      // collection privée sous un identifiant neuf, comme une collection
+      // ordinaire — exactement ce que le module doit empêcher.
+      const remplacement = Array.isArray(items) ? items : [];
+      const document = await update((current) => ({
+        ...current,
+        version: COLLECTIONS_VERSION,
+        items: remplacement,
+      }));
+
+      const actives = await readActive();
+      const ids = new Set(document.items.map((item) => item.id));
+      if (actives.normal !== '' && !ids.has(actives.normal)) {
+        await writeActive({ ...actives, normal: '' });
+      }
+      return document.items;
     },
 
     async rename(id, name) {
@@ -3284,6 +3396,7 @@ const ELEMENT_IDS = Object.freeze([
   'export-csv',
   'export-md',
   'export-json',
+  'export-backup',
   'import',
   'import-file',
   'import-menu',
@@ -3293,6 +3406,16 @@ const ELEMENT_IDS = Object.freeze([
   'import-replace',
   'import-add',
   'import-cancel',
+  'backup-menu',
+  'backup-menu-title',
+  'backup-menu-hint',
+  'backup-add',
+  'backup-replace',
+  'backup-cancel',
+  'backup-confirm',
+  'backup-confirm-text',
+  'backup-confirm-cancel',
+  'backup-confirm-yes',
   'clear',
   'preset',
   'preset-prev',
@@ -9845,6 +9968,368 @@ async function buildLinkSpreadsheet(links, options = {}) {
 }
 
 // ────────────────────────────────────────────────────────────────────────
+// dist/extension-safari/core/backup.js
+// ────────────────────────────────────────────────────────────────────────
+
+/**
+ * Sauvegarde complète : toutes les collections dans un seul fichier.
+ *
+ * L'export « Archive » décrit **une** collection. Il ne répond donc pas au geste
+ * qui consiste à changer de machine — ou à se prémunir d'une perte —, parce
+ * qu'il faudrait rouvrir chaque collection et télécharger autant de fichiers.
+ * Ce module écrit le document qui les porte toutes, liens compris, et sait le
+ * relire.
+ *
+ * Quatre décisions structurent le format :
+ *
+ * - **Un seul fichier, autoportant.** Collections et liens voyagent ensemble :
+ *   les métadonnées de chaque collection — nom, note, premier numéro, rang,
+ *   date — sont dans le document, et chaque lien porte la collection à laquelle
+ *   il appartient. Un fichier de sauvegarde se suffit donc à lui-même, sans
+ *   avoir à nommer les collections par leur position.
+ * - **La collection de navigation privée n'y entre jamais.** Ses liens vivent
+ *   dans `chrome.storage.session`, et le projet promet qu'aucun chemin de code
+ *   n'écrit une URL privée sur le disque (`README.fr.md`). Le constructeur
+ *   écarte donc explicitement cette collection et ses liens — il ne compte pas
+ *   sur l'appelant pour ne pas les lui passer.
+ * - **Le fichier relu est une entrée non fiable.** Toutes les valeurs passent
+ *   par les constructeurs du modèle (`createCollection`, `createLink`), les
+ *   tailles sont plafonnées, les identifiants dupliqués sont régénérés et un
+ *   lien illisible est compté plutôt que de faire échouer le reste. Un fichier
+ *   de sauvegarde peut venir d'une autre machine, d'une version différente, ou
+ *   avoir été retouché à la main.
+ * - **La version du format est explicite.** Une sauvegarde d'une version plus
+ *   récente est refusée avec un message qui dit quoi faire, plutôt que lue de
+ *   travers. Une version antérieure n'existe pas encore — l'import des archives
+ *   d'une seule collection garde son propre chemin (`import.js`).
+ *
+ * Les fonctions sont pures : elles reçoivent les collections et les liens, et
+ * rendent un objet ou une chaîne. Ni stockage ni DOM, donc testables sans
+ * navigateur, comme `exporters.js` et `import.js`.
+ */
+
+
+
+
+
+
+/**
+ * Marque du format, dans le fichier.
+ *
+ * Elle est distincte de celles des archives d'une seule collection
+ * (`url-qr-code-printer/links`) : c'est elle qui décide si un fichier est une
+ * sauvegarde complète ou une archive ordinaire, et l'import les traite
+ * différemment.
+ */
+const BACKUP_FORMAT = 'url-qr-code-printer/backup';
+
+/**
+ * Version du document écrit. À incrémenter si sa forme change.
+ *
+ * Le lecteur n'accepte pas une version supérieure : une sauvegarde écrite par
+ * une application plus récente peut porter des champs que celle-ci ne
+ * comprendrait pas, et une lecture partielle vaudrait moins qu'un refus qui dit
+ * quoi faire.
+ */
+const BACKUP_VERSION = 1;
+
+/**
+ * Plafonds de lecture.
+ *
+ * Ils ne bornent pas l'écriture — une sauvegarde doit pouvoir contenir ce que
+ * l'utilisateur a réellement. Ils bornent la **relecture** d'un fichier venu
+ * d'ailleurs : au-delà, le fichier ne peut pas venir d'une collection que le
+ * produit aurait laissé croître, et l'accepter reviendrait à remplir le stockage
+ * d'un coup. Le stockage local est lui-même plafonné à 10 Mo.
+ */
+const BACKUP_MAX_LINKS = 20000;
+const BACKUP_MAX_COLLECTIONS = 500;
+
+/** Base du nom de fichier proposé au téléchargement. */
+const BACKUP_FILENAME_BASE = 'sauvegarde-complete';
+
+/**
+ * Erreur de sauvegarde, avec un code exploitable.
+ *
+ * Codes : `invalid` (objet illisible), `format` (ce n'est pas une sauvegarde),
+ * `version` (version absente ou trop récente), `empty` (rien à restaurer),
+ * `too-many-links`, `too-many-collections`.
+ *
+ * Hérite de `TypeError`, comme les erreurs d'import : l'appelant qui attrape
+ * déjà celles de la relecture de fichier n'a rien à changer.
+ */
+class BackupError extends TypeError {
+  /**
+   * @param {string} message
+   * @param {string} code
+   */
+  constructor(message, code) {
+    super(message);
+    this.name = 'BackupError';
+    this.code = code;
+  }
+}
+
+/**
+ * Ce document est-il une sauvegarde complète ?
+ *
+ * Le test est volontairement pauvre : il ne regarde que la marque. C'est
+ * `parseBackup` qui valide le reste, et une valeur qui porte la marque mais pas
+ * la forme voulue doit être refusée avec son propre message plutôt que traitée
+ * comme une archive ordinaire.
+ *
+ * @param {unknown} value
+ * @returns {boolean}
+ */
+function isBackupDocument(value) {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value)
+    && value.format === BACKUP_FORMAT;
+}
+
+/**
+ * Copie un lien pour la sauvegarde, estampillé de sa collection.
+ *
+ * Le lien passe par `createLink` : c'est le constructeur du modèle, et il
+ * normalise l'URL, les tags et les champs facultatifs. On lui rend ensuite sa
+ * date de modification d'origine — une sauvegarde conserve ce qui existait, et
+ * `createLink` estampille l'instant de l'appel. Le rang et le choix de raccourci
+ * sont facultatifs, et leur absence reste une absence.
+ *
+ * @param {import('./link.js').LinkRecord} link
+ * @param {string} collectionId
+ * @param {number} now
+ * @returns {object}
+ */
+function backupLink(link, collectionId, now) {
+  const copie = createLink(link, { now });
+  return {
+    ...copie,
+    updatedAt: Number.isFinite(link.updatedAt) ? link.updatedAt : copie.updatedAt,
+    collectionId,
+  };
+}
+
+/**
+ * Construit le document de sauvegarde.
+ *
+ * Les collections sont assainies par `sanitizeCollections` — qui garantit qu'il
+ * en reste au moins une et écarte la collection privée — puis les liens sont
+ * rangés sous leur collection. Un lien qui désigne une collection absente du
+ * document n'est pas perdu : une collection sans nom est ajoutée pour lui. Ce
+ * cas ne devrait pas arriver avec des données saines (une suppression de
+ * collection emporte ses liens), mais une sauvegarde qui laisserait des liens
+ * sans collection ne restituerait rien pour eux.
+ *
+ * @param {{
+ *   collections?: Array<object>,
+ *   links?: Array<object>,
+ *   activeCollectionId?: string,
+ *   now?: number,
+ * }} [input]
+ * @returns {{
+ *   format: string, version: number, exportedAt: string, app: string,
+ *   activeCollectionId: string,
+ *   counts: { collections: number, links: number },
+ *   collections: Array<object>, links: Array<object>,
+ * }}
+ */
+function buildBackup(input = {}) {
+  const now = Number.isFinite(input.now) ? input.now : Date.now();
+  const document = sanitizeCollections({
+    version: COLLECTIONS_VERSION,
+    items: Array.isArray(input.collections) ? input.collections : [],
+  });
+
+  const items = document.items.map((collection) => ({ ...collection }));
+  const connues = new Set(items.map((collection) => collection.id));
+
+  const links = [];
+  for (const link of Array.isArray(input.links) ? input.links : []) {
+    if (!link || typeof link !== 'object') continue;
+    const collectionId = collectionOf(link);
+    // La collection privée n'est jamais écrite : ni elle, ni ses liens. Le test
+    // est ici, dans le constructeur, pour qu'aucun appelant ne puisse l'oublier.
+    if (collectionId === PRIVATE_COLLECTION_ID) continue;
+    if (!connues.has(collectionId)) {
+      connues.add(collectionId);
+      items.push(createCollection({ id: collectionId, createdAt: now }));
+    }
+    links.push(backupLink(link, collectionId, now));
+  }
+
+  const activeCollectionId = connues.has(input.activeCollectionId)
+    ? input.activeCollectionId
+    : items[0].id;
+
+  return {
+    format: BACKUP_FORMAT,
+    version: BACKUP_VERSION,
+    exportedAt: new Date(now).toISOString(),
+    app: 'url-qr-code-printer',
+    activeCollectionId,
+    counts: { collections: items.length, links: links.length },
+    collections: items,
+    links,
+  };
+}
+
+/**
+ * Sérialise une sauvegarde en JSON indenté.
+ *
+ * Le fichier est écrit pour être relu, et pour être lisible à la main si
+ * quelqu'un veut vérifier ce qu'il contient avant de le confier à une autre
+ * machine : deux espaces par niveau, comme l'archive d'une collection.
+ *
+ * @param {Parameters<typeof buildBackup>[0]} [input]
+ * @returns {string}
+ */
+function toBackupJson(input = {}) {
+  return JSON.stringify(buildBackup(input), null, 2);
+}
+
+/**
+ * Relit une sauvegarde, et la rend normalisée.
+ *
+ * Ce qui est accepté, et ce qui est écarté :
+ *
+ * - la marque et la version d'abord ; une version plus récente est refusée ;
+ * - les collections passent par `sanitizeCollections`, qui applique les bornes
+ *   de nom et de note et garantit qu'il en reste une ;
+ * - chaque lien passe par `createLink` ; un lien que le modèle refuse — une URL
+ *   qui n'en est pas une, par exemple — est compté dans `rejected` et n'arrête
+ *   pas le reste ;
+ * - un identifiant déjà vu est régénéré : deux liens qui prétendraient au même
+ *   identifiant ne peuvent pas coexister dans un magasin indexé par identifiant ;
+ * - une URL en double **dans une même collection** est ignorée et comptée,
+ *   puisque le produit n'admet pas deux fois la même adresse au même endroit ;
+ * - un lien dont la collection n'existe pas — ou qui vise la collection privée,
+ *   qu'un fichier retouché pourrait nommer — est rattaché à la première
+ *   collection du document.
+ *
+ * `now` sert aux liens qui ne portent pas de date : c'est l'instant de la
+ * relecture, comme pour l'import d'une archive. Il est injectable pour que les
+ * tests n'aient pas à dépendre de l'horloge.
+ *
+ * @param {unknown} value
+ * @param {{ now?: number }} [options]
+ * @returns {{
+ *   format: string, version: number, exportedAt: string,
+ *   collections: Array<object>, links: Array<object>,
+ *   activeCollectionId: string, rejected: number, duplicates: number,
+ * }}
+ * @throws {BackupError}
+ */
+function parseBackup(value, options = {}) {
+  const now = Number.isFinite(options.now) ? options.now : Date.now();
+
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    throw new BackupError(t('Fichier de sauvegarde illisible.'), 'invalid');
+  }
+  if (!isBackupDocument(value)) {
+    throw new BackupError(t('Ce fichier n\'est pas une sauvegarde complète.'), 'format');
+  }
+
+  const version = Number(value.version);
+  if (!Number.isInteger(version) || version < 1) {
+    throw new BackupError(t('Sauvegarde sans numéro de version lisible.'), 'version');
+  }
+  if (version > BACKUP_VERSION) {
+    throw new BackupError(t(
+      'Sauvegarde d\'une version plus récente ({version}) : mettez l\'application à jour.',
+      { version },
+    ), 'version');
+  }
+
+  const rawCollections = Array.isArray(value.collections) ? value.collections : [];
+  const rawLinks = Array.isArray(value.links) ? value.links : [];
+  if (rawCollections.length === 0 && rawLinks.length === 0) {
+    throw new BackupError(t('Cette sauvegarde ne contient aucune collection ni aucun lien.'), 'empty');
+  }
+  if (rawCollections.length > BACKUP_MAX_COLLECTIONS) {
+    throw new BackupError(t(
+      'Cette sauvegarde porte {count} collections, au-delà du plafond de {max}.',
+      { count: rawCollections.length, max: BACKUP_MAX_COLLECTIONS },
+    ), 'too-many-collections');
+  }
+  if (rawLinks.length > BACKUP_MAX_LINKS) {
+    throw new BackupError(t(
+      'Cette sauvegarde porte {count} liens, au-delà du plafond de {max}.',
+      { count: rawLinks.length, max: BACKUP_MAX_LINKS },
+    ), 'too-many-links');
+  }
+
+  const document = sanitizeCollections({ version: COLLECTIONS_VERSION, items: rawCollections });
+  const collections = document.items.map((collection) => ({ ...collection }));
+  const connues = new Set(collections.map((collection) => collection.id));
+  const repli = connues.has(DEFAULT_COLLECTION_ID) ? DEFAULT_COLLECTION_ID : collections[0].id;
+
+  const ids = new Set();
+  const urls = new Set();
+  const links = [];
+  let rejected = 0;
+  let duplicates = 0;
+
+  for (const raw of rawLinks) {
+    let link;
+    try {
+      link = createLink(raw, { now });
+    } catch {
+      rejected += 1;
+      continue;
+    }
+
+    const demandee = collectionOf(link);
+    const collectionId = demandee === PRIVATE_COLLECTION_ID || !connues.has(demandee)
+      ? repli
+      : demandee;
+
+    // Un identifiant dupliqué écraserait un enregistrement dans un magasin
+    // indexé par identifiant, ou en laisserait deux dans un tableau : on en
+    // donne un neuf au second, sans toucher au premier.
+    if (ids.has(link.id)) link = { ...link, id: newId() };
+    ids.add(link.id);
+
+    const cle = `${collectionId}\n${link.url}`;
+    if (urls.has(cle)) {
+      duplicates += 1;
+      continue;
+    }
+    urls.add(cle);
+    links.push({ ...link, collectionId });
+  }
+
+  const activeCollectionId = typeof value.activeCollectionId === 'string'
+    && connues.has(value.activeCollectionId)
+    ? value.activeCollectionId
+    : collections[0].id;
+
+  return {
+    format: BACKUP_FORMAT,
+    version,
+    exportedAt: typeof value.exportedAt === 'string' ? value.exportedAt : '',
+    collections,
+    links,
+    activeCollectionId,
+    rejected,
+    duplicates,
+  };
+}
+
+/**
+ * Nom de fichier d'une sauvegarde, horodaté.
+ *
+ * Même convention que les autres exports (`exportFilename`) : un nom sans
+ * caractère interdit pour un système de fichiers, et la date de l'export pour ne
+ * pas écraser la sauvegarde de la veille.
+ *
+ * @param {number} [now]
+ * @returns {string}
+ */
+function backupFilename(now = Date.now()) {
+  return exportFilename(BACKUP_FILENAME_BASE, 'json', now);
+}
+
+// ────────────────────────────────────────────────────────────────────────
 // dist/extension-safari/core/import.js
 // ────────────────────────────────────────────────────────────────────────
 
@@ -9862,9 +10347,15 @@ async function buildLinkSpreadsheet(links, options = {}) {
  * | Fichier | Ce qu'on en tire |
  * |---|---|
  * | archive JSON (« Archive ») | tout le modèle : titre, tags, note, raccourci |
+ * | sauvegarde complète | l'ensemble des collections, avec leurs liens |
  * | dossier d'étiquettes `.zip` | les liens de son `export.json` |
  * | `export.json` seul | les mêmes |
  * | CSV exporté | URL, titre, tags, note, date — la colonne « Domaine » est ignorée |
+ *
+ * Une **sauvegarde complète** n'est pas lue comme une archive : elle porte
+ * plusieurs collections, et c'est l'application qui propose quoi en faire. Ce
+ * module la reconnaît à sa marque (`BACKUP_FORMAT`) et la rend à part, sous
+ * `kind: 'backup'`, pour qu'elle ne soit pas aplatie en une seule collection.
  *
  * Le **nom et la note de la collection** sont relevés quand le fichier les
  * porte : l'archive JSON les met dans `collection`, le manifeste du dossier
@@ -9883,8 +10374,9 @@ async function buildLinkSpreadsheet(links, options = {}) {
 
 
 
+
 /** Formes d'archive reconnues. */
-const IMPORT_KINDS = Object.freeze(['links', 'labels', 'csv']);
+const IMPORT_KINDS = Object.freeze(['links', 'labels', 'csv', 'backup']);
 
 /** Aucune collection décrite par le fichier : ni nom, ni note. */
 const SANS_COLLECTION = Object.freeze({ name: '', note: '' });
@@ -9933,15 +10425,31 @@ function unrecognised(detail) {
 /**
  * Lit l'archive JSON complète, produite par `toJson`.
  *
+ * Une **sauvegarde complète** est reconnue avant tout le reste : elle porte
+ * elle aussi une clé `links`, et la lire comme une archive ordinaire aplatirait
+ * toutes ses collections en une seule. Elle est donc rendue à part, déjà
+ * validée, et l'application demande quoi en faire.
+ *
  * @param {string} text
- * @returns {{ kind: string, records: object[], collection: { name: string, note: string } }}
+ * @param {{ now?: number }} [options]
+ * @returns {{ kind: string, records: object[], collection: { name: string, note: string },
+ *   backup?: object }}
  */
-function fromJson(text) {
+function fromJson(text, options = {}) {
   let parsed;
   try {
     parsed = JSON.parse(text);
   } catch (error) {
     throw unrecognised(t('Fichier illisible : {message}.', { message: error.message }));
+  }
+
+  if (isBackupDocument(parsed)) {
+    return {
+      kind: 'backup',
+      records: [],
+      collection: SANS_COLLECTION,
+      backup: parseBackup(parsed, options),
+    };
   }
 
   if (Array.isArray(parsed)) return { kind: 'links', records: parsed, collection: SANS_COLLECTION };
@@ -10151,11 +10659,13 @@ function fromCsv(text) {
  * qu'on fait de la collection affichée.
  *
  * @param {{ text?: string, bytes?: Uint8Array, name?: string }} file
+ * @param {{ now?: number }} [options] `now` date les liens d'une sauvegarde qui
+ *   n'en portent pas ; il est injectable pour que les tests soient déterministes.
  * @returns {{ kind: string, records: object[], notes: string[],
- *   collection: { name: string, note: string } }}
+ *   collection: { name: string, note: string }, backup?: object }}
  * @throws {TypeError} si le fichier n'est pas une archive reconnue.
  */
-function parseImportFile(file) {
+function parseImportFile(file, options = {}) {
   const name = String(file?.name ?? '').toLowerCase();
   const notes = [];
 
@@ -10174,7 +10684,7 @@ function parseImportFile(file) {
         `Archive ZIP sans « export.json » (entrées : ${[...entries.keys()].join(', ')}).`,
       );
     }
-    const parsed = fromJson(new TextDecoder().decode(manifest));
+    const parsed = fromJson(new TextDecoder().decode(manifest), options);
     notes.push(`${entries.size} fichier(s) dans l'archive, manifeste « export.json » lu.`);
     return { ...parsed, notes };
   }
@@ -10183,7 +10693,7 @@ function parseImportFile(file) {
   const trimmed = text.replace(/^\uFEFF/, '').trimStart();
 
   if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
-    return { ...fromJson(text), notes };
+    return { ...fromJson(text, options), notes };
   }
   if (name.endsWith('.csv') || trimmed.includes(';') || trimmed.includes(',')) {
     return { ...fromCsv(text), notes };
@@ -13115,6 +13625,7 @@ function informationPageHref(locale, page = globalThis.location ?? {}) {
 
 
 
+
 const PX_PER_MM = 96 / 25.4;
 
 /** Identifiant de la feuille de style qui porte la taille de papier. */
@@ -13242,8 +13753,9 @@ const targetOptions = new Map();
 /**
  * Rang de chaque lien dans la collection, à partir de 1.
  *
- * C'est ce numéro que porte la liste **et** le tableau imprimé : sans lui, le
- * « N° » d'une ligne de tableau ne renvoyait à rien, et on ne pouvait pas
+ * C'est ce numéro que porte la liste, et que le tableau peut reprendre : la
+ * colonne « N° » y est une option, décochée par défaut — la feuille se lit
+ * d'abord comme une liste de liens.
  * retrouver de quel lien il parlait. Il suit l'ordre de la collection, donc il
  * reste le même quand la liste est filtrée ou quand on n'imprime qu'une
  * sélection.
@@ -13796,6 +14308,14 @@ function renderList() {
   el.exportCsv.disabled = !hasLinks;
   el.exportMd.disabled = !hasLinks;
   el.exportJson.disabled = !hasLinks;
+  // La sauvegarde complète porte sur les collections ordinaires : en navigation
+  // privée elle n'aurait rien de plus à offrir, et la proposer laisserait croire
+  // qu'elle sauvegarde la collection affichée. Elle reste donc inactive, avec la
+  // phrase qui dit pourquoi.
+  const sauvegardeBloquee = backupBlockedReason();
+  el.exportBackup.disabled = sauvegardeBloquee !== '';
+  el.exportBackup.title = sauvegardeBloquee
+    || t('Enregistre toutes les collections et leurs liens dans un seul fichier');
   el.clear.disabled = !hasLinks;
   el.shorten.disabled = !hasLinks;
   updateShortenStatus();
@@ -15304,8 +15824,11 @@ async function switchCollection(id) {
   // Le choix d'import portait sur la collection affichée — ses libellés la
   // nomment. Changer de collection pendant qu'il est ouvert rendrait ces
   // libellés faux, et « Fusionner » écrirait ailleurs que ce qui est annoncé :
-  // la question est donc retirée, et l'import reste à refaire.
+  // la question est donc retirée, et l'import reste à refaire. Le rangement
+  // d'une sauvegarde nomme lui aussi la collection affichée sur la page
+  // autonome : il est retiré de la même façon.
   closeImportMenu();
+  closeBackupMenu({ focus: false });
   // Un nom saisi mais non enregistré appartient à la collection qu'on quitte :
   // il ne suit pas la bascule. On le dit, plutôt que de l'effacer en silence.
   const nomAbandonne = collectionNamePending();
@@ -15430,8 +15953,10 @@ async function deleteAppCollection() {
   }
 
   // Le choix d'import nommait la collection qui vient de disparaître : il n'a
-  // plus de destinataire possible.
+  // plus de destinataire possible. Le rangement d'une sauvegarde, lui aussi,
+  // nomme la collection affichée sur la page autonome.
   closeImportMenu();
+  closeBackupMenu({ focus: false });
   // Le stockage désigne désormais une autre collection — celle qui vient d'être
   // supprimée ne peut pas rester courante — et on l'y réinscrit avant de la
   // relire, pour que la fenêtre et l'application s'accordent sur la même.
@@ -15732,6 +16257,19 @@ async function importArchive(file) {
       ? { bytes: new Uint8Array(await file.arrayBuffer()), name: file.name }
       : { text: await file.text(), name: file.name });
 
+    // Une sauvegarde complète n'est pas une collection : elle porte plusieurs
+    // collections, et l'application demande donc quoi en faire — l'aplatir en
+    // une seule ici serait une perte silencieuse.
+    if (parsed.kind === 'backup') {
+      const bloque = backupBlockedReason();
+      if (bloque !== '') {
+        toast(bloque, 'error');
+        return;
+      }
+      openBackupMenu(file.name, parsed.backup);
+      return;
+    }
+
     // Un enregistrement illisible n'arrête pas l'import : il est compté.
     const { links: candidates, rejected } = toImportableLinks(parsed.records);
     if (candidates.length === 0) {
@@ -15840,9 +16378,21 @@ function closeImportMenu() {
   if (etaitOuvert && el.import.isConnected) el.import.focus();
 }
 
-// Échap referme la question de l'import, comme les autres panneaux.
+// Échap referme les questions d'import et de restauration, comme les autres
+// panneaux. La confirmation de remplacement passe d'abord : elle est la plus
+// récente, et l'annuler rend le choix au lieu de tout fermer.
 document.addEventListener('keydown', (event) => {
   if (event.key !== 'Escape') return;
+  if (el.backupConfirm && !el.backupConfirm.hidden) {
+    event.preventDefault();
+    cancelBackupConfirm();
+    return;
+  }
+  if (el.backupMenu && !el.backupMenu.hidden) {
+    event.preventDefault();
+    closeBackupMenu();
+    return;
+  }
   if (el.importMenu && !el.importMenu.hidden) {
     event.preventDefault();
     closeImportMenu();
@@ -15934,6 +16484,471 @@ async function applyImport(mode) {
  */
 function importReport({ added, duplicates, rejected }) {
   const parts = [tpl(added, '{count} lien importé', '{count} liens importés')];
+  if (duplicates > 0) parts.push(tpl(duplicates, '{count} déjà présent', '{count} déjà présents'));
+  if (rejected > 0) parts.push(tpl(rejected, '{count} illisible', '{count} illisibles'));
+  return parts.join(', ');
+}
+
+// ---------------------------------------------------------------------------
+// Sauvegarde complète : toutes les collections dans un seul fichier
+// ---------------------------------------------------------------------------
+
+/**
+ * Pourquoi la sauvegarde complète est-elle indisponible ?
+ *
+ * La collection de navigation privée n'entre jamais dans une sauvegarde — le
+ * constructeur du cœur l'écarte explicitement. En contexte privé, le geste
+ * n'aurait donc rien de plus à offrir, et le proposer laisserait croire qu'il
+ * sauvegarde ce qui est affiché. On le refuse, avec la phrase qui explique.
+ *
+ * @returns {string} Le motif, ou la chaîne vide quand le geste est permis.
+ */
+function backupBlockedReason() {
+  return appPrivateContext()
+    ? t('Navigation privée : la sauvegarde complète ne couvre que les collections ordinaires, et reste donc à la navigation normale.')
+    : '';
+}
+
+/**
+ * Écrit toutes les collections et tous leurs liens dans un seul fichier.
+ *
+ * La source est le magasin ordinaire (`baseStore`), et non le magasin composite
+ * qui réunit la session : les liens de navigation privée n'ont rien à faire dans
+ * un fichier écrit sur le disque. Le filtre sur la collection privée est un
+ * second verrou — les deux zones sont distinctes, mais une lecture qui les
+ * réunirait un jour ne doit pas pouvoir faire sortir une URL privée.
+ *
+ * @returns {Promise<void>}
+ */
+async function exportBackup() {
+  const bloque = backupBlockedReason();
+  if (bloque !== '') {
+    toast(bloque, 'error');
+    return;
+  }
+
+  try {
+    const ordinaires = (await collections.list())
+      .filter((collection) => !isPrivateCollection(collection));
+    const tous = await baseStore.list();
+    const text = toBackupJson({
+      collections: ordinaires,
+      links: tous,
+      activeCollectionId,
+    });
+    const filename = backupFilename();
+    const ok = downloadText(filename, text, { mime: 'application/json' });
+    toast(ok ? t('{filename} enregistré', { filename }) : t('Téléchargement impossible'), ok ? 'info' : 'error');
+  } catch (error) {
+    toast(t('Sauvegarde impossible : {message}', { message: error.message }), 'error');
+  }
+}
+
+/** Lien ou collection, au pluriel de la langue courante. */
+function backupLinkCount(count) {
+  return tpl(count, '{count} lien', '{count} liens');
+}
+
+/** Nombre de collections, au pluriel de la langue courante. */
+function backupCollectionCount(count) {
+  return tpl(count, '{count} collection', '{count} collections');
+}
+
+/**
+ * La sauvegarde qui attend un choix de rangement.
+ *
+ * Le fichier est lu **dès qu'il est choisi**, comme pour l'import d'une archive :
+ * c'est ce qui permet d'annoncer ce qu'il porte avant de rien écrire. Rien n'est
+ * écrit tant que l'utilisateur n'a pas choisi, et « Annuler » vide l'attente.
+ *
+ * @type {{ file: string, backup: object }|null}
+ */
+let backupEnAttente = null;
+
+/**
+ * Ouvre le choix du rangement d'une sauvegarde complète.
+ *
+ * Deux issues, et aucune n'est un bon défaut : ajouter garde les collections en
+ * place et crée des copies de celles du fichier — leurs noms déjà pris sont
+ * suffixés —, tandis que remplacer efface tout avant de restaurer. C'est la
+ * différence entre « je récupère une machine » et « je rapatrie une partie de
+ * mes données », et elle mérite d'être dite en toutes lettres.
+ *
+ * @param {string} file
+ * @param {object} backup Sauvegarde déjà validée par `parseBackup`.
+ */
+function openBackupMenu(file, backup) {
+  backupEnAttente = { file, backup };
+  closeBackupConfirm();
+
+  const disponible = collections.available;
+  const collectionsLabel = backupCollectionCount(backup.collections.length);
+  const linksLabel = backupLinkCount(backup.links.length);
+
+  el.backupMenuTitle.textContent = t('{collections} dans {file}', {
+    collections: collectionsLabel,
+    file,
+  });
+
+  const details = [];
+  if (backup.duplicates > 0) {
+    details.push(tpl(backup.duplicates, '{count} déjà présent', '{count} déjà présents'));
+  }
+  if (backup.rejected > 0) {
+    details.push(tpl(backup.rejected, '{count} illisible', '{count} illisibles'));
+  }
+  const remarque = details.length > 0 ? t(' ({details})', { details: details.join(', ') }) : '';
+
+  // Ce que chaque issue fait, en une phrase : c'est ici que se joue la
+  // différence entre ajouter et remplacer, et elle ne se devine pas.
+  const consigne = disponible
+    ? t('« Ajouter » garde vos collections et crée des copies de celles du fichier ; « Remplacer » efface tout ce qui est là.')
+    : t('Cette page ne gère qu\'une collection : celles du fichier seront réunies dans « {name} ».', {
+      name: activeCollectionLabel(),
+    });
+
+  el.backupMenuHint.textContent = t('{links}{remarque}. {consigne} Rien n\'est écrit avant votre choix.', {
+    links: linksLabel,
+    remarque,
+    consigne,
+  });
+
+  el.backupAdd.textContent = disponible
+    ? tpl(
+      backup.collections.length,
+      'Ajouter la collection du fichier',
+      'Ajouter les {count} collections du fichier',
+    )
+    : tpl(
+      backup.collections.length,
+      'Fusionner la collection dans « {name} »',
+      'Fusionner les {count} collections dans « {name} »',
+      { name: activeCollectionLabel() },
+    );
+
+  el.backupReplace.textContent = disponible
+    ? t('Remplacer toutes les collections')
+    : t('Remplacer « {name} »', { name: activeCollectionLabel() });
+
+  el.backupMenu.hidden = false;
+  el.backupAdd.focus();
+}
+
+/**
+ * Referme le choix du rangement, et vide l'attente.
+ *
+ * @param {{ focus?: boolean }} [options] `focus: true` rend le focus au bouton
+ *   qui a ouvert la question — le geste a été annulé, pas déplacé.
+ */
+function closeBackupMenu({ focus = true } = {}) {
+  const etaitOuvert = el.backupMenu && !el.backupMenu.hidden;
+  if (el.backupMenu) el.backupMenu.hidden = true;
+  backupEnAttente = null;
+  closeBackupConfirm();
+  if (focus && etaitOuvert && el.import.isConnected) el.import.focus();
+}
+
+/**
+ * Demande confirmation avant de remplacer toutes les collections.
+ *
+ * Le remplacement est la seule restauration qui détruit : il efface les
+ * collections et leurs liens avant d'écrire ceux du fichier. La question annonce
+ * donc les deux côté à côté — ce qui sera perdu, ce qui sera restauré — plutôt
+ * qu'un « êtes-vous sûr ? » qui ne dit rien.
+ *
+ * @returns {Promise<void>}
+ */
+async function openBackupConfirm() {
+  const pending = backupEnAttente;
+  if (!pending) return;
+
+  const actuelles = (await collections.list())
+    .filter((collection) => !isPrivateCollection(collection));
+  const liensActuels = await baseStore.list();
+
+  el.backupConfirmText.textContent = t(
+    'Remplacer les collections actuelles ({current}) par la sauvegarde ({backup}) ? Cette action ne peut pas être annulée.',
+    {
+      current: t('{collections}, {links}', {
+        collections: backupCollectionCount(actuelles.length),
+        links: backupLinkCount(liensActuels.length),
+      }),
+      backup: t('{collections}, {links}', {
+        collections: backupCollectionCount(pending.backup.collections.length),
+        links: backupLinkCount(pending.backup.links.length),
+      }),
+    },
+  );
+
+  el.backupMenu.hidden = true;
+  el.backupConfirm.hidden = false;
+  el.backupConfirmCancel.focus();
+}
+
+/** Referme la confirmation, sans rien remplacer. */
+function closeBackupConfirm() {
+  if (!el.backupConfirm || el.backupConfirm.hidden) return;
+  el.backupConfirm.hidden = true;
+}
+
+/**
+ * Annule le remplacement et rend le choix : on peut alors ajouter au lieu de
+ * remplacer, sans relire le fichier.
+ *
+ * @returns {void}
+ */
+function cancelBackupConfirm() {
+  closeBackupConfirm();
+  if (backupEnAttente) {
+    el.backupMenu.hidden = false;
+    el.backupReplace.focus();
+  }
+}
+
+/**
+ * Range une sauvegarde en attente selon l'issue choisie.
+ *
+ * @param {'add'|'replace'} mode
+ * @returns {Promise<void>}
+ */
+async function applyBackup(mode) {
+  const pending = backupEnAttente;
+  if (!pending) return;
+
+  closeBackupConfirm();
+  el.backupMenu.hidden = true;
+  backupEnAttente = null;
+
+  try {
+    const rapport = collections.available
+      ? (mode === 'replace'
+        ? await restoreBackupReplace(pending.backup)
+        : await restoreBackupAdd(pending.backup))
+      : (mode === 'replace'
+        ? await restoreBackupReplaceSingle(pending.backup)
+        : await restoreBackupMergeSingle(pending.backup));
+
+    // Un remplacement a pu effacer le lien ouvert en détail et les cases
+    // cochées : les garder afficherait un panneau qui ne correspond plus à rien.
+    if (mode === 'replace') {
+      fermerDetail();
+      selected = new Set();
+    }
+    await reloadCollections();
+    toast(backupRestoreReport(rapport));
+  } catch (error) {
+    await reloadCollections().catch(() => {});
+    toast(t('Restauration impossible : {message}', { message: error.message }), 'error');
+  }
+}
+
+/**
+ * Ajoute les collections d'une sauvegarde à côté des collections existantes.
+ *
+ * Les noms déjà pris sont suffixés plutôt que refusés — c'est le même choix que
+ * pour l'import d'une archive : une sauvegarde écrite sur une autre machine a
+ * toutes les chances de porter les mêmes noms. Les liens gardent leur date, leur
+ * rang et leur raccourci ; leur identifiant n'est conservé que s'il est libre,
+ * sans quoi il écraserait un enregistrement existant.
+ *
+ * @param {object} backup
+ * @returns {Promise<{ collections: number, links: number, duplicates: number, rejected: number }>}
+ */
+async function restoreBackupAdd(backup) {
+  const existantes = await collections.list();
+  const items = [...existantes];
+  const mapping = new Map();
+  const created = [];
+
+  /** @type {object[]} */
+  const records = [];
+
+  try {
+    for (const source of backup.collections) {
+      const voulu = source.name;
+      const nom = freeCollectionName(
+        voulu === '' ? t(DEFAULT_COLLECTION_NAME) : voulu,
+        items,
+      );
+      const creee = await collections.create(nom, {
+        note: source.note,
+        startIndex: source.startIndex,
+        createdAt: source.createdAt,
+      });
+      // Un nom vide est un état, pas un refus : `create` exige un nom, et on le
+      // vide juste après pour retrouver exactement celui du fichier.
+      if (voulu === '') await collections.rename(creee.id, '');
+      mapping.set(source.id, creee.id);
+      created.push(creee.id);
+      items.push({ ...creee, name: voulu === '' ? '' : creee.name });
+    }
+
+    const existants = await baseStore.list();
+    const ids = new Set(existants.map((link) => link.id));
+    for (const source of backup.links) {
+      let id = source.id;
+      if (ids.has(id)) id = newId();
+      ids.add(id);
+      records.push({
+        ...source,
+        id,
+        collectionId: mapping.get(source.collectionId) ?? created[0],
+      });
+    }
+
+    await baseStore.putMany(records);
+  } catch (error) {
+    // Les collections viennent d'être créées pour cet import : les laisser
+    // vides donnerait des collections fantômes, sans lien et sans raison.
+    for (const id of [...created].reverse()) {
+      try {
+        await collections.remove(id);
+      } catch {
+        // Au mieux : la suppression d'une collection peut être refusée si elle
+        // est devenue la dernière, et l'erreur d'origine est plus utile.
+      }
+    }
+    throw error;
+  }
+
+  // Un ordre explicite : les collections existantes d'abord, puis celles du
+  // fichier dans l'ordre où il les porte. Sans cela, une collection restaurée
+  // sans rang retomberait au hasard des dates de création.
+  await collections.applyOrder([...existantes.map((collection) => collection.id), ...created]);
+
+  return {
+    collections: created.length,
+    links: records.length,
+    duplicates: backup.duplicates,
+    rejected: backup.rejected,
+  };
+}
+
+/**
+ * Remplace toutes les collections ordinaires par celles d'une sauvegarde.
+ *
+ * Les identifiants sont neufs des deux côtés, et les liens sont réestampillés
+ * avec ceux des collections restaurées : réutiliser les identifiants du fichier
+ * ferait entrer un identifiant réservé ou un doublon dans le magasin. Le
+ * document des collections s'écrit d'un coup (`replaceAll`), les liens ensuite,
+ * en une seule passe.
+ *
+ * @param {object} backup
+ * @returns {Promise<{ collections: number, links: number, duplicates: number, rejected: number }>}
+ */
+async function restoreBackupReplace(backup) {
+  const mapping = new Map();
+  const items = backup.collections.map((source, rang) => {
+    const id = newId();
+    mapping.set(source.id, id);
+    return { ...source, id, order: rang };
+  });
+
+  const records = backup.links.map((link) => ({
+    ...link,
+    collectionId: mapping.get(link.collectionId) ?? items[0].id,
+  }));
+
+  await collections.replaceAll(items);
+  await baseStore.clear();
+  await baseStore.putMany(records);
+
+  activeCollectionId = mapping.get(backup.activeCollectionId) ?? items[0].id;
+  await collections.setActive(activeCollectionId, appPrivateContext());
+
+  return {
+    collections: items.length,
+    links: records.length,
+    duplicates: backup.duplicates,
+    rejected: backup.rejected,
+  };
+}
+
+/**
+ * Restauration d'une sauvegarde sur la page web autonome, qui n'a qu'une
+ * collection : elle est remplacée, nom et note compris.
+ *
+ * Les liens de toutes les collections du fichier sont réunis dans cette
+ * collection unique. C'est une perte de rangement assumée — la page n'a nulle
+ * part où ranger plusieurs collections — et le panneau l'a dite avant le clic.
+ *
+ * @param {object} backup
+ * @returns {Promise<{ collections: number, links: number, duplicates: number, rejected: number }>}
+ */
+async function restoreBackupReplaceSingle(backup) {
+  const premiere = backup.collections[0];
+  const records = backup.links.map((link) => ({
+    ...link,
+    collectionId: DEFAULT_COLLECTION_ID,
+  }));
+
+  const enregistre = settings.save({
+    collectionName: premiere.name === '' ? DEFAULT_SETTINGS.collectionName : premiere.name,
+    collectionNote: premiere.note,
+    startIndex: premiere.startIndex,
+  });
+  preferences = enregistre;
+
+  await baseStore.clear();
+  await baseStore.putMany(records);
+
+  return {
+    collections: 1,
+    links: records.length,
+    duplicates: backup.duplicates,
+    rejected: backup.rejected,
+  };
+}
+
+/**
+ * Restauration sur la page autonome, sans rien remplacer : les liens rejoignent
+ * la collection affichée, et les doublons d'URL sont ignorés.
+ *
+ * @param {object} backup
+ * @returns {Promise<{ collections: number, links: number, duplicates: number, rejected: number }>}
+ */
+async function restoreBackupMergeSingle(backup) {
+  const existants = await baseStore.list();
+  const ids = new Set(existants.map((link) => link.id));
+  let added = 0;
+  let duplicates = backup.duplicates;
+
+  for (const source of backup.links) {
+    let id = source.id;
+    if (ids.has(id)) id = newId();
+    ids.add(id);
+    const { duplicate } = await store.add({
+      ...source,
+      id,
+      collectionId: DEFAULT_COLLECTION_ID,
+    }, { collectionId: DEFAULT_COLLECTION_ID });
+    if (duplicate) duplicates += 1;
+    else added += 1;
+  }
+
+  return {
+    collections: 0,
+    links: added,
+    duplicates,
+    rejected: backup.rejected,
+  };
+}
+
+/**
+ * Résume une restauration en une phrase.
+ *
+ * Les collections ne sont nommées que quand il y en a : sur la page autonome,
+ * il n'y en a qu'une, et « 0 collection restaurée » serait du bruit.
+ *
+ * @param {{ collections: number, links: number, duplicates: number, rejected: number }} rapport
+ * @returns {string}
+ */
+function backupRestoreReport({ collections, links, duplicates, rejected }) {
+  const parts = [];
+  if (collections > 0) {
+    parts.push(tpl(collections, '{count} collection restaurée', '{count} collections restaurées'));
+  }
+  parts.push(tpl(links, '{count} lien restauré', '{count} liens restaurés'));
   if (duplicates > 0) parts.push(tpl(duplicates, '{count} déjà présent', '{count} déjà présents'));
   if (rejected > 0) parts.push(tpl(rejected, '{count} illisible', '{count} illisibles'));
   return parts.join(', ');
@@ -17783,7 +18798,7 @@ function buildTable(columns, rows, largeurs = null) {
     table.appendChild(groupe);
   }
 
-  table.appendChild(buildTableHead(columns));
+  if (el.tableGrid.checked) table.appendChild(buildTableHead(columns));
 
   const body = document.createElement('tbody');
   for (const row of rows) body.appendChild(row);
@@ -17821,8 +18836,9 @@ function tableColumnWidths(columns, size) {
   const parts = [];
   if (columns.index) parts.push({ key: 'index', poids: 0.7, mini: 8 });
   if (columns.qr) parts.push({ key: 'qr', fixe: qrMm });
-  if (columns.url) parts.push({ key: 'url', poids: 2.6, mini: 20 });
-  if (columns.title) parts.push({ key: 'title', poids: 2.4, mini: 20 });
+  // Le titre et l'adresse partagent une seule cellule : c'est la colonne qui
+  // porte le texte, et elle prend la place laissée par les autres.
+  if (columns.title || columns.url) parts.push({ key: 'text', poids: 5.2, mini: 40 });
   if (columns.date) parts.push({ key: 'date', poids: 1.1, mini: 14 });
   if (columns.tags) parts.push({ key: 'tags', poids: 1.2, mini: 14 });
   if (columns.note) parts.push({ key: 'note', poids: 1.6, mini: 14 });
@@ -17870,8 +18886,7 @@ function buildTableHead(columns) {
   const headers = [
     ...(columns.index ? ['N°'] : []),
     ...(columns.qr ? ['QR Code'] : []),
-    ...(columns.url ? ['URL'] : []),
-    ...(columns.title ? ['Titre'] : []),
+    ...(columns.title || columns.url ? ['Lien'] : []),
     ...(columns.date ? ['Date'] : []),
     ...(columns.tags ? ['Tags'] : []),
     ...(columns.note ? ['Note'] : []),
@@ -17898,6 +18913,7 @@ function buildTableRow(link, columns, size) {
 
   if (columns.index) {
     const num = document.createElement('td');
+    num.className = 'print-table__index';
     // Le rang dans la collection, pas le rang dans le tableau : c'est ce qui
     // permet de retrouver le lien dans la liste.
     num.textContent = String(linkRanks.get(link.id) ?? '');
@@ -17914,16 +18930,22 @@ function buildTableRow(link, columns, size) {
     row.appendChild(qrCell);
   }
 
-  if (columns.url) {
-    const urlCell = document.createElement('td');
-    urlCell.textContent = link.url;
-    row.appendChild(urlCell);
-  }
-
-  if (columns.title) {
-    const titleCell = document.createElement('td');
-    titleCell.textContent = link.title;
-    row.appendChild(titleCell);
+  if (columns.title || columns.url) {
+    const texte = document.createElement('td');
+    texte.className = 'print-table__text';
+    if (columns.title && link.title !== '') {
+      const titre = document.createElement('strong');
+      titre.className = 'print-table__title';
+      titre.textContent = link.title;
+      texte.appendChild(titre);
+    }
+    if (columns.url) {
+      const adresse = document.createElement('span');
+      adresse.className = 'print-table__url';
+      adresse.textContent = link.url;
+      texte.appendChild(adresse);
+    }
+    row.appendChild(texte);
   }
 
   if (columns.date) {
@@ -20643,6 +21665,7 @@ el.exportXlsx.addEventListener('click', exportSpreadsheet);
 el.exportCsv.addEventListener('click', () => exportAs('csv'));
 el.exportMd.addEventListener('click', () => exportAs('md'));
 el.exportJson.addEventListener('click', () => exportAs('json'));
+el.exportBackup.addEventListener('click', () => exportBackup().catch(() => {}));
 // Écho immédiat : une archive qui prend du temps ne doit pas laisser le clic
 // sans réponse. Le bilan, lui, vient de l'export lui-même.
 // L'écho doit être peint **avant** le travail : lancé dans la même tâche, le
@@ -20679,6 +21702,17 @@ el.importMerge.addEventListener('click', () => applyImport('merge').catch(() => 
 el.importReplace.addEventListener('click', () => applyImport('replace').catch(() => {}));
 el.importAdd.addEventListener('click', () => applyImport('add').catch(() => {}));
 el.importCancel.addEventListener('click', closeImportMenu);
+
+// La restauration d'une sauvegarde suit le même principe que l'import : le
+// fichier est lu d'abord, le rangement est choisi ensuite, et rien n'est écrit
+// avant. « Remplacer » demande une seconde confirmation, parce qu'il efface.
+el.backupAdd.addEventListener('click', () => applyBackup('add').catch(() => {}));
+el.backupReplace.addEventListener('click', () => {
+  openBackupConfirm().catch(() => {});
+});
+el.backupCancel.addEventListener('click', () => closeBackupMenu());
+el.backupConfirmCancel.addEventListener('click', cancelBackupConfirm);
+el.backupConfirmYes.addEventListener('click', () => applyBackup('replace').catch(() => {}));
 
 // Vider la collection est le geste le plus destructeur ; il ne s'exécute plus
 // au premier clic. Le panneau reste dans le flux, sous les commandes, et

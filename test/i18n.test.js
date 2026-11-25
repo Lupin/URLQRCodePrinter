@@ -37,6 +37,7 @@ const JS_FILES = [
   'src/extension-src/popup.js',
   'src/core/capture.js',
   'src/core/import.js',
+  'src/core/backup.js',
   'src/core/shorten.js',
   'src/core/link.js',
   'src/core/label.js',

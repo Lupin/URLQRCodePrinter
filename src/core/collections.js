@@ -570,11 +570,12 @@ export function freeCollectionName(desired, items = [], translate = t) {
  *   list: () => Promise<Array<object>>,
  *   visible: (options?: { isPrivate?: boolean }) => Promise<Array<object>>,
  *   ensureDefault: () => Promise<boolean>,
- *   create: (name: string) => Promise<object>,
+ *   create: (name: string, details?: object) => Promise<object>,
  *   rename: (id: string, name: string) => Promise<object>,
  *   setNote: (id: string, note: string) => Promise<object>,
  *   setStartIndex: (id: string, value: unknown) => Promise<object>,
  *   applyOrder: (ids: string[]) => Promise<Array<object>>,
+ *   replaceAll: (items: Array<object>) => Promise<Array<object>>,
  *   remove: (id: string) => Promise<boolean>,
  *   getActive: (isPrivate?: boolean) => Promise<string>,
  *   setActive: (id: string, isPrivate?: boolean) => Promise<string>,
@@ -751,15 +752,76 @@ export function createCollectionStore(options = {}) {
       return write(document);
     },
 
-    async create(name) {
+    /**
+     * Crée une collection nommée, avec les métadonnées qu'un import apporte.
+     *
+     * Le nom reste obligatoire : c'est le geste de l'utilisateur, et le bouton
+     * qui crée une collection en propose toujours un. Les autres champs sont
+     * facultatifs et servent à la **restauration d'une sauvegarde** : sans eux,
+     * une collection restaurée perdrait sa note, son premier numéro et sa date
+     * de création, et ne serait donc pas « la même » collection.
+     *
+     * Un `createdAt` absent vaut l'instant présent, comme avant ; un `order`
+     * absent reste absent, ce qui laisse la collection se ranger à la fin tant
+     * que personne n'a réordonné.
+     *
+     * @param {string} name
+     * @param {{ note?: unknown, startIndex?: unknown, createdAt?: unknown, order?: unknown }} [details]
+     * @returns {Promise<object>}
+     */
+    async create(name, details = {}) {
       const clean = requireName(name);
       const { document } = await load();
       if (nameTaken(document.items, clean)) {
         throw new CollectionError(t('Une collection porte déjà ce nom'), 'duplicate-name');
       }
-      const collection = createCollection({ name: clean, createdAt: now() });
+      const collection = createCollection({
+        name: clean,
+        note: details.note,
+        startIndex: details.startIndex,
+        createdAt: Number.isFinite(details.createdAt) ? details.createdAt : now(),
+        order: details.order,
+      });
       await update((current) => ({ ...current, items: [...current.items, collection] }));
       return collection;
+    },
+
+    /**
+     * Remplace **tout** le document des collections.
+     *
+     * C'est le seul chemin de la restauration complète : une collection
+     * restaurée doit retrouver son nom, sa note, son premier numéro et sa date
+     * de création, et `create` ne suffit pas — il refuse un nom vide, refuse un
+     * nom déjà pris, et ne sait pas retrouver une place. On écrit donc le
+     * document d'un coup, en le faisant passer par le même assainissement que
+     * toute lecture : une entrée illisible est écartée, un identifiant dupliqué
+     * l'est aussi, et la collection privée n'entre pas.
+     *
+     * La collection courante qui n'existe plus est oubliée, comme après une
+     * suppression : la fenêtre suivante ne doit pas s'ouvrir sur un repli muet.
+     *
+     * @param {Array<object>} items
+     * @returns {Promise<Array<object>>}
+     */
+    async replaceAll(items) {
+      // Le tableau est passé **tel quel** à l'assainissement : c'est lui qui
+      // décide de la forme d'une collection, écarte la collection privée et
+      // garantit qu'il en reste une. Le normaliser avant ferait entrer la
+      // collection privée sous un identifiant neuf, comme une collection
+      // ordinaire — exactement ce que le module doit empêcher.
+      const remplacement = Array.isArray(items) ? items : [];
+      const document = await update((current) => ({
+        ...current,
+        version: COLLECTIONS_VERSION,
+        items: remplacement,
+      }));
+
+      const actives = await readActive();
+      const ids = new Set(document.items.map((item) => item.id));
+      if (actives.normal !== '' && !ids.has(actives.normal)) {
+        await writeActive({ ...actives, normal: '' });
+      }
+      return document.items;
     },
 
     async rename(id, name) {

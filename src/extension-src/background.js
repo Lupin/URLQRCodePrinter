@@ -55,14 +55,14 @@ const api = resolveApi();
  * orange ; l'inversion, elle, se voit. Le glyphe reste distinct dans les quatre
  * cas, si bien que la couleur n'est jamais la seule information (1.4.1).
  */
-const BADGE_COUNT = { fond: '#1a1a1a', texte: '#ffffff' };
-const BADGE_ADDED = { fond: '#1c7c4a', texte: '#ffffff' };
-const BADGE_DUPLICATE = { fond: '#f4f4f4', texte: '#161616' };
+const BADGE_COUNT = { fond: '#0f0e12', texte: '#ffffff' };
+const BADGE_ADDED = { fond: '#006837', texte: '#ffffff' };
+const BADGE_DUPLICATE = { fond: '#ffffff', texte: '#0f0e12' };
 // Un titre adopté **change** la collection, comme un ajout : mêmes teintes que
 // l'ajout, et c'est le signe qui les sépare. Le fond clair reste réservé à ce
 // qui ne change rien.
-const BADGE_UPDATED = { fond: '#1c7c4a', texte: '#ffffff' };
-const BADGE_ERROR = { fond: '#b3122b', texte: '#ffffff' };
+const BADGE_UPDATED = { fond: '#006837', texte: '#ffffff' };
+const BADGE_ERROR = { fond: '#b81d13', texte: '#ffffff' };
 
 /**
  * Durée d'un retour transitoire sur l'icône, en millisecondes.

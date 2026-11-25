@@ -1,5 +1,66 @@
-/* IBM Plex, embarquée (SIL OFL) — sous-ensemble latin, aucune requête
-   distante : l'extension et le site servent leurs propres fichiers. */
+/* ==========================================================================
+   Application autonome — système « teenage engineering »
+
+   Un catalogue industriel sous lumière de studio : angles vifs, filets d'un
+   pixel, plans de couleur francs. Le produit — la planche de QR Codes, la
+   liste, le papier — reste le seul objet « riche » ; mais la couleur n'est pas
+   un luxe : elle dit ce qu'on peut faire.
+
+   **La couleur est un langage, pas une décoration.** L'orange de la marque
+   marque l'action et la sélection — ce qu'on peut faire, ce qui est actif. Le
+   bleu ne sert qu'aux liens, le vert à l'état « connecté », l'ambre à
+   l'avertissement, le rouge à la destruction. Une teinte n'apparaît jamais
+   sans porter un sens : c'est ce qui permet de comprendre l'écran sans lire
+   les libellés.
+
+   **Trois plans clairs, aucun aplat noir** : le gris clair de la maison
+   (#f5f5f5) pour la scène et la page, le blanc pur des panneaux et des îles
+   (champs, papier, lignes), et les filets #e5e5e5 pour séparer. Le noir
+   #0f0e12 reste une encre : texte, filets forts, petit toast — jamais une
+   surface de travail. Le papier se détache par son filet, pas par un fond
+   sombre. Une seule teinte franche : l'orange #ff5000, toujours avec du texte
+   blanc dessus.
+
+   Le fichier se lit en deux temps : l'écran d'abord, puis le papier — qui ne
+   change pas. La section « Planche d'étiquettes : écran et papier » clôt la
+   feuille : sa géométrie est partagée par l'aperçu et l'impression, et les
+   étiquettes s'impriment en IBM Plex Sans, comme hier. L'écran parle en Inter,
+   le papier garde Plex.
+   ========================================================================== */
+
+/* Inter, embarquée (SIL OFL) — poids 400, 500 et 600, sous-ensemble latin.
+   Aucune requête distante : l'extension et le site servent leurs propres
+   fichiers.
+
+   La référence teenage engineering écrit en graisse 100 : c'est un choix de
+   catalogue imprimé, illisible dans une application dense. On en garde la
+   géométrie et les filets, pas la disparition du texte. 400 porte le texte
+   courant, 500 les libellés et les commandes, 600 les titres — trois niveaux
+   qui se lisent sans avoir à plisser les yeux. */
+@font-face {
+  font-family: "Inter"; font-style: normal; font-weight: 400;
+  font-display: swap; src: url("fonts/inter-latin-400.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA,
+    U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193,
+    U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "Inter"; font-style: normal; font-weight: 500;
+  font-display: swap; src: url("fonts/inter-latin-500.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA,
+    U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193,
+    U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "Inter"; font-style: normal; font-weight: 600;
+  font-display: swap; src: url("fonts/inter-latin-600.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA,
+    U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193,
+    U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* IBM Plex Sans, embarquée (SIL OFL) — la voix du papier, et d'elle seule.
+   Une étiquette imprimée à 8 pt en graisse 100 disparaîtrait : le produit
+   physique garde ses graisses 400, 500 et 600, et cela ne se discute pas. */
 @font-face {
   font-family: "IBM Plex Sans"; font-style: normal; font-weight: 400;
   font-display: swap; src: url("fonts/ibm-plex-sans-400.woff2") format("woff2");
@@ -21,6 +82,8 @@
     U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193,
     U+2212, U+2215, U+FEFF, U+FFFD;
 }
+/* IBM Plex Mono, embarquée (SIL OFL) — le registre des données : une URL se
+   lit caractère par caractère, un rang s'aligne sur un rang. */
 @font-face {
   font-family: "IBM Plex Mono"; font-style: normal; font-weight: 400;
   font-display: swap; src: url("fonts/ibm-plex-mono-400.woff2") format("woff2");
@@ -28,150 +91,134 @@
     U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193,
     U+2212, U+2215, U+FEFF, U+FFFD;
 }
-@font-face {
-  font-family: "IBM Plex Mono"; font-style: normal; font-weight: 500;
-  font-display: swap; src: url("fonts/ibm-plex-mono-500.woff2") format("woff2");
-  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA,
-    U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193,
-    U+2212, U+2215, U+FEFF, U+FFFD;
-}
 
-/*
- * Feuille de style de l'application autonome.
- *
- * Deux univers cohabitent : l'interface à l'écran, et le rendu papier. Le
- * second est entièrement porté par `#print-root`, en millimètres, avec des
- * positions calculées plutôt qu'une grille CSS — c'est ce qui garantit qu'une
- * planche d'étiquettes autocollantes tombe juste.
- */
+/* --------------------------------------------------------------------------
+   Jetons
 
+   Socle partagé avec la fenêtre de l'extension : ces valeurs sont identiques
+   à celles de `src/extension-src/popup.css`, et `test/tokens-partages.test.js`
+   le vérifie. Deux feuilles qui dérivent en silence donnent deux produits : la
+   fenêtre et l'application qu'elle ouvre sont deux faces du même outil.
+
+   Les rôles pointent sur la palette ; ils ne réinventent aucune teinte.
+   -------------------------------------------------------------------------- */
 :root {
-  /* --- Socle de jetons, partagé avec la fenêtre de l'extension ---
-     Ces valeurs sont identiques à celles de `src/extension-src/popup.css`, et
-     `test/tokens-partages.test.js` le vérifie. Deux feuilles qui dérivent en
-     silence donnent deux produits : la fenêtre et l'application qu'elle ouvre
-     sont deux faces du même outil, elles ne peuvent pas se contredire.
+  /* --- La palette de la maison, et rien d'autre -------------------------
+     teenage.engineering ne colore pas des surfaces : il pose du blanc, du gris
+     clair, des filets #e5e5e5, et réserve la couleur aux signaux. Le noir
+     #0f0e12 reste l'encre du texte et des filets forts — jamais un fond de
+     travail. Une seule teinte franche : l'orange #ff5000. */
+  --canvas-mist: #f5f5f5;   /* le gris clair des produits, et le fond */
+  --pure-white: #ffffff;    /* les panneaux, les champs, le papier */
+  --ink-black: #0f0e12;     /* leur « te-black » : l'encre, pas un fond */
+  --carbon: #0f0e12;
+  --steel-gray: #e5e5e5;    /* les filets de la maison */
+  --graphite: #b2b2b2;      /* filet sourd, jamais du texte */
 
-     L'accent est l'orange brûlé, et il marque **les actions**. Tout ce qui n'en
-     est pas une — compteur, badges, numéros d'ordre, bordures de survol — est à
-     l'encre neutre. */
-  --bg: #ffffff;
-  --surface: #f4f4f4;
-  --surface-2: #e8e8e8;
-  /* Le bureau : la surface derrière la feuille, à l'écran seulement. */
-  --desk: #eae6df;
-  --text: #161616;
-  --text-2: #393939;
-  --text-3: #5c5c5c;
+  /* Surfaces : clair partout. Le contraste vient des filets, pas des aplats. */
+  --bg: var(--canvas-mist);        /* la scène, derrière le papier */
+  --surface-1: var(--pure-white);  /* les volets latéraux */
+  --surface: var(--pure-white);    /* les îles : champs, lignes, papier */
+  --surface-2: var(--steel-gray);  /* survol neutre, bouton secondaire */
+  --desk: var(--bg);               /* le studio est clair, lui aussi */
+  --text: var(--ink-black);
+  --text-2: #4d4d4d;               /* leur grey-900 */
+  --text-3: #666666;               /* lisible sur le gris de la scène */
 
-  --accent: #c2410c;
-  --accent-ink: #ffffff;
-  --accent-hover: #9a3412;
+  /* --- L'action : l'orange pur de la marque (#ff5000). Blanc dessus. --- */
+  --action: #ff5000;
+  --action-hover: #e04700;
+  --action-ink: #ffffff;
 
-  --ink: #1a1a1a;
-  --ink-ink: #ffffff;
-  --ink-hover: #000000;
+  /* --- Le lien : le bleu de la maison. --- */
+  --link: #0071bb;
+  --link-hover: #00538a;
 
-  /* Pas de `--danger-soft` : un fond teinté de rouge vire au rose, troisième
-     teinte chaude coincée entre l'orange et le rouge. Le danger tient sur la
-     bordure, l'icône et le libellé, sur un fond neutre. */
-  --danger: #b3122b;
+  /* --- Les états, aux teintes de la maison. --- */
+  --danger: #b81d13;
+  --warn: #fab413;
+  --warn-ink: var(--ink-black);
+  --ok: #006837;
 
-  --border-line: #e0e0e0;
-  --border-strong: #8d8d8d;
-  --focus: var(--accent);
-  /* Le focus d'un champ se dit par son **fond**, et non par un anneau : voir la
-     règle `.input:focus`. Une teinte chaude, assez marquée pour se voir sur le
-     gris du panneau comme sur le blanc de l'éditeur, et le texte reste à plus de
-     12:1 dessus. */
-  --focus-fill: #f1d3bf;
+  /* Le noir de l'encre ne sert qu'aux petits aplats : le toast. */
+  --ink: var(--ink-black);
+  --ink-ink: var(--pure-white);
+  --ink-hover: #262626;
 
-  /* --- Propres à l'application --- */
+  /* Alias d'accent, conservés pour la fenêtre et les tests partagés. */
+  --accent: var(--action);
+  --accent-ink: var(--action-ink);
+  --accent-hover: var(--action-hover);
 
-  /* Vert de disponibilité : la seule teinte froide, réservée à l'état
-     « connecté ». Elle ne concurrence donc ni l'orange ni le rouge. */
-  --ok: #1c7c4a;
+  --border-line: var(--steel-gray);
+  --border-strong: var(--ink-black);
+  --border-control: #767676;       /* la limite d'un champ : 4,5:1 sur blanc */
+  --focus: var(--action);
+  --focus-fill: var(--pure-white);
 
   --radius: 0;
-  --font: "IBM Plex Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
-  --mono: "IBM Plex Mono", "SF Mono", Menlo, monospace;
-
-  /* Échelles : espacement, typographie, hauteurs de contrôle. Un pas commun
-     remplace les valeurs ad hoc — c'est ce qui donne un rythme lisible, et ce
-     qu'un test vérifie désormais. Les tailles en points restent réservées au
-     papier, où l'échelle est physique. */
-  --space-05: 2px;
-  --space-1: 4px;
-  --space-15: 6px;
-  --space-2: 8px;
-  --space-3: 12px;
-  --space-4: 16px;
-  --space-5: 24px;
-  --space-6: 32px;
-
-  --type-2xs: 11px;
-  --type-xs: 12px;
-  --type-sm: 13px;
-  --type-base: 15px;
-  --type-lg: 16px;
-  --type-xl: 20px;
-
-  --control-sm: 28px;
-  --control: 32px;
-  --control-lg: 36px;
   --motion-fast: 90ms;
-  --motion: 140ms;
+  --motion: 120ms;
   --motion-slow: 220ms;
   --easing: cubic-bezier(0.2, 0.7, 0.2, 1);
+  /* La feuille est un objet posé : une ombre, uniquement pour elle. */
+  --shadow-sheet: 0 1px 6px rgba(15, 14, 18, 0.22);
 
-  /* Une seule ombre dans tout le système : la feuille posée sur le bureau. */
-  --shadow-sheet: 0 1px 6px rgba(0, 0, 0, 0.12);
+  --font: "Inter", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --mono: "IBM Plex Mono", "SF Mono", Menlo, monospace;
+  /* La pile du papier : elle ne suit pas la voix de l'écran. */
+  --font-papier: "IBM Plex Sans", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 
-  /* Cases à cocher, boutons radio et curseurs : sans cela le navigateur les
-     peint avec le bleu du système, seule touche froide d'une interface qui n'en
-     a aucune. */
-  accent-color: var(--accent);
-}
+  /* Échelle typographique : 11 / 13 / 19 / 24 / 40. Cinq valeurs, pas six. */
+  --type-2xs: 11px;
+  --type-sm: 13px;
+  --type-lg: 19px;
+  --type-xl: 24px;
+  --type-2xl: 40px;
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #161616;
-    --surface: #262626;
-    --surface-2: #333333;
-    --desk: #1c1b19;
-    --text: #f4f4f4;
-    --text-2: #c6c6c6;
-    --text-3: #a8a8a8;
+  /* Trois graisses, trois rôles. Rien en dessous de 400 pour du texte. */
+  --weight-texte: 400;
+  --weight-ui: 500;
+  --weight-titre: 600;
 
-    --accent: #fdba74;
-    --accent-ink: #2a1204;
-    --accent-hover: #fecda0;
+  --leading-caption: 1.5;
+  --leading-subheading: 1.3;
+  --leading-heading: 1.2;
 
-    --ink: #f4f4f4;
-    --ink-ink: #161616;
-    --ink-hover: #ffffff;
+  /* Échelle d'espacement : 2 / 4 / 8 / 15 / 22 / 33 / 66 */
+  --space-05: 2px;
+  --space-1: 4px;
+  --space-15: 8px;
+  --space-2: 15px;
+  --space-3: 22px;
+  --space-4: 33px;
+  --space-5: 66px;
+  --space-6: 66px;
 
-    --danger: #ff9d94;
+  --control-sm: 28px;
+  --control: 36px;
+  --control-lg: 44px;
 
-    --border-line: #393939;
-    --border-strong: #6f6f6f;
-    --focus-fill: #4a3a2c;
+  --page-max-width: 1440px;
 
-    --ok: #4ade80;
-  }
+  /* Aucune graisse n'est synthétisée : 400, 500 et 600 sont livrées. */
+  font-synthesis: none;
+  accent-color: var(--action);
+  /* Clair uniquement. La référence est un studio, pas un thème. */
+  color-scheme: light;
 }
 
 * { box-sizing: border-box; }
 
 /* L'attribut `hidden` doit gagner. Depuis que des composants déclarent leur
-   `display` (boutons, pied de fenêtre…), la règle du navigateur perdait la
-   bataille : trois actions primaires de modes différents restaient visibles,
-   et les panneaux masqués reprenaient leur place. */
+   `display` (boutons, pied de fenêtre…), la règle du navigateur perdrait la
+   bataille : trois actions primaires de modes différents resteraient visibles,
+   et les panneaux masqués reprendraient leur place. */
 [hidden] { display: none !important; }
 
 /* Les contrôles natifs ne reçoivent pas la police du document : sans cette
    règle, les cases et certains boutons retombaient sur le 13,333 px du
-   navigateur, une septième taille hors des jetons. */
+   navigateur, une taille hors des jetons. */
 button, input, select, textarea { font: inherit; }
 
 body {
@@ -180,10 +227,12 @@ body {
   background: var(--bg);
   color: var(--text);
   font-family: var(--font);
-  font-size: var(--type-base);
-  line-height: 1.5;
-  color-scheme: light dark;
+  font-size: var(--type-sm);
+  font-weight: 400;
+  line-height: var(--leading-caption);
 }
+
+::selection { background: var(--action); color: var(--action-ink); }
 
 .sr-only {
   position: absolute;
@@ -194,82 +243,98 @@ body {
   white-space: nowrap;
 }
 
-/* --- Barre supérieure --- */
-
-.topbar {
+/* --- Châssis à trois zones ---
+ *
+ * Volet de collection, scène d'aperçu, inspecteur de mise en forme. La hauteur
+ * est celle de la fenêtre : l'aperçu reste visible pendant qu'on règle, et
+ * c'est la seule zone qui défile quand la feuille est grande.
+ */
+.shell {
   display: grid;
-  /* Marque et sous-titre, sélecteur de langue, compteur. */
-  grid-template-columns: 1fr auto auto;
-  align-items: baseline;
-  gap: var(--space-05) var(--space-3);
-  padding: var(--space-4) clamp(16px, 4vw, 40px) var(--space-3);
-  /* Même signal que l'en-tête de la fenêtre : un filet d'encre, pas l'accent.
-     L'accent est réservé aux actions. */
-  border-bottom: 2px solid var(--ink);
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  height: 100vh;
+  overflow: hidden;
 }
 
-/* La marque et le titre forment un seul objet de la grille : sans ce
-   regroupement, le SVG deviendrait un troisième enfant et se placerait dans une
-   cellule à lui, à côté du titre plutôt qu'à sa gauche. */
-.topbar__brand {
+.app {
+  display: grid;
+  grid-template-columns: 360px minmax(0, 1fr) 340px;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.app > .panel, .app > .stage { min-height: 0; min-width: 0; }
+
+/* --- Barre de navigation ---
+ *
+ * Une seule ligne, 66 px de haut, fond canvas, filet bas 1 px. Pas d'ombre,
+ * pas de fond : la marque à gauche, le sous-titre en méta, la langue et le
+ * compteur en texte nu à droite. La référence ne centre jamais.
+ */
+.topbar {
   display: flex;
   align-items: center;
   gap: var(--space-3);
+  min-height: var(--space-5);
+  padding: 0 var(--space-4);
+  background: var(--bg);
+  border-bottom: 1px solid var(--border-line);
+}
+
+/* La marque et le titre forment un seul objet : le SVG et le mot sont un
+   wordmark, pas deux éléments de la barre. */
+.topbar__brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
   min-width: 0;
 }
 
+/* La marque est l'icône du produit. Elle garde ses couleurs : c'est la
+   première note d'orange de la page, et elle annonce la couleur des actions. */
 .marque {
   flex: none;
-  width: 30px;
-  height: 30px;
-  /* La tuile arrondie fait partie du dessin : l'icône porte déjà son fond et
-     son arrondi, et l'image reste la même dans les deux thèmes. */
-  border-radius: 7px;
+  width: 22px;
+  height: 22px;
 }
 
 .topbar__title {
   margin: 0;
   font-size: var(--type-xl);
-  font-weight: 600;
-  letter-spacing: -0.01em;
+  font-weight: var(--weight-titre);
+  line-height: var(--leading-subheading);
+  letter-spacing: normal;
+  white-space: nowrap;
 }
 
-/* Les données s'alignent en mono : URL, rangs, compteurs, cotes, version. */
-.mono,
-.link__url,
-.link__index,
-.pill,
-.preview__fact,
-.stage__hint,
-.search-field__count {
-  font-family: var(--mono);
-  font-variant-numeric: tabular-nums;
-}
-
+/* Le sous-titre est de la méta : 13 px, 100, encre tertiaire. Il se replie
+   avant de pousser les commandes hors de la barre. */
 .topbar__subtitle {
-  grid-column: 1;
+  flex: 1 1 auto;
+  min-width: 0;
   margin: 0;
-  color: var(--text-2);
+  overflow: hidden;
+  color: var(--text-3);
   font-size: var(--type-sm);
+  font-weight: 400;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-/* Le sélecteur de langue est aligné verticalement avec le bloc de marque :
-   il occupe la colonne du milieu, sur les deux rangées. */
-.locale {
-  grid-column: 2;
-  grid-row: 1 / span 2;
-  align-self: center;
-}
+/* Le sélecteur de langue n'est pas une pastille : du texte, un filet bas. */
+.locale { flex: none; }
 
 .locale__select {
-  font: inherit;
-  font-size: var(--type-xs);
   min-height: var(--control-sm);
-  padding: 0 var(--space-15);
-  border: 1px solid var(--border-strong);
+  padding: 0 var(--space-4) 0 0;
+  border: 0;
+  border-bottom: 1px solid var(--border-line);
   border-radius: var(--radius);
-  background: var(--bg);
+  background: transparent;
   color: var(--text);
+  font-size: var(--type-sm);
+  font-weight: 400;
 }
 
 .locale__select:focus-visible {
@@ -277,50 +342,27 @@ body {
   outline-offset: 2px;
 }
 
+/* Le compteur : une méta en mono, pas un badge. Le noir est réservé à
+   l'action et aux filets structurants. */
 .pill {
-  /* `grid-column` est indispensable : un élément dont la ligne est définie mais
-     dont la colonne est automatique est placé **avant** les éléments
-     entièrement automatiques. Sans cette ligne, le compteur prenait la colonne
-     large et repoussait le titre à droite. */
-  grid-column: 3;
-  grid-row: 1 / span 2;
-  align-self: center;
-  padding: var(--space-1) var(--space-3);
-  border-radius: var(--radius);
-  background: var(--ink);
-  color: var(--ink-ink);
-  font-size: var(--type-xs);
+  flex: none;
+  padding: var(--space-05) var(--space-15);
+  border: 1px solid var(--action);
+  background: var(--action);
+  color: var(--action-ink);
+  font-family: var(--mono);
+  font-size: var(--type-sm);
+  font-weight: var(--weight-titre);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
 
-/* --- Grille principale --- */
-
-.layout {
-  display: grid;
-  grid-template-columns: minmax(320px, 420px) minmax(0, 1fr);
-  gap: var(--space-4);
-  align-items: start;
-  padding: var(--space-4) clamp(16px, 4vw, 40px) var(--space-5);
-}
-
-@media (max-width: 900px) {
-  /* `minmax(0, 1fr)` et non `1fr`.
-     `1fr` vaut `minmax(auto, 1fr)`, et son minimum est donc le **contenu
-     minimal** de la colonne : la grille refusait de descendre sous 432 px, et la
-     page débordait horizontalement dès que la fenêtre faisait moins de 448 px.
-     Un minimum à zéro laisse la colonne se réduire ; c'est au contenu de
-     s'adapter, et il en est capable — les rangées de champs s'enroulent. */
-  .layout { grid-template-columns: minmax(0, 1fr); }
-}
-
-/* Les cadres de panneau ont été retirés : le fond `--surface` suffit à détacher
-   le panneau de la page, et un cadre autour d'un champ déjà bordé faisait deux
-   lignes pour une seule limite. Le champ garde **son** filet — c'est lui qui
-   porte le contraste de 3:1 exigé par WCAG 1.4.11 pour la limite d'un composant.
-   La structure se lit donc par le fond et par l'espacement, pas par des traits.
-   Les cadres restants (`--banner`, `.printer`, `.preview`) ne contiennent aucun
-   champ : ce sont des surfaces, et leur contour dit ce qu'elles enferment. */
+/* --- Volet, scène, inspecteur ---
+ *
+ * Plus aucun fond de panneau : le canvas est le fond partout, et les colonnes
+ * sont séparées par un filet d'un pixel. Une section se reconnaît à son filet
+ * et à son espace blanc, jamais à un aplat.
+ */
 .panel {
   display: flex;
   flex-direction: column;
@@ -328,215 +370,244 @@ body {
      panneau refuse de descendre sous la largeur de son contenu le plus large,
      et la grille déborde avec lui. */
   min-width: 0;
-  gap: var(--space-3);
-  padding: var(--space-4);
   border: 0;
-  border-radius: var(--radius);
-  background: var(--surface);
+  gap: var(--space-3);
+  padding: var(--space-3);
+  /* Un plan gris clair, distinct du canvas de la scène : on voit où l'on est
+     avant même de lire le titre. Les filets séparent, la teinte situe. */
+  background: var(--surface-1);
 }
 
 .panel__title {
   margin: 0;
-  font-size: var(--type-sm);
-  font-weight: 650;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--text-2);
+  color: var(--text);
+  font-size: var(--type-lg);
+  font-weight: var(--weight-titre);
+  letter-spacing: -0.01em;
+  line-height: var(--leading-subheading);
+  letter-spacing: normal;
+  text-transform: none;
 }
 
-/* Les deux groupes sont empilés et partagent le même bord gauche.
- *
- * Le second était repoussé à droite pour dire qu'« effacer » n'est pas la suite
- * d'« exporter ». La séparation est désormais portée par l'espace vertical :
- * elle se lit aussi bien, et les deux groupes s'alignent sur le bord du panneau
- * au lieu de flotter à des abscisses différentes.
- *
- * Une colonne plutôt qu'un `flex-wrap` : avec l'enroulement, la position du
- * second groupe dépendait de la largeur disponible — il passait à la ligne ou
- * non selon le contenu du premier. Ici, l'empilement est déterminé. */
-.panel__footer {
+/* Volet et inspecteur défilent pour eux-mêmes : la scène ne bouge pas. */
+.rail {
+  overflow-y: auto;
+  border-right: 1px solid var(--border-line);
+}
+
+.inspector {
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
-  padding-top: 10px;
+  overflow-y: auto;
+  border-left: 1px solid var(--border-line);
+}
+
+/* Le pied de l'inspecteur reste au bas du panneau : les actions du mode actif
+   ne se perdent pas en bas d'une longue liste de réglages. Bouton plein noir,
+   pleine largeur. */
+.inspector__foot {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-top: auto;
+  padding-top: var(--space-3);
+  background: var(--surface-1);
   border-top: 1px solid var(--border-line);
 }
 
-/* Deux sorties du tableau, côte à côte, placées entre les instructions du mode
-   actif et l'aperçu : on règle, on agit, puis on regarde le résultat. La
-   disposition verticale vient du `gap` du panneau, dont cette rangée est un
-   enfant direct — pas de pied de panneau ici. */
-.panel__actions {
-  display: flex;
-  gap: var(--space-15);
+.inspector__foot .btn {
+  width: 100%;
+  justify-content: center;
+  min-height: var(--control-lg);
 }
 
-.panel__actions .btn {
-  flex: 1 1 0;
+/* Le résumé de portée, avant le clic : une méta en mono. */
+.print-summary {
+  margin: 0;
+  color: var(--text-3);
+  font-size: var(--type-2xs);
+  line-height: var(--leading-caption);
 }
 
-/* --- Groupes du panneau de la planche --- */
-
-/* Deux groupes : la page, puis l'étiquette.
+/* --- La scène : la bande Carbone
  *
- * Les réglages se suivaient à plat — largeur du QR Code, cases de contenu,
- * grille, marges, bordure, en-tête — sans que rien ne distingue ce qui décrit
- * la **feuille** de ce qui décrit **l'étiquette**. Ils portent la même bordure
- * et la même légende que les groupes de cases, pour que la séparation se voie
- * sans avoir à lire. */
-.sheet-group {
+ * La zone de travail est l'écrin du produit : une bande `--carbon` sur
+ * laquelle la feuille blanche flotte, sans ombre, bords vifs. Aucune bordure
+ * autour de la bande sombre — la couleur suffit.
+ */
+.stage {
   display: flex;
   flex-direction: column;
-  /* Même raison que sur `.panel` : un enfant de boîte flexible a un minimum
-     automatique égal à sa largeur de contenu. Sans cette ligne, le groupe
-     refusait de descendre sous 338 px et débordait de 6 px une fenêtre de
-     380 px — le dernier reste d'un débordement de 83 px. */
   min-width: 0;
-  gap: var(--space-3);
-  margin: 0;
-  padding: var(--space-3);
-  border: 0;
-  border-radius: var(--radius);
-  background: var(--bg);
+  background: var(--surface);
 }
 
-/* Le titre d'un groupe de la planche.
- *
- * C'était une `<legend>` : dans une boîte flexible, elle garde son rendu spécial
- * et se pose **sur** le cadre du groupe — le titre mordait sur la bordure, et
- * l'espace au-dessus du premier champ dépendait de la hauteur de la légende.
- * Un titre ordinaire se place dans le flux, et `aria-labelledby` rend au groupe
- * le nom qu'il a perdu. */
-.sheet-group__title {
+.stage__bar {
+  flex: none;
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: var(--space-2);
-  min-height: 40px;
-  margin: 0;
-  padding: 0 var(--space-2);
-  border: 1px solid var(--border-line);
-  background: var(--bg);
+  height: var(--control-lg);
+  padding: 0 var(--space-3);
+  background: var(--surface);
+  border-bottom: 1px solid var(--border-line);
+}
+
+.stage__title {
   color: var(--text);
-  font-size: var(--type-xs);
-  font-weight: 650;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  list-style: none;
+  font-size: var(--type-sm);
+  font-weight: var(--weight-ui);
+}
+
+.stage__hint {
+  color: var(--text-3);
+  font-size: var(--type-2xs);
+  font-weight: 400;
+  letter-spacing: normal;
+}
+
+.stage__zoom {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  margin-left: auto;
+}
+
+.stage__zoom-btn {
+  display: grid;
+  place-items: center;
+  min-width: var(--control-sm);
+  min-height: var(--control-sm);
+  padding: 0;
+  border: 1px solid var(--border-line);
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--text-2);
   cursor: pointer;
 }
 
-.sheet-group__title::-webkit-details-marker { display: none; }
+.stage__zoom-btn:not(:disabled):hover { border-color: var(--ink); color: var(--ink); }
+.stage__zoom-btn:disabled { border-color: var(--border-line); color: var(--graphite); cursor: default; }
+.stage__zoom-btn:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
 
-.sheet-group__title:hover {
-  border-color: var(--border-strong);
-  background: var(--surface-2);
+.stage__zoom-value {
+  min-width: var(--space-5);
+  color: var(--text-3);
+  font-size: var(--type-2xs);
+  font-variant-numeric: tabular-nums;
+  text-align: center;
 }
 
-.sheet-group[open] > .sheet-group__title {
-  border-color: var(--border-strong);
-  background: var(--surface-2);
-}
-
-.sheet-group__title:focus-visible {
-  outline: 2px solid var(--focus);
-  outline-offset: 2px;
-}
-
-/* Le chevron : la même boîte de 24 px que les autres dépliants. */
-.sheet-group__title::after {
-  content: "";
-  flex: none;
-  width: 24px;
-  height: 24px;
-  margin-left: auto;
-  border: 1px solid var(--border-strong);
-  background: var(--bg) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cpath d='M6 8l4 4 4-4' fill='none' stroke='%231a1a1a' stroke-width='1.5' stroke-linecap='square'/%3E%3C/svg%3E") center / 14px 14px no-repeat;
-  transition: transform var(--motion) var(--easing);
-}
-
-.sheet-group[open] > .sheet-group__title::after { transform: rotate(180deg); }
-
-.sheet-group__body {
+/* Le studio : la surface derrière la feuille. Un **gris** franc — le gris
+   produit de la maison (#e5e5e5), pas un fond noir : le papier blanc s'y
+   détache, et les légendes restent lisibles. */
+.stage__surface {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
   display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-  min-width: 0;
+  align-items: flex-start;
+  justify-content: center;
+  padding: var(--space-3) var(--space-4);
+  background: var(--steel-gray);
 }
 
-/* Les groupes de cases imbriqués n'ont pas besoin de leur propre fond : ils
-   héritent de celui du groupe, et deux bordures imbriquées feraient du bruit. */
-.sheet-group .columns { background: none; }
+/* L'aperçu n'est plus un panneau du formulaire : c'est le contenu de la scène. */
+.stage .preview {
+  flex: none;
+  width: 100%;
+  min-height: 0;
+  max-height: none;
+  overflow: visible;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
 
-/* --- Formulaires --- */
+.stage .preview__surface { width: 100%; }
 
-.add-form { display: flex; gap: var(--space-15); }
+/* En mode Planche, la feuille est montrée à une échelle qui tient dans la
+   hauteur : c'est un aperçu, pas un zoom maximal. Les autres modes gardent
+   toute la largeur disponible. */
+.stage[data-mode="sheet"] .preview { max-width: 430px; }
 
-/* **Un seul trait, et rien derrière.** Le champ portait un cadre *et* un fond
-   blanc : dans un panneau gris, cela faisait une boîte dans une boîte — deux
-   contours pour une seule zone de saisie. Il est maintenant une aire **soulignée
-   par son seul filet**, posée sur la surface qui le porte (le gris du panneau, le
-   blanc de l'éditeur), et c'est ce filet qui tient le contraste de 3:1 exigé par
-   WCAG 1.4.11 pour la limite d'un composant. */
+@media (max-width: 1180px) {
+  .app { grid-template-columns: 310px minmax(0, 1fr) 310px; }
+}
+
+@media (max-width: 900px) {
+  .shell { height: auto; overflow: visible; }
+  .app {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: 480px auto auto;
+    overflow: visible;
+  }
+  /* Sur une seule colonne, la scène passe en tête : l'aperçu reste la
+     première chose visible, le volet vient ensuite. */
+  .stage { order: 1; height: 480px; }
+  .rail { order: 2; overflow: visible; border-right: 0; border-top: 1px solid var(--border-line); }
+  .inspector { order: 3; overflow: visible; border-left: 0; border-top: 1px solid var(--border-line); }
+  .inspector__foot { position: static; }
+  .topbar { flex-wrap: wrap; padding-top: var(--space-15); padding-bottom: var(--space-15); }
+  .topbar__subtitle { flex-basis: 100%; order: 3; }
+  .locale { margin-left: auto; }
+}
+
+/* --- Formulaires ---
+ *
+ * Un champ est une aire blanche cernée d'un seul filet : celui qui tient le
+ * contraste de 3:1 exigé par WCAG 1.4.11 pour la limite d'un composant. Le
+ * libellé se lit au-dessus, à gauche, en méta.
+ */
 .input {
   width: 100%;
   min-height: var(--control);
-  padding: 0 var(--space-3);
-  border: 1px solid var(--border-strong);
+  padding: 0 var(--space-2);
+  border: 1px solid var(--border-control);
   border-radius: var(--radius);
-  background: transparent;
+  background: var(--surface);
   color: var(--text);
   font-family: inherit;
   font-size: var(--type-sm);
+  font-weight: var(--weight-ui);
 }
 
-/* **Le focus se dit par le fond, pas par un contour.** L'anneau ajoutait une
-   seconde ligne autour d'un champ qui en avait déjà une : deux rectangles
-   concentriques pour dire « ce champ est actif ». Le fond teinté le dit mieux —
-   c'est l'aire de saisie elle-même qui change —, et il n'ajoute aucun trait.
-   `:focus` et non `:focus-visible` : cliquer dans un champ doit aussi le montrer
-   actif, pas seulement y arriver au clavier.
-   `outline: none` explicite, y compris sur `:focus-visible` : sans lui, le
-   navigateur dessine **son** anneau au clavier, et le contour revient par la
-   porte de derrière — c'est précisément ce qui a fait durer le double filet. */
+/* Le focus se dit par un trait de dessin technique : le filet passe à l'encre,
+   et un contour intérieur de 2 px le double, sans ajouter de seconde boîte.
+   Jamais `outline: none` sans remplacement. */
 .input:focus,
 .input:focus-visible {
-  background: var(--focus-fill);
-  /* Le fond teinté (--focus-fill) ne contraste qu'à 1,42:1 avec le blanc :
-     sous le seuil de 3:1 de WCAG 2.4.11. L'anneau intérieur porte
-     l'indicateur, et couvre le filet existant au lieu d'en ajouter un second. */
-  box-shadow: inset 0 0 0 2px var(--ink);
-  outline: none;
+  border-color: var(--border-strong);
+  outline: 2px solid var(--focus);
+  outline-offset: -2px;
 }
 
-.input--compact { min-height: var(--control-sm); padding: 0 var(--space-2); }
-textarea.input { padding: var(--space-2) var(--space-3); }
+.input--compact { min-height: var(--control-sm); }
+textarea.input { padding: var(--space-15) var(--space-2); }
 
-/* `flex-basis` fixe la largeur de reference de chaque champ. Sans elle, un
-   libelle long — « Format d'etiquette » — elargissait sa colonne et faisait
-   deborder les suivantes : les champs se chevauchaient a l'ecran. */
+/* Le nom prend la ligne entière : il porte deux commandes à sa droite. Le
+   numéro garde sa largeur fixe. */
+.fields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.fields > .field { flex: 1 1 160px; }
+.fields > .field--name { flex: 1 1 100%; }
+.fields > .field--count { flex: 0 0 132px; }
+
+/* `flex-basis` ne vaut que dans une rangée : dans une colonne, elle devient une
+   hauteur et chaque champ s'étirerait à 160 px. La mesure est dans
+   `docs/verification-chrome.md`. */
 .field {
   display: flex;
   flex-direction: column;
   gap: var(--space-1);
   min-width: 0;
-}
-
-/* Le dimensionnement ne vaut que dans une **rangee** : dans `.fields`, la base
-   de 160 px est une largeur, et c'est bien ce qu'on veut.
- *
- * Posee sur `.field` lui-meme, elle s'appliquait aussi aux champs enfants
- * directs d'un panneau — une colonne — ou la base devient une hauteur : chaque
- * champ s'etirait a 160 px et laissait 94 a 109 px de vide sous son libelle.
- * Trois champs concernes, 315 px perdus dans les deux panneaux, et une note de
- * collection repoussee vers le bas sans raison. La mesure est dans
- * `docs/verification-chrome.md`. */
-.fields > .field { flex: 1 1 160px; }
-
-/* Un libelle ne doit jamais elargir sa colonne ni deborder sur la voisine. */
-.field__label {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 /* `.field` impose `display: flex`, qui l'emporterait sur le `display: none` de
@@ -546,9 +617,8 @@ textarea.input { padding: var(--space-2) var(--space-3); }
 
 .field--inline { flex-direction: row; align-items: center; gap: var(--space-15); }
 
-/* Un réglage d'**aperçu** n'est pas un réglage d'impression : il ne doit pas
-   être collé au texte qui décrit le contenu, ni au bloc imprimante. La ligne
-   prend ses distances et se détache par un filet. */
+/* Un réglage d'**aperçu** n'est pas un réglage d'impression : il se détache par
+   deux filets, et respire. */
 .field--preview {
   margin: var(--space-2) 0;
   padding: var(--space-2) 0;
@@ -556,104 +626,471 @@ textarea.input { padding: var(--space-2) var(--space-3); }
   border-bottom: 1px solid var(--border-line);
 }
 
+/* Un libellé ne doit jamais élargir sa colonne ni déborder sur la voisine. */
+.field__label {
+  overflow: hidden;
+  color: var(--text-2);
+  font-size: var(--type-sm);
+  font-weight: var(--weight-ui);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.field__label em { font-style: normal; color: var(--text-3); }
+
 /* Un champ et son bouton accolé : le bouton ne doit pas être étiré par la
    largeur du champ, il reste à sa taille naturelle. */
 .field__row { display: flex; align-items: stretch; gap: var(--space-15); }
 .field__row .input { flex: 1; min-width: 0; }
 .field__row .btn { flex: none; }
-.field__label { color: var(--text-2); font-size: var(--type-xs); }
-.fields { display: flex; flex-wrap: wrap; gap: var(--space-3); }
 
-/* Le nom prend la ligne entière : il porte deux commandes à sa droite —
-   « Enregistrer » et « Nouvelle » —, qui ne tiendraient pas à côté du numéro.
-   Le numéro garde sa largeur fixe, et l'enroulement de `.fields` le fait passer
-   sous le nom, sans qu'une requête de média ait à le prévoir. */
-.fields > .field--name { flex: 1 1 100%; }
+.field-error {
+  margin: 0;
+  color: var(--danger);
+  font-size: var(--type-2xs);
+  font-weight: var(--weight-ui);
+}
 
-/* Le premier numéro : sa largeur est fixe, et il décrit la collection comme le
-   nom — il reste donc dans la même rangée, sous le nom. */
-.fields > .field--count { flex: 0 0 132px; }
+.add-form { display: flex; gap: var(--space-15); }
+.add-form .input { flex: 1; min-width: 0; }
 
-/* Choix de la collection : le sélecteur prend sa ligne, et les deux commandes
-   qui portent sur la collection — réordonner, supprimer — sont dessous, côte à
-   côte. Toutes deux en `btn--small` : « Supprimer » seul à côté du sélecteur
-   était plus haut que « Réorganiser » placé dessous, et les deux gestes ne se
-   lisaient pas comme une seule rangée. */
+.toolbar { display: flex; align-items: flex-end; gap: var(--space-2); }
+/* La recherche prend la place, le tri garde la sienne : un tri comprimé
+   afficherait « Titre, A → … » et ne dirait plus lequel. */
+.toolbar .input[type="search"] { flex: 1; min-width: 0; }
+.toolbar .field--compact { flex: none; max-width: 45%; }
+
+/* Cases à cocher et curseurs : rectangles à angles vifs, filet d'encre,
+   remplissage d'encre quand c'est coché. */
+input[type="checkbox"] {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  border: 1px solid var(--border-control);
+  border-radius: var(--radius);
+  background: var(--surface);
+  cursor: pointer;
+}
+
+input[type="checkbox"]:checked {
+  background-color: var(--action);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M3.2 8.6l3.1 3.1 6.5-6.6' fill='none' stroke='%23ffffff' stroke-width='2' stroke-linecap='square' stroke-linejoin='miter'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 12px 12px;
+}
+
+input[type="checkbox"]:indeterminate {
+  border-color: var(--action);
+  background: var(--action);
+}
+
+input[type="checkbox"]:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+/* Le curseur : une piste d'un filet, un pouce de 6 × 18 px. Pas de dégradé —
+   la valeur se lit dans le nombre qui l'accompagne, pas dans une couleur. */
+input[type="range"] {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 100%;
+  height: var(--control-sm);
+  background: transparent;
+  cursor: pointer;
+}
+
+input[type="range"]::-webkit-slider-runnable-track {
+  height: 2px;
+  background: var(--border-line);
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 6px;
+  height: 18px;
+  margin-top: -8px;
+  border: 0;
+  border-radius: var(--radius);
+  background: var(--ink);
+}
+
+input[type="range"]::-moz-range-track { height: 2px; background: var(--border-line); }
+input[type="range"]::-moz-range-progress { height: 2px; background: var(--ink); }
+input[type="range"]::-moz-range-thumb {
+  width: 6px; height: 18px; border: 0; border-radius: var(--radius); background: var(--ink);
+}
+
+input[type="range"]:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+
+/* Un curseur n'est pas un champ texte, même s'il porte `.input` pour sa
+   largeur : sans cette remise à zéro, il héritait du filet, du fond et du
+   contour intérieur des champs — un cadre noir autour de la piste. */
+.input[type="range"] {
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.input[type="range"]:focus,
+.input[type="range"]:focus-visible {
+  background: transparent;
+  border: 0;
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+/* Sélecteurs : le chevron du navigateur est remplacé par le même dessin que les
+   icônes, d'un trait d'encre. */
+select.input, .locale__select {
+  appearance: none;
+  -webkit-appearance: none;
+  padding-right: 30px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cpath d='M6 8l4 4 4-4' fill='none' stroke='%230f0e12' stroke-width='1.5' stroke-linecap='square'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right var(--space-15) center;
+  background-size: 14px 14px;
+}
+
+/* Groupes de cases : un fieldset sans cadre, une légende de catalogue. */
+.columns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-4);
+  margin: var(--space-2) 0 0;
+  padding: var(--space-2) 0 0;
+  border: 0;
+  border-top: 1px solid var(--border-line);
+  border-radius: var(--radius);
+}
+
+.columns__legend {
+  padding: 0;
+  color: var(--text-3);
+  font-size: var(--type-sm);
+  font-weight: 400;
+}
+
+.columns__item {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: var(--space-15);
+  /* 2.5.8 : la cible est le libellé entier, pas la case seule. Encore
+     faut-il qu'il atteigne 24 px de haut. */
+  min-height: 24px;
+  cursor: pointer;
+}
+
+.columns__item:has(input:disabled) {
+  color: var(--graphite);
+  cursor: not-allowed;
+}
+
+/* --- Boutons ---
+ *
+ * Une table fermée : contour (l'action discrète), plein (l'action), fantôme
+ * (le registre du lien), danger (la destruction). Rayon 0, 13 px, 100 ou 300.
+ */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--control);
+  padding: 0 var(--space-2);
+  border: 1px solid var(--border-control);
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: var(--type-sm);
+  font-weight: var(--weight-ui);
+  line-height: var(--leading-subheading);
+  white-space: nowrap;
+  transition: background-color var(--motion) var(--easing), border-color var(--motion) var(--easing),
+    color var(--motion) var(--easing);
+}
+
+/* Désactivation par jetons, jamais par opacité : « inactif » n'a jamais voulu
+   dire « indistinct ». */
+.btn:disabled {
+  border-color: var(--border-line);
+  background: var(--bg);
+  color: var(--graphite);
+  cursor: default;
+}
+
+.btn:not(:disabled):hover {
+  background: var(--surface-2);
+  color: var(--text);
+  border-color: var(--text);
+}
+
+/* L'action pleine : fond d'encre, pas de bordure visible. */
+.btn--primary {
+  border-color: var(--action);
+  background: var(--action);
+  color: var(--action-ink);
+  font-weight: var(--weight-titre);
+}
+
+.btn--primary:not(:disabled):hover {
+  background: var(--action-hover);
+  border-color: var(--action-hover);
+  color: var(--action-ink);
+}
+
+/* Le registre du lien : texte seul, filet bas au survol. */
+.btn--ghost { border-color: transparent; background: transparent; }
+
+.btn--ghost:not(:disabled):hover {
+  border-color: transparent;
+  border-bottom-color: var(--action);
+  background: transparent;
+  color: var(--text);
+}
+
+/* Deux variantes de contour explicites : elles gardent le même dessin que
+   `.btn`, et existent pour que le balisage dise son intention. */
+/* « Ajouter » est la première action du volet : même orange que les autres
+   actions primaires, la couleur mène l'œil au bon endroit. */
+.btn--outline {
+  border-color: var(--action);
+  background: var(--action);
+  color: var(--action-ink);
+  font-weight: var(--weight-titre);
+}
+
+.btn--outline:not(:disabled):hover {
+  border-color: var(--action-hover);
+  background: var(--action-hover);
+  color: var(--action-ink);
+}
+
+/* L'export secondaire : plein d'encre, comme l'action — le système n'a qu'un
+   noir pour dire « ceci agit ». Le survol l'éclaircit d'un pas. */
+/* L'export secondaire : un aplat de gris clair, pas un second orange. La
+   couleur d'action reste réservée à ce qui lance quelque chose. */
+.btn--fill {
+  border-color: var(--surface-2);
+  background: var(--surface-2);
+  color: var(--text);
+}
+
+.btn--fill:not(:disabled):hover {
+  border-color: var(--border-line);
+  background: var(--border-line);
+  color: var(--text);
+}
+
+/* La destruction : le rouge reste au filet et au texte, sur fond neutre.
+   Jamais de fond rouge — c'est une consigne, pas une préférence. */
+.btn--danger {
+  border-color: var(--action);
+  background: var(--bg);
+  color: var(--action);
+}
+
+.btn--danger:not(:disabled):hover {
+  border-color: var(--action);
+  background: var(--action);
+  color: var(--action-ink);
+}
+
+/* Un bouton de barre d'outils : même cible qu'un contrôle compact. */
+.btn--small {
+  min-height: var(--control-sm);
+  padding: 0 var(--space-15);
+  font-size: var(--type-sm);
+}
+
+/* Les flèches de parcours : une cible carrée de 28 px. */
+.btn--arrow {
+  flex: none;
+  width: var(--control-sm);
+  min-height: var(--control-sm);
+  padding: 0;
+  font-size: var(--type-2xs);
+  line-height: 1;
+}
+
+.btn--wide { width: 100%; }
+
+/* Planche : deux groupes de réglages, la page puis l'étiquette. */
+.sheet-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  min-width: 0;
+  margin: 0;
+  padding: 0 var(--space-2) var(--space-2);
+  border: 0;
+  background: var(--bg);
+}
+
+/* Les groupes de cases imbriqués n'ont pas besoin de leur propre filet : deux
+   bordures imbriquées feraient du bruit. */
+.sheet-group .columns { background: none; }
+
+.sheet-group__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+  padding: var(--space-2) 0 var(--space-3);
+}
+
+/* Une commande de dépliant, pas une note de bas de page : toute la ligne est
+   cliquable, un chevron dit le sens, et le survol passe le libellé à l'encre. */
+.sheet-group__title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: var(--control-lg);
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  font-size: var(--type-sm);
+  font-weight: var(--weight-ui);
+  list-style: none;
+  cursor: pointer;
+}
+
+.sheet-group__title::-webkit-details-marker { display: none; }
+
+.sheet-group__title::after {
+  content: "";
+  flex: none;
+  width: 24px;
+  height: 24px;
+  margin-left: auto;
+  border: 1px solid var(--border-strong);
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cpath d='M6 8l4 4 4-4' fill='none' stroke='%230f0e12' stroke-width='1.5' stroke-linecap='square'/%3E%3C/svg%3E") center / 14px 14px no-repeat;
+  transition: transform var(--motion) var(--easing);
+}
+
+.sheet-group[open] > .sheet-group__title::after { transform: rotate(180deg); }
+
+.sheet-group__title:hover { color: var(--ink); }
+.sheet-group__title:hover::after { opacity: 1; }
+
+/* --- Onglets ---
+ *
+ * Une rangée de libellés, un filet bas sur la rangée ; l'actif prend un filet
+ * bas de 2 px et passe en 300. Pas de pastille, pas de fond.
+ */
+.tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0;
+  padding: 0;
+  background: transparent;
+  border-bottom: 1px solid var(--border-line);
+}
+
+.tab {
+  flex: 1 1 auto;
+  min-height: var(--control);
+  padding: 0 var(--space-15);
+  border: 0;
+  border-bottom: 2px solid transparent;
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--text-2);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: var(--type-sm);
+  font-weight: var(--weight-texte);
+  white-space: nowrap;
+}
+
+.tab:not(.tab--active):hover { color: var(--action); }
+
+.tab--active {
+  border-bottom-color: var(--action);
+  background: transparent;
+  color: var(--text);
+  font-weight: var(--weight-titre);
+}
+
+/* --- Focus visible ---
+ *
+ * Le contour est le trait de dessin technique du système : 2 px d'encre. Il
+ * n'est jamais supprimé sans remplacement — c'est le seul repère du clavier.
+ */
+.btn:focus-visible,
+.tab:focus-visible,
+.link__remove:focus-visible,
+.link__edit:focus-visible,
+.tag:focus-visible,
+.link--clickable:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 1px;
+}
+/* --- Volet : la collection, ses réglages, ses gestes de gestion --- */
+
+/* Le choix de la collection vient avant son nom : on choisit de quoi on parle,
+   puis on le décrit. */
 .collection-picker { display: flex; flex-direction: column; gap: var(--space-15); }
 .collection-picker .field--grow { flex: none; }
 .collection-picker__actions { display: flex; align-items: center; gap: var(--space-15); }
 .collection-picker__actions .btn { flex: none; }
 
 /* La ligne entière se masque hors de l'extension — c'est le cas de la page web
-   autonome, qui n'a qu'une collection. `display: flex` l'emporterait sur le
-   `display: none` de l'attribut `hidden` : sans cette règle, le sélecteur
-   restait visible avec une seule option et une commande sans effet. */
+   autonome, qui n'a qu'une collection. */
 .collection-picker[hidden] { display: none; }
 
-/* --- Confirmation de suppression d'une collection --- */
-
-/* Le panneau reste **dans le flux**, sous le sélecteur : il ne recouvre pas la
-   liste, et la question se lit avec ce qu'elle engage. `display: flex`
-   l'emporterait sur le `display: none` de l'attribut `hidden`. */
-.collection-confirm {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-  padding: var(--space-3);
-  border: 1px solid var(--border-line);
-  border-radius: var(--radius);
-  background: var(--surface-2);
-}
-
-.collection-confirm[hidden] { display: none; }
-
-.collection-confirm__text { margin: 0; font-size: var(--type-sm); }
-
-.collection-confirm__actions { display: flex; gap: var(--space-15); }
-
-/* --- Confirmation de vidage de la collection --- */
-
+/* Les confirmations restent **dans le flux**, sous la commande : la question se
+   lit avec ce qu'elle engage, et rien n'est recouvert. La destruction se dit
+   par le filet et le texte rouges sur fond neutre — jamais par un aplat. */
+.collection-confirm,
 .clear-confirm {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
-  margin-top: 8px;
+  gap: var(--space-15);
   padding: var(--space-3);
-  border: 1px solid var(--border-line);
+  border: 1px solid var(--action);
   border-radius: var(--radius);
-  background: var(--surface-2);
+  background: var(--surface);
 }
 
+.collection-confirm[hidden],
 .clear-confirm[hidden] { display: none; }
 
-.clear-confirm__text { margin: 0; font-size: var(--type-sm); }
+.collection-confirm__text,
+.clear-confirm__text {
+  margin: 0;
+  font-size: var(--type-sm);
+  font-weight: 400;
+}
 
+.collection-confirm__actions,
 .clear-confirm__actions { display: flex; gap: var(--space-15); }
 
-/* --- Ordre des collections --- */
-
-/* Le panneau reste **dans le flux**, sous la commande : il ne recouvre pas la
-   liste, et l'ordre se lit avec ce qu'il déplace. `display: flex` l'emporterait
-   sur le `display: none` de l'attribut `hidden`. */
+/* L'ordre des collections : un panneau de travail, cerné d'un filet d'encre. */
 .collection-order {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
-  margin-top: 6px;
+  gap: var(--space-15);
+  margin-top: var(--space-15);
   padding: var(--space-3);
   border: 1px solid var(--border-line);
   border-radius: var(--radius);
-  background: var(--surface-2);
+  background: var(--surface);
 }
 
 .collection-order[hidden] { display: none; }
-
-.collection-order__title { margin: 0; font-size: var(--type-sm); font-weight: 650; }
-
-.collection-order__hint { margin: 0; font-size: var(--type-xs); color: var(--text-2); }
-
+.collection-order__title { margin: 0; font-size: var(--type-sm); font-weight: 500; }
+.collection-order__hint { margin: 0; color: var(--text-3); font-size: var(--type-2xs); }
 .collection-order__list { display: flex; flex-direction: column; gap: var(--space-15); }
-
 .collection-order__row { display: flex; align-items: center; gap: var(--space-15); }
 
 /* Le nom prend la place, les deux flèches gardent la leur : un nom long se
@@ -666,89 +1103,573 @@ textarea.input { padding: var(--space-2) var(--space-3); }
   white-space: nowrap;
 }
 
-.collection-order__move { flex: none; min-width: 26px; padding: var(--space-1) var(--space-2); }
+.collection-order__move {
+  flex: none;
+  min-width: var(--control-sm);
+  min-height: var(--control-sm);
+  padding: 0;
+}
 
 .collection-order__status { margin: 0; }
+.collection-order__done { align-self: flex-start; margin-top: var(--space-1); }
 
-/* « Terminé » ferme le panneau : il se range sous la liste, à gauche, et non
-   parmi les flèches qu'il ne déplace pas. */
-.collection-order__done { align-self: flex-start; margin-top: 2px; }
+/* Une action destructive ne se propose pas à côté d'un sélecteur inoffensif :
+   elle apparaît au survol ou au focus du bloc collection, et reste accessible
+   au clavier. Au tactile, elle reste visible. */
+/* Le bouton de suppression reste visible : une commande qui n'existe qu'au
+   survol se découvre par hasard, et un fondu d'apparition rend sa couleur
+   impure le temps de l'animation. C'est une icône seule, avec son libellé en
+   infobulle : un bouton de 28 px, plus discret que le mot « Supprimer ». */
+#collection-delete {
+  width: var(--control-sm);
+  min-height: var(--control-sm);
+  padding: 0;
+  justify-content: center;
+  opacity: 1;
+  /* Au repos, l'icône est à l'encre et sans cadre : elle se glisse dans la
+     rangée sans peser. Le trait orange n'apparaît qu'au survol. */
+  border-color: transparent;
+  background: transparent;
+  color: var(--text);
+}
 
-/* --- Choix du rangement d'un import --- */
+#collection-delete .icon { width: 14px; height: 14px; }
 
-/* Le panneau reste **dans le flux**, sous le bouton qui l'a ouvert : il ne
-   recouvre pas la liste qu'on vient de relire, et une liste longue ne le cache
-   pas non plus. Le fond de surface le détache du panneau, qui est de la même
-   teinte que lui. */
-.import-menu {
+#collection-delete:not(:disabled):hover {
+  /* Seul le cadre apparaît : l'icône reste à l'encre. */
+  border-color: var(--action);
+  color: var(--text);
+}
+
+#collection-delete:disabled {
+  border-color: transparent;
+  background: transparent;
+  color: var(--graphite);
+}
+
+/* --- Dépliants ---
+ *
+ * Ce qui se règle une fois ne prend pas la place de ce qui se règle à chaque
+ * lien. Le résumé reste visible, le contenu s'ouvre à la demande — et le
+ * résumé est une commande : toute la ligne est cliquable.
+ */
+.advanced, .rail__advanced {
+  margin-top: var(--space-15);
+  padding-top: var(--space-15);
+  border-top: 1px solid var(--border-line);
+}
+
+.rail__transfer {
+  padding-top: var(--space-15);
+  border-top: 1px solid var(--border-line);
+}
+
+.mode__advanced {
+  margin-top: var(--space-15);
+  padding-top: var(--space-15);
+  border-top: 1px solid var(--border-line);
+}
+
+.advanced > summary,
+.rail__advanced > summary,
+.rail__transfer > summary,
+.mode__advanced > .mode__advanced-title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 40px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  font-size: var(--type-sm);
+  font-weight: var(--weight-ui);
+  list-style: none;
+  cursor: pointer;
+}
+
+.advanced > summary::-webkit-details-marker,
+.rail__advanced > summary::-webkit-details-marker,
+.rail__transfer > summary::-webkit-details-marker,
+.mode__advanced > .mode__advanced-title::-webkit-details-marker { display: none; }
+
+/* Le chevron est un trait, pas une boîte : le même dessin que les icônes. */
+.advanced > summary::after,
+.rail__advanced > summary::after,
+.rail__transfer > summary::after,
+.mode__advanced > .mode__advanced-title::after {
+  content: "";
+  flex: none;
+  width: 24px;
+  height: 24px;
+  margin-left: auto;
+  border: 1px solid var(--border-strong);
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cpath d='M6 8l4 4 4-4' fill='none' stroke='%230f0e12' stroke-width='1.5' stroke-linecap='square'/%3E%3C/svg%3E") center / 14px 14px no-repeat;
+  transition: transform var(--motion) var(--easing);
+}
+
+.advanced[open] > summary::after,
+.rail__advanced[open] > summary::after,
+.rail__transfer[open] > summary::after,
+.mode__advanced[open] > .mode__advanced-title::after { transform: rotate(180deg); }
+
+.advanced > summary:hover,
+.rail__advanced > summary:hover,
+.rail__transfer > summary:hover,
+.mode__advanced > .mode__advanced-title:hover { color: var(--ink); }
+
+.advanced > summary:focus-visible,
+.rail__advanced > summary:focus-visible,
+.rail__transfer > summary:focus-visible,
+.mode__advanced > .mode__advanced-title:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.advanced .shortener { margin-top: var(--space-15); }
+
+.mode__advanced-body {
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
-  padding: var(--space-3) var(--space-3);
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius);
-  background: var(--surface-2);
+  padding-top: var(--space-2);
 }
 
-/* Le panneau se ferme par l'attribut `hidden`, et `display: flex` l'emporterait
-   sur le `display: none` du navigateur : sans cette règle, « Annuler » fermait le
-   panneau dans le document et le laissait peint à l'écran. Constaté à la
-   capture — le substitut de DOM des tests, lui, ne peint rien. */
-.import-menu[hidden] { display: none; }
+/* --- Groupes d'actions et pied de panneau --- */
 
-.import-menu__title { margin: 0; font-size: var(--type-sm); font-weight: 650; }
-
-/* Une issue par ligne, à toute la largeur : les libellés portent un nom de
-   collection, et un nom long se replie au lieu d'être coupé. */
-.import-menu__choices { display: flex; flex-direction: column; gap: var(--space-15); }
-
-.import-menu__choices .btn {
+.panel__footer {
   display: flex;
-  justify-content: flex-start;
-  width: 100%;
-  text-align: left;
-  white-space: normal;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding-top: var(--space-2);
+  border-top: 1px solid var(--border-line);
 }
 
-/* « Annuler » ne range rien : il est plus petit, et se distingue des trois
-   issues plutôt que de s'y aligner. */
-.import-menu__choices .btn--small { align-self: flex-start; width: auto; }
+/* Deux sorties du tableau, côte à côte : on règle, on agit, puis on regarde. */
+.panel__actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-15);
+}
 
-/* Même piège pour la commande de collection nouvelle : `display: flex`
-   ci-dessus l'emporte sur le `display: none` de l'attribut `hidden`, et la
-   commande resterait visible là où il n'y a qu'une collection. */
-.import-menu [hidden] { display: none; }
+.panel__actions .btn { flex: none; width: 100%; }
 
-.field-error { margin: 0; color: var(--danger); font-size: var(--type-xs); }
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-15);
+}
 
-.toolbar { display: flex; align-items: flex-end; gap: var(--space-15); }
-/* La recherche prend la place, le tri garde la sienne : un tri comprimé
-   afficherait « Titre, A → … » et ne dirait plus lequel. */
-.toolbar .input[type="search"] { flex: 1; min-width: 0; }
-.toolbar .field--compact { flex: none; max-width: 45%; }
+.actions--end { margin-left: 0; }
 
-/* En-tête de la liste : la case qui commande tout, et la phrase qui dit ce qui
-   partira à l'impression. */
+/* Le libellé de groupe est une étiquette de catalogue : 11 px, 100, tertiaire,
+   sur sa propre ligne pour laisser respirer les boutons. */
+.actions__label {
+  flex: 0 0 100%;
+  margin: 0 0 var(--space-1);
+  color: var(--text-2);
+  font-size: var(--type-2xs);
+  font-weight: var(--weight-titre);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+/* --- Lignes de la liste ---
+ *
+ * Un filet bas entre les lignes, pas de fond par défaut ; le survol pose
+ * l'île blanche. L'index et l'adresse sont des données : mono 11 px, 400.
+ */
+.links {
+  display: block;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.link {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-15);
+  padding: var(--space-15) 0;
+  border-bottom: 1px solid var(--border-line);
+}
+
+.link:last-child { border-bottom: 0; }
+.link:hover { background: var(--bg); }
+
+/* La sélection ne se dit pas que par la case : un filet gauche de 2 px la
+   marque dans la marge, sans déplacer la ligne. */
+.link:has(.link__check:checked)::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 3px;
+  background: var(--action);
+}
+
+/* La ligne cochée ne prend **aucun** fond : pas de pastel, pas de teinte.
+   Seuls le filet gauche orange et la case cochée disent la sélection — deux
+   signaux, zéro surface colorée. */
+.link:has(.link__check:checked) { background: transparent; }
+
+.link:has(.link__check:checked) .link__title { font-weight: 500; }
+
+.link__check-hit {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  cursor: pointer;
+}
+
+.link__check { width: 14px; height: 14px; margin: 0; opacity: 1; }
+
+/* Deux colonnes : le titre et son bloc, puis l'adresse et les puces. La grille
+   comprime l'adresse au lieu de renvoyer les puces à la ligne suivante. */
+.link__body {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: var(--space-2);
+}
+
+.link__body > * { grid-column: 1 / -1; min-width: 0; }
+
+.link__title {
+  display: block;
+  overflow: hidden;
+  color: var(--text);
+  font-size: var(--type-sm);
+  font-weight: 500;
+  line-height: var(--leading-caption);
+  text-decoration: none;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* L'adresse est une donnée : mono 11 px, encre tertiaire, une ligne, ellipse. */
+.link__url {
+  display: block;
+  grid-column: 1;
+  overflow: hidden;
+  color: var(--text-3);
+  font-family: var(--mono);
+  font-size: var(--type-2xs);
+  font-weight: 400;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.link__tags {
+  grid-column: 2;
+  display: flex;
+  flex-wrap: nowrap;
+  gap: var(--space-1);
+}
+
+.link__tags .tag { flex: none; }
+
+/* Puce plate : un filet, rien d'autre. Le « # » est une syntaxe de saisie, la
+   puce affiche le tag nu. */
+.tag {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 0 var(--space-15);
+  border: 0;
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--text-2);
+  font-family: inherit;
+  font-size: var(--type-2xs);
+  font-weight: var(--weight-ui);
+  cursor: pointer;
+}
+
+.tag::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border: 1px solid var(--border-control);
+  pointer-events: none;
+}
+
+.tag { position: relative; }
+.tag:hover { color: var(--text); }
+.tag:hover::before { border-color: var(--action); }
+
+/* Le rang dans la collection : mono, chiffres tabulaires, aligné à droite. */
+.link__index {
+  flex: none;
+  min-width: 1.6em;
+  color: var(--text-3);
+  font-family: var(--mono);
+  font-size: var(--type-2xs);
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+/* La note : une méta, sous l'adresse. */
+.link__note {
+  margin-top: var(--space-05);
+  overflow: hidden;
+  color: var(--text-3);
+  font-size: var(--type-2xs);
+  font-weight: 400;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* L'URL raccourcie est le contrôle : on coche ce qu'on lit. */
+.link__short {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  max-width: 100%;
+  margin-top: var(--space-05);
+  overflow: hidden;
+  color: var(--text-3);
+  font-family: var(--mono);
+  font-size: var(--type-2xs);
+  font-weight: 400;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.link__short-check { flex: none; margin: 0; }
+.link__short-mark { flex: none; color: var(--text-3); }
+
+.link__short-url {
+  overflow: hidden;
+  color: inherit;
+  text-decoration: none;
+  text-overflow: ellipsis;
+}
+
+.link__short-provider { flex: none; color: var(--text-3); }
+.link__editor-short-url,
+.link__editor-short { color: var(--text-3); }
+
+/* Les deux commandes de ligne existent en permanence pour le clavier : elles
+   n'apparaissent qu'au survol ou au focus, et restent visibles au tactile. */
+.link__remove,
+.link__edit {
+  flex: none;
+  display: grid;
+  place-items: center;
+  min-width: 24px;
+  min-height: 24px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--text-3);
+  cursor: pointer;
+  line-height: 1;
+  opacity: 0;
+  transition: opacity var(--motion) linear;
+}
+
+.link:hover .link__remove,
+.link:hover .link__edit,
+.link:focus-within .link__remove,
+.link:focus-within .link__edit { opacity: 1; }
+
+.link__remove:hover { border-color: var(--action); color: var(--action); }
+.link__edit:hover { border-color: var(--ink); color: var(--ink); }
+
+@media (hover: none) {
+  .link__remove, .link__edit { opacity: 1; }
+}
+
+/* Les deux ancres de la ligne : aucune ne se souligne au repos. */
+.link--clickable { color: inherit; text-decoration: none; }
+.link--clickable:hover,
+.link--clickable:focus-visible { text-decoration: underline; }
+
+/* L'éditeur occupe sa propre ligne, sur toute la largeur de la liste : ses
+   champs se mesurent contre une largeur définie. */
+.link__editor { flex: 0 0 auto; min-width: 0; }
+.link__editor:has(.link__editor-form) { flex: 1 0 100%; }
+
+.link__editor-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-15);
+  margin-top: var(--space-15);
+  padding: var(--space-2);
+  border: 0;
+  border-radius: var(--radius);
+  background: var(--bg);
+}
+
+.link__editor-field { display: flex; flex-direction: column; gap: var(--space-1); }
+.link__editor-field .input { min-width: 0; }
+
+.link__editor-label {
+  color: var(--text-3);
+  font-size: var(--type-2xs);
+  font-weight: 400;
+}
+
+.link__editor-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-15);
+}
+
+.link__editor-actions .btn { flex: none; }
+
+/* En mode réorganisation, la ligne entière est saisie : une île blanche, un
+   filet d'encre, et les cases de sélection qui s'effacent. */
+.links--reorder {
+  margin-top: var(--space-1);
+  border: 1px solid var(--border-strong);
+  background: transparent;
+}
+
+.links--reorder .link { padding: var(--space-1) var(--space-15); }
+.links--reorder .link:hover { background: var(--bg); }
+.links--reorder .link__check-hit,
+.links--reorder .link__remove,
+.links--reorder .link__editor { display: none; }
+.links--reorder .link__index { color: var(--text); font-weight: 500; }
+
+.links--reorder .link__rank {
+  display: flex;
+  align-items: center;
+  gap: var(--space-05);
+}
+
+/* Les deux commandes de rangement : une cible de 24 px au minimum, un dessin
+   de 24 px, indépendamment du mode. */
+.link__move {
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 1px solid var(--border-line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text-2);
+  font-size: var(--type-2xs);
+  cursor: pointer;
+}
+
+.link__grip {
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 1px solid var(--border-line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text-2);
+  font-size: var(--type-2xs);
+  cursor: grab;
+}
+
+/* Dans le mode, les commandes prennent la taille de contrôle confortable et le
+   cadre d'encre : ce sont les seules cibles de la ligne. */
+.links--reorder .link__grip,
+.links--reorder .link__move {
+  padding: 0;
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text-2);
+  font-size: var(--type-2xs);
+}
+
+.links--reorder .link__move {
+  width: 28px;
+  height: 28px;
+}
+
+.links--reorder .link__grip {
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--border-strong);
+}
+
+.links--reorder .link__grip:hover,
+.links--reorder .link__move:not(:disabled):hover {
+  border-color: var(--ink);
+  color: var(--ink);
+}
+
+.links--reorder .link__move:disabled {
+  border-color: var(--border-line);
+  color: var(--graphite);
+  cursor: default;
+}
+
+/* La ligne saisie sort du flux visuel sans quitter le flux du document. Pas
+   d'ombre : un filet d'encre et l'île blanche suffisent à la poser. */
+.link--dragging {
+  position: relative;
+  z-index: 1;
+  background: var(--surface);
+  outline: 1px solid var(--ink);
+  outline-offset: -1px;
+}
+
+.links--reorder .link { user-select: none; }
+
+/* L'indice du mode est un repère, pas une phrase parmi d'autres. */
+.hint--mode {
+  padding: var(--space-1) var(--space-15);
+  border-left: 2px solid var(--ink);
+  background: transparent;
+  color: var(--text);
+}
+
+/* --- En-tête de liste et sélection --- */
+
 .list-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--space-2);
+  gap: var(--space-15);
   min-height: 24px;
   margin-top: var(--space-3);
   padding-bottom: var(--space-1);
-  border-bottom: 1px solid var(--border-line);
+  border-bottom: 1px solid var(--ink);
+}
+
+.list-head__box {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  min-height: 24px;
 }
 
 .list-head__hint {
   flex: 1;
+  color: var(--text-2);
+  font-family: var(--mono);
   font-size: var(--type-2xs);
-  letter-spacing: 0.06em;
+  font-weight: var(--weight-ui);
+  letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--text-3);
 }
 
-/* La barre de sélection n'existe que si une sélection existe. */
+.list-head .hint { flex: 1; }
+.list-head[hidden] { display: none; }
+
+.list-head--mode .list-head__box,
+.list-head--mode .list-head__hint { display: none; }
+
+/* La sélection est un **état**, pas une rangée permanente. */
 .selection-bar {
   display: flex;
   flex-wrap: wrap;
@@ -760,12 +1681,8 @@ textarea.input { padding: var(--space-2) var(--space-3); }
 
 .selection-bar .hint { flex: 1 1 100%; }
 
-.list-head__box { display: flex; flex: none; align-items: center; justify-content: center; min-width: 24px; min-height: 24px; }
-.list-head .hint { flex: 1; }
-
-/* Déplacer la sélection : le bouton et le choix de la collection d'arrivée.
-   Le panneau s'ouvre sous son bouton, en superposition — il ne doit pas
-   repousser la liste qu'on vient de cocher. */
+/* Déplacer la sélection : le panneau s'ouvre sous son bouton, en
+   superposition — il ne repousse pas la liste qu'on vient de cocher. */
 .move { position: relative; flex: none; }
 
 .move__menu {
@@ -780,443 +1697,36 @@ textarea.input { padding: var(--space-2) var(--space-3); }
   max-height: 240px;
   overflow-y: auto;
   padding: var(--space-15);
-  border: 1px solid var(--border-strong);
+  border: 1px solid var(--ink);
   border-radius: var(--radius);
   background: var(--surface);
 }
 
 .move__menu[hidden] { display: none; }
 
-/* Une collection par ligne, à toute la largeur du panneau : un nom long se
-   replie plutôt que d'être coupé, et la cible ne dépend pas de la longueur. */
 .move__choice {
   justify-content: flex-start;
   width: 100%;
   text-align: left;
 }
 
-/* --- Bandeau d'alerte persistant --- */
-
-.banner {
-  margin: 0 0 14px;
-  padding: var(--space-3) var(--space-4);
-  border-radius: var(--radius);
-  font-size: var(--type-sm);
-  line-height: 1.45;
-}
-
-.banner--error {
-  border: 1px solid var(--border-line);
-  border-left: 4px solid var(--danger);
-  background: var(--surface);
-  color: var(--text);
-}
-
-.banner code {
-  padding: var(--space-05) var(--space-1);
-  border-radius: var(--radius);
-  background: var(--surface-2);
-  font-size: var(--type-xs);
-}
-
-.banner[hidden] { display: none; }
-
-/* --- Groupes d'actions du panneau --- */
-
-.actions {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-15);
-}
-
-/* Aligné à gauche, sous les exports : c'est le pied de panneau qui les empile
-   et qui porte l'espace entre les deux groupes. La classe ne subsiste que comme
-   repère de lecture — elle a porté un `margin-left: auto` qui repoussait le
-   groupe à droite, au prix d'un alignement cassé. */
-.actions--end { margin-left: 0; }
-
-/* Le libellé occupe sa propre ligne : `flex-basis: 100%` le fait tenir toute la
-   largeur, ce qui repousse les boutons à la ligne suivante.
-   Sans cela, « EXPORTER » consommait les quelques pixels qui manquaient à
-   « Archive » : le quatrième bouton se retrouvait orphelin sous les trois
-   autres. Sur une ligne dégagée, les quatre tiennent. */
-.actions__label {
-  flex: 0 0 100%;
-  margin-right: 0;
-  color: var(--text-2);
-  font-size: var(--type-2xs);
-  /* En gras : c'est un intitulé de groupe, pas une légende. */
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-
-/* --- Boutons --- */
-
-.btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-height: var(--control);
-  padding: 0 var(--space-3);
-  border: 1px solid transparent;
-  border-radius: var(--radius);
-  background: transparent;
-  color: var(--text);
-  cursor: pointer;
-  font-family: inherit;
-  font-size: var(--type-sm);
-  white-space: nowrap;
-  transition: background var(--motion) var(--easing), border-color var(--motion) var(--easing), color var(--motion) var(--easing);
-}
-
-/* Désactivation par jetons, jamais par opacité : `opacity: .45` rendait les
-   libellés illisibles. « Inactif » n'a jamais voulu dire « indistinct ». */
-.btn:disabled {
-  border-color: var(--border-line);
-  background: var(--surface-2);
-  color: var(--text-3);
-  cursor: default;
-}
-
-.btn--primary { background: var(--accent); color: var(--accent-ink); font-weight: 620; }
-.btn--primary:not(:disabled):hover { background: var(--accent-hover); }
-
-.btn--ghost { border-color: var(--border-strong); }
-.btn--outline { border-color: var(--border-strong); }
-.btn--outline:not(:disabled):hover { border-color: var(--ink); }
-.btn--ghost:not(:disabled):hover { border-color: var(--accent); }
-
-/* Un bouton de barre d'outils : même cible de 24 px de haut, moins de largeur
-   perdue. Il reste au-dessus du minimum de 24 × 24 px, qui est ce qui compte. */
-.btn--small { min-height: var(--control-sm); padding: 0 var(--space-2); font-size: var(--type-xs); }
-
-/* Les flèches de parcours. Elles encadrent un sélecteur qui prend la place, et
-   gardent une cible carrée de 26 px — au-dessus du minimum de 24 px, sans quoi
-   deux flèches voisines se disputeraient le même doigt. */
-.btn--arrow {
-  flex: none;
-  width: 26px;
-  min-height: 26px;
-  padding: 0;
-  font-size: var(--type-2xs);
-  line-height: 1;
-}
-
-/* Au survol, le contour devient un aplat d'accent. Réservé aux boutons
-   d'export : l'appliquer à tous les boutons discrets ferait clignoter
-   l'interface entière en orange, ce que `craft/color.md` appelle la
-   surutilisation de l'accent.
+/* --- États vides ---
  *
- * Le libellé prend `--accent-ink`, et non un blanc en dur : le blanc tient
- * 5,18:1 sur l'orange du thème clair, mais seulement **1,69:1** sur l'orange
- * éclairci du thème sombre. Le jeton vaut blanc en clair et encre en sombre,
- * donc le seuil est tenu des deux côtés. */
-.btn--fill:not(:disabled):hover {
-  border-color: var(--border-strong);
-  background: var(--surface-2);
-  color: var(--text);
-}
-
-/* Le rouge est posé **au repos**, et non plus au survol.
- *
- * « Vider la collection » vide la collection affichée, sans confirmation et sans
- * retour arrière : le
- * rouge au survol était le seul avertissement avant un geste irréversible. Or
- * son survol est désormais occupé par l'aplat d'accent, comme les autres
- * boutons du pied — le signal aurait donc purement disparu.
- *
- * Au repos, il est visible avant qu'on s'en approche : c'est plus tôt qu'avant,
- * pas plus tard. Et l'état désactivé, plus spécifique, reprend la main quand la
- * collection est vide — un bouton inactif n'a rien à signaler. */
-.btn--danger {
-  border-color: var(--danger);
-  color: var(--danger);
-}
-
-.btn--wide { width: 100%; }
-
-.btn:focus-visible, .tab:focus-visible, .link__remove:focus-visible, .tag:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 1px;
-}
-
-/* --- Onglets --- */
-
-.tabs {
-  display: flex;
-  gap: var(--space-05);
-  padding: var(--space-1);
-  border-radius: var(--radius);
-  background: var(--bg);
-  /* La bande se replie **elle**, plutôt que de replier ses libellés.
-     « Étiquette (divers) » ne tient pas dans un quart de 400 px : les quatre
-     onglets passaient donc à deux lignes de texte à l'intérieur de leur case —
-     43 px de haut au lieu de 29 — et l'onglet se lisait mal. Avec un
-     enroulement de la bande et des libellés insécables, c'est la disposition qui
-     s'adapte : quatre onglets sur une ligne quand la place le permet, deux
-     rangées sinon. */
-  flex-wrap: wrap;
-}
-
-.tab {
-  /* `auto` et non `1` : chaque onglet réclame au moins la largeur de son
-     libellé, au lieu d'un quart de la bande quelle que soit sa longueur. */
-  flex: 1 1 auto;
-  height: var(--control);
-  padding: 0 var(--space-1);
-  border: 0;
-  border-bottom: 2px solid transparent;
-  border-radius: var(--radius);
-  background: transparent;
-  color: var(--text-2);
-  cursor: pointer;
-  font-family: inherit;
-  font-size: var(--type-xs);
-  white-space: nowrap;
-}
-
-.tab--active {
-  /* L'onglet actif se lisait à 1,10:1 : fond presque identique au panneau et
-     ombre de 1 px. Il porte maintenant un soulignement d'encre de 2 px et un
-     texte d'encre — l'indicateur dépasse 3:1, sans ajouter d'ombre. */
-  background: var(--surface-2);
-  color: var(--ink);
-  border-bottom-color: var(--ink);
-  font-weight: 600;
-}
-
-/* --- Liste des liens --- */
-
-.links {
-  /* La liste garde une hauteur utile même quand le volet défile : sinon elle
-     se réduisait à zéro sous les réglages. */
-  flex: 0 1 auto;
-  min-height: 180px;
-  max-height: 44vh;
-  margin: 0;
-  padding: 0;
-  overflow-y: auto;
-  list-style: none;
-}
-
-.link {
-  display: flex;
-  padding: var(--space-1) 0;
-  /* La ligne **se replie** : l'éditeur d'un lien prend toute une ligne à lui.
-   *
-   * Sans le repli, il se posait à côté du titre en gardant sa largeur propre —
-   * 364 px, la largeur intrinsèque d'un champ de saisie — et débordait de la
-   * liste dès que le panneau était plus étroit. La liste, elle, défilait
-   * horizontalement (le navigateur suit le champ qu'on vient de focaliser), si
-   * bien que **toutes** les lignes se retrouvaient coupées à gauche : « UBLE
-   * GLASS Office partition » au lieu de « DOUBLE GLASS… ». Redimensionner la
-   * fenêtre ne réparait rien, le défilement restant où il était. */
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-2);
-  border-bottom: 1px solid var(--border-line);
-}
-
-.link:last-child { border-bottom: 0; }
-
-.link__check-hit {
-  flex: none;
-  display: grid;
-  place-items: center;
-  width: 24px;
-  height: 24px;
-  margin-top: 2px;
-  cursor: pointer;
-}
-
-.link__check {
-  width: 14px; height: 14px; margin: 0;
-  /* Toujours visible. Elle avait été masquée au repos pour alléger la liste :
-     le résultat était une case qu'on ne voyait pas, qu'on cochait sans retour
-     visuel, et qu'on croyait cassée. La sélection est un geste de premier plan,
-     elle ne se cache pas. */
-  opacity: 1;
-}
-/* Deux colonnes : le titre sur toute la largeur, puis l'adresse et les puces
-   sur une même ligne. La grille, contrairement au flex wrap, comprime
-   l'adresse au lieu de renvoyer les puces à la ligne suivante — c'est ce qui
-   faisait des lignes de 71 px au lieu de 50. */
-.link__body {
-  flex: 1;
-  min-width: 0;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: center;
-  column-gap: var(--space-2);
-}
-
-.link__body > * { grid-column: 1 / -1; min-width: 0; }
-.link__url {
-  display: flex;
-  align-items: center;
-  min-height: 24px; grid-column: 1; }
-.link__tags {
-  grid-column: 2;
-  display: flex;
-  flex-wrap: nowrap;
-}
-.link__tags .tag { flex: none; }
-
-.link__title {
-  display: flex;
-  align-items: center;
-  min-height: 24px;
-  min-width: 0;
-  font-size: var(--type-sm);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-weight: 500;
-}
-
-.link__url {
-  display: block;
-  overflow: hidden;
-  color: var(--text-3);
-  font-size: var(--type-2xs);
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.link__tags { display: flex; flex-wrap: wrap; gap: var(--space-1); margin-top: var(--space-05); }
-
-/* La cible du QR Code, propre à ce lien. Elle n'apparaît que lorsqu'un raccourci
-   existe : sans lui, il n'y a rien à choisir. Discrète — c'est un réglage de
-   sortie, pas une information sur le lien. */
-
-/* Puce « plate » : un fond, rien d'autre.
- *
- * Le bouton gardait le chrome du navigateur — une bordure `outset` qu'aucune
- * règle ne déclarait, et qui dessinait un contour autour de chaque tag. La
- * déclarer à zéro est le seul moyen de l'enlever ; l'oublier, c'est laisser le
- * navigateur décider de l'apparence.
- *
- * Le libellé a perdu son « # » : c'est une syntaxe de saisie, que
- * `normalizeTags` accepte et retire. Le tag est stocké sans lui. */
-.tag {
-  display: inline-flex;
-  align-items: center;
-  min-height: 24px;
-  padding: 0 var(--space-15);
-  border: 0;
-  border-radius: var(--radius);
-  background: var(--surface-2);
-  color: var(--text-2);
-  font-family: inherit;
-  font-size: var(--type-2xs);
-  cursor: pointer;
-}
-
-.tag:hover { background: var(--border-line); color: var(--text); }
-
-.link__remove {
-  flex: none;
-  display: grid;
-  place-items: center;
-  min-width: 24px;
-  min-height: 24px;
-  padding: 0;
-  border: 0;
-  border-radius: var(--radius);
-  background: transparent;
-  color: var(--text-2);
-  cursor: pointer;
-  font-size: var(--type-base);
-  line-height: 1;
-}
-
-.link__remove:hover { background: var(--surface-2); color: var(--danger); }
-
-/* Le bloc de rangement, à **gauche** de la ligne, et seulement en mode
-   réorganisation.
- *
- * Il occupe le bord par lequel une liste se range : l'œil suit la marge, et la
- * souris y arrive sans traverser le texte. Les deux flèches y sont serrées à
- * 2 px — elles forment un objet, pas deux commandes séparées. Cette proximité
- * est permise parce que chaque case fait 24 × 24 px : le critère 2.5.8 (AA) est
- * tenu par la taille même du contrôle, sans avoir à invoquer l'exception
- * d'espacement, qui aurait échoué ici. */
-.link__rank {
-  flex: none;
-  display: flex;
-  align-items: center;
-  gap: var(--space-05);
-}
-
-.link__move {
-  flex: none;
-  width: 24px;
-  height: 24px;
-  padding: 0;
-  border: 0;
-  border-radius: var(--radius);
-  background: transparent;
-  color: var(--text-2);
-  cursor: pointer;
-  font-size: var(--type-2xs);
-  line-height: 1;
-}
-
-.link__move:not(:disabled):hover { background: var(--surface-2); color: var(--text); }
-.link__move:disabled { color: var(--text-3); cursor: default; }
-
-/* La poignée : on la saisit, on la fait glisser, la ligne suit. `touch-action`
-   à `none` est ce qui permet au doigt de déplacer sans faire défiler la liste —
-   sans lui, le navigateur reprend la main au premier mouvement. */
-.link__grip {
-  flex: none;
-  width: 24px;
-  height: 24px;
-  padding: 0;
-  border: 0;
-  border-radius: var(--radius);
-  background: transparent;
-  color: var(--text-3);
-  cursor: grab;
-  font-size: var(--type-sm);
-  line-height: 1;
-  touch-action: none;
-}
-
-.link__grip:hover { background: var(--surface-2); color: var(--text); }
-.link__grip:active { cursor: grabbing; }
-
-/* La ligne saisie suit le doigt : elle sort du flux visuel sans quitter le
-   flux du document, sinon la liste se refermerait pendant le geste et les
-   positions mesurées sauteraient. */
-.link--dragging {
-  position: relative;
-  z-index: 1;
-  border-radius: var(--radius);
-  background: var(--surface-2);
-  box-shadow: var(--shadow-sheet);
-  opacity: 0.92;
-}
-
-/* En mode réorganisation, la ligne entière est une cible de geste : le texte
-   ne doit pas être sélectionné au passage, ce qui laisserait un surlignage
-   bleu derrière le doigt. */
-.links--reorder .link { user-select: none; }
-
+ * Le dessin au trait accompagne l'action, il ne la remplace pas. Le texte est
+ * aligné à gauche : la référence ne centre jamais un paragraphe.
+ */
 .empty-state {
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: flex-start;
   gap: var(--space-2);
   margin: var(--space-2) 0;
-  padding: var(--space-4) var(--space-2);
+  padding: var(--space-3) 0;
+  border-top: 1px solid var(--border-line);
 }
 
 .empty-state[hidden] { display: none; }
 
-/* Dessins au trait, même facture que les icônes : 1,5 px, bouts carrés. */
 .empty-state__art svg {
   display: block;
   width: 96px;
@@ -1235,40 +1745,53 @@ textarea.input { padding: var(--space-2) var(--space-3); }
   padding: 0;
   max-width: 40ch;
   color: var(--text-2);
-  font-size: var(--type-xs);
-  line-height: 1.6;
-  text-align: center;
+  font-size: var(--type-sm);
+  font-weight: 400;
+  line-height: var(--leading-caption);
+  text-align: left;
 }
 
 .empty__actions {
-  display: flex; flex-wrap: wrap; justify-content: center; gap: var(--space-15);
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  gap: var(--space-15);
   margin-top: var(--space-1);
 }
+
 .empty__actions[hidden] { display: none; }
 
-/* Quand la collection est vide, la ligne de sélection n'a plus d'objet : elle
-   disparaît au lieu de laisser une case orpheline au-dessus de « Réorganiser ». */
-.list-head[hidden] { display: none; }
+/* --- Méta, textes d'aide --- */
 
-.hint { margin: 0; color: var(--text-2); font-size: var(--type-xs); }
-.hint--tight { margin-top: 4px; }
+.hint {
+  margin: 0;
+  color: var(--text-3);
+  font-size: var(--type-2xs);
+  font-weight: 400;
+  line-height: var(--leading-caption);
+}
+
+.hint--tight { margin-top: var(--space-1); }
+
+.hint-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  margin: var(--space-1) 0 0;
+}
 
 /* --- Raccourcissement d'URL --- */
 
-/* Le titre et la rangée sont empilés : le titre nomme l'action, la rangée porte
-   le réglage et les boutons. Auparavant le libellé du champ servait de titre,
-   ce qui faisait lire la liste des services comme le nom du bouton. */
-.shortener {
-  margin-top: 10px;
-}
+.shortener { margin-top: var(--space-15); }
 
 .shortener__title {
-  margin: 0 0 4px;
-  color: var(--text-2);
-  font-size: var(--type-xs);
+  margin: 0 0 var(--space-1);
+  color: var(--text-3);
+  font-size: var(--type-sm);
+  font-weight: 400;
 }
 
-.shortener__title em { font-style: normal; color: var(--text-3); }
+.shortener__title em { font-style: normal; color: var(--graphite); }
 
 .shortener__row {
   display: flex;
@@ -1281,202 +1804,79 @@ textarea.input { padding: var(--space-2) var(--space-3); }
 /* Le libellé de l'onglet « Étiquette Niimbot » reste lisible même quand la
    fenêtre est étroite : le format d'étiquette y prend toute la largeur. */
 #label-profile { min-width: 210px; }
-.field__label em { font-style: normal; color: var(--text-3); }
 
-/* Le domaine reste discret, la ligne raccourcie encore plus : elle doit se
-   remarquer sans disputer la vedette au titre. */
-/* La ligne du lien court **est** le contrôle : une case, l'adresse, le service.
-   Elle se coche d'un clic n'importe où — le libellé d'une case est cliquable —
-   et il n'y a plus de lien concurrent au-dessus duquel viser. */
-.link__short {
-  display: flex;
-  align-items: center;
-  gap: var(--space-1);
-  max-width: 100%;
-  margin-top: 2px;
-  overflow: hidden;
-  color: var(--text-2);
-  font-size: var(--type-2xs);
-  white-space: nowrap;
-  cursor: pointer;
-}
+/* --- Recherche : compteur et effacement --- */
 
-.link__short-check { flex: none; margin: 0; accent-color: var(--accent); }
+.search-field { position: relative; flex: 1; display: flex; min-width: 0; }
+.search-field .input { flex: 1; padding-right: var(--space-4); }
+.search-field--actif .input { padding-right: var(--space-5); }
 
-.link__short-mark { flex: none; color: var(--text-3); }
-
-.link__short-url {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  color: inherit;
-  text-decoration: none;
-}
-
-.link__short-provider { flex: none; color: var(--text-3); }
-
-/* Le lien court, dans l'éditeur : il y reste cliquable — c'est le seul endroit
-   d'où l'on peut vérifier une adresse raccourcie avant de l'imprimer. */
-.link__editor-short-url { color: var(--text-2); }
-
-/* --- Choix des colonnes du tableau --- */
-
-.columns {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-1) var(--space-4);
-  margin: 10px 0 0;
-  padding: var(--space-2) var(--space-3);
-  border: 0;
-  border-radius: var(--radius);
-}
-
-.columns__legend {
-  padding: 0 var(--space-1);
-  color: var(--text-2);
-  font-size: var(--type-xs);
-}
-
-.columns__item {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: var(--space-15);
-  /* 2.5.8 : la cible est le libellé entier, pas la case seule. Encore
-     faut-il qu'il atteigne 24 px de haut. */
-  min-height: 24px;
-  cursor: pointer;
-}
-
-/* Une colonne qu'aucun lien ne peut remplir est proposée, mais inerte : la
-   masquer laisserait croire que la fonction n'existe pas. */
-.columns__item:has(input:disabled) {
+.search-field__count {
+  position: absolute;
+  right: var(--space-4);
+  top: 50%;
+  transform: translateY(-50%);
+  padding: 0 var(--space-05);
+  background: var(--surface);
   color: var(--text-3);
-  cursor: not-allowed;
-}
-
-/* --- Numéro d'ordre dans la collection --- */
-
-.link__index {
-  flex: none;
-  min-width: 1.6em;
-  color: var(--text-2);
+  font-family: var(--mono);
   font-size: var(--type-2xs);
-  font-variant-numeric: tabular-nums;
-  text-align: right;
+  font-weight: 400;
+  pointer-events: none;
 }
 
-/* --- Note et tags d'un lien --- */
-
-.link__note {
-  margin-top: 3px;
-  overflow: hidden;
-  color: var(--text-2);
-  font-size: var(--type-2xs);
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-/* --- Édition d'un lien --- */
-
-.link__edit {
-  flex: none;
+.search-field__clear {
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
   display: grid;
   place-items: center;
   min-width: 24px;
   min-height: 24px;
   padding: 0;
-  border: 1px solid transparent;
-  border-radius: var(--radius);
-  background: none;
-  color: var(--text-2);
+  border: 0;
+  background: transparent;
+  color: var(--text-3);
   font-size: var(--type-sm);
-  line-height: 1;
   cursor: pointer;
 }
 
-.link__edit:hover {
-  border-color: var(--border-strong);
-  color: var(--text-2);
-}
+.search-field__clear:hover { color: var(--ink); }
+.search-field__clear:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
 
-/* L'éditeur occupe **sa** ligne, sur toute la largeur de la liste : ses champs
-   se mesurent alors contre une largeur définie, et non contre la largeur
-   intrinsèque d'un champ de saisie. `min-width: 0` est ce qui autorise le
-   rétrécissement sous cette largeur intrinsèque. */
-/* Le bouton d'édition reste sur la ligne ; l'éditeur, lui, prend sa propre
-   ligne quand il est ouvert. Sans cela, la ligne fermée réservait une rangée
-   entière à un crayon, et la liste perdait sa densité. */
-.link__editor {
-  flex: 0 0 auto;
-  min-width: 0;
-}
-
-.link__editor:has(.link__editor-form) {
-  flex: 1 0 100%;
-}
-
-.link__editor-field .input { min-width: 0; }
-
-.link__editor-form {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-15);
-  margin-top: 8px;
-  padding: var(--space-3);
-  border: 0;
-  border-radius: var(--radius);
-  background: var(--bg);
-}
-
-.link__editor-field {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
-}
-
-.link__editor-label { color: var(--text-2); font-size: var(--type-2xs); }
-
-/* Enregistrer et Annuler, sous les champs.
+/* --- Volet de détail ---
  *
- * Le formulaire ne se fermait qu'au clavier — Entrée pour enregistrer, Échap
- * pour annuler — et le disait dans une phrase d'aide. C'est une mauvaise
- * réponse à « comment je ferme ça ? » : rien à l'écran ne le montrait, et la
- * phrase demandait d'être lue avant de pouvoir agir. Les deux boutons sont
- * alignés à droite, dans l'ordre de lecture habituel : annuler, puis valider.
- * Les raccourcis clavier restent, et restent annoncés. */
-.link__editor-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: var(--space-15);
-}
+ * Le volet remplace la collection au lieu de s'ajouter à elle : la liste garde
+ * sa place et sa densité, et l'édition ne la pousse plus.
+ */
+.rail--detail > *:not(.detail) { display: none; }
 
-.link__editor-actions .btn { flex: none; }
-
-/* Une URL cliquable : soulignée au survol seulement, pour ne pas transformer
-   la liste en guirlande de liens bleus. */
-.link--clickable { color: inherit; text-decoration: none; }
-.link--clickable:hover,
-.link--clickable:focus-visible { text-decoration: underline; }
-.link--clickable:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-
-/* La légende d'un aperçu d'étiquette : un fait par ligne.
- *
- * Elle était d'un seul tenant — « D110 — 96 × 176 px, 2 px par module — aperçu à
- * la taille réelle (12,0 × 22,0 mm) » — et se lisait mal : trois informations
- * différentes à la queue leu leu. Chacune prend sa ligne, et la marge au-dessus
- * la sépare de ce qui sera imprimé. */
-/* Hors du cadre (`.preview__page`) : c'est une information **sur** l'aperçu, et
-   non une pièce de ce qui sera imprimé. Elle se lit donc sous le cadre, sans
-   fond ni bordure qui la rattacherait à lui. */
-.preview__caption {
+.detail {
   display: flex;
   flex-direction: column;
-  gap: var(--space-05);
-  margin: 8px 0 0;
-  text-align: left;
+  gap: var(--space-2);
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
 }
 
-.preview__fact { display: block; }
+.detail__head { display: flex; align-items: center; }
+
+.detail__title {
+  margin: 0;
+  padding: var(--space-1) 0 var(--space-2);
+  border-bottom: 1px solid var(--border-line);
+  color: var(--text);
+  font-size: var(--type-lg);
+  font-weight: var(--weight-titre);
+  line-height: var(--leading-subheading);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.detail__body { display: flex; flex-direction: column; gap: var(--space-3); }
 
 /* --- Imprimante --- */
 
@@ -1488,146 +1888,140 @@ textarea.input { padding: var(--space-2) var(--space-3); }
   padding: var(--space-3);
   border: 1px solid var(--border-line);
   border-radius: var(--radius);
-  background: var(--bg);
+  background: transparent;
 }
 
-.printer__status { display: flex; align-items: center; gap: var(--space-2); min-width: 0; }
+.printer__status {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+  font-size: var(--type-sm);
+  font-weight: 400;
+}
+
 .printer__actions { display: flex; gap: var(--space-15); }
 
-/* L'impression en série : portée, quantité et le bouton qui les applique,
-   réunis dans un même cadre pour qu'on lise d'un coup d'œil ce qui va sortir.
-   Les champs restent sur une ligne, le bouton à droite. */
+/* L'impression en série : portée, quantité et le bouton qui les applique dans
+   un même cadre, pour qu'on lise d'un coup d'œil ce qui va sortir. */
 .series {
   display: flex;
   align-items: flex-end;
-  gap: var(--space-3);
+  gap: var(--space-2);
   margin: 0;
-  padding: var(--space-3);
+  padding: var(--space-2) 0;
   border: 0;
+  border-top: 1px solid var(--border-line);
   border-radius: var(--radius);
-  background: var(--bg);
+  background: transparent;
 }
 
 .series legend {
-  padding: 0 var(--space-1);
-  color: var(--text-2);
-  font-size: var(--type-xs);
+  padding: 0;
+  color: var(--text-3);
+  font-size: var(--type-sm);
+  font-weight: 400;
 }
 
 .series .field { flex: 1; min-width: 120px; }
 .series .btn { flex: none; white-space: nowrap; }
 
+/* Le voyant : un carré, pas un rond. Il ne dit pas seul l'état — le nom de
+   l'imprimante l'accompagne. */
 .dot {
   flex: none;
   width: 9px;
   height: 9px;
-  border-radius: 50%;
-  background: var(--text-2);
-}
-
-.dot--on { background: var(--ok); }
-/* L'ambre d'origine tenait 2,85:1 sur blanc — sous le seuil — et ajoutait une
-   troisième teinte chaude à côté de l'orange. L'accent dit « en cours », le
-   vert dit « connecté », le gris dit « au repos ». */
-.dot--busy { background: var(--accent); }
-
-/* --- Aperçu --- */
-
-.preview {
-  flex: 1;
-  min-height: 260px;
-  max-height: 60vh;
-  overflow: auto;
-  padding: var(--space-4);
   border: 1px solid var(--border-line);
   border-radius: var(--radius);
-  background: var(--bg);
+  background: var(--graphite);
 }
 
-.preview__surface { display: flex; flex-direction: column; align-items: center; gap: var(--space-4); }
+.dot--off { background: var(--graphite); }
+.dot--on { border-color: var(--ok); background: var(--ok); }
+.dot--busy { border-color: var(--action); background: var(--action); }
 
-.preview__page {
-  padding: var(--space-2);
-  background: #ffffff;
-  box-shadow: var(--shadow-sheet);
+/* --- Bandeaux et messages ---
+ *
+ * L'ambre est la seule surface colorée du système : il signale un
+ * avertissement, et doit rester rare.
+ */
+.banner {
+  margin: 0;
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--ink);
+  border-radius: var(--radius);
+  background: var(--warn);
+  color: var(--warn-ink);
+  font-size: var(--type-sm);
+  font-weight: 400;
+  line-height: var(--leading-caption);
 }
 
-/* --- Pied de page --- */
+.banner strong { font-weight: var(--weight-titre); }
 
-/* Le même lien que dans la fenêtre de l'extension, sous l'application, avec la
-   signature du projet.
-   **Centré** : c'est un pied de page, pas une colonne de réglages — rien ne
-   s'aligne au-dessus de lui, et l'alignement à gauche le faisait passer pour la
-   suite du panneau. Les marges reprennent celles de la grille principale. */
-.app-footer {
-  padding: 0 clamp(16px, 4vw, 40px) var(--space-5);
-  text-align: center;
+.banner--error {
+  border: 1px solid var(--ink);
+  background: var(--warn);
+  color: var(--warn-ink);
 }
 
-.app-footer__links { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--space-1) var(--space-4); }
-
-/* La signature : plus discrète que le lien, et sur sa propre ligne. L'encre
-   tertiaire est la plus claire de la charte qui tienne encore 4,5:1 sur le
-   fond — c'est une mention, pas une information à lire en premier. */
-.app-footer__signature {
-  margin: 6px 0 0;
-  color: var(--text-3);
-  font-size: var(--type-xs);
+.banner code {
+  padding: 0 var(--space-1);
+  border: 1px solid var(--ink);
+  border-radius: var(--radius);
+  background: var(--canvas-mist);
+  color: var(--ink);
+  font-family: var(--mono);
+  font-size: var(--type-2xs);
+  font-weight: 400;
 }
 
-.app-footer__sep { padding: 0 var(--space-05); }
+.banner[hidden] { display: none; }
 
-.app-footer__link {
-  display: inline-flex;
-  align-items: center;
-  min-height: 24px;
-  color: var(--text-2);
-  font-size: var(--type-xs);
-  text-decoration: underline;
-  text-underline-offset: 2px;
-}
-
-.app-footer__link[hidden] { display: none; }
-
-.app-footer__link:focus-visible {
-  outline: 2px solid var(--focus);
-  outline-offset: 2px;
-}
-
-/* --- Retour transitoire --- */
-
+/* Le toast : une île blanche cernée d'encre, avec le filet orange de l'action
+   qui vient d'aboutir. Aucun fond sombre : le noir reste une encre. Une erreur
+   garde son filet et son texte rouges. */
 .toast {
   position: fixed;
-  right: 20px;
-  bottom: 20px;
+  right: var(--space-3);
+  bottom: var(--space-3);
+  z-index: 20;
   display: flex;
   align-items: center;
-  gap: var(--space-3);
-  max-width: min(420px, calc(100vw - 40px));
-  padding: var(--space-3) var(--space-4);
+  gap: var(--space-2);
+  max-width: min(420px, calc(100vw - 66px));
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--ink);
+  border-left: 3px solid var(--action);
   border-radius: var(--radius);
-  background: var(--text);
-  color: var(--bg);
+  background: var(--surface);
+  color: var(--text);
   font-size: var(--type-sm);
+  font-weight: 400;
   opacity: 0;
   pointer-events: none;
   transform: translateY(8px);
-  transition: opacity 180ms ease, transform 180ms ease;
+  transition: opacity var(--motion) linear, transform var(--motion) linear;
 }
 
-.toast--visible { opacity: 1; transform: translateY(0); }
-.toast--error { background: var(--danger); color: var(--bg); }
+.toast--visible { opacity: 1; transform: translateY(0); pointer-events: auto; }
 
-/* Une action dans le message : « Annuler » après une suppression. Le libellé
-   garde la couleur du message et se souligne ; le focus reste visible. */
+.toast--error {
+  border-color: var(--danger);
+  border-left-color: var(--danger);
+  background: var(--surface);
+  color: var(--danger);
+}
+
 .toast__action {
   flex: none;
-  padding: var(--space-05) 0;
+  padding: 0;
   border: 0;
   background: none;
   color: inherit;
   font: inherit;
-  font-weight: 600;
+  font-weight: 500;
   text-decoration: underline;
   text-underline-offset: 2px;
   cursor: pointer;
@@ -1635,6 +2029,271 @@ textarea.input { padding: var(--space-2) var(--space-3); }
 
 .toast__action:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
 
+/* --- Aperçu et cotation --- */
+
+.preview {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: transparent;
+}
+
+.preview__surface {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+/* La feuille est un objet posé sur le gris clair du studio : un blanc franc,
+   des bords vifs, un seul filet de la maison. Aucune ombre. */
+.preview__frame {
+  border: 1px solid var(--border-strong);
+  box-shadow: var(--shadow-sheet);
+  background: var(--pure-white);
+}
+
+.preview__page {
+  padding: var(--space-2);
+  border: 0;
+  background: var(--pure-white);
+}
+
+/* La légende est une information **sur** l'aperçu, pas une pièce de ce qui sera
+   imprimé : elle se lit sous le cadre, sans fond ni bordure. Sur la bande
+   Carbone, la méta passe au graphite. */
+.preview__caption {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-05);
+  margin: var(--space-15) 0 0;
+  color: var(--text-3);
+  font-size: var(--type-2xs);
+  font-weight: 400;
+  text-align: left;
+}
+
+.preview__fact {
+  display: block;
+  color: inherit;
+  font-family: var(--mono);
+  font-weight: 400;
+}
+
+.preview__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  gap: var(--space-2);
+  margin-top: var(--space-1);
+}
+
+/* Deux cotes, en millimètres, autour de l'étiquette : la largeur dessous, la
+   hauteur à droite. Elles se lisent sans être déduites d'un facteur. */
+.label-cote {
+  display: grid;
+  grid-template-columns: auto auto;
+  grid-template-rows: auto auto auto;
+  align-items: center;
+  justify-items: center;
+  gap: var(--space-05) var(--space-2);
+}
+
+.label-cote .preview__page { grid-column: 1; grid-row: 1; }
+
+.label-cote__w {
+  grid-column: 1;
+  grid-row: 2;
+  align-self: start;
+  padding-top: var(--space-05);
+  border-top: 1px solid var(--graphite);
+  color: var(--text-3);
+  font-size: var(--type-2xs);
+  font-weight: 400;
+  white-space: nowrap;
+}
+
+.label-cote > .preview__caption {
+  grid-column: 1 / -1;
+  grid-row: 3;
+  justify-self: stretch;
+  margin: 0;
+}
+
+.label-cote__h {
+  grid-column: 2;
+  grid-row: 1;
+  justify-self: start;
+  padding-left: var(--space-1);
+  border-left: 1px solid var(--graphite);
+  color: var(--text-3);
+  font-size: var(--type-2xs);
+  font-weight: 400;
+  white-space: nowrap;
+  writing-mode: vertical-rl;
+}
+
+/* --- Rangement d'un import, d'une sauvegarde ---
+ *
+ * Un panneau dans le flux, sous le bouton qui l'a ouvert : il ne recouvre rien
+ * de ce qu'on vient de relire.
+ */
+.import-menu {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border: 1px solid var(--ink);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.import-menu[hidden] { display: none; }
+.import-menu [hidden] { display: none; }
+
+.import-menu__title { margin: 0; font-size: var(--type-sm); font-weight: 500; }
+
+/* Une issue par ligne, à toute la largeur : les libellés portent un nom de
+   collection, et un nom long se replie au lieu d'être coupé. */
+.import-menu__choices { display: flex; flex-direction: column; gap: 0; }
+
+.import-menu__choices .btn {
+  display: flex;
+  justify-content: flex-start;
+  width: 100%;
+  text-align: left;
+  white-space: normal;
+  border-bottom: 1px solid var(--border-line);
+}
+
+.import-menu__choices .btn--small {
+  align-self: flex-start;
+  width: auto;
+  margin-top: var(--space-15);
+}
+
+/* --- Icônes du produit ---
+ *
+ * Un seul jeu, en masque SVG : `currentColor` suit le texte, et l'écran n'a
+ * qu'une encre.
+ */
+.icon {
+  display: inline-block;
+  flex: none;
+  width: 16px;
+  height: 16px;
+  background-color: currentColor;
+  -webkit-mask: var(--icon) center / contain no-repeat;
+  mask: var(--icon) center / contain no-repeat;
+}
+.icon-edit { --icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cg fill='none' stroke='white' stroke-width='1.5' stroke-linecap='square'%3E%3Cpath d='M4 16l1-4L14 3l3 3-9 9-4 1zM12 5l3 3'/%3E%3C/g%3E%3C/svg%3E"); }
+.icon-trash { --icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cg fill='none' stroke='white' stroke-width='1.5' stroke-linecap='square'%3E%3Cpath d='M4 6h12M8 6V4h4v2M6 6l1 10h6l1-10'/%3E%3C/g%3E%3C/svg%3E"); }
+.icon-close { --icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cg fill='none' stroke='white' stroke-width='1.5' stroke-linecap='square'%3E%3Cpath d='M5 5l10 10M15 5L5 15'/%3E%3C/g%3E%3C/svg%3E"); }
+.icon-drag { --icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cg fill='none' stroke='white' stroke-width='1.5' stroke-linecap='square'%3E%3Cg fill='white' stroke='none'%3E%3Ccircle cx='7' cy='5' r='1.2'/%3E%3Ccircle cx='13' cy='5' r='1.2'/%3E%3Ccircle cx='7' cy='10' r='1.2'/%3E%3Ccircle cx='13' cy='10' r='1.2'/%3E%3Ccircle cx='7' cy='15' r='1.2'/%3E%3Ccircle cx='13' cy='15' r='1.2'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E"); }
+.icon-arrow-up { --icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cg fill='none' stroke='white' stroke-width='1.5' stroke-linecap='square'%3E%3Cpath d='M10 16V4M5 9l5-5 5 5'/%3E%3C/g%3E%3C/svg%3E"); }
+.icon-arrow-down { --icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cg fill='none' stroke='white' stroke-width='1.5' stroke-linecap='square'%3E%3Cpath d='M10 4v12M5 11l5 5 5-5'/%3E%3C/g%3E%3C/svg%3E"); }
+.icon-chevron-left { --icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cg fill='none' stroke='white' stroke-width='1.5' stroke-linecap='square'%3E%3Cpath d='M12 5l-5 5 5 5'/%3E%3C/g%3E%3C/svg%3E"); }
+.icon-chevron-right { --icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cg fill='none' stroke='white' stroke-width='1.5' stroke-linecap='square'%3E%3Cpath d='M8 5l5 5-5 5'/%3E%3C/g%3E%3C/svg%3E"); }
+.icon-chevron-down { --icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cg fill='none' stroke='white' stroke-width='1.5' stroke-linecap='square'%3E%3Cpath d='M6 8l4 4 4-4'/%3E%3C/g%3E%3C/svg%3E"); }
+.icon-zoom-in { --icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cg fill='none' stroke='white' stroke-width='1.5' stroke-linecap='square'%3E%3Ccircle cx='9' cy='9' r='5'/%3E%3Cpath d='M13 13l4 4M9 6v6M6 9h6'/%3E%3C/g%3E%3C/svg%3E"); }
+.icon-zoom-out { --icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cg fill='none' stroke='white' stroke-width='1.5' stroke-linecap='square'%3E%3Ccircle cx='9' cy='9' r='5'/%3E%3Cpath d='M13 13l4 4M6 9h6'/%3E%3C/g%3E%3C/svg%3E"); }
+
+.link__edit .icon, .link__remove .icon, #detail-back .icon { width: 14px; height: 14px; }
+.link__move .icon, .collection-order__move .icon { width: 12px; height: 12px; }
+.link__grip .icon { width: 16px; height: 16px; }
+.stage__zoom-btn .icon { width: 14px; height: 14px; }
+.btn--arrow .icon { width: 12px; height: 12px; }
+
+/* --- Pied de page : la bande Carbone ---
+ *
+ * Pleine largeur, 33 px de rembourrage vertical, texte mist 13 px 100. Les
+ * liens sont alignés à gauche — la référence ne centre jamais — et il n'y a
+ * pas de logo : juste du texte inversé sur la surface sombre.
+ */
+.app-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-15) var(--space-4);
+  justify-content: center;
+  padding: var(--space-3) var(--space-4);
+  border-top: 1px solid var(--border-line);
+  background: var(--surface);
+  color: var(--text-2);
+  text-align: center;
+}
+
+.app-footer__links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-15) var(--space-4);
+}
+
+.app-footer__link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  color: var(--text-2);
+  font-size: var(--type-sm);
+  font-weight: var(--weight-ui);
+  text-decoration: none;
+}
+
+.app-footer__link:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.app-footer__link:hover {
+  color: var(--text);
+  text-decoration: underline;
+}
+
+.app-footer__link[hidden] { display: none; }
+
+.app-footer__promise {
+  margin-left: auto;
+  color: var(--text-3);
+  font-size: var(--type-2xs);
+  font-weight: 400;
+}
+
+.app-footer__signature {
+  flex: 0 0 100%;
+  margin: 0;
+  color: var(--text-3);
+  font-size: var(--type-2xs);
+  font-weight: 400;
+}
+
+.app-footer__sep { padding: 0 var(--space-05); color: var(--graphite); }
+
+/* --- Défilement ---
+ *
+ * Discret, mais toujours visible : le filet du système, pas la barre du
+ * navigateur.
+ */
+* { scrollbar-width: thin; scrollbar-color: var(--graphite) transparent; }
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--graphite); }
+::-webkit-scrollbar-thumb:hover { background: var(--text-3); }
+
+/* --- Mouvement réduit ---
+ *
+ * L'application anime des panneaux, des messages et des changements d'état.
+ * Une préférence système existe pour les troubles vestibulaires ; elle est
+ * respectée ici comme dans la fenêtre de l'extension.
+ */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    transition-duration: 0.01ms !important;
+    transition-delay: 0ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+  }
+}
 /* ==========================================================================
    Planche d'étiquettes : écran et papier
 
@@ -1649,16 +2308,24 @@ textarea.input { padding: var(--space-2) var(--space-3); }
    l'interface, forcer le noir, et couper les pages.
    ========================================================================== */
 
-.print-root { display: none; }
+.print-root {
+  display: none;
+  /* Le papier garde sa voix : les étiquettes s'impriment en IBM Plex Sans,
+     comme avant le passage de l'écran à Inter. */
+  font-family: var(--font-papier);
+}
 
 .print-page {
   position: relative;
   overflow: hidden;
   background: #fff;
+  /* L'aperçu écran partage ces règles : il doit, lui aussi, rester en Plex. */
+  font-family: var(--font-papier);
 }
 
-/* L'ombre d'une feuille posée sur le bureau, à l'écran seulement. */
-.print-page--screen { box-shadow: var(--shadow-sheet); }
+/* La feuille posée sur la bande Carbone : c'est le blanc du papier qui la
+   détache. Aucune ombre — l'élévation est portée par le contraste du fond. */
+.print-page--screen { box-shadow: none; }
 
 /* Le numéro de page vit dans la marge basse, hors de la grille d'étiquettes :
    il n'entre pas dans le calcul de la planche et ne décale rien. */
@@ -1669,7 +2336,7 @@ textarea.input { padding: var(--space-2) var(--space-3); }
   left: 0;
   text-align: center;
   color: #555;
-  font: 8pt/1 var(--font);
+  font: 8pt/1 var(--font-papier);
 }
 
 .print-cell {
@@ -1774,6 +2441,38 @@ textarea.input { padding: var(--space-2) var(--space-3); }
    Code plus le rembourrage. La règle ne garde donc que le centrage. */
 .print-table__qr { text-align: center; }
 
+/* Le numéro d'ordre, quand on le demande : la même donnée que dans la liste,
+   alignée et tabulaire pour se lire en colonne. */
+.print-table__index {
+  color: #333;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+/* Le texte d'une ligne : le titre en tête, l'adresse dessous. C'est la lecture
+   d'une feuille de liens, pas celle d'un tableur : deux informations dans une
+   seule colonne, et l'adresse mise au second rang. */
+.print-table__text { vertical-align: middle; }
+
+.print-table__title {
+  display: block;
+  color: #000;
+  font-size: 10pt;
+  font-weight: 600;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+.print-table__url {
+  display: block;
+  margin-top: 1mm;
+  color: #333;
+  font-size: 8pt;
+  font-weight: 400;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+
 /* En-tête de la page imprimée : le nom de la collection, et la date si on la
    demande. Les marges sont posées en ligne, calculées depuis les réglages. */
 .print-page__title {
@@ -1817,19 +2516,30 @@ textarea.input { padding: var(--space-2) var(--space-3); }
    tableau colle au titre. */
 .print-page__spacer { height: 4mm; }
 
-/* Variante sans grille. Le sélecteur porte deux classes pour l'emporter sur
-   les règles d'impression, quelle que soit leur position dans la feuille : à
-   spécificité égale, c'est le dernier bloc qui gagne, et l'ordre ne doit pas
-   décider de l'apparence d'un tableau. */
+/* La feuille de liens, sans grille complète (le défaut). Chaque ligne est
+   séparée par un filet, le QR Code par un trait vertical : c'est la mise en
+   page d'une liste imprimée, pas celle d'un tableur. Le sélecteur porte deux
+   classes pour l'emporter sur les règles d'impression, quelle que soit leur
+   position dans la feuille : à spécificité égale, c'est le dernier bloc qui
+   gagne, et l'ordre ne doit pas décider de l'apparence d'un tableau. */
 .print-table.print-table--bare th,
 .print-table.print-table--bare td {
   border: 0;
   background: none;
 }
 
-/* Sans bordures, un peu plus d'air entre les lignes : c'est le seul repère qui
-   reste pour suivre une ligne des yeux. */
-.print-table.print-table--bare td { padding-top: 2.2mm; padding-bottom: 2.2mm; }
+.print-table.print-table--bare td {
+  padding-top: 2.6mm;
+  padding-bottom: 2.6mm;
+  border-bottom: 0.2mm solid #000;
+}
+
+.print-table.print-table--bare .print-table__qr {
+  border-right: 0.2mm solid #000;
+}
+
+/* Dans la version complète, le titre et l'adresse gardent leur empilement ;
+   seule la grille change. */
 
 @media print {
   /* Une seule règle gouverne tout : rien ne s'imprime en dehors de la racine
@@ -1864,751 +2574,3 @@ textarea.input { padding: var(--space-2) var(--space-3); }
     break-after: auto;
   }
 }
-
-/* --- Mouvement réduit ---
- *
- * L'application anime des panneaux, des messages et des changements d'état.
- * Une préférence système existe pour les troubles vestibulaires ; elle est
- * respectée ici comme dans la fenêtre de l'extension.
- */
-@media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
-    transition-duration: 0.01ms !important;
-    transition-delay: 0ms !important;
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    scroll-behavior: auto !important;
-  }
-}
-
-/* ==========================================================================
-   Châssis à trois zones (palier I1)
-   --------------------------------------------------------------------------
-   Volet de collection, scène d'aperçu, inspecteur de mise en forme. La
-   hauteur est celle de la fenêtre : l'aperçu reste visible pendant qu'on
-   règle, et c'est la seule zone qui défile quand la feuille est grande.
-   ========================================================================== */
-
-.shell {
-  display: grid;
-  grid-template-rows: auto minmax(0, 1fr) auto;
-  height: 100vh;
-  overflow: hidden;
-}
-
-.app {
-  display: grid;
-  grid-template-columns: 360px minmax(0, 1fr) 340px;
-  min-height: 0;
-  min-width: 0;
-  overflow: hidden;
-}
-
-.app > .panel, .app > .stage { min-height: 0; min-width: 0; }
-
-/* La barre de commande tient sur une ligne : marque, sous-titre, langue,
-   compteur. Le sous-titre ne passe plus sous le titre. */
-.topbar {
-  display: flex;
-  grid-template-columns: none;
-  align-items: center;
-  gap: var(--space-3);
-  padding: var(--space-3) var(--space-4);
-}
-
-.topbar__brand { display: flex; align-items: center; gap: var(--space-3); }
-.marque { width: 24px; height: 24px; }
-.topbar__title { font-size: var(--type-base); }
-.topbar__subtitle {
-  grid-column: auto;
-  margin: 0;
-  font-size: var(--type-xs);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.locale { grid-column: auto; grid-row: auto; margin-left: auto; }
-.pill { grid-column: auto; grid-row: auto; }
-
-/* Volet et inspecteur défilent pour eux-mêmes : la scène ne bouge pas. */
-.rail {
-  overflow-y: auto;
-  border-right: 1px solid var(--border-line);
-}
-
-.inspector {
-  display: flex;
-  flex-direction: column;
-  overflow-y: auto;
-  border-left: 1px solid var(--border-line);
-}
-
-/* Le pied de l'inspecteur reste au bas du panneau : les actions du mode
-   actif ne se perdent pas en bas d'une longue liste de réglages. */
-.inspector__foot {
-  position: sticky;
-  bottom: 0;
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-  margin-top: auto;
-  padding: var(--space-3) 0 0;
-  background: var(--surface);
-  border-top: 1px solid var(--border-line);
-}
-
-.inspector__foot .btn { width: 100%; justify-content: center; min-height: var(--control-lg); }
-
-/* La scène : le bureau, et la feuille. */
-.stage {
-  display: flex;
-  flex-direction: column;
-  background: var(--desk);
-}
-
-.stage__bar {
-  flex: none;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-3);
-  height: 44px;
-  padding: 0 var(--space-4);
-  background: var(--bg);
-  border-bottom: 1px solid var(--border-line);
-}
-
-.stage__title { font-size: var(--type-sm); font-weight: 600; }
-.stage__hint { font-size: var(--type-2xs); color: var(--text-3); letter-spacing: 0.02em; }
-
-.stage__zoom {
-  display: flex;
-  align-items: center;
-  gap: var(--space-1);
-  margin-left: auto;
-}
-
-.stage__zoom-btn {
-  display: grid;
-  place-items: center;
-  min-width: 24px;
-  min-height: 24px;
-  padding: 0;
-  border: 1px solid var(--border-strong);
-  background: transparent;
-  color: var(--text-2);
-  font-size: var(--type-base);
-  line-height: 1;
-  cursor: pointer;
-}
-
-.stage__zoom-btn:not(:disabled):hover { border-color: var(--ink); color: var(--ink); }
-.stage__zoom-btn:disabled { color: var(--text-3); cursor: default; }
-.stage__zoom-btn:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
-
-.stage__zoom-value {
-  min-width: 44px;
-  color: var(--text-2);
-  font-size: var(--type-2xs);
-  text-align: center;
-  font-variant-numeric: tabular-nums;
-}
-
-.stage__surface {
-  flex: 1;
-  min-height: 0;
-  overflow: auto;
-  display: flex;
-  justify-content: center;
-  padding: var(--space-5);
-}
-
-/* L'aperçu n'est plus un panneau du formulaire : c'est le contenu de la scène. */
-.stage .preview {
-  flex: none;
-  width: 100%;
-  min-height: 0;
-  max-height: none;
-  overflow: visible;
-  padding: 0;
-  border: 0;
-  background: transparent;
-}
-
-.stage .preview__surface { width: 100%; }
-
-/* Le pied devient une barre d'état : liens, promesse, signature. */
-.app-footer {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-4);
-  height: 32px;
-  padding: 0 var(--space-4);
-  border-top: 1px solid var(--border-line);
-  text-align: left;
-}
-
-.app-footer__links { justify-content: flex-start; gap: var(--space-1) var(--space-4); }
-.app-footer__signature { margin: 0; font-size: var(--type-2xs); }
-.app-footer__link { display: inline-flex; align-items: center; min-height: 24px; font-size: var(--type-2xs); }
-.app-footer__promise { font-size: var(--type-2xs); color: var(--text-3); }
-
-@media (max-width: 1180px) {
-  .app { grid-template-columns: 310px minmax(0, 1fr) 310px; }
-}
-
-@media (max-width: 900px) {
-  .shell { height: auto; overflow: visible; }
-  .app {
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: 480px auto auto;
-    overflow: visible;
-  }
-  /* Sur une seule colonne, la scène passe en tête : l'aperçu reste la
-     première chose visible, le volet vient ensuite. */
-  .stage { order: 1; height: 480px; }
-  .rail { order: 2; overflow: visible; border-right: 0; border-top: 1px solid var(--border-line); }
-  .inspector { order: 3; overflow: visible; border-left: 0; border-top: 1px solid var(--border-line); }
-  .inspector__foot { position: static; }
-  .topbar { flex-wrap: wrap; }
-  .topbar__subtitle { flex-basis: 100%; order: 3; }
-}
-
-/* En mode Planche, la feuille est montrée à une échelle qui tient dans la
-   hauteur : c'est un aperçu, pas un zoom maximal. Les autres modes gardent
-   toute la largeur disponible. */
-.stage[data-mode="sheet"] .preview { max-width: 430px; }
-
-/* --- Dépliants de l'inspecteur et du volet ---
- *
- * Ce qui se règle une fois ne prend pas la place de ce qui se règle à chaque
- * lien. Le résumé reste visible, le contenu s'ouvre à la demande.
- */
-.advanced, .rail__advanced {
-  border-top: 1px solid var(--border-line);
-  padding-top: 8px;
-  margin-top: 2px;
-}
-
-/* Un dépliant est une **commande**, pas une note de bas de page.
-   Le petit triangle de 10 px ne se lisait pas ; la ligne entière est
-   maintenant un contrôle : hauteur de 40 px, cadre, chevron encadré à droite
-   qui pivote à l'ouverture, survol et focus visibles. */
-.advanced > summary,
-.rail__advanced > summary,
-.rail__transfer > summary {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  min-height: 40px;
-  padding: 0 var(--space-2);
-  border: 1px solid var(--border-line);
-  background: var(--bg);
-  color: var(--text);
-  font-size: var(--type-sm);
-  font-weight: 500;
-  list-style: none;
-  cursor: pointer;
-}
-
-.advanced > summary::-webkit-details-marker,
-.rail__advanced > summary::-webkit-details-marker,
-.rail__transfer > summary::-webkit-details-marker { display: none; }
-
-.advanced > summary:hover,
-.rail__advanced > summary:hover,
-.rail__transfer > summary:hover {
-  border-color: var(--border-strong);
-  background: var(--surface-2);
-}
-
-.advanced[open] > summary,
-.rail__advanced[open] > summary,
-.rail__transfer[open] > summary {
-  margin-bottom: var(--space-2);
-  border-color: var(--border-strong);
-  background: var(--surface-2);
-}
-
-.advanced > summary:focus-visible,
-.rail__advanced > summary:focus-visible,
-.rail__transfer > summary:focus-visible {
-  outline: 2px solid var(--focus);
-  outline-offset: 2px;
-}
-
-/* Le chevron : une boîte de 24 px, dessinée en SVG local, qui pivote. */
-.advanced > summary::after,
-.rail__advanced > summary::after,
-.rail__transfer > summary::after {
-  content: "";
-  flex: none;
-  width: 24px;
-  height: 24px;
-  margin-left: auto;
-  border: 1px solid var(--border-strong);
-  background: var(--bg) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cpath d='M6 8l4 4 4-4' fill='none' stroke='%231a1a1a' stroke-width='1.5' stroke-linecap='square'/%3E%3C/svg%3E") center / 14px 14px no-repeat;
-  transition: transform var(--motion) var(--easing), background-color var(--motion) var(--easing);
-}
-
-.advanced[open] > summary::after,
-.rail__advanced[open] > summary::after,
-.rail__transfer[open] > summary::after {
-  transform: rotate(180deg);
-}
-
-.advanced .shortener { margin-top: 8px; }
-
-/* --- Volet : un seul dépliant pour les gestes de gestion --- */
-.rail__transfer { padding-top: var(--space-2); }
-
-/* --- Actions de ligne au survol et au focus ---
- *
- * Deux commandes par ligne sur huit lignes faisaient seize cibles visibles en
- * permanence. Elles restent focalisables (donc accessibles au clavier et au
- * lecteur d'écran) et apparaissent dès que la ligne est survolée ou qu'un de
- * ses contrôles reçoit le focus. Sur un appareil sans survol, elles restent
- * visibles : sans elles, on ne pourrait pas supprimer.
- */
-.link__remove,
-.link__edit { opacity: 0; transition: opacity var(--motion-fast) var(--easing); }
-
-.link:hover .link__remove,
-.link:hover .link__edit,
-.link:focus-within .link__remove,
-.link:focus-within .link__edit { opacity: 1; }
-
-@media (hover: none) {
-  .link__remove, .link__edit { opacity: 1; }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .link__remove, .link__edit { transition: none; }
-}
-
-/* ==========================================================================
-   Variantes et composants natifs (palier I2)
-   --------------------------------------------------------------------------
-   Une table fermée de variantes : primaire (l'action), fantôme (le contour),
-   danger (la destruction), rempli (le survol neutre). Aucune autre classe de
-   bouton n'est admise — un test le vérifie.
-   ========================================================================== */
-
-/* Les contrôles natifs étaient la dernière surface qui ne parlait pas la même
-   langue : bleu du système pour les cases, piste et curseur du navigateur pour
-   le réglage de largeur, barres de défilement par défaut. */
-input[type="checkbox"] {
-  appearance: none;
-  -webkit-appearance: none;
-  width: 16px;
-  height: 16px;
-  margin: 0;
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius);
-  background: var(--bg);
-  cursor: pointer;
-}
-
-input[type="checkbox"]:checked {
-  border-color: var(--ink);
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M3.2 8.6l3.1 3.1 6.5-6.6' fill='none' stroke='%231a1a1a' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: center;
-  background-size: 12px 12px;
-}
-
-input[type="checkbox"]:indeterminate {
-  border-color: var(--ink);
-  background: var(--ink);
-}
-
-input[type="checkbox"]:focus-visible {
-  outline: 2px solid var(--focus);
-  outline-offset: 2px;
-}
-
-input[type="range"] {
-  appearance: none;
-  -webkit-appearance: none;
-  width: 100%;
-  height: var(--control-sm);
-  background: transparent;
-  cursor: pointer;
-  /* Remplissage : `--slider-pct` est posé par `app.js` à chaque changement. La
-     piste se lit ainsi d'un coup d'œil — la partie utile est en encre, le
-     reste en filet. */
-  --slider-pct: 0%;
-}
-
-input[type="range"]::-webkit-slider-runnable-track {
-  height: 2px;
-  background: linear-gradient(
-    to right,
-    var(--ink) 0 var(--slider-pct),
-    var(--border-strong) var(--slider-pct) 100%
-  );
-}
-
-/* Une lame fine plutôt qu'un pavé : 18 px de haut, 6 px de large, pour une
-   piste de 2 px. La masse du pouce ne domine plus la ligne. */
-input[type="range"]::-webkit-slider-thumb {
-  appearance: none;
-  -webkit-appearance: none;
-  width: 6px;
-  height: 18px;
-  margin-top: -8px;
-  border: 0;
-  border-radius: var(--radius);
-  background: var(--ink);
-}
-
-input[type="range"]::-moz-range-track { height: 2px; background: var(--border-strong); }
-input[type="range"]::-moz-range-progress { height: 2px; background: var(--ink); }
-input[type="range"]::-moz-range-thumb {
-  width: 6px; height: 18px; border: 0; border-radius: var(--radius); background: var(--ink);
-}
-
-input[type="range"]:focus-visible {
-  outline: 2px solid var(--focus);
-  outline-offset: 2px;
-}
-
-/* Défilement : discret, mais toujours visible, dans les deux thèmes. */
-* { scrollbar-width: thin; scrollbar-color: var(--border-strong) transparent; }
-::-webkit-scrollbar { width: 10px; height: 10px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--border-strong); }
-::-webkit-scrollbar-thumb:hover { background: var(--text-3); }
-
-@media (prefers-color-scheme: dark) {
-  input[type="checkbox"]:checked {
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M3.2 8.6l3.1 3.1 6.5-6.6' fill='none' stroke='%23f4f4f4' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
-  }
-}
-
-/* Un curseur n'est pas un champ texte, même s'il porte `.input` pour sa
-   largeur. Sans cette remise à zéro, il héritait du filet, du fond de focus et
-   de l'anneau intérieur d'encre des champs — un cadre noir épais autour de la
-   piste au moindre clic. Le focus clavier garde son anneau d'accent, plus bas. */
-.input[type="range"] {
-  min-height: 0;
-  padding: 0;
-  border: 0;
-  background: transparent;
-}
-
-.input[type="range"]:focus,
-.input[type="range"]:focus-visible {
-  background: transparent;
-  box-shadow: none;
-}
-
-/* --- Recherche : compteur et effacement ---
- *
- * Le champ garde sa place ; le compteur et la croix vivent à droite, dans la
- * même surface. Le compteur n'apparaît qu'en recherche : au repos, le nombre
- * de liens est déjà dans la barre de commande.
- */
-.search-field { position: relative; flex: 1; display: flex; min-width: 0; }
-.search-field .input { flex: 1; padding-right: 10px; }
-.search-field--actif .input { padding-right: 66px; }
-
-.search-field__count {
-  position: absolute;
-  right: 30px;
-  top: 50%;
-  transform: translateY(-50%);
-  padding: 0 2px;
-  background: var(--surface);
-  color: var(--text-3);
-  font-size: var(--type-2xs);
-  pointer-events: none;
-}
-
-.search-field__clear {
-  position: absolute;
-  right: 2px;
-  top: 50%;
-  transform: translateY(-50%);
-  display: grid;
-  place-items: center;
-  width: 24px;
-  height: 24px;
-  padding: 0;
-  border: 0;
-  background: transparent;
-  color: var(--text-2);
-  font-size: var(--type-base);
-  line-height: 1;
-  cursor: pointer;
-}
-
-.search-field__clear:hover { color: var(--ink); }
-.search-field__clear:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
-
-/* --- Volet de détail ---
- *
- * Le volet remplace la collection au lieu de s'ajouter à elle : la liste garde
- * sa place et sa densité, et l'édition ne la pousse plus. Tout ce qui n'est pas
- * le détail est retiré du flux, sans changer le HTML de la collection.
- */
-.rail--detail > *:not(.detail) { display: none; }
-
-.detail {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-  flex: 1;
-  min-height: 0;
-  overflow: auto;
-}
-
-.detail__head { display: flex; align-items: center; }
-
-.detail__title {
-  margin: 0;
-  padding: var(--space-1) 0 var(--space-2);
-  border-bottom: 1px solid var(--border-line);
-  font-size: var(--type-sm);
-  font-weight: 620;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.detail__body { display: flex; flex-direction: column; gap: var(--space-3); }
-
-/* La feuille est un objet posé : un bord, une ombre, et la scène peut défiler
-   quand le zoom dépasse l'ajustement. */
-.preview__frame {
-  border: 1px solid var(--border-strong);
-  box-shadow: var(--shadow-sheet);
-  background: var(--bg);
-}
-
-/* Actions proposées par un avertissement : le remède, à côté du constat. */
-.preview__actions {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: var(--space-2);
-  margin-top: var(--space-1);
-}
-
-/* --- Cotation de l'étiquette ---
- *
- * Deux cotes, en millimètres, autour de l'aperçu : la largeur sous l'étiquette,
- * la hauteur à sa droite. Elles se lisent sans être déduites d'un facteur.
- */
-.label-cote {
-  display: grid;
-  grid-template-columns: auto auto;
-  grid-template-rows: auto auto;
-  align-items: center;
-  justify-items: center;
-  gap: var(--space-05) var(--space-2);
-}
-
-.label-cote .preview__page { grid-column: 1; grid-row: 1; }
-
-.label-cote__w {
-  grid-column: 1;
-  grid-row: 2;
-  align-self: start;
-  padding-top: var(--space-05);
-  border-top: 1px solid var(--text-3);
-  color: var(--text-3);
-  font-size: var(--type-2xs);
-  white-space: nowrap;
-}
-
-.label-cote > .preview__caption {
-  grid-column: 1 / -1;
-  grid-row: 3;
-  justify-self: stretch;
-  margin: 0;
-}
-
-.label-cote__h {
-  grid-column: 2;
-  grid-row: 1;
-  justify-self: start;
-  padding-left: var(--space-1);
-  border-left: 1px solid var(--text-3);
-  color: var(--text-3);
-  font-size: var(--type-2xs);
-  white-space: nowrap;
-  writing-mode: vertical-rl;
-}
-
-/* Conseils de mise en page : une rangée d'actions sous l'indice. */
-.hint-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-1);
-  margin: var(--space-1) 0 0;
-}
-
-/* ==========================================================================
-   Mode rangement
-   --------------------------------------------------------------------------
-   Le mode existait, mais ses commandes ressemblaient à du texte : deux
-   triangles de 24 px, une poignée discrète, et les cases à cocher au milieu.
-   On ne savait pas si le bouton avait agi. Le mode se voit maintenant : la
-   liste prend un cadre, les cases disparaissent, la poignée et les flèches
-   deviennent des cibles visibles, et toute la ligne se saisit.
-   ========================================================================== */
-
-.links--reorder {
-  margin-top: var(--space-1);
-  border: 1px solid var(--border-strong);
-  background: var(--surface);
-}
-
-.links--reorder .link {
-  padding: var(--space-1) var(--space-2);
-  border-bottom: 1px solid var(--border-line);
-}
-
-.links--reorder .link:hover { background: var(--surface-2); }
-
-/* La sélection n'est pas la tâche : ses cases quittent le mode, y compris
-   la case maîtresse de la ligne d'outils. */
-.list-head--mode .list-head__box,
-.list-head--mode .list-head__hint { display: none; }
-
-.links--reorder .link__check-hit,
-.links--reorder .link__remove,
-.links--reorder .link__editor { display: none; }
-
-.links--reorder .link__index { color: var(--text); font-weight: 620; }
-
-.links--reorder .link__rank {
-  display: flex;
-  align-items: center;
-  gap: var(--space-05);
-}
-
-.links--reorder .link__grip {
-  width: 28px;
-  height: 28px;
-  border: 1px solid var(--border-strong);
-  background: var(--bg);
-  color: var(--text-2);
-  font-size: var(--type-sm);
-  cursor: grab;
-}
-
-.links--reorder .link__grip:hover { border-color: var(--ink); color: var(--ink); }
-
-.links--reorder .link__move {
-  width: 28px;
-  height: 28px;
-  border: 1px solid var(--border-strong);
-  background: var(--bg);
-  color: var(--text);
-  font-size: var(--type-2xs);
-}
-
-.links--reorder .link__move:not(:disabled):hover {
-  border-color: var(--ink);
-  background: var(--bg);
-  color: var(--ink);
-}
-
-.links--reorder .link__move:disabled { color: var(--text-3); border-color: var(--border-line); }
-
-/* L'indice devient une bannière de mode, et non une phrase parmi d'autres. */
-.hint--mode {
-  padding: var(--space-1) var(--space-2);
-  border-left: 2px solid var(--ink);
-  background: var(--surface-2);
-  color: var(--text);
-}
-
-/* Icônes du produit : un seul jeu, en masque SVG. currentColor suit le thème. */
-.icon {
-  display: inline-block;
-  flex: none;
-  width: 16px;
-  height: 16px;
-  background-color: currentColor;
-  -webkit-mask: var(--icon) center / contain no-repeat;
-  mask: var(--icon) center / contain no-repeat;
-}
-.icon-edit { --icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cg fill='none' stroke='white' stroke-width='1.5' stroke-linecap='square'%3E%3Cpath d='M4 16l1-4L14 3l3 3-9 9-4 1zM12 5l3 3'/%3E%3C/g%3E%3C/svg%3E"); }
-.icon-trash { --icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cg fill='none' stroke='white' stroke-width='1.5' stroke-linecap='square'%3E%3Cpath d='M4 6h12M8 6V4h4v2M6 6l1 10h6l1-10'/%3E%3C/g%3E%3C/svg%3E"); }
-.icon-close { --icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cg fill='none' stroke='white' stroke-width='1.5' stroke-linecap='square'%3E%3Cpath d='M5 5l10 10M15 5L5 15'/%3E%3C/g%3E%3C/svg%3E"); }
-.icon-drag { --icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cg fill='none' stroke='white' stroke-width='1.5' stroke-linecap='square'%3E%3Cg fill='white' stroke='none'%3E%3Ccircle cx='7' cy='5' r='1.2'/%3E%3Ccircle cx='13' cy='5' r='1.2'/%3E%3Ccircle cx='7' cy='10' r='1.2'/%3E%3Ccircle cx='13' cy='10' r='1.2'/%3E%3Ccircle cx='7' cy='15' r='1.2'/%3E%3Ccircle cx='13' cy='15' r='1.2'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E"); }
-.icon-arrow-up { --icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cg fill='none' stroke='white' stroke-width='1.5' stroke-linecap='square'%3E%3Cpath d='M10 16V4M5 9l5-5 5 5'/%3E%3C/g%3E%3C/svg%3E"); }
-.icon-arrow-down { --icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cg fill='none' stroke='white' stroke-width='1.5' stroke-linecap='square'%3E%3Cpath d='M10 4v12M5 11l5 5 5-5'/%3E%3C/g%3E%3C/svg%3E"); }
-.icon-chevron-left { --icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cg fill='none' stroke='white' stroke-width='1.5' stroke-linecap='square'%3E%3Cpath d='M12 5l-5 5 5 5'/%3E%3C/g%3E%3C/svg%3E"); }
-.icon-chevron-right { --icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cg fill='none' stroke='white' stroke-width='1.5' stroke-linecap='square'%3E%3Cpath d='M8 5l5 5-5 5'/%3E%3C/g%3E%3C/svg%3E"); }
-.icon-chevron-down { --icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cg fill='none' stroke='white' stroke-width='1.5' stroke-linecap='square'%3E%3Cpath d='M6 8l4 4 4-4'/%3E%3C/g%3E%3C/svg%3E"); }
-.icon-zoom-in { --icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cg fill='none' stroke='white' stroke-width='1.5' stroke-linecap='square'%3E%3Ccircle cx='9' cy='9' r='5'/%3E%3Cpath d='M13 13l4 4M9 6v6M6 9h6'/%3E%3C/g%3E%3C/svg%3E"); }
-.icon-zoom-out { --icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cg fill='none' stroke='white' stroke-width='1.5' stroke-linecap='square'%3E%3Ccircle cx='9' cy='9' r='5'/%3E%3Cpath d='M13 13l4 4M6 9h6'/%3E%3C/g%3E%3C/svg%3E"); }
-
-.link__edit .icon, .link__remove .icon, #detail-back .icon { width: 14px; height: 14px; }
-.link__move .icon, .collection-order__move .icon { width: 12px; height: 12px; }
-.link__grip .icon { width: 16px; height: 16px; }
-.stage__zoom-btn .icon { width: 14px; height: 14px; }
-.btn--arrow .icon { width: 12px; height: 12px; }
-
-/* Sélecteurs : le chevron du navigateur est remplacé par le même dessin que les
-   icônes, avec la place nécessaire pour ne pas le confondre avec le texte. */
-select.input, .locale__select {
-  appearance: none;
-  -webkit-appearance: none;
-  padding-right: 30px;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cpath d='M6 8l4 4 4-4' fill='none' stroke='%236f6f6f' stroke-width='1.5' stroke-linecap='square'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 9px center;
-  background-size: 14px 14px;
-}
-
-.btn {
-  transition: background-color var(--motion-fast) var(--easing),
-    border-color var(--motion-fast) var(--easing), color var(--motion-fast) var(--easing);
-}
-
-/* Un dépliant de mode : mêmes conventions que les dépliants du volet. */
-.mode__advanced { border-top: 1px solid var(--border-line); padding-top: var(--space-2); }
-.mode__advanced > .mode__advanced-title {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  min-height: 40px;
-  margin: 0;
-  padding: 0 var(--space-2);
-  border: 1px solid var(--border-line);
-  background: var(--bg);
-  font-size: var(--type-xs);
-  font-weight: 650;
-  list-style: none;
-  cursor: pointer;
-}
-.mode__advanced > .mode__advanced-title::-webkit-details-marker { display: none; }
-.mode__advanced > .mode__advanced-title:hover { border-color: var(--border-strong); background: var(--surface-2); }
-.mode__advanced[open] > .mode__advanced-title { border-color: var(--border-strong); background: var(--surface-2); }
-.mode__advanced > .mode__advanced-title:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
-.mode__advanced > .mode__advanced-title::after {
-  content: "";
-  flex: none;
-  width: 24px;
-  height: 24px;
-  margin-left: auto;
-  border: 1px solid var(--border-strong);
-  background: var(--bg) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cpath d='M6 8l4 4 4-4' fill='none' stroke='%231a1a1a' stroke-width='1.5' stroke-linecap='square'/%3E%3C/svg%3E") center / 14px 14px no-repeat;
-  transition: transform var(--motion) var(--easing);
-}
-.mode__advanced[open] > .mode__advanced-title::after { transform: rotate(180deg); }
-.mode__advanced-body { display: flex; flex-direction: column; gap: var(--space-3); padding-top: var(--space-3); }
-
-/* Une action destructive ne se propose pas à côté d'un sélecteur inoffensif :
-   elle apparaît au survol ou au focus du bloc collection, et reste accessible
-   au clavier. Au tactile, elle reste visible. */
-#collection-delete { opacity: 0; transition: opacity var(--motion-fast) var(--easing); }
-.collection-picker:hover #collection-delete,
-.collection-picker:focus-within #collection-delete { opacity: 1; }
-@media (hover: none) { #collection-delete { opacity: 1; } }

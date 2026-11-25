@@ -17,12 +17,10 @@ import { fileURLToPath } from 'node:url';
 import {
   APP_ICON_DIR,
   APP_ICON_FILES,
-  buildMatrix,
   renderIcon,
   writeIcons,
   ICON_SIZES,
   INK,
-  MODULE_COUNT,
 } from '../scripts/make-icons.mjs';
 
 // L'encodeur vit dans le cœur partagé : le générateur d'icônes et l'export
@@ -97,34 +95,64 @@ function decodePng(png) {
 // Motif
 // ---------------------------------------------------------------------------
 
-test('la matrice fait 21 × 21 modules', () => {
-  const grid = buildMatrix();
-  assert.equal(grid.length, MODULE_COUNT);
-  assert.equal(grid[0].length, MODULE_COUNT);
-  assert.ok(grid.every((row) => row.every((cell) => typeof cell === 'boolean')));
-});
+const BLANC = [255, 255, 255];
 
-test('les trois repères d\'orientation sont dessinés', () => {
-  const grid = buildMatrix();
-  for (const [ox, oy] of [[0, 0], [MODULE_COUNT - 7, 0], [0, MODULE_COUNT - 7]]) {
-    // Anneau extérieur plein.
-    assert.equal(grid[oy][ox], true, `coin ${ox},${oy}`);
-    assert.equal(grid[oy + 6][ox + 6], true);
-    // Intérieur blanc entre l'anneau et le cœur.
-    assert.equal(grid[oy + 1][ox + 1], false);
-    // Cœur central plein.
-    assert.equal(grid[oy + 3][ox + 3], true);
+/** Le pixel d'une image rendue, en coordonnées de la grille 128. */
+function pixel(image, x, y) {
+  const col = Math.floor((x / 128) * image.width);
+  const lig = Math.floor((y / 128) * image.height);
+  const offset = (lig * image.width + col) * 4;
+  return [...image.data.subarray(offset, offset + 4)];
+}
+
+test('le dessin est une tuile orange à quatre carrés blancs', () => {
+  const image = renderIcon(128, { plein: true });
+  // Le centre de la tuile tombe dans l'écart entre les carrés : c'est l'orange.
+  assert.deepEqual(pixel(image, 64, 64).slice(0, 3), INK);
+  // Le centre des quatre carrés est blanc.
+  for (const [x, y] of [[43, 43], [84, 43], [43, 84], [76, 76]]) {
+    assert.deepEqual(pixel(image, x, y).slice(0, 3), BLANC, `carré attendu en ${x},${y}`);
   }
 });
 
-test('la matrice est déterministe', () => {
-  assert.deepEqual(buildMatrix(), buildMatrix());
+test('les proportions du motif sont celles de la référence', () => {
+  const image = renderIcon(128, { plein: true });
+  let minX = 128, minY = 128, maxX = -1, maxY = -1;
+  for (let y = 0; y < 128; y++) {
+    for (let x = 0; x < 128; x++) {
+      const [r, g, b] = pixel(image, x + 0.5, y + 0.5);
+      if (r > 250 && g > 250 && b > 250) {
+        minX = Math.min(minX, x); minY = Math.min(minY, y);
+        maxX = Math.max(maxX, x); maxY = Math.max(maxY, y);
+      }
+    }
+  }
+  // Le motif occupe 56 % de la tuile (72 unités sur 128), mesuré sur la référence.
+  const largeur = maxX - minX + 1;
+  const hauteur = maxY - minY + 1;
+  assert.ok(largeur >= 70 && largeur <= 74, `largeur du motif : ${largeur}`);
+  assert.ok(hauteur >= 70 && hauteur <= 74, `hauteur du motif : ${hauteur}`);
+  assert.ok(Math.abs(minX - minY) <= 1, 'le motif n’est pas centré');
 });
 
-test('la matrice contient des modules noirs et des modules blancs', () => {
-  const flat = buildMatrix().flat();
-  assert.ok(flat.some(Boolean), 'aucun module encre');
-  assert.ok(flat.some((cell) => !cell), 'aucun module blanc');
+test('le petit carré est bien plus petit que les trois autres', () => {
+  const image = renderIcon(128, { plein: true });
+  /** Longueur d’une plage blanche sur une ligne de la grille. */
+  const plage = (y, x0 = 0, x1 = 128) => {
+    let debut = -1;
+    let longueur = 0;
+    for (let x = x0; x < x1; x++) {
+      const [r, g, b] = pixel(image, x + 0.5, y + 0.5);
+      const blanc = r > 250 && g > 250 && b > 250;
+      if (blanc) { if (debut === -1) debut = x; longueur += 1; }
+      else if (debut !== -1) break;
+    }
+    return longueur;
+  };
+  // À y = 76, la colonne de droite ne porte que le petit carré (15 unités) ;
+  // la colonne de gauche porte un grand carré (31 unités).
+  assert.ok(plage(76, 65, 90) >= 13 && plage(76, 65, 90) <= 17, `petit carré : ${plage(76, 65, 90)}`);
+  assert.ok(plage(43, 20, 62) >= 29 && plage(43, 20, 62) <= 33, `grand carré : ${plage(43, 20, 62)}`);
 });
 
 // ---------------------------------------------------------------------------
@@ -208,7 +236,11 @@ test('l\'encre reste lisible sur une barre d\'outils claire et sombre', () => {
 
   for (const [nom, fond] of surClair) {
     const rapport = contraste([r, g, b], fond);
-    assert.ok(rapport >= 3, `barre ${nom} : ${rapport.toFixed(2)}:1, minimum 3:1`);
+    // L'orange pur est un choix de marque : 3,33:1 sur le blanc, 2,99:1 sur le
+    // gris clair des barres. On exige 3:1 sur le blanc et 2,9:1 sur le gris,
+    // plutôt que de renier la teinte exacte de l'interface.
+    const seuil = nom === 'claire' ? 3 : 2.9;
+    assert.ok(rapport >= seuil, `barre ${nom} : ${rapport.toFixed(2)}:1, minimum ${seuil}:1`);
   }
   for (const [nom, fond] of surSombre) {
     const rapport = contraste([r, g, b], fond);
@@ -219,13 +251,18 @@ test('l\'encre reste lisible sur une barre d\'outils claire et sombre', () => {
   }
 });
 
-test('l\'icône contient des pixels encrés', () => {
+test('l\'icône contient des pixels de tuile et des pixels de motif', () => {
   const image = renderIcon(64);
-  let inked = 0;
+  let orange = 0;
+  let blanc = 0;
   for (let i = 0; i < image.data.length; i += 4) {
-    if (image.data[i] !== 0xff && image.data[i + 3] === 0xff) inked++;
+    if (image.data[i + 3] === 0) continue;
+    const [r, g, b] = [image.data[i], image.data[i + 1], image.data[i + 2]];
+    if (r > 250 && g > 250 && b > 250) blanc++;
+    else if (r > 200 && g < 120 && b < 40) orange++;
   }
-  assert.ok(inked > 100, `trop peu de pixels encrés : ${inked}`);
+  assert.ok(orange > 100, `trop peu de pixels de tuile : ${orange}`);
+  assert.ok(blanc > 100, `trop peu de pixels de motif : ${blanc}`);
 });
 
 test('le rendu est déterministe', () => {

@@ -42,6 +42,7 @@ retrouve et se partage facilement.
 | Extension Brave / Chrome (clic droit, popup, liens cliquables) | fait, vérifié dans Brave et dans Chrome |
 | **Fiche Chrome Web Store** | **publiée** — `0.4.0` en ligne ; la mise à jour `0.5.0` (identité, ergonomie, sélection, impression) est préparée ; voir [les notes de fiche](docs/chrome-web-store.md) avant de la déposer |
 | Application web autonome (liste, exports, mises en page) | fait, vérifié dans Brave |
+| Sauvegarde complète de toutes les collections, et sa restauration | fait, testé |
 | Raccourcissement d'URL en option (T.LY d'abord, puis TinyURL, is.gd, v.gd, spoo.me) | fait, vérifié dans Brave |
 | Planches Avery A4 et Letter, calibrage d'impression | fait, géométrie confrontée aux cotes publiées |
 | Aperçu d'étiquette Niimbot sans imprimante connectée | fait, vérifié dans Brave |
@@ -51,7 +52,7 @@ retrouve et se partage facilement.
 | Socle natif Swift (protocole, session, CoreBluetooth) | fait, testé |
 | Application iOS qui utilise ce socle | à faire |
 
-**1192 tests, tous verts** — 1088 en JavaScript et 104 en Swift — dont :
+**1287 tests, tous verts** — 1183 en JavaScript et 104 en Swift — dont :
 
 - la validation **octet à octet** des trames Niimbot contre les relevés
   documentés, **dans les deux langages** : deux implémentations indépendantes
@@ -256,8 +257,9 @@ apparaître — encore faut-il que le navigateur autorise l'extension dans ce mo
 
 Ce que coûte le tout-local n'est pas la place, c'est la perte. Désinstaller
 l'extension, ou effacer les données de navigation, efface la collection. Le seul
-recours est l'archive exportée — un fichier conservé hors du navigateur — et
-l'import la relit en ignorant les liens déjà présents.
+recours est un fichier conservé hors du navigateur : l'archive d'une collection,
+ou la **sauvegarde complète** qui les porte toutes. L'import les relit en
+ignorant les liens déjà présents.
 
 ### Nommer, créer et supprimer une collection
 
@@ -647,6 +649,50 @@ au chargement. Le choix du rangement, lui, est exécuté pour de vrai dans
 `test/web-import.test.js` : le contrôle statique dirait que les trois commandes
 existent, pas ce qu'elles font.
 
+## Sauvegarder toutes les collections
+
+Le bouton **« Archive »** ne décrit **qu'une** collection. Passer d'une machine à
+l'autre obligeait donc à rouvrir chaque collection et à télécharger autant de
+fichiers. Le bouton **« Sauvegarde complète »**, à côté de lui, écrit **toutes
+les collections ordinaires et tous leurs liens dans un seul fichier JSON** :
+
+- chaque collection garde son **nom, sa note, son premier numéro, son rang et sa
+  date de création** ;
+- chaque lien garde son URL, son titre, ses tags, sa note, sa date de collecte,
+  son rang manuel et son raccourci ;
+- la **collection de navigation privée n'y entre jamais** : ses liens vivent
+  dans `chrome.storage.session`, et le constructeur du cœur écarte explicitement
+  la collection et ses liens. En navigation privée, la commande est donc
+  inactive, avec la phrase qui l'explique ;
+- le fichier s'appelle `sauvegarde-complete-AAAAMMJJ-HHMM.json`.
+
+**« Importer… » relit aussi une sauvegarde.** Le fichier est reconnu à sa marque
+(`url-qr-code-printer/backup`) et n'est **pas** aplati en une archive d'une seule
+collection : l'application demande quoi en faire.
+
+| Issue | Ce qu'elle fait |
+|---|---|
+| **Ajouter les N collections du fichier** | chaque collection du fichier est créée à côté des vôtres ; un nom déjà pris est suffixé (« Veille », puis « Veille 2 ») ; les liens gardent leur date, leur rang et leur raccourci ; un identifiant déjà utilisé est régénéré. La collection affichée n'est pas touchée. |
+| **Remplacer toutes les collections** | les collections actuelles et leurs liens sont **effacés d'abord**, puis celles du fichier sont restaurées avec leurs noms, notes, premiers numéros et dates. Une **seconde confirmation** annonce ce qui sera perdu et ce qui sera restauré. |
+
+Rien n'est écrit avant le choix, et « Annuler » ne laisse aucune trace. Les noms
+déjà pris ne sont jamais refusés : une sauvegarde faite sur une autre machine
+porte presque toujours les mêmes noms, et refuser l'import pour un nom pris
+obligerait à renommer à la main avant de pouvoir récupérer ses données. Un lien
+illisible est compté et signalé, sans faire échouer le reste ; une URL en double
+dans une même collection est ignorée et comptée.
+
+Le fichier relu est une **entrée non fiable** : il passe par les constructeurs du
+modèle — URL validée, bornes de nom et de note —, les identifiants dupliqués sont
+régénérés, et des plafonds (500 collections, 20 000 liens) refusent un fichier
+qui ne pourrait pas venir du produit. Une sauvegarde d'une version plus récente
+est refusée avec la phrase « mettez l'application à jour ».
+
+**Ce qui n'est pas dans le fichier : les réglages.** La sauvegarde porte les
+collections et leurs liens — ce que le navigateur peut perdre, et ce qu'on veut
+retrouver ailleurs —, pas les préférences de mise en page, qui se règlent en un
+geste et dépendent de l'imprimante.
+
 ## Dater une étiquette : une option, jamais un fragment
 
 La date de collecte peut être imprimée sous le QR Code — `Aucune`, `Date de
@@ -1030,7 +1076,7 @@ pull request :
 
 ```bash
 npm install
-npm run test:all   # 1088 tests JavaScript + 104 tests Swift
+npm run test:all   # 1183 tests JavaScript + 104 tests Swift
 ```
 
 Les conventions du dépôt — cœur sans DOM ni réseau implicite, zéro dépendance,

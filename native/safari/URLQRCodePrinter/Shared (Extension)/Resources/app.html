@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>URLQRCodePrinter</title>
-  <link rel="stylesheet" href="style.css?v=8a027b44680f">
+  <link rel="stylesheet" href="style.css?v=659e6de49418">
   <link rel="icon" type="image/png" href="icons/icon-32.png">
 </head>
 <body>
@@ -70,7 +70,10 @@
                   data-i18n="Réorganiser">Réorganiser</button>
           <button id="collection-delete" class="btn btn--ghost btn--small btn--danger" type="button"
                   aria-expanded="false" aria-controls="collection-delete-confirm"
-                  data-i18n="Supprimer">Supprimer</button>
+                  title="Supprimer" data-i18n-title="Supprimer"
+                  aria-label="Supprimer" data-i18n-aria-label="Supprimer">
+            <span class="icon icon-trash" aria-hidden="true"></span>
+          </button>
         </div>
       </div>
 
@@ -280,11 +283,15 @@
           <button id="export-csv" class="btn btn--ghost btn--fill" type="button" disabled data-i18n="CSV">CSV</button>
           <button id="export-md" class="btn btn--ghost btn--fill" type="button" disabled data-i18n="Markdown">Markdown</button>
           <button id="export-json" class="btn btn--ghost btn--fill" type="button" disabled data-i18n="Archive">Archive</button>
+          <button id="export-backup" class="btn btn--ghost btn--fill" type="button"
+                  title="Enregistre toutes les collections et leurs liens dans un seul fichier"
+                  data-i18n-title="Enregistre toutes les collections et leurs liens dans un seul fichier"
+                  data-i18n="Sauvegarde complète">Sauvegarde complète</button>
         </div>
 
         <div class="actions actions--end">
           <button id="import" class="btn btn--ghost btn--fill" type="button"
-                  title="Relit l'archive JSON, le dossier d'étiquettes .zip ou un CSV exporté d'ici" data-i18n-title="Relit l'archive JSON, le dossier d'étiquettes .zip ou un CSV exporté d'ici" data-i18n="Importer…">
+                  title="Relit l'archive JSON, le dossier d'étiquettes .zip, un CSV exporté d'ici ou une sauvegarde complète" data-i18n-title="Relit l'archive JSON, le dossier d'étiquettes .zip, un CSV exporté d'ici ou une sauvegarde complète" data-i18n="Importer…">
             Importer…
           </button>
           <button id="clear" class="btn btn--ghost btn--danger btn--fill" type="button" disabled data-i18n="Vider la collection">Vider la collection</button>
@@ -306,6 +313,7 @@
         </div>
       </div>
       <p class="hint hint--tight rail__transfer-hint" data-i18n="Importer relit l'Archive, le .zip d'étiquettes ou un CSV, puis propose de fusionner, remplacer ou créer ; les doublons sont ignorés.">Importer relit l'Archive, le .zip d'étiquettes ou un CSV, puis propose de fusionner, remplacer ou créer ; les doublons sont ignorés.</p>
+      <p class="hint hint--tight rail__transfer-hint" data-i18n="« Sauvegarde complète » écrit toutes les collections dans un seul fichier ; « Importer… » relit aussi une sauvegarde, et propose de l'ajouter ou de remplacer toutes les collections.">« Sauvegarde complète » écrit toutes les collections dans un seul fichier ; « Importer… » relit aussi une sauvegarde, et propose de l'ajouter ou de remplacer toutes les collections.</p>
       </details>
 
       <!-- Le rangement d'un import, demandé au moment où il se fait.
@@ -324,6 +332,37 @@
           <button id="import-replace" class="btn btn--ghost btn--danger" type="button"></button>
           <button id="import-add" class="btn btn--ghost" type="button" hidden></button>
           <button id="import-cancel" class="btn btn--ghost btn--small" type="button" data-i18n="Annuler">Annuler</button>
+        </div>
+      </div>
+
+      <!-- Le rangement d'une sauvegarde complète. Les libellés sont posés par
+           `app.js` : ils nomment le nombre de collections du fichier et la
+           collection affichée. Remplacer tout est destructeur, et passe donc par
+           une confirmation distincte. -->
+      <div id="backup-menu" class="import-menu" role="dialog" aria-modal="false"
+           aria-labelledby="backup-menu-title" aria-describedby="backup-menu-hint" hidden>
+        <p id="backup-menu-title" class="import-menu__title"></p>
+        <p id="backup-menu-hint" class="hint hint--tight"></p>
+        <div class="import-menu__choices">
+          <button id="backup-add" class="btn btn--ghost" type="button"></button>
+          <button id="backup-replace" class="btn btn--ghost btn--danger" type="button"></button>
+          <button id="backup-cancel" class="btn btn--ghost btn--small" type="button" data-i18n="Annuler">Annuler</button>
+        </div>
+      </div>
+
+      <!-- La restauration d'une sauvegarde complète est destructive : elle
+           remplace toutes les collections. La question se pose donc une seconde
+           fois, près du choix qui l'a ouverte — et **hors** du dépliant, qui
+           peut être refermé entre-temps : une confirmation invisible laisserait
+           « Remplacer » sans effet apparent. -->
+      <div id="backup-confirm" class="clear-confirm" role="alertdialog"
+           aria-labelledby="backup-confirm-text" hidden>
+        <p id="backup-confirm-text" class="clear-confirm__text"></p>
+        <div class="clear-confirm__actions">
+          <button id="backup-confirm-cancel" class="btn btn--ghost" type="button"
+                  data-i18n="Annuler">Annuler</button>
+          <button id="backup-confirm-yes" class="btn btn--ghost btn--danger" type="button"
+                  data-i18n="Remplacer">Remplacer</button>
         </div>
       </div>
 
@@ -687,13 +726,16 @@
           </label>
         </fieldset>
 
-        <!-- Colonnes du tableau imprimé. Les tags et la note ne sont
-             proposés que si la collection en contient : une colonne vide sur
-             toute une page n'apprend rien. -->
+        <!-- Colonnes du tableau imprimé. Chaque ligne porte son QR Code, puis
+             le titre et l'adresse dans une même cellule : la feuille se lit
+             comme une liste de liens. Le numéro d'ordre reste disponible, mais
+             décoché : c'est une option de pointage, pas la lecture par défaut.
+             Les tags et la note ne sont proposés que si la collection en
+             contient : une colonne vide sur toute une page n'apprend rien. -->
         <fieldset class="columns">
           <legend class="columns__legend" data-i18n="Tableau imprimé">Tableau imprimé</legend>
           <label class="columns__item field__label">
-            <input id="table-col-index" type="checkbox" checked>
+            <input id="table-col-index" type="checkbox">
             <span data-i18n="N°">N°</span>
           </label>
           <label class="columns__item field__label">
@@ -727,10 +769,12 @@
             <input id="table-col-date-time" type="checkbox">
             <span data-i18n="Avec l'heure">Avec l'heure</span>
           </label>
-          <!-- Sans bordures, le tableau se lit comme une liste et s'allège à
-               l'impression : utile quand on colle les étiquettes au cutter. -->
+          <!-- Par défaut, la feuille se lit comme une liste de liens : de
+               simples filets entre les lignes et un trait après le QR Code.
+               Cocher la grille rend le tableau complet, avec ses entêtes —
+               utile quand on recopie les valeurs à la main. -->
           <label class="columns__item field__label">
-            <input id="table-grid" type="checkbox" checked>
+            <input id="table-grid" type="checkbox">
             <span data-i18n="Grille et bordures">Grille et bordures</span>
           </label>
         </fieldset>
@@ -1075,7 +1119,7 @@
     </div>
     <!-- La signature : nom, licence, version. L'**année** est posée par
          `app.js` — elle doit être celle du jour, pas celle de la construction —
-         et la **version** vient du paquet : `0.5.0` est remplacé à la
+         et la **version** vient du paquet : `0.6.0` est remplacé à la
          construction par la valeur de `package.json`. Recopiée à la main, elle
          aurait fini par mentir, et une version fausse est pire qu'absente.
          Le texte est le même dans les deux langues : un nom, un nom de licence
@@ -1084,7 +1128,7 @@
     <p class="app-footer__signature">
       © <span id="footer-year"></span> G. Abegg-Gauthey
       <span class="app-footer__sep">·</span> MIT
-      <span class="app-footer__sep">·</span> version <span id="footer-version">0.5.0</span>
+      <span class="app-footer__sep">·</span> version <span id="footer-version">0.6.0</span>
     </p>
   </footer>
 
@@ -1095,6 +1139,6 @@
 
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
-  <script type="module" src="app.js?v=023b71bf8995"></script>
+  <script type="module" src="app.js?v=07eb837ceda5"></script>
 </body>
 </html>

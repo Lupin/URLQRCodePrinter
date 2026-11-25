@@ -6,16 +6,20 @@ vérifiée le 21 septembre 2026 — pas d'une estimation.
 
 | Image | Dimensions | Format | Obligatoire ? | État |
 |---|---|---|---|---|
-| Icône de l'extension | 128 × 128 | PNG, avec canal alpha | **Oui**, dans le `.zip` | ✅ `src/extension-src/icons/icon-128.png` — tuile orange, étiquette QR Code et imprimante |
-| Captures d'écran | 1280 × 800 **ou** 640 × 400 | PNG ou JPEG | **Oui**, au moins 1, jusqu'à 5 | ✅ `screenshots/` — 01 à 04 |
-| Petite image promotionnelle | 440 × 280 | PNG ou JPEG | **Oui** | ✅ [`promo/promo-440x280.jpg`](promo/promo-440x280.jpg) |
-| Image « marquee » | 1400 × 560 | PNG ou JPEG | Non | ✅ [`promo/marquee-1400x560.jpg`](promo/marquee-1400x560.jpg) |
+| Icône de l'extension | 128 × 128 | PNG, avec canal alpha | **Oui**, dans le `.zip` | ✅ `src/extension-src/icons/icon-128.png` — tuile orange pure, quatre carrés blancs (QR Code stylisé) |
+| Captures d'écran | 1280 × 800 **ou** 640 × 400 | PNG ou JPEG | **Oui**, au moins 1, jusqu'à 5 | ✅ `screenshots/` — 01 à 05 |
+| Petite image promotionnelle | 440 × 280 | PNG ou JPEG | **Oui** | ✅ [`promo/promo-440x280.jpg`](promo/promo-440x280.jpg) — FR ; [`promo-440x280-en.jpg`](promo/promo-440x280-en.jpg) — EN |
+| Image « marquee » | 1400 × 560 | PNG ou JPEG | Non | ✅ [`promo/marquee-1400x560.jpg`](promo/marquee-1400x560.jpg) — FR ; [`marquee-1400x560-en.jpg`](promo/marquee-1400x560-en.jpg) — EN |
 
 ## Mise à jour : une seule commande
 
 ```bash
 npm run store
 ```
+
+Les deux langues sont produites à chaque passage : les fichiers sans suffixe sont
+la version française (celle que la fiche dépose), les `-en.jpg` sont la version
+anglaise, prête pour une fiche anglophone.
 
 Elle reconstruit le paquet, **refait toutes les captures** (application, fenêtre,
 impression, confidentialité, collections, FR et EN), refait les visuels
@@ -48,8 +52,8 @@ reléguée derrière les autres dans les résultats du magasin.
 transparence ne sert qu'autour de la **tuile arrondie** : le dessin occupe tout le
 carré, moins les quatre coins.
 
-Le dessin est celui retenu après les huit propositions : une étiquette crème avec
-son QR Code sortant d'une imprimante, sur une tuile de l'orange de la marque. Il
+Le dessin est celui retenu après les propositions : quatre carrés blancs — un QR
+Code stylisé — sur une tuile de l'orange pur de la maison (`#ff5000`). Il
 est généré par [`scripts/make-icons.mjs`](../scripts/make-icons.mjs) à toutes les
 tailles (16 à 1024 px), à partir de formes — chaque taille est donc
 anti-crénelée, et le QR Code se simplifie quand ses modules deviendraient plus fins
@@ -104,7 +108,7 @@ décoratif. Une image promotionnelle dont le QR Code ne se lit pas serait un ave
 
 | Fichier | Dimension | Poids | Contenu |
 |---|---|---|---|
-| [`promo-440x280.jpg`](promo/promo-440x280.jpg) | 440 × 280 | ~28 Ko | la fenêtre qui collecte, la flèche, l'étiquette QR Code |
+| [`promo-440x280.jpg`](promo/promo-440x280.jpg) | 440 × 280 | ~12 Ko | la marque à gauche, la feuille de signets inclinée à droite, versions FR et EN |
 | [`marquee-1400x560.jpg`](promo/marquee-1400x560.jpg) | 1400 × 560 | ~148 Ko | la même histoire, au format bandeau : fenêtre, flèche, trois étiquettes |
 
 Les fichiers sont vérifiés à la main après chaque génération : dimension exacte,

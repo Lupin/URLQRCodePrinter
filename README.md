@@ -40,6 +40,7 @@ share.
 | Brave / Chrome extension (right-click, popup, clickable links) | done, verified in Brave and in Chrome |
 | **Chrome Web Store listing** | **published** — `0.4.0` live; the `0.5.0` update (identity, ergonomics, selection, printing) is prepared; see [the listing notes](docs/chrome-web-store.md) before shipping it |
 | Standalone web app (list, exports, layouts) | done, verified in Brave |
+| Full backup of every collection, and its restore | done, tested |
 | Optional URL shortening (T.LY first, then TinyURL, is.gd, v.gd, spoo.me) | done, verified in Brave |
 | Avery A4 and Letter sheets, print calibration | done, geometry checked against published dimensions |
 | Niimbot label preview with no printer connected | done, verified in Brave |
@@ -49,7 +50,7 @@ share.
 | Native Swift core (protocol, session, CoreBluetooth) | done, tested |
 | iOS app that uses that core | to do |
 
-**1192 tests, all green** — 1088 in JavaScript and 104 in Swift — including:
+**1287 tests, all green** — 1183 in JavaScript and 104 in Swift — including:
 
 - **byte-for-byte** validation of the Niimbot frames against the documented
   records, **in both languages**: two independent implementations that
@@ -250,9 +251,9 @@ private window is not enough to make it appear — the window has to be allowed 
 run the extension.
 
 What local-only costs is not space but loss. Uninstall the extension, or clear
-your browsing data, and the collection is gone. The only backup is the Archive
-export — a file you keep yourself — and the import reads it back, skipping the
-links already present.
+your browsing data, and the collection is gone. The only backup is a file you
+keep yourself: the Archive of one collection, or the **full backup** that carries
+them all. The import reads either back, skipping the links already present.
 
 ### Naming, creating and deleting a collection
 
@@ -638,6 +639,50 @@ load time. The filing choice itself is executed for real in
 `test/web-import.test.js`: a static check would say that the three commands
 exist, not what they do.
 
+## Backing up every collection
+
+The **Archive** button describes **one** collection only. Moving to another
+machine therefore meant reopening every collection and downloading as many
+files. The **Full backup** (« Sauvegarde complète ») button next to it writes
+**every ordinary collection and all their links into a single JSON file**:
+
+- each collection keeps its **name, note, first number, rank and creation
+  date**;
+- each link keeps its URL, title, tags, note, collection date, manual rank and
+  short link;
+- the **private-browsing collection is never included**: its links live in
+  `chrome.storage.session`, and the core constructor explicitly leaves out that
+  collection and its links. In private browsing the command is therefore
+  inactive, with the sentence that explains why;
+- the file is called `sauvegarde-complete-YYYYMMDD-HHMM.json`.
+
+**Import… also reads a backup.** The file is recognised by its marker
+(`url-qr-code-printer/backup`) and is **not** flattened into a single-collection
+archive: the app asks what to do with it.
+
+| Outcome | What it does |
+|---|---|
+| **Add the N collections from the file** | each collection in the file is created next to yours; a name already taken is suffixed ("Veille", then "Veille 2"); links keep their date, rank and short link; an identifier already in use is regenerated. The displayed collection is left untouched. |
+| **Replace all collections** | the current collections and their links are **erased first**, then those from the file are restored with their names, notes, first numbers and dates. A **second confirmation** states what will be lost and what will be restored. |
+
+Nothing is written before the choice, and Cancel leaves no trace. Names already
+taken are never refused: a backup made on another machine almost always carries
+the same names, and refusing the import over a taken name would force a manual
+rename before recovering any data. An unreadable link is counted and reported,
+without failing the rest; a duplicate URL within one collection is ignored and
+counted.
+
+A backup read back is **untrusted input**: it goes through the model
+constructors — validated URL, limits on name and note —, duplicate identifiers
+are regenerated, and caps (500 collections, 20,000 links) refuse a file that
+could not have come from the product. A backup from a newer version is refused
+with "update the application".
+
+**What is not in the file: the settings.** The backup carries the collections and
+their links — what the browser can lose, and what you want to find again
+elsewhere — not the layout preferences, which take one gesture to set and depend
+on the printer.
+
 ## Dating a label: an option, never a fragment
 
 The collection date can be printed under the QR Code — `None`, `Collection
@@ -1009,7 +1054,7 @@ exists in French and English. Before opening a pull request:
 
 ```bash
 npm install
-npm run test:all   # 1088 JavaScript tests + 104 Swift tests
+npm run test:all   # 1183 JavaScript tests + 104 Swift tests
 ```
 
 The repository conventions — a core with no DOM and no implicit network, zero

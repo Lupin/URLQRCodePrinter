@@ -1,22 +1,22 @@
-/* IBM Plex, embarquée (SIL OFL) — sous-ensemble latin, aucune requête
-   distante : l'extension et le site servent leurs propres fichiers. */
+/* Inter, embarquée (SIL OFL) — poids 400, 500 et 600, sous-ensemble latin.
+   Aucune requête distante : l'extension sert ses propres fichiers. */
 @font-face {
-  font-family: "IBM Plex Sans"; font-style: normal; font-weight: 400;
-  font-display: swap; src: url("fonts/ibm-plex-sans-400.woff2") format("woff2");
+  font-family: "Inter"; font-style: normal; font-weight: 400;
+  font-display: swap; src: url("fonts/inter-latin-400.woff2") format("woff2");
   unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA,
     U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193,
     U+2212, U+2215, U+FEFF, U+FFFD;
 }
 @font-face {
-  font-family: "IBM Plex Sans"; font-style: normal; font-weight: 500;
-  font-display: swap; src: url("fonts/ibm-plex-sans-500.woff2") format("woff2");
+  font-family: "Inter"; font-style: normal; font-weight: 500;
+  font-display: swap; src: url("fonts/inter-latin-500.woff2") format("woff2");
   unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA,
     U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193,
     U+2212, U+2215, U+FEFF, U+FFFD;
 }
 @font-face {
-  font-family: "IBM Plex Sans"; font-style: normal; font-weight: 600;
-  font-display: swap; src: url("fonts/ibm-plex-sans-600.woff2") format("woff2");
+  font-family: "Inter"; font-style: normal; font-weight: 600;
+  font-display: swap; src: url("fonts/inter-latin-600.woff2") format("woff2");
   unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA,
     U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193,
     U+2212, U+2215, U+FEFF, U+FFFD;
@@ -24,13 +24,6 @@
 @font-face {
   font-family: "IBM Plex Mono"; font-style: normal; font-weight: 400;
   font-display: swap; src: url("fonts/ibm-plex-mono-400.woff2") format("woff2");
-  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA,
-    U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193,
-    U+2212, U+2215, U+FEFF, U+FFFD;
-}
-@font-face {
-  font-family: "IBM Plex Mono"; font-style: normal; font-weight: 500;
-  font-display: swap; src: url("fonts/ibm-plex-mono-500.woff2") format("woff2");
   unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA,
     U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193,
     U+2212, U+2215, U+FEFF, U+FFFD;
@@ -43,34 +36,36 @@
  * étroite, cette page est une colonne de lecture. Les partager obligerait à
  * défaire dans l'une ce qui a été fait pour l'autre.
  *
- * `color-scheme` est déclaré pour que les contrôles natifs — et le fond — suivent
- * le thème du système, comme le recommande Apple pour les pages d'extension.
+ * Même système que l'application : canvas clair, filets d'un pixel, zéro rayon,
+ * zéro ombre, et une seule teinte d'action — l'orange #ff5000, toujours avec du
+ * texte blanc. Le noir #0f0e12 est une encre, jamais une surface.
  */
 
 :root {
-  color-scheme: light dark;
+  color-scheme: light;
 
-  --bg: #ffffff;
-  --fg: #1c1c1e;
-  --muted: #5b5b60;
-  --border: #d8d8dc;
-  --accent: #c2410c;
+  --bg: #f5f5f5;
+  --surface: #ffffff;
+  --fg: #0f0e12;
+  --muted: #4d4d4d;
+  --border: #e5e5e5;
+  --border-control: #767676;
+  --accent: #ff5000;
   --accent-fg: #ffffff;
-  --ok: #15803d;
-  --off: #b91c1c;
-}
+  --ok: #006837;
+  --off: #b81d13;
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #1c1c1e;
-    --fg: #f2f2f7;
-    --muted: #a1a1a6;
-    --border: #3a3a3c;
-    --accent: #fb923c;
-    --accent-fg: #1c1c1e;
-    --ok: #4ade80;
-    --off: #f87171;
-  }
+  --font: "Inter", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+    "Segoe UI", Roboto, sans-serif;
+
+  --weight-texte: 400;
+  --weight-ui: 500;
+  --weight-titre: 600;
+
+  --radius: 0;
+  --motion: 120ms;
+
+  font-synthesis: none;
 }
 
 * {
@@ -82,23 +77,30 @@ body {
   padding: 2.5rem 1.25rem 4rem;
   background: var(--bg);
   color: var(--fg);
-  font: 16px/1.6 "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-family: var(--font);
+  font-size: 13px;
+  font-weight: var(--weight-texte);
+  line-height: 1.6;
 }
 
 .sheet {
   max-width: 58ch;
   margin: 0 auto;
+  padding: 2rem;
+  border: 1px solid var(--border);
+  background: var(--surface);
 }
 
 .sheet__title {
   margin: 0 0 1rem;
-  font-size: 1.75rem;
+  font-size: 24px;
+  font-weight: var(--weight-titre);
   line-height: 1.2;
 }
 
 .sheet__lead {
   margin: 0 0 2rem;
-  font-size: 1.0625rem;
+  font-size: 13px;
   color: var(--muted);
 }
 
@@ -108,7 +110,9 @@ body {
 
 .block__title {
   margin: 0 0 0.5rem;
-  font-size: 1.0625rem;
+  font-size: 19px;
+  font-weight: var(--weight-titre);
+  line-height: 1.25;
 }
 
 .block p {
@@ -130,7 +134,9 @@ body {
   margin: 2.5rem 0;
   padding: 1.25rem;
   border: 1px solid var(--border);
-  border-radius: 0.75rem;
+  border-left: 3px solid var(--accent);
+  border-radius: var(--radius);
+  background: var(--surface);
 }
 
 .consent__state:empty {
@@ -139,7 +145,7 @@ body {
 
 .consent__state {
   margin: 0 0 1rem;
-  font-weight: 600;
+  font-weight: var(--weight-titre);
 }
 
 .consent__state--ok {
@@ -158,33 +164,40 @@ body {
 
 .consent__note {
   margin: 1rem 0 0;
-  font-size: 0.875rem;
+  font-size: 11px;
   color: var(--muted);
 }
 
 .btn {
-  padding: 0.6rem 1.1rem;
-  border: 1px solid var(--border);
-  border-radius: 0.5rem;
-  background: transparent;
-  color: inherit;
-  font: inherit;
-  font-weight: 600;
+  min-height: 36px;
+  padding: 0 15px;
+  border: 1px solid var(--border-control);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--fg);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: var(--weight-ui);
   cursor: pointer;
+  transition: background-color var(--motion) linear, border-color var(--motion) linear,
+    color var(--motion) linear;
 }
 
 .btn:hover {
-  border-color: var(--muted);
+  border-color: var(--fg);
+  background: var(--bg);
 }
 
 .btn--primary {
-  border-color: transparent;
+  border-color: var(--accent);
   background: var(--accent);
   color: var(--accent-fg);
+  font-weight: var(--weight-titre);
 }
 
 .btn--primary:hover {
-  filter: brightness(1.08);
+  border-color: #e04700;
+  background: #e04700;
 }
 
 .btn:focus-visible {
@@ -196,8 +209,8 @@ body {
 .sheet__toc {
   margin: 0 0 2rem;
   padding: 0.75rem 1rem;
-  border-left: 2px solid var(--rule, #c2410c);
-  background: var(--surface-2, #f7f7f8);
+  border-left: 3px solid var(--accent);
+  background: var(--bg);
 }
 
 .sheet__toc ol { margin: 0; padding-left: 1.1rem; }
@@ -207,6 +220,16 @@ body {
 .block { scroll-margin-top: 1rem; }
 .block p, .block li { line-height: 1.65; }
 
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}
+
 @media (max-width: 480px) {
-  .sheet { padding-left: 1rem; padding-right: 1rem; }
+  body { padding: 1.25rem 0.75rem 2.5rem; }
+  .sheet { padding: 1.25rem; }
 }

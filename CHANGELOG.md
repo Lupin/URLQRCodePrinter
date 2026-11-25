@@ -21,6 +21,42 @@ Two conventions, so the file stays machine-readable:
 The oldest version carries no date: it was not recorded at the time. It is not
 invented here either.
 
+## [0.6.0] - 2026-11-25
+
+### Added
+
+- **Full backup of every collection**: one button writes every ordinary
+  collection and all their links into a single JSON file,
+  `sauvegarde-complete-….json`. Each collection keeps its name, note, first
+  number, rank and creation date; the private-browsing collection is never
+  included.
+- **Restoring a backup**: "Import…" recognises the file and offers to **add** it
+  — collections are created next to the existing ones, names already taken are
+  suffixed — or to **replace** every collection, after a confirmation stating
+  what will be lost and what will be restored.
+
+### Changed
+
+- Import now tells a full backup apart from a single-collection archive: it no
+  longer flattens it into one collection, and opens its own filing panel.
+- **New visual direction**: a light, high-contrast system — `#f5f5f5` canvas,
+  white panels, `#e5e5e5` hairlines and a grey work surface, with one pure
+  action orange (`#ff5000`) and white text on it. No black surface, no pastel
+  fills, no rounded corners, no shadow except the sheet itself. The extension
+  window and the privacy page follow the same system.
+- **Readable type hierarchy**: Inter at 400/500/600 replaces the hairline
+  weights — 11 / 13 / 19 / 24 px — while the printed label keeps IBM Plex so
+  the physical output does not change.
+- The product icon is redrawn: four white squares — a QR Code reduced to its
+  most recognisable form — on the pure-orange tile, and every size is
+  regenerated, application icons included.
+
+### What does not change
+
+No account, no publisher-run server, no analytics. Links stay in local storage,
+the permissions are unchanged, and the only network call remains the shortening
+requested by the user.
+
 ## [0.5.0] - 2026-11-23
 
 Identity and ergonomics update: the listing, the app, the extension window and the

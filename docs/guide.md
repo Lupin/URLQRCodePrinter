@@ -240,9 +240,14 @@ window.
 | File supplied | Where it comes from | What is read back |
 |---|---|---|
 | `liens-….json` | **Archive** button | everything: URL, title, tags, note, collection date, short link |
+| `sauvegarde-complete-….json` | **Full backup** (« Sauvegarde complète ») button | every collection — names, notes, first numbers, ranks, dates — and all their links |
 | `etiquettes-….zip` | **Export images (ZIP)** (« Exporter les images (ZIP) ») button | the links from the manifest contained in the archive |
 | `export.json` | extracted by hand from an archive | the same |
 | `….csv` | **CSV** button, possibly edited in a spreadsheet | URL, title, tags, note, date |
+
+A **full backup** takes a separate path: it carries several collections, and the
+import does not flatten it into a single-collection archive. It opens a distinct
+panel, described in "Backing up every collection".
 
 **Importing asks where to file what it has just read.** Once the file is read —
 the panel then states how many links it carries, and under which collection name
@@ -422,6 +427,41 @@ Two conditions to see it:
 
 If you save a private link into **another** collection, it is kept like any
 other — and the window says so, since that decision is yours.
+
+### Backing up every collection
+
+The **Full backup** (« Sauvegarde complète ») button, in the "Export, import and
+clear" (« Exporter, importer et vider ») disclosure, writes **every ordinary
+collection and all their links** into a single
+`sauvegarde-complete-YYYYMMDD-HHMM.json` file. It is the file to copy to another
+machine — or to keep before uninstalling the extension.
+
+For each collection it carries its name, note, first number, rank and creation
+date; for each link its URL, title, tags, note, collection date, rank and short
+link. **The private-browsing collection is never included**: its links live in
+session memory. In a private window the command is therefore inactive, with the
+sentence that explains why.
+
+To read it back, use **"Import…"** (« Importer… »): the file is recognised by its
+marker, and a panel offers two outcomes. Nothing is written before your choice.
+
+| Outcome | What it does |
+|---|---|
+| **Add the N collections from the file** | each collection in the file is created next to yours; a name already taken is suffixed ("Veille", then "Veille 2"); links keep their date, rank and short link; an identifier already in use is regenerated. The displayed collection is left untouched. |
+| **Replace all collections** | the current collections and their links are **erased first**, then those from the file are restored. A **second confirmation** states what will be lost and what will be restored — it is the only outcome that destroys. |
+
+On the **standalone web page**, which has only one collection, the two outcomes
+become "Merge the N collections into « Mes liens »" and "Replace « Mes liens »":
+the file's collections are merged into the single collection, and replacement
+takes back its name, note and first number.
+
+An unreadable link is counted and reported, without failing the rest; a duplicate
+URL within one collection is ignored. A backup from a newer version of the
+application is refused with "update the application".
+
+**The settings are not in the file.** The backup carries the collections and
+their links, not the layout preferences — they take one gesture to set, and
+depend on the printer.
 
 ## Shortening, optionally
 
